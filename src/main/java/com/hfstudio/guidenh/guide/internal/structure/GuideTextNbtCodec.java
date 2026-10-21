@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
 
 import net.minecraft.item.Item;
@@ -41,6 +42,8 @@ public class GuideTextNbtCodec {
     public static final String ENTRY_KEY_TAG = "k";
     public static final String ENTRY_VALUE_TAG = "v";
     public static final String BYTE_ARRAY_WRAPPER_TAG = "__guidenh_byte_array_v1";
+    public static final String INT_ARRAY_WRAPPER_TAG = "__guidenh_int_array_v1";
+    private static final Pattern LEGACY_INT_ARRAY_LITERAL = Pattern.compile("\\[(\\s*-?\\d+\\s*,)+\\s*]");
 
     private GuideTextNbtCodec() {}
 
@@ -184,6 +187,11 @@ public class GuideTextNbtCodec {
             encoded.setIntArray(BYTE_ARRAY_WRAPPER_TAG, toIntArray(byteArray.func_150292_c()));
             return encoded;
         }
+        if (tag instanceof NBTTagIntArray intArray) {
+            NBTTagCompound encoded = new NBTTagCompound();
+            encoded.setIntArray(INT_ARRAY_WRAPPER_TAG, intArray.func_150302_c());
+            return encoded;
+        }
         if (tag instanceof NBTTagCompound compound) {
             return encodeCompound(compound);
         }
@@ -199,12 +207,105 @@ public class GuideTextNbtCodec {
             if (decodedByteArray != null) {
                 return new NBTTagByteArray(decodedByteArray);
             }
+            int[] decodedIntArray = decodeWrappedIntArray(compound);
+            if (decodedIntArray != null) {
+                return new NBTTagIntArray(decodedIntArray);
+            }
             return decodeCompound(compound);
         }
         if (tag instanceof NBTTagList list) {
             return transformList(list, false);
         }
+        if (tag instanceof NBTTagString stringTag && LEGACY_INT_ARRAY_LITERAL.matcher(stringTag.func_150285_a_())
+            .matches()) {
+            int[] legacyIntArray = parseIntArrayLiteral(stringTag.func_150285_a_());
+            if (legacyIntArray != null) {
+                return new NBTTagIntArray(legacyIntArray);
+            }
+        }
         return tag.copy();
+    }
+
+    public static int[] decodeWrappedIntArray(NBTTagCompound compound) {
+        if (compound.func_150296_c()
+            .size() != 1 || !compound.hasKey(INT_ARRAY_WRAPPER_TAG)) {
+            return null;
+        }
+        NBTBase wrapped = compound.getTag(INT_ARRAY_WRAPPER_TAG);
+        if (wrapped instanceof NBTTagIntArray intArray) {
+            return intArray.func_150302_c();
+        }
+        if (wrapped instanceof NBTTagString stringTag) {
+            return parseIntArrayLiteral(stringTag.func_150285_a_());
+        }
+        if (wrapped instanceof NBTTagList list) {
+            int[] decoded = new int[list.tagCount()];
+            for (int index = 0; index < decoded.length; index++) {
+                try {
+                    decoded[index] = Integer.parseInt(trimNumericSuffix(list.getStringTagAt(index)));
+                } catch (NumberFormatException ignored) {
+                    return null;
+                }
+            }
+            return decoded;
+        }
+        return null;
+    }
+
+    public static int[] parseIntArrayLiteral(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        if (!trimmed.startsWith("[") || !trimmed.endsWith("]")) {
+            return null;
+        }
+        String[] parts = trimmed.substring(1, trimmed.length() - 1)
+            .split(",");
+        int[] decoded = new int[parts.length];
+        int count = 0;
+        for (String part : parts) {
+            String numeric = part.trim();
+            if (numeric.isEmpty()) {
+                continue;
+            }
+            try {
+                decoded[count++] = Integer.parseInt(numeric);
+            } catch (NumberFormatException ignored) {
+                return null;
+            }
+        }
+        if (count == decoded.length) {
+            return decoded;
+        }
+        int[] compact = new int[count];
+        System.arraycopy(decoded, 0, compact, 0, count);
+        return compact;
+    }
+
+    public static NBTTagCompound withEmptyListsAsIntArrays(NBTTagCompound tag) {
+        NBTTagCompound copy = (NBTTagCompound) tag.copy();
+        return replaceEmptyLists(copy) ? copy : null;
+    }
+
+    private static boolean replaceEmptyLists(NBTTagCompound compound) {
+        boolean replaced = false;
+        for (String key : new ArrayList<>(compound.func_150296_c())) {
+            NBTBase value = compound.getTag(key);
+            if (value instanceof NBTTagList list) {
+                if (list.tagCount() == 0) {
+                    compound.setTag(key, new NBTTagIntArray(new int[0]));
+                    replaced = true;
+                } else if (list.func_150303_d() == 10) {
+                    for (int index = 0; index < list.tagCount(); index++) {
+                        replaced |= replaceEmptyLists(list.getCompoundTagAt(index));
+                    }
+                }
+            } else if (value instanceof NBTTagCompound child) {
+                replaced |= replaceEmptyLists(child);
+            }
+        }
+        return replaced;
     }
 
     public static boolean isEncodedByteArray(NBTTagCompound compound) {

@@ -1,6 +1,7 @@
 package com.hfstudio.guidenh.integration.gregtech;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -30,6 +31,7 @@ import gregtech.api.interfaces.INEIPreviewModifier;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.BaseMetaPipeEntity;
+import gregtech.api.metatileentity.GregTechTileClientEvents;
 import gregtech.api.metatileentity.MetaPipeEntity;
 import gregtech.api.metatileentity.implementations.MTEHatch;
 import gregtech.api.metatileentity.implementations.MTEMultiBlockBase;
@@ -37,6 +39,8 @@ import gregtech.api.structure.error.StructureError;
 import gregtech.api.util.GTOreDictUnificator;
 import gregtech.common.blocks.ItemMachines;
 import gregtech.common.misc.GTStructureChannels;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 
 public class GregTechHelpers {
 
@@ -724,7 +728,7 @@ public class GregTechHelpers {
             if (importedPreview || shouldActivatePreviewController(activeController, valid)) {
                 gtTile.setActive(true);
             }
-            if (importedPreview || activeController) {
+            if (importedPreview || activeController || valid || machineBefore != multiBlockBase.mMachine) {
                 gtTile.issueTextureUpdate();
                 applyPreviewTextureUpdate(metaTileEntity);
             }
@@ -754,7 +758,71 @@ public class GregTechHelpers {
         IGregTechTileEntity gtTile, @Nullable ItemStack triggerStack) {
         List<StructureError> errors = new ArrayList<>();
         multiBlockBase.checkMachine(gtTile, triggerStack, errors);
+        try {
+            ((TileEntity) gtTile)
+                .receiveClientEvent(GregTechTileClientEvents.CHANGE_CUSTOM_DATA, multiBlockBase.getUpdateData());
+        } catch (Throwable ignored) {}
         return errors;
+    }
+
+    public static void refreshPreviewClientEvents(@Nullable Collection<TileEntity> tileEntities) {
+        if (tileEntities == null || tileEntities.isEmpty() || !Mods.GregTech.isModLoaded()) {
+            return;
+        }
+        try {
+            refreshPreviewClientEventsImpl(tileEntities);
+        } catch (Throwable ignored) {}
+    }
+
+    @Optional.Method(modid = "gregtech_nh")
+    private static void refreshPreviewClientEventsImpl(Collection<TileEntity> tileEntities) {
+        for (TileEntity tileEntity : tileEntities) {
+            if (!(tileEntity instanceof IGregTechTileEntity gtTile)) {
+                continue;
+            }
+            IMetaTileEntity metaTileEntity = gtTile.getMetaTileEntity();
+            if (metaTileEntity == null || !hasValidMetaTileBinding(tileEntity)) {
+                continue;
+            }
+            try {
+                tileEntity
+                    .receiveClientEvent(GregTechTileClientEvents.CHANGE_CUSTOM_DATA, metaTileEntity.getUpdateData());
+            } catch (Throwable ignored) {}
+        }
+    }
+
+    public static void syncPreviewStreamState(@Nullable Collection<TileEntity> tileEntities) {
+        if (tileEntities == null || tileEntities.isEmpty() || !Mods.GregTech.isModLoaded()) {
+            return;
+        }
+        try {
+            syncPreviewStreamStateImpl(tileEntities);
+        } catch (Throwable ignored) {}
+    }
+
+    @Optional.Method(modid = "gregtech_nh")
+    private static void syncPreviewStreamStateImpl(Collection<TileEntity> tileEntities) {
+        for (TileEntity tileEntity : tileEntities) {
+            if (!(tileEntity instanceof IGregTechTileEntity gtTile) || !hasValidMetaTileBinding(tileEntity)) {
+                continue;
+            }
+            IMetaTileEntity metaTileEntity = gtTile.getMetaTileEntity();
+            if (metaTileEntity == null) {
+                continue;
+            }
+            ByteBuf buffer = Unpooled.buffer();
+            try {
+                metaTileEntity.writeToStream(buffer);
+                metaTileEntity.readFromStream(buffer);
+            } catch (Throwable t) {
+                logInfoOnce(
+                    "preview-stream-sync:" + describeTile(tileEntity),
+                    "GregTech preview stream sync failed for {}",
+                    describeTile(tileEntity));
+            } finally {
+                buffer.release();
+            }
+        }
     }
 
     private static void appendPreviewStructureWarning(@Nullable List<String> warnings, List<StructureError> errors) {
@@ -1080,6 +1148,9 @@ public class GregTechHelpers {
                 }
                 if (isSamePipeType(metaPipe, adj)) {
                     connections |= (byte) dir.flag;
+                    continue;
+                }
+                if (adj instanceof BaseMetaPipeEntity) {
                     continue;
                 }
                 try {

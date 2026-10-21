@@ -11,8 +11,7 @@ import com.hfstudio.guidenh.libs.unist.UnistNode;
 
 public record ContentTabsSpec(@Nullable String title, @Nullable QuoteIconSpec icon, @Nullable String defaultTitle,
     @Nullable Integer defaultIndex, @Nullable ColorValue accentColor, @Nullable ColorValue backgroundColor,
-    List<TabEntry> tabs,
-    List<ValidationIssue> issues) {
+    List<TabEntry> tabs, List<ValidationIssue> issues) {
 
     public boolean hasRenderableTabs() {
         return !tabs.isEmpty();

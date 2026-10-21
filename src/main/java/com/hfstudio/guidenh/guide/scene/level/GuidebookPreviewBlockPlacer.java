@@ -4,9 +4,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.WeakHashMap;
 import java.util.concurrent.ConcurrentHashMap;
 
 import net.minecraft.block.Block;
+import net.minecraft.entity.EntityLiving;
+import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTBase;
 import net.minecraft.nbt.NBTTagByteArray;
 import net.minecraft.nbt.NBTTagCompound;
@@ -32,6 +35,7 @@ public class GuidebookPreviewBlockPlacer {
     public static final Set<String> KNOWN_GREGTECH_BYTE_ARRAY_KEYS = createKnownGregTechByteArrayKeys();
     private static final int MISSING_BASE_META = Integer.MIN_VALUE;
     private static final Map<Integer, Integer> GREGTECH_BASE_META_CACHE = new ConcurrentHashMap<>();
+    private static final Map<World, EntityLiving> PLACEMENT_ENTITIES = new WeakHashMap<>();
 
     private GuidebookPreviewBlockPlacer() {}
 
@@ -116,6 +120,19 @@ public class GuidebookPreviewBlockPlacer {
             tileEntity,
             tileSnapshot,
             previewTileTag);
+        invokeOnBlockPlacedByIfNeeded(
+            block,
+            blockAddedWorld,
+            x,
+            y,
+            z,
+            placementData.blockMeta,
+            previewTileTag,
+            structureBlockCompound);
+        tileEntity = resolveWorldResidentTile(blockAddedWorld, x, y, z, tileEntity);
+        if (tileEntity != null) {
+            level.setTileEntity(x, y, z, tileEntity);
+        }
         logLoadedTile("post-block-added", x, y, z, tileEntity, placementData.metaTileId, previewTileTag);
         level.setExplicitBlockId(x, y, z, explicitBlockId);
         StructureImportPipeline.apply(new ImportBlockContext(level, x, y, z, structureBlockCompound));
@@ -210,6 +227,90 @@ public class GuidebookPreviewBlockPlacer {
             block.onBlockAdded(world, x, y, z);
         } catch (Throwable t) {
             GuideDebugLog.warn("Preview block onBlockAdded hook failed for {}", block, t);
+        }
+    }
+
+    public static void invokeOnBlockPlacedByIfNeeded(Block block, World world, int x, int y, int z, int meta,
+        @Nullable NBTTagCompound tileTag, @Nullable NBTTagCompound structureBlockCompound) {
+        if (block == null || world == null || hasPersistedTileData(tileTag, structureBlockCompound)) {
+            return;
+        }
+        try {
+            EntityLiving placer = placementEntity(world, x, y, z);
+            block.onBlockPlacedBy(world, x, y, z, placer, new ItemStack(block, 1, meta));
+        } catch (Throwable failure) {
+            GuideDebugLog.warn("Preview block onBlockPlacedBy hook failed for {}", block, failure);
+        }
+    }
+
+    private static boolean hasPersistedTileData(@Nullable NBTTagCompound tileTag,
+        @Nullable NBTTagCompound structureBlockCompound) {
+        if (tileTag != null && !tileTag.func_150296_c()
+            .isEmpty()) {
+            return true;
+        }
+        if (structureBlockCompound == null || !structureBlockCompound.hasKey("nbt", NBT.TAG_COMPOUND)) {
+            return false;
+        }
+        NBTBase structureTileTag = structureBlockCompound.getTag("nbt");
+        return structureTileTag instanceof NBTTagCompound compound && !compound.func_150296_c()
+            .isEmpty();
+    }
+
+    private static EntityLiving placementEntity(World world, int x, int y, int z) {
+        EntityLiving placer;
+        synchronized (PLACEMENT_ENTITIES) {
+            placer = PLACEMENT_ENTITIES.get(world);
+            if (placer == null) {
+                placer = new SyntheticPlacementEntity(world);
+                PLACEMENT_ENTITIES.put(world, placer);
+            }
+        }
+        placer.worldObj = world;
+        placer.setPosition(x + 0.5D, y + 0.5D, z + 0.5D);
+        placer.prevPosX = placer.lastTickPosX = placer.posX;
+        placer.prevPosY = placer.lastTickPosY = placer.posY;
+        placer.prevPosZ = placer.lastTickPosZ = placer.posZ;
+        // A deterministic horizontal look vector gives placement callbacks a legal ForgeDirection instead of
+        // ForgeDirection.UNKNOWN, while keeping scene output independent of the viewer's camera.
+        placer.prevRotationYaw = placer.rotationYaw = 0.0F;
+        placer.prevRotationPitch = placer.rotationPitch = 0.0F;
+        placer.prevRotationYawHead = placer.rotationYawHead = 0.0F;
+        placer.prevRenderYawOffset = placer.renderYawOffset = 0.0F;
+        return placer;
+    }
+
+    public static void releasePlacementEntity(World world) {
+        if (world == null) {
+            return;
+        }
+        synchronized (PLACEMENT_ENTITIES) {
+            PLACEMENT_ENTITIES.remove(world);
+        }
+    }
+
+    private static class SyntheticPlacementEntity extends EntityLiving {
+
+        private SyntheticPlacementEntity(World world) {
+            super(world);
+        }
+
+        @Override
+        public ItemStack getHeldItem() {
+            return null;
+        }
+
+        @Override
+        public ItemStack getEquipmentInSlot(int slot) {
+            return null;
+        }
+
+        @Override
+        public void setCurrentItemOrArmor(int slot, ItemStack stack) {}
+
+        @Override
+        public ItemStack[] getLastActiveItems() {
+            return new ItemStack[0];
         }
     }
 
@@ -560,10 +661,11 @@ public class GuidebookPreviewBlockPlacer {
         TileEntity residentTile = resolveWorldResidentTile(world, x, y, z, preparedTileEntity);
         NBTTagCompound restoreTag = tileSnapshot != null ? tileSnapshot : tileTag;
         TileEntity restoredTile = residentTile != null ? residentTile : preparedTileEntity;
-        if (restoreTag != null && !applyTileSnapshot(restoredTile, restoreTag, x, y, z)
-            && restoredTile != preparedTileEntity) {
-            restoredTile = preparedTileEntity;
-            applyTileSnapshot(restoredTile, restoreTag, x, y, z);
+        if (restoreTag != null && restoredTile != preparedTileEntity) {
+            if (!applyTileSnapshot(restoredTile, restoreTag, x, y, z)) {
+                restoredTile = preparedTileEntity;
+                applyTileSnapshot(restoredTile, restoreTag, x, y, z);
+            }
         }
 
         initializeGregTechMetaTile(restoredTile, placementData.metaTileId, restoreTag);
@@ -611,7 +713,15 @@ public class GuidebookPreviewBlockPlacer {
         try {
             tileEntity.readFromNBT(withWorldPosition(snapshot, x, y, z));
             return true;
-        } catch (Throwable ignored) {
+        } catch (Throwable failure) {
+            GuideDebugLog.warn(
+                "Preview TileEntity snapshot restore failed at ({}, {}, {}) for {}",
+                x,
+                y,
+                z,
+                tileEntity.getClass()
+                    .getName(),
+                failure);
             return false;
         }
     }

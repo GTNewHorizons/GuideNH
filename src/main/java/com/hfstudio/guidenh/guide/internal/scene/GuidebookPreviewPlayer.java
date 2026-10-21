@@ -33,9 +33,15 @@ public class GuidebookPreviewPlayer extends EntityClientPlayerMP {
         float radius = (float) Math.sqrt(sizeX * sizeX + sizeY * sizeY + sizeZ * sizeZ) * 0.5f;
         float distance = Math.max(16f, radius + 16f);
 
-        double posX = ray[0] - ray[3] * distance;
-        double posY = ray[1] - ray[4] * distance;
-        double posZ = ray[2] - ray[5] * distance;
+        float centerX = (bounds[0] + bounds[3] + 1f) * 0.5f;
+        float centerY = (bounds[1] + bounds[4] + 1f) * 0.5f;
+        float centerZ = (bounds[2] + bounds[5] + 1f) * 0.5f;
+        float alongRay = (centerX - ray[0]) * ray[3] + (centerY - ray[1]) * ray[4] + (centerZ - ray[2]) * ray[5];
+        float backOff = alongRay - distance;
+
+        double posX = ray[0] + ray[3] * backOff;
+        double posY = ray[1] + ray[4] * backOff;
+        double posZ = ray[2] + ray[5] * backOff;
         float horizontal = (float) Math.sqrt(ray[3] * ray[3] + ray[5] * ray[5]);
         float yaw = (float) Math.toDegrees(Math.atan2(-ray[3], ray[5]));
         float pitch = (float) Math.toDegrees(Math.atan2(-ray[4], horizontal));
