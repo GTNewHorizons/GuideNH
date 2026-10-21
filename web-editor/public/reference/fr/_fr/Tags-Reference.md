@@ -49,7 +49,7 @@ Inline markdown aussi prend en charge action liens pour sound playback:
 | balise | Purpose | clé attributs |
 | --- | --- | --- |
 | `<div>` | pass-à travers bloc wrapper | none |
-| `<ContentTabs>` | groups alternative riche contenu under independent tabs | `title`, `color`, `icon`, `iconPng`, `icon_png`, `iconItem`, `icon_item`, `default`, `defaultIndex` |
+| `<ContentTabs>` | groups alternative riche contenu under independent tabs | `title`, `color`, `background`, `icon`, `iconPng`, `icon_png`, `iconItem`, `icon_item`, `default`, `defaultIndex` |
 | `<Tab>` | un contenu panel dans `<ContentTabs>` | `title` |
 | `<details>` | collapsible exécution bloc | `open`, `width`, `height`, `wrap`, `align` |
 | `<FileTree>` | répertoire-style outline avec connector lignes | `indent`, `gap` |
@@ -155,6 +155,7 @@ Groups alternative riche contenu under independent tabs. seulement direct `<Tab>
   title="Implementation Options"
   icon="</>"
   color="#4f8cff"
+  background="#20252d"
   default="Java"
 >
   <Tab title="Java">
@@ -171,6 +172,7 @@ Groups alternative riche contenu under independent tabs. seulement direct `<Tab>
 - `default` correspond Le premier tab whose `title` correspond exactement
 - `defaultIndex` est zero-based et wins sur `default` lorsque les deux sont present
 - `color` optionally remplace Le gauche accent ligne et sélectionné-tab surligner avec `#RRGGBB` ou `#AARRGGBB`
+- background — remplace éventuellement le fond du conteneur d onglets avec #RRGGBB, #AARRGGBB ou transparent; sans valeur, le fond gris par défaut est conservé
 - `title` adds Un facultatif simple-texte heading au-dessus de Le tab strip
 - `icon`, `iconPng` / `icon_png`, et `iconItem` / `icon_item` utiliser Le même heading icon semantics as markdown quote-style callouts
 - invalide enfants ou invalide defaults rendent visible author-facing errors

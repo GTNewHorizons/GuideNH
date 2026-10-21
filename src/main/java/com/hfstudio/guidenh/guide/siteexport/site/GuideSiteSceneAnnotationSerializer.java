@@ -1597,7 +1597,13 @@ public class GuideSiteSceneAnnotationSerializer {
             @Nullable ResourceLocation currentPageId, @Nullable GuideSitePageAssetExporter assetExporter,
             GuideSiteItemIconResolver itemIconResolver, @Nullable GuideSiteTemplateRegistry templates,
             boolean allowNestedItemTooltips) {
-            html.append("<div class=\"guide-content-tabs\">");
+            html.append("<div class=\"guide-content-tabs\"");
+            if (tabs.getBackgroundColor() != null) {
+                html.append(" style=\"--guide-content-tabs-background:")
+                    .append(escapeAttribute(toCssColor(tabs.getBackgroundColor())))
+                    .append(";\"");
+            }
+            html.append('>');
             List<? extends LytNode> children = tabs.getChildren();
             if (!children.isEmpty() && children.getFirst() instanceof LytParagraph title) {
                 appendBlock(

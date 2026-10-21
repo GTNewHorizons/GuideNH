@@ -49,7 +49,7 @@ Inline Markdown também suporta action links para sound playback:
 | tag | Purpose | chave atributos |
 | --- | --- | --- |
 | `<div>` | pass-por bloco wrapper | none |
-| `<ContentTabs>` | groups alternative rico conteúdo under independent tabs | `title`, `color`, `icon`, `iconPng`, `icon_png`, `iconItem`, `icon_item`, `default`, `defaultIndex` |
+| `<ContentTabs>` | groups alternative rico conteúdo under independent tabs | `title`, `color`, `background`, `icon`, `iconPng`, `icon_png`, `iconItem`, `icon_item`, `default`, `defaultIndex` |
 | `<Tab>` | um conteúdo panel dentro de `<ContentTabs>` | `title` |
 | `<details>` | collapsible execução bloco | `open`, `width`, `height`, `wrap`, `align` |
 | `<FileTree>` | diretório-style outline com connector linhas | `indent`, `gap` |
@@ -155,6 +155,7 @@ Groups alternative rico conteúdo under independent tabs. somente direto `<Tab>`
   title="Implementation Options"
   icon="</>"
   color="#4f8cff"
+  background="#20252d"
   default="Java"
 >
   <Tab title="Java">
@@ -171,6 +172,7 @@ Groups alternative rico conteúdo under independent tabs. somente direto `<Tab>`
 - `default` corresponde O primeiro tab whose `title` corresponde exatamente
 - `defaultIndex` é zero-based e wins sobre `default` quando ambos são present
 - `color` optionally substitui O esquerda accent linha e selecionado-tab destacar com `#RRGGBB` ou `#AARRGGBB`
+- background — substitui opcionalmente o fundo do contêiner de abas por #RRGGBB, #AARRGGBB ou transparent; quando omitido, mantém o fundo cinza padrão
 - `title` adds Um opcional simples-texto heading acima de O tab strip
 - `icon`, `iconPng` / `icon_png`, e `iconItem` / `icon_item` usar O mesmo heading icon semantics as Markdown quote-style callouts
 - inválido filhos ou inválido defaults renderizar visível author-facing errors

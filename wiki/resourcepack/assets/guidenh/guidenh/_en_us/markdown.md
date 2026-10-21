@@ -381,7 +381,8 @@ Text outside the block should still wrap around it when `wrap="square"` is used.
 
 `<ContentTabs>` groups alternative rich content under one tab strip. Each child must be a direct
 `<Tab title="...">`. The selected tab can be chosen with either `default` or `defaultIndex`,
-`color` can override the quote-like accent line/highlight, and the container itself can expose
+`color` can override the quote-like accent line/highlight, `background` can override the tab
+container background with `#RRGGBB`, `#AARRGGBB`, or `transparent`, and the container itself can expose
 an optional callout-style heading through `title` plus `icon`, `iconPng` / `icon_png`, or
 `iconItem` / `icon_item`.
 
@@ -389,6 +390,7 @@ an optional callout-style heading through `title` plus `icon`, `iconPng` / `icon
   title="Build Variants"
   iconItem="minecraft:crafting_table"
   color="#4f8cff"
+  background="#20252d"
   default="Scene"
 >
   <Tab title="Code">

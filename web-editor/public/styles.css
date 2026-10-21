@@ -303,7 +303,7 @@ input:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 2px
 .guide-details { margin: 13px 0; border: 1px solid var(--border); border-radius: 6px; background: var(--accent-soft); overflow: hidden; }
 .guide-details > summary { padding: 10px 13px; cursor: pointer; color: var(--accent); font-weight: 650; }
 .guide-details-body { max-height: var(--guide-details-height, none); overflow: auto; padding: 0 13px 12px; }
-.guide-tabs { margin: 14px 0; border: 1px solid var(--border); border-left: 3px solid var(--guide-tabs-accent, var(--accent)); border-radius: 7px; overflow: hidden; }
+.guide-tabs { margin: 14px 0; border: 1px solid var(--border); border-left: 3px solid var(--guide-tabs-accent, var(--accent)); border-radius: 7px; overflow: hidden; background: var(--guide-tabs-background, var(--preview-quote-bg)); }
 .guide-tabs-heading { padding: 8px; background: var(--accent-soft); }
 .guide-tabs-heading strong { display: flex; align-items: center; gap: 6px; color: var(--guide-tabs-accent, var(--accent)); }
 .guide-tabs-icon { color: var(--guide-tabs-accent, var(--accent)); font-family: ui-monospace, monospace; }

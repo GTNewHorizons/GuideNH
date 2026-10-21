@@ -1,6 +1,5 @@
 package com.hfstudio.guidenh.guide.compiler.tags;
 
-import java.util.Collections;
 import java.util.Set;
 
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
@@ -12,7 +11,7 @@ public class EmphasisCompiler extends FlowTagCompiler {
 
     @Override
     public Set<String> getTagNames() {
-        return Collections.singleton("em");
+        return Set.of("em", "i");
     }
 
     @Override

@@ -1,6 +1,5 @@
 package com.hfstudio.guidenh.guide.compiler.tags;
 
-import java.util.Collections;
 import java.util.Set;
 
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
@@ -12,7 +11,7 @@ public class StrongCompiler extends FlowTagCompiler {
 
     @Override
     public Set<String> getTagNames() {
-        return Collections.singleton("strong");
+        return Set.of("strong", "b");
     }
 
     @Override

@@ -22,6 +22,7 @@ public class GregTechPreviewPrepareContributor implements PreviewPrepareContribu
         try {
             GregTechHelpers.preparePipeConnections(level);
             GregTechPreviewMultiblockSupport.synchronizePreviewState(level);
+            GregTechHelpers.syncPreviewStreamState(level.getTileEntities());
         } catch (Throwable t) {
             if (!invokeFailureLogged) {
                 invokeFailureLogged = true;

@@ -49,7 +49,7 @@ Inline Markdown також підтримує action links для sound playback
 | тег | Purpose | ключ атрибути |
 | --- | --- | --- |
 | `<div>` | pass-through блок wrapper | none |
-| `<ContentTabs>` | groups alternative розширений вміст under independent tabs | `title`, `color`, `icon`, `iconPng`, `icon_png`, `iconItem`, `icon_item`, `default`, `defaultIndex` |
+| `<ContentTabs>` | groups alternative розширений вміст under independent tabs | `title`, `color`, `background`, `icon`, `iconPng`, `icon_png`, `iconItem`, `icon_item`, `default`, `defaultIndex` |
 | `<Tab>` | один вміст panel усередині `<ContentTabs>` | `title` |
 | `<details>` | collapsible виконання блок | `open`, `width`, `height`, `wrap`, `align` |
 | `<FileTree>` | каталог-style outline з з’єднувач рядки | `indent`, `gap` |
@@ -155,6 +155,7 @@ Groups alternative розширений вміст under independent tabs. ли�
   title="Implementation Options"
   icon="</>"
   color="#4f8cff"
+  background="#20252d"
   default="Java"
 >
   <Tab title="Java">
@@ -171,6 +172,7 @@ Groups alternative розширений вміст under independent tabs. ли�
 - `default` відповідає  перший tab whose `title` відповідає exactly
 - `defaultIndex` is zero-based і wins over `default` коли both є present
 - `color` optionally overrides  ліворуч accent рядок і вибраний-tab виділяти з `#RRGGBB` або `#AARRGGBB`
+- background — необовязково змінює тло контейнера вкладок на #RRGGBB, #AARRGGBB або transparent; якщо атрибут не вказано, зберігається стандартне сіре тло
 - `title` додає an необов’язковий plain-текст heading над  tab strip
 - `icon`, `iconPng` / `icon_png`, і `iconItem` / `icon_item` використовувати  той самий heading icon semantics as Markdown quote-style callouts
 - недійсний дочірні елементи або недійсний типові відтворювати видимий автор-facing errors

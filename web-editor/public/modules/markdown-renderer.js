@@ -977,9 +977,10 @@ function renderContentTabs(attributes, body, context) {
   const fallbackIndex = tabs.findIndex((tab) => tab.title === attr(attributes, "default"));
   const defaultIndex = Math.max(0, Math.min(tabs.length - 1, requestedIndex !== undefined && Number.isFinite(Number(requestedIndex)) ? Number(requestedIndex) : (fallbackIndex >= 0 ? fallbackIndex : 0)));
   const accent = colorValue(attr(attributes, "color"), "var(--accent)");
+  const background = colorValue(attr(attributes, "background"), "var(--preview-quote-bg)");
   const icon = attr(attributes, "icon", "iconPng", "icon_png", "iconItem", "icon_item");
   const heading = attr(attributes, "title") ? `<strong>${icon ? `<span class="guide-tabs-icon">${escapeHtml(icon)}</span>` : ""}${escapeHtml(attr(attributes, "title"))}</strong>` : "";
-  return `<section class="guide-tabs" data-guide-tabs style="--guide-tabs-accent:${accent}"><div class="guide-tabs-heading">${heading}<div class="guide-tabs-buttons">${tabs.map((tab, index) => `<button type="button" data-guide-tab="${index}" class="${index === defaultIndex ? "active" : ""}">${escapeHtml(tab.title)}</button>`).join("")}</div></div>${tabs.map((tab, index) => `<div class="guide-tab-panel" data-guide-panel="${index}"${index === defaultIndex ? "" : " hidden"}>${renderBlocks(normalizeNestedMarkdown(tab.body), { ...context, suppressFootnotes: true })}</div>`).join("")}</section>`;
+  return `<section class="guide-tabs" data-guide-tabs style="--guide-tabs-accent:${accent};--guide-tabs-background:${background}"><div class="guide-tabs-heading">${heading}<div class="guide-tabs-buttons">${tabs.map((tab, index) => `<button type="button" data-guide-tab="${index}" class="${index === defaultIndex ? "active" : ""}">${escapeHtml(tab.title)}</button>`).join("")}</div></div>${tabs.map((tab, index) => `<div class="guide-tab-panel" data-guide-panel="${index}"${index === defaultIndex ? "" : " hidden"}>${renderBlocks(normalizeNestedMarkdown(tab.body), { ...context, suppressFootnotes: true })}</div>`).join("")}</section>`;
 }
 
 function renderFloatingImage(attributes, body, context, inline) {

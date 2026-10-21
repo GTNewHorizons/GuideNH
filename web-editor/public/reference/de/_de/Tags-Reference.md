@@ -49,7 +49,7 @@ Inline markdown auch unterstützt action Links für sound playback:
 | Tag | Zweck | Schlüssel Attribut |
 | --- | --- | --- |
 | `<div>` | pass-durch Block wrapper | none |
-| `<ContentTabs>` | groups alternative rich Inhalt under independent tabs | `title`, `color`, `icon`, `iconPng`, `icon_png`, `iconItem`, `icon_item`, `default`, `defaultIndex` |
+| `<ContentTabs>` | groups alternative rich Inhalt under independent tabs | `title`, `color`, `background`, `icon`, `iconPng`, `icon_png`, `iconItem`, `icon_item`, `default`, `defaultIndex` |
 | `<Tab>` | eins Inhalt panel innerhalb `<ContentTabs>` | `title` |
 | `<details>` | collapsible Laufzeit Block | `open`, `width`, `height`, `wrap`, `align` |
 | `<FileTree>` | Verzeichnis-style outline mit connector Linien | `indent`, `gap` |
@@ -155,6 +155,7 @@ Groups alternative rich Inhalt under independent tabs. nur direkt `<Tab>` unterg
   title="Implementation Options"
   icon="</>"
   color="#4f8cff"
+  background="#20252d"
   default="Java"
 >
   <Tab title="Java">
@@ -171,6 +172,7 @@ Groups alternative rich Inhalt under independent tabs. nur direkt `<Tab>` unterg
 - `default` stimmt überein Die erste tab whose `title` stimmt überein genau
 - `defaultIndex` ist zero-based und wins über `default` wenn beide sind present
 - `color` optionally überschreibt Die Links accent Linie und ausgewählt-tab hervorheben mit `#RRGGBB` oder `#AARRGGBB`
+- background — ueberschreibt optional den Hintergrund des Tab-Containers mit #RRGGBB, #AARRGGBB oder transparent; ohne Angabe bleibt der graue Standardhintergrund erhalten
 - `title` adds Eine optional einfach-Text heading über Die tab strip
 - `icon`, `iconPng` / `icon_png`, und `iconItem` / `icon_item` verwenden Die gleich heading icon semantics als markdown quote-style callouts
 - ungültig untergeordnete Elemente oder ungültig Standards rendern sichtbar author-facing errors

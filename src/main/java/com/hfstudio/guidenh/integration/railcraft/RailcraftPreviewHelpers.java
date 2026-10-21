@@ -11,6 +11,7 @@ import net.minecraft.tileentity.TileEntity;
 import net.minecraft.world.World;
 
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.integration.Mods;
 
 import cpw.mods.fml.common.Optional;
@@ -132,7 +133,19 @@ public class RailcraftPreviewHelpers {
             if (!isUsable(multiblock)) {
                 continue;
             }
-            multiblock.updateEntity();
+            // One machine failing its host-side update must not leave every later structure unformed.
+            try {
+                multiblock.updateEntity();
+            } catch (Throwable t) {
+                GuideDebugLog.warn(
+                    "Railcraft preview update failed at ({}, {}, {}) for {}",
+                    multiblock.xCoord,
+                    multiblock.yCoord,
+                    multiblock.zCoord,
+                    multiblock.getClass()
+                        .getName(),
+                    t);
+            }
         }
     }
 

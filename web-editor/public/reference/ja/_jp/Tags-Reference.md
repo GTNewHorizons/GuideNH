@@ -49,7 +49,7 @@ Inline Markdown も 対応します action リンク 用 sound playback:
 | タグ | Purpose | キー 属性 |
 | --- | --- | --- |
 | `<div>` | pass-通じて ブロック wrapper | none |
-| `<ContentTabs>` | groups alternative リッチ コンテンツ under independent tabs | `title`, `color`, `icon`, `iconPng`, `icon_png`, `iconItem`, `icon_item`, `default`, `defaultIndex` |
+| `<ContentTabs>` | groups alternative リッチ コンテンツ under independent tabs | `title`, `color`, `background`, `icon`, `iconPng`, `icon_png`, `iconItem`, `icon_item`, `default`, `defaultIndex` |
 | `<Tab>` | 1 つ コンテンツ panel 内部 `<ContentTabs>` | `title` |
 | `<details>` | collapsible 実行時 ブロック | `open`, `width`, `height`, `wrap`, `align` |
 | `<FileTree>` | ディレクトリ-style outline とともに connector 行 | `indent`, `gap` |
@@ -155,6 +155,7 @@ Groups alternative リッチ コンテンツ under independent tabs. のみ 直�
   title="Implementation Options"
   icon="</>"
   color="#4f8cff"
+  background="#20252d"
   default="Java"
 >
   <Tab title="Java">
@@ -171,6 +172,7 @@ Groups alternative リッチ コンテンツ under independent tabs. のみ 直�
 - `default` 一致します  最初の tab whose `title` 一致します 正確に
 - `defaultIndex` です zero-based と wins 上 `default` 場合 両方 です present
 - `color` optionally 上書きします  左 accent 行 と 選択済み-tab 強調表示 とともに `#RRGGBB` または `#AARRGGBB`
+- background — #RRGGBB、#AARRGGBB、transparent でタブコンテナの背景を変更します。省略時は既定の灰色背景を使用します
 - `title` adds an 任意の プレーン-テキスト heading 上に  tab strip
 - `icon`, `iconPng` / `icon_png`, と `iconItem` / `icon_item` 使用  同じ heading icon semantics as Markdown quote-style callouts
 - 無効 子要素 または 無効 defaults 描画 表示 author-facing errors
