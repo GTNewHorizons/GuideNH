@@ -31,6 +31,7 @@
 - изолированные блоки кода
 - блоки кода с отступом.
 - Таблицы GFM
+- HTML tables with captions, column groups, row groups, and merged cells
 - сноски
 - фрагменты HTML в нижнем регистре, такие как `<a>`, `<br>`, `<kbd>`, `<sub>`, `<sup>` и `<details>`.
 - MDX комментариев в тексте страницы.
@@ -183,14 +184,40 @@ gold,17
 Обычные таблицы GFM markdown также могут предоставлять подсказки по ширине столбца во время выполнения, добавляя завершающую строку атрибута времени выполнения сразу после таблицы:
 
 ````md
+{: widths="120,80" }
 | Name | Value |
 | --- | --- |
 | Iron | 42 |
 | Gold | 17 |
-{: widths="120,80" }
 ````
 
 это сохраняет саму таблицу стандартом markdown, позволяя GuideNH применять предпочтительные ширины столбцов только во время выполнения.
+
+## HTML Tables
+
+HTML tables support captions, column groups, semantic row groups, merged cells, and alignment. `col` accepts pixel `width`; `span` repeats a width. `th` and `td` support `colspan`, `rowspan`, and `align`; `th` supports `scope`:
+
+````md
+<table widths="150,70,70,150">
+  <caption>Fuel burn rates</caption>
+  <colgroup>
+    <col width="150" />
+    <col width="70" span="2" />
+    <col width="150" />
+  </colgroup>
+  <thead>
+    <tr><th scope="col" rowspan="2" align="left">Fuel</th><th scope="colgroup" colspan="2" align="center">Rate</th><th scope="col" rowspan="2" align="right">Notes</th></tr>
+    <tr><th scope="col" align="right">Charcoal</th><th scope="col" align="right">Coal</th></tr>
+  </thead>
+  <tbody>
+    <tr><th scope="row" rowspan="2" align="left">Solid fuel</th><td align="right">42</td><td align="right">17</td><td rowspan="2" align="left">Per tick</td></tr>
+    <tr><td colspan="2" align="right">59 combined</td></tr>
+  </tbody>
+  <tfoot>
+    <tr><th scope="rowgroup" align="left">Total</th><td colspan="3" align="right">59 units</td></tr>
+  </tfoot>
+</table>
+````
 
 ## списки задач, оповещения и сноски
 
@@ -508,3 +535,32 @@ item_ids:
 - [Навигация](Navigation)
 - [Изображения и активы](Images-And-Assets)
 - [Справочник тегов](Tags-Reference)
+
+### Markdown table spans and cell attributes
+
+GuideNH extends GFM tables with the same compact span notation used by jekyll-spaceship:
+
+- Add one extra `|` after a cell for each additional column it occupies. `||` therefore means `colspan="2"`, and `|||` means `colspan="3"`.
+- Start a cell with `^^` to continue the cell directly above it. The content is appended with a line break and the original cell receives a larger `rowspan`.
+- A cell can use edge colons for alignment (`: left`, `right :`, or `: centered :`).
+- A trailing IAL (`{: ... }`) applies safe attributes to that cell. Supported properties are `color`, `background`/`bgcolor`, `style` (color, background, font-weight, text-decoration, and alignment declarations), `align`, `valign`, `id`, and `class`.
+- Reusable IAL definitions use `{:name: ...}` on their own line and can be referenced from a cell IAL. Unsafe CSS and external URLs are ignored.
+
+```markdown
+{:warning: style="background: #4b2418; color: #ffd8c2; font-weight: bold"}
+| Stage | Products | Notes |
+| --- | --- | --- |
+| : Glycolysis : | 2 ATP ||
+| ^^ A. Peach | 3 ATP | {: warning } |
+| Final total ||| {: style="text-align: right; background: #26364d"}
+```
+
+The syntax remains ordinary Markdown when the extension is not available: extra empty cells are harmless, while `^^` and IAL text stay visible. HTML tables remain supported for complex headers and explicit `rowspan`/`colspan` attributes.
+### Extended Markdown table syntax
+
+GuideNH also supports the jekyll-spaceship table extensions in every preview:
+
+- End a physical row with `\` to append the next physical row to the same cells; each part is rendered on a new line.
+- Use a delimiter row as the first row (`|--|--|`) for a headerless table. Its rows remain data rows and are not bolded.
+- Cell contents keep normal GuideNH Markdown and MDX inline syntax, including links, images, emphasis, and LaTeX.
+- Use HTML `<thead>`, `<tbody>`, and `<tfoot>` when explicit row groups are needed.

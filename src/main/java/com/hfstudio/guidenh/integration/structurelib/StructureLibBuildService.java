@@ -356,12 +356,7 @@ public class StructureLibBuildService {
                         rounds);
                 }
             }
-            StructureLibMinimumHatchPlacement.beginCreativeConstruct();
-            try {
-                constructable.construct(trigger.copy(), false);
-            } finally {
-                StructureLibMinimumHatchPlacement.endCreativeConstruct();
-            }
+            constructable.construct(trigger.copy(), false);
         } finally {
             StructureLibMinimumHatchPlacement.endPreviewBuild();
         }

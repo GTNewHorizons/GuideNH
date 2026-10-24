@@ -2,7 +2,9 @@ package com.hfstudio.guidenh.libs.mdast.gfm.model;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -20,6 +22,10 @@ public class GfmTable extends MdAstParent<GfmTableRow> implements MdAstFlowConte
     @Nullable
     public List<Align> align = null;
 
+    public final Map<String, String> attributes = new LinkedHashMap<>();
+
+    public boolean headerless;
+
     public GfmTable() {
         super(TYPE);
     }
@@ -31,6 +37,19 @@ public class GfmTable extends MdAstParent<GfmTableRow> implements MdAstFlowConte
 
     @Override
     protected void writeJson(JsonWriter writer) throws IOException {
+        if (headerless) {
+            writer.name("headerless")
+                .value(true);
+        }
+        if (!attributes.isEmpty()) {
+            writer.name("attributes")
+                .beginObject();
+            for (var entry : attributes.entrySet()) {
+                writer.name(entry.getKey())
+                    .value(entry.getValue());
+            }
+            writer.endObject();
+        }
         if (align != null) {
             writer.name("align")
                 .beginArray();
@@ -50,6 +69,21 @@ public class GfmTable extends MdAstParent<GfmTableRow> implements MdAstFlowConte
 
     @Override
     protected void readJson(JsonObject jsonObject) throws IOException {
+        var headerless = jsonObject.getAsJsonPrimitive("headerless");
+        this.headerless = headerless != null && headerless.getAsBoolean();
+        var attributes = jsonObject.getAsJsonObject("attributes");
+        if (attributes != null) {
+            this.attributes.clear();
+            for (var entry : attributes.entrySet()) {
+                if (entry.getValue()
+                    .isJsonPrimitive()) {
+                    this.attributes.put(
+                        entry.getKey(),
+                        entry.getValue()
+                            .getAsString());
+                }
+            }
+        }
         var align = jsonObject.getAsJsonArray("align");
         if (align != null) {
             this.align = new ArrayList<>();

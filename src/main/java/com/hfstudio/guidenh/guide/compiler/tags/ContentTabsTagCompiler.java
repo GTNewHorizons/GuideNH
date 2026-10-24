@@ -41,6 +41,7 @@ public class ContentTabsTagCompiler extends BlockTagCompiler {
                 CalloutIconSupport.buildFlowIcon(compiler, spec.icon()),
                 resolveInitialIndex(spec),
                 spec.accentColor(),
+                spec.backgroundColor(),
                 spec.tabs()));
     }
 
@@ -52,12 +53,14 @@ public class ContentTabsTagCompiler extends BlockTagCompiler {
         Integer defaultIndex = parseDefaultIndex(el, issues, el);
         String defaultTitle = el.getAttributeString("default", null);
         ColorValue accentColor = MdxAttrs.getColor(compiler, new ValidationIssueSink(issues), el, "color", null);
+        ColorValue backgroundColor = MdxAttrs
+            .getColor(compiler, new ValidationIssueSink(issues), el, "background", null);
         compiler.withBlockTagChildrenSourceContext(el, () -> {
             List<? extends MdAstAnyContent> children = resolveChildren(compiler, el);
             collectTabs(compiler, children, tabs, issues);
         });
         validateDefaultTarget(defaultTitle, defaultIndex, tabs, issues, el);
-        return new ContentTabsSpec(title, icon, defaultTitle, defaultIndex, accentColor, tabs, issues);
+        return new ContentTabsSpec(title, icon, defaultTitle, defaultIndex, accentColor, backgroundColor, tabs, issues);
     }
 
     private List<? extends MdAstAnyContent> resolveChildren(PageCompiler compiler, MdxJsxElementFields el) {

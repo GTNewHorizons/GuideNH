@@ -1760,7 +1760,8 @@ public class SceneEditorScreen extends GuiScreen {
         }
 
         if (GuideItemTooltipRenderSupport.shouldUseVanillaRenderer(tooltip)) {
-            renderToolTip(stack, mouseX, mouseY);
+            FontRenderer font = GuideItemTooltipRenderSupport.resolveFont(stack, mc.fontRenderer);
+            drawPreviewHoveringText(GuideItemTooltipLines.build(tooltip, mc), mouseX, mouseY, font);
             return;
         }
 
@@ -1772,15 +1773,17 @@ public class SceneEditorScreen extends GuiScreen {
 
         List<String> lines = GuideItemTooltipLines.build(tooltip, mc);
         FontRenderer font = GuideItemTooltipRenderSupport.resolveFont(stack, mc.fontRenderer);
-        drawHoveringText(lines, mouseX, mouseY, font);
+        drawPreviewHoveringText(lines, mouseX, mouseY, font);
     }
 
     private void renderNeiPreviewItemTooltip(NeiItemTooltip tooltip, int mouseX, int mouseY) {
         FontRenderer font = GuideItemTooltipRenderSupport.resolveFont(tooltip.getStack(), mc.fontRenderer);
         List<String> lines = new ArrayList<>(GuideItemTooltipLines.build(tooltip, mc));
+        lines = wrapPreviewTooltipLines(lines, font);
         List<ItemStack> permutations = tooltip.getPermutations();
         int visibleCount = Math.min(permutations.size(), 44);
-        int columns = Math.min(11, visibleCount);
+        int maxColumns = Math.max(1, (resolvePreviewTooltipBounds().width() - 24) / 18);
+        int columns = Math.min(Math.min(11, maxColumns), visibleCount);
         int rows = Math.max(1, (visibleCount + columns - 1) / columns);
         String spacer = tooltipSpacer(font, columns * 18);
         int labelLine = Math.max(0, lines.size() - 1);
@@ -1790,13 +1793,10 @@ public class SceneEditorScreen extends GuiScreen {
         }
         int tooltipWidth = 0;
         for (String line : lines) tooltipWidth = Math.max(tooltipWidth, font.getStringWidth(line));
-        int tooltipHeight = lines.size() == 1 ? 8 : 8 + (lines.size() - 1) * 10;
-        int textX = mouseX + 12;
-        if (textX + tooltipWidth + 4 > width) textX = mouseX - tooltipWidth - 24;
-        int textY = mouseY - 12;
-        if (textY + tooltipHeight + 8 > height) textY = height - tooltipHeight - 8;
-        if (textY - 4 < 0) textY = 4;
-        drawHoveringText(lines, textX - 12, textY + 12, font);
+        PreviewTooltipLayout layout = computePreviewTooltipLayout(lines, mouseX, mouseY, font);
+        int textX = layout.textX();
+        int textY = layout.top();
+        drawHoveringText(lines, layout.mouseAnchorX(), layout.mouseAnchorY(), font);
         int firstItemY = textY + (labelLine + 1) * 10;
         GL11.glPushAttrib(GL11.GL_ENABLE_BIT | GL11.GL_COLOR_BUFFER_BIT | GL11.GL_LIGHTING_BIT);
         GL11.glEnable(GL12.GL_RESCALE_NORMAL);
@@ -1840,7 +1840,7 @@ public class SceneEditorScreen extends GuiScreen {
             int iconX = textX + (index % columns) * 18 + 1;
             int iconY = firstItemY + (index / columns) * 20 + 1;
             if (mouseX >= iconX && mouseX < iconX + 16 && mouseY >= iconY && mouseY < iconY + 16) {
-                drawHoveringText(
+                drawPreviewHoveringText(
                     GuideItemTooltipLines.build(
                         new NeiItemTooltip(permutations.get(index), tooltip.getHandler(), tooltip.getRecipeIndex()),
                         mc),
@@ -1862,24 +1862,25 @@ public class SceneEditorScreen extends GuiScreen {
 
     private void drawPreviewContentTooltip(ContentTooltip tooltip, int mouseX, int mouseY) {
         int pad = 4;
-        int maxWidth = Math.max(80, (this.width * 4) / 5);
+        LytRect bounds = resolvePreviewTooltipBounds();
+        int maxWidth = Math.max(40, Math.min((this.width * 4) / 5, bounds.width() - pad * 2));
         var box = tooltip.layout(maxWidth);
         LytRect contentBounds = tooltip.getContentBounds();
         int tooltipWidth = box.width();
         int tooltipHeight = box.height();
         int tooltipX = mouseX + 12;
         int tooltipY = mouseY - 12;
-        if (tooltipX + tooltipWidth + pad > this.width) {
+        if (tooltipX + tooltipWidth + pad > bounds.right()) {
             tooltipX = mouseX - tooltipWidth - 12;
         }
-        if (tooltipX - pad < 0) {
-            tooltipX = pad;
+        if (tooltipX - pad < bounds.x()) {
+            tooltipX = bounds.x() + pad;
         }
-        if (tooltipY + tooltipHeight + pad > this.height) {
-            tooltipY = this.height - tooltipHeight - pad;
+        if (tooltipY + tooltipHeight + pad > bounds.bottom()) {
+            tooltipY = bounds.bottom() - tooltipHeight - pad;
         }
-        if (tooltipY - pad < 0) {
-            tooltipY = pad;
+        if (tooltipY - pad < bounds.y()) {
+            tooltipY = bounds.y() + pad;
         }
 
         GL11.glDisable(GL11.GL_DEPTH_TEST);
@@ -1977,8 +1978,9 @@ public class SceneEditorScreen extends GuiScreen {
     private void drawPreviewTooltipText(String text, int mouseX, int mouseY) {
         FontRenderer fontRenderer = mc.fontRenderer;
         String normalizedText = text.indexOf('\\') >= 0 ? text.replace("\\n", "\n") : text;
-        int hardMaxWidth = Math.max(40, this.width - 24);
-        int preferredWrapWidth = Math.max(80, this.width / 2);
+        LytRect bounds = resolvePreviewTooltipBounds();
+        int hardMaxWidth = Math.max(40, bounds.width() - 24);
+        int preferredWrapWidth = Math.max(80, bounds.width() / 2);
         int wrapWidth = Math.min(hardMaxWidth, preferredWrapWidth);
         List<String> lines = new ArrayList<>();
         for (String rawLine : normalizedText.split("\n", -1)) {
@@ -1992,8 +1994,83 @@ public class SceneEditorScreen extends GuiScreen {
             }
             lines.addAll(fontRenderer.listFormattedStringToWidth(rawLine, wrapWidth));
         }
-        drawHoveringText(lines, mouseX, mouseY, fontRenderer);
+        drawPreviewHoveringText(lines, mouseX, mouseY, fontRenderer);
     }
+
+    private void drawPreviewHoveringText(List<String> lines, int mouseX, int mouseY, FontRenderer font) {
+        if (lines == null || lines.isEmpty()) {
+            return;
+        }
+        List<String> fittedLines = wrapPreviewTooltipLines(lines, font);
+        PreviewTooltipLayout layout = computePreviewTooltipLayout(fittedLines, mouseX, mouseY, font);
+        drawHoveringText(fittedLines, layout.mouseAnchorX(), layout.mouseAnchorY(), font);
+    }
+
+    private List<String> wrapPreviewTooltipLines(List<String> lines, FontRenderer font) {
+        int maxWidth = Math.max(40, resolvePreviewTooltipBounds().width() - 24);
+        List<String> wrapped = new ArrayList<>();
+        for (String line : lines) {
+            if (line == null || line.isEmpty() || font.getStringWidth(line) <= maxWidth) {
+                wrapped.add(line == null ? "" : line);
+            } else {
+                wrapped.addAll(font.listFormattedStringToWidth(line, maxWidth));
+            }
+        }
+        return wrapped;
+    }
+
+    private PreviewTooltipLayout computePreviewTooltipLayout(List<String> lines, int mouseX, int mouseY,
+        FontRenderer font) {
+        LytRect bounds = resolvePreviewTooltipBounds();
+        int tooltipWidth = 0;
+        for (String line : lines) {
+            tooltipWidth = Math.max(tooltipWidth, font.getStringWidth(line));
+        }
+        int tooltipHeight = lines.size() == 1 ? 8 : 8 + (lines.size() - 1) * 10;
+        int margin = 4;
+        int adjustedX = mouseX;
+        boolean placedRightOfCursor = true;
+        int textX = adjustedX + 12;
+        if (textX + tooltipWidth + margin > bounds.right()) {
+            adjustedX = mouseX - tooltipWidth - 24;
+            textX = adjustedX + 12;
+            placedRightOfCursor = false;
+        }
+        if (textX < bounds.x() + margin) {
+            adjustedX = bounds.x() + margin - 12;
+            textX = adjustedX + 12;
+            placedRightOfCursor = textX >= mouseX;
+        }
+
+        int adjustedY = mouseY;
+        int textY = adjustedY - 12;
+        if (textY + tooltipHeight + 8 > bounds.bottom()) {
+            adjustedY = bounds.bottom() - tooltipHeight - 8 + 12;
+            textY = adjustedY - 12;
+        }
+        if (adjustedY - 16 < bounds.y() + margin) {
+            adjustedY = bounds.y() + 20;
+            textY = adjustedY - 12;
+        }
+        return new PreviewTooltipLayout(
+            adjustedX,
+            adjustedY,
+            textX,
+            textY,
+            tooltipWidth,
+            tooltipHeight,
+            placedRightOfCursor);
+    }
+
+    private LytRect resolvePreviewTooltipBounds() {
+        if (previewBoxWidth <= 0 || previewBoxHeight <= 0) {
+            return new LytRect(0, 0, this.width, this.height);
+        }
+        return new LytRect(previewBoxX, previewBoxY, previewBoxWidth, previewBoxHeight);
+    }
+
+    private record PreviewTooltipLayout(int mouseAnchorX, int mouseAnchorY, int textX, int top, int width, int height,
+        boolean placedRightOfCursor) {}
 
     private void drawPreviewFrameOverlay() {
         if (previewScene == null) {

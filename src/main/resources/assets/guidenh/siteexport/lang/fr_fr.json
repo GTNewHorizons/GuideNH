@@ -10,9 +10,15 @@
     "reset": "Réinitialiser la vue",
     "previous": "Image clé précédente",
     "playPause": "Lecture/Pause",
-    "restart": "Recommencer"
+    "restart": "Recommencer",
+    "ponder": "Ponder",
+    "tick": "Tick"
   },
-  "ponder": { "lmb": "Clic gauche", "rmb": "Clic droit", "scroll": "Molette" },
+  "ponder": {
+    "lmb": "Clic gauche",
+    "rmb": "Clic droit",
+    "scroll": "Molette"
+  },
   "navigation": {
     "open": "Navigation",
     "close": "Fermer la navigation",

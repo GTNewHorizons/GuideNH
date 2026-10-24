@@ -39,8 +39,8 @@ public class LytHeading extends LytParagraph {
     public LytRect computeLayout(LayoutContext context, int x, int y, int availableWidth) {
         // Capture the active inline window so the separator follows the same wrapped line width
         // that the heading text uses and never paints under floating content on either side.
-        int leftEdge = context.getLeftFloatRightEdgeOr(x);
-        int rightEdge = context.getRightFloatLeftEdgeOr(x + availableWidth);
+        int leftEdge = context.getLeftFloatRightEdgeOr(x, x, x + availableWidth);
+        int rightEdge = context.getRightFloatLeftEdgeOr(x + availableWidth, x, x + availableWidth);
         int clampedLeftEdge = Math.max(x, leftEdge);
         int clampedRightEdge = Math.min(x + availableWidth, rightEdge);
         separatorXOffset = Math.max(0, clampedLeftEdge - x);

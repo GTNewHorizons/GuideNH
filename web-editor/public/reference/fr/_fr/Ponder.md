@@ -211,6 +211,8 @@ Sound champs:
 | `radius` | flottant | scène short côté * 0.75 | Attenuation radius dans écran pixels. |
 | `minVolume` | flottant | `0.15` | Minimum attenuation factor. |
 
+
+Pour la validation hors ligne, ajoutez `"$schema": "guidenh://schema/ponder.json"` à la racine JSON. Le schéma intégré se trouve dans `wiki/resourcepack/assets/guidenh/guidenh/assets/schema/ponder_schema.json` et ne charge aucune URL distante.
 ---
 
 ## Keyframe Particles
@@ -386,7 +388,7 @@ leurs propre entities avec `createEntities`, alors cible those entities by `ref`
 | `yaw`, `pitch` | facultatif spawn rotation. Defaults vers `0, 0` sauf `nbt` supplies `Rotation`. |
 | `bodyYaw`, `headYaw` | facultatif living-entity corps/head yaw remplace. Si omitted pendant `yaw` est present, Elles follow `yaw`. |
 | `nbt` | facultatif SNBT compound applied lorsque Le entity est créé. |
-| `name`, `uuid` | facultatif aperçu-player profile champs lorsque creating Un aperçu player entity. |
+| `name`, `nameKey`, `uuid` | facultatif aperçu-player profile champs lorsque creating Un aperçu player entity. |
 | `mount` | facultatif stable `sceneEntityId` of Le vehicle que ceci entity devrait ride après creation ou later replay. |
 | `unmount` | facultatif booléen que clears Le entity's actuel stable mount relation avant quelconque later `mount` est applied. |
 
@@ -475,6 +477,8 @@ modifications pendant playback. Seeking ou pausing toujours affiche annotations 
 chaque entrée dans Le `annotations` array requires a `type` champ. Seven types sont disponible.
 
 ---
+
+Toutes les annotations Ponder acceptent `tooltip` et `tooltipKey`. La clé est résolue depuis les fichiers `lang` actifs et le texte original est utilisé si elle est absente.
 
 ### `diamond`
 
@@ -658,7 +662,8 @@ pour Un fixe écran-espace position que fait ne project depuis monde coordonnée
 | champ | type | par défaut | description |
 |-------|------|---------|-------------|
 | `x`, `y`, `z` | flottant | `0.0` | monde-espace anchor position (ignored dans independent mode). |
-| `text` | chaîne | - | **obligatoire.** texte vers afficher dans Le bubble. |
+| `text` | chaîne | — | Texte de secours affiché dans la bulle. |
+| `textKey` | chaîne | — | Clé de traduction du texte de la bulle ; une fois résolue, elle remplace `text`. |
 | `color` | chaîne | `"0xFFAAAAAA"` | ARGB couleur of Le bubble bordure. |
 | `backgroundAlpha` | entier | `204` | arrière-plan opacity depuis `0` (transparent) vers `255` (opaque). Le RGB couleur remains Le par défaut dark navy. |
 | `maxWidth` | entier | `0` | Si &gt; 0, wraps texte at ceci largeur dans pixels. Omit ou Définissez vers `0` pour Un unique-ligne étiquette. |

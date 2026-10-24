@@ -7,7 +7,9 @@ import net.minecraft.world.World;
 
 import org.jetbrains.annotations.Nullable;
 
+import com.hfstudio.guidenh.guide.internal.structure.GuideTextNbtCodec;
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockDisplayResolver;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.integration.api.GuideNhIntegrationRegistry;
 
 public class GuidebookTileEntityLoader {
@@ -74,21 +76,49 @@ public class GuidebookTileEntityLoader {
     }
 
     public static void applyTag(TileEntity tileEntity, NBTTagCompound tag, int x, int y, int z) {
+        NBTTagCompound positioned = withWorldPosition(tag, x, y, z);
         try {
-            tileEntity.readFromNBT(withWorldPosition(tag, x, y, z));
-        } catch (Exception ignored) {}
+            tileEntity.readFromNBT(positioned);
+        } catch (Throwable failure) {
+            NBTTagCompound repaired = GuideTextNbtCodec.withEmptyListsAsIntArrays(positioned);
+            if (repaired != null) {
+                try {
+                    tileEntity.readFromNBT(repaired);
+                    return;
+                } catch (Throwable ignored) {}
+            }
+            String nbtId = tag != null && tag.hasKey("id") ? tag.getString("id") : "<missing>";
+            GuideDebugLog.warn(
+                "Preview TileEntity NBT restore failed at ({}, {}, {}) for {} (id={})",
+                x,
+                y,
+                z,
+                tileEntity != null ? tileEntity.getClass()
+                    .getName() : "<null>",
+                nbtId,
+                failure);
+        }
     }
 
     public static void bindTile(TileEntity tileEntity, World world, Block block, int meta, int x, int y, int z) {
-        try {
-            tileEntity.updateContainingBlockInfo();
-        } catch (Throwable ignored) {}
         tileEntity.xCoord = x;
         tileEntity.yCoord = y;
         tileEntity.zCoord = z;
         tileEntity.blockType = block;
         tileEntity.blockMetadata = meta;
         tileEntity.setWorldObj(world);
+        try {
+            tileEntity.updateContainingBlockInfo();
+        } catch (Throwable failure) {
+            GuideDebugLog.warn(
+                "Preview TileEntity containing-block refresh failed at ({}, {}, {}) for {}",
+                x,
+                y,
+                z,
+                tileEntity != null ? tileEntity.getClass()
+                    .getName() : "<null>",
+                failure);
+        }
     }
 
     public static TileEntity resolveWorldReplacement(World world, int x, int y, int z, TileEntity current) {

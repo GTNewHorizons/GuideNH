@@ -1,6 +1,7 @@
 package com.hfstudio.guidenh.guide.internal.recipe;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import net.minecraft.item.Item;
@@ -15,6 +16,8 @@ import net.minecraftforge.oredict.ShapelessOreRecipe;
 
 import org.jetbrains.annotations.Nullable;
 
+import com.hfstudio.guidenh.guide.compiler.IdUtils;
+import com.hfstudio.guidenh.guide.compiler.tags.RecipeCompiler;
 import com.hfstudio.guidenh.mixins.early.forge.AccessorShapedOreRecipe;
 import com.hfstudio.guidenh.mixins.early.forge.AccessorShapelessOreRecipe;
 
@@ -29,14 +32,27 @@ public class RecipeLookup {
         public boolean shapeless;
     }
 
-    public static List<Entry> findByOutput(Item target) {
+    public static List<Entry> findByOutput(@Nullable IdUtils.ParsedItemRef ref) {
+        if (ref == null) return List.of();
+        Item target = (Item) Item.itemRegistry.getObject(ref.rawKey());
         if (target == null) return List.of();
         List<Entry> out = new ArrayList<>();
         List<IRecipe> list = CraftingManager.getInstance()
             .getRecipeList();
         for (IRecipe r : list) {
-            ItemStack res = r.getRecipeOutput();
+            if (r == null) continue;
+            ItemStack res;
+            try {
+                res = r.getRecipeOutput();
+            } catch (Throwable t) {
+                // A recipe registered by another mod can refuse to describe itself outside a crafting
+                // grid. One such entry must not take down the whole lookup.
+                continue;
+            }
+            // Item identity first: it is one reference compare per entry over the full recipe list,
+            // and only same-item candidates pay for the complete match.
             if (res == null || res.getItem() != target) continue;
+            if (!RecipeCompiler.stackMatches(res, ref)) continue;
             Entry e = convert(r);
             if (e != null) out.add(e);
         }
@@ -142,6 +158,6 @@ public class RecipeLookup {
     }
 
     public static List<ItemStack> asList(Entry e) {
-        return List.of(e.input3x3);
+        return Arrays.asList(e.input3x3);
     }
 }

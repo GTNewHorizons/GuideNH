@@ -29,12 +29,28 @@ public class Layouts {
             alignItems);
     }
 
-    /**
-     * Lays out all children along the vertical axis, and returns the bounding box of the content area.
-     */
     public static LytRect verticalLayout(LayoutContext context, List<LytBlock> children, int x, int y,
         int availableWidth, boolean fullWidth, int paddingLeft, int paddingTop, int paddingRight, int paddingBottom,
         int gap, AlignItems alignItems) {
+        return verticalLayout(
+            context,
+            children,
+            x,
+            y,
+            availableWidth,
+            fullWidth,
+            paddingLeft,
+            paddingTop,
+            paddingRight,
+            paddingBottom,
+            gap,
+            alignItems,
+            true);
+    }
+
+    public static LytRect verticalLayout(LayoutContext context, List<LytBlock> children, int x, int y,
+        int availableWidth, boolean fullWidth, int paddingLeft, int paddingTop, int paddingRight, int paddingBottom,
+        int gap, AlignItems alignItems, boolean expandContentWidth) {
 
         int contentWidth = 0;
         int contentHeight = 0;
@@ -64,11 +80,15 @@ public class Layouts {
             // our available space. In that case, redo the layout again to give all other children that space we're
             // going
             // to use anyway
-            if (contentWidth > availableWidth) {
+            if (expandContentWidth && contentWidth > availableWidth) {
                 availableWidth = contentWidth;
                 continue;
             }
             break;
+        }
+
+        if (!expandContentWidth) {
+            contentWidth = Math.min(contentWidth, availableWidth);
         }
 
         if (fullWidth && contentWidth < availableWidth) {

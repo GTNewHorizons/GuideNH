@@ -198,7 +198,8 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
         }
         previewStateDirty = false;
         rebindAllTileEntities();
-        // Tick first so tile entities (e.g. BC pipes) call initialize() 鈫?computeConnections()
+        refreshPreviewTileEntityDescriptions();
+        refreshPreviewNeighbors();
         // before compat helpers read their state.
         tickPreviewWorld();
         GuidePreviewStateSupport.prepare(this);
@@ -213,13 +214,30 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
         }
         previewStateDirty = false;
         rebindAllTileEntities();
+        refreshPreviewTileEntityDescriptions();
+        refreshPreviewNeighbors();
         GuidePreviewStateSupport.prepare(this);
+    }
+
+    private void refreshPreviewNeighbors() {
+        World world = getOrCreateFakeWorld();
+        if (world instanceof GuidebookFakeWorld fakeworld) {
+            fakeworld.refreshPreviewTileEntityNeighbors(tileEntities.values());
+        }
+    }
+
+    private void refreshPreviewTileEntityDescriptions() {
+        World world = getOrCreateFakeWorld();
+        if (world instanceof GuidebookFakeWorld fakeworld) {
+            fakeworld.refreshTileEntityDescriptions(tileEntities.values());
+        }
     }
 
     public void setBlock(int x, int y, int z, @Nullable Block block, int meta, @Nullable TileEntity tileEntity) {
         if (!isValidBuildHeight(y)) return;
 
         boolean isAir = block == null || block == Blocks.air;
+        boolean hadTileEntity = tileEntities.get(x, y, z) != null;
         long chunkKey = ChunkCoordIntPair.chunkXZ2Int(x >> 4, z >> 4);
         GuidebookChunk chunk = chunks.get(chunkKey);
         if (chunk == null) {
@@ -256,6 +274,9 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
                 tileEntities.put(x, y, z, tileEntity);
             } else {
                 tileEntities.remove(x, y, z);
+            }
+            if (tileEntity != null || hadTileEntity) {
+                syncFakeWorldTileEntity(x, y, z);
             }
             if (x < minX) minX = x;
             if (y < minY) minY = y;
@@ -337,6 +358,7 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
             tileEntity.validate();
             tileEntities.put(x, y, z, tileEntity);
         }
+        syncFakeWorldTileEntity(x, y, z);
         markSpatialDirty();
         previewStateDirty = true;
     }
@@ -348,12 +370,10 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
             previewStateDirty = true;
             return;
         }
-        tileEntity.xCoord = x;
-        tileEntity.yCoord = y;
-        tileEntity.zCoord = z;
-        tileEntity.blockType = getBlock(x, y, z);
-        tileEntity.blockMetadata = getBlockMetadata(x, y, z);
+        bindTileEntity(tileEntity, x, y, z, getOrCreateFakeWorld());
+        tileEntity.validate();
         tileEntities.put(x, y, z, tileEntity);
+        syncFakeWorldTileEntity(x, y, z);
         markSpatialDirty();
         previewStateDirty = true;
     }
@@ -1133,15 +1153,21 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
     }
 
     private void bindTileEntity(TileEntity tileEntity, int x, int y, int z, World world) {
-        try {
-            tileEntity.updateContainingBlockInfo();
-        } catch (Throwable ignored) {}
         tileEntity.xCoord = x;
         tileEntity.yCoord = y;
         tileEntity.zCoord = z;
         tileEntity.blockType = getBlock(x, y, z);
         tileEntity.blockMetadata = getBlockMetadata(x, y, z);
         tileEntity.setWorldObj(world);
+        try {
+            tileEntity.updateContainingBlockInfo();
+        } catch (Throwable ignored) {}
+    }
+
+    private void syncFakeWorldTileEntity(int x, int y, int z) {
+        if (fakeWorld instanceof GuidebookFakeWorld previewWorld) {
+            previewWorld.syncTileEntityAt(x, y, z);
+        }
     }
 
     @Nullable

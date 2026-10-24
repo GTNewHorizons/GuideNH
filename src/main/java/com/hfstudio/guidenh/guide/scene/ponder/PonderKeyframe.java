@@ -26,6 +26,8 @@ public class PonderKeyframe {
     private String label;
     @Nullable
     private String labelKey;
+    private transient String localizationFallbackLabel;
+    private transient boolean localizationFallbackCaptured;
     @Nullable
     private PonderKeyframeCameraState camera;
     @Nullable
@@ -81,11 +83,16 @@ public class PonderKeyframe {
         return labelKey;
     }
 
-    public void applyLocalizedLabel(@Nullable String localizedLabel) {
-        if (localizedLabel == null || localizedLabel.isEmpty()) {
-            return;
+    private void captureLocalizationFallback() {
+        if (!localizationFallbackCaptured) {
+            localizationFallbackLabel = label;
+            localizationFallbackCaptured = true;
         }
-        this.label = localizedLabel;
+    }
+
+    public void applyLocalizedLabel(@Nullable String localizedLabel) {
+        captureLocalizationFallback();
+        this.label = localizedLabel != null && !localizedLabel.isEmpty() ? localizedLabel : localizationFallbackLabel;
     }
 
     @Nullable

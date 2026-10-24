@@ -49,7 +49,7 @@ Inline markdown también admite action enlaces para sound playback:
 | etiqueta | Purpose | clave atributos |
 | --- | --- | --- |
 | `<div>` | pass-a través de bloque wrapper | none |
-| `<ContentTabs>` | groups alternative enriquecido contenido under independent tabs | `title`, `color`, `icon`, `iconPng`, `icon_png`, `iconItem`, `icon_item`, `default`, `defaultIndex` |
+| `<ContentTabs>` | groups alternative enriquecido contenido under independent tabs | `title`, `color`, `background`, `icon`, `iconPng`, `icon_png`, `iconItem`, `icon_item`, `default`, `defaultIndex` |
 | `<Tab>` | uno contenido panel dentro de `<ContentTabs>` | `title` |
 | `<details>` | collapsible ejecución bloque | `open`, `width`, `height`, `wrap`, `align` |
 | `<FileTree>` | directorio-style outline con conector líneas | `indent`, `gap` |
@@ -155,6 +155,7 @@ Groups alternative enriquecido contenido under independent tabs. solo directo `<
   title="Implementation Options"
   icon="</>"
   color="#4f8cff"
+  background="#20252d"
   default="Java"
 >
   <Tab title="Java">
@@ -171,6 +172,7 @@ Groups alternative enriquecido contenido under independent tabs. solo directo `<
 - `default` coincide El primero tab whose `title` coincide exactamente
 - `defaultIndex` es zero-based y wins sobre `default` cuando ambos son present
 - `color` optionally anula El izquierda accent línea y seleccionado-tab resaltar con `#RRGGBB` o `#AARRGGBB`
+- background — cambia opcionalmente el fondo del contenedor de pestañas con #RRGGBB, #AARRGGBB o transparent; si se omite, conserva el fondo gris predeterminado
 - `title` añade Un opcional simple-texto heading encima de El tab strip
 - `icon`, `iconPng` / `icon_png`, y `iconItem` / `icon_item` usar El mismo heading icon semantics as markdown quote-style callouts
 - no válido hijos o no válido predeterminados renderizan visible autor-facing errors

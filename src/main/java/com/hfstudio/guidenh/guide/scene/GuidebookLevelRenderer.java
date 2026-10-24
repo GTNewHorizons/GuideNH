@@ -26,6 +26,7 @@ import net.minecraft.client.renderer.entity.RenderManager;
 import net.minecraft.client.renderer.texture.TextureMap;
 import net.minecraft.client.renderer.tileentity.TileEntityRendererDispatcher;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.IBlockAccess;
@@ -40,6 +41,7 @@ import org.lwjgl.opengl.GL12;
 
 import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.internal.scene.GuidebookFakeRenderEnvironment;
+import com.hfstudio.guidenh.guide.internal.scene.GuidebookPreviewPlayer;
 import com.hfstudio.guidenh.guide.internal.util.DisplayScale;
 import com.hfstudio.guidenh.guide.scene.annotation.InWorldAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.InWorldAnnotationRenderer;
@@ -292,6 +294,7 @@ public class GuidebookLevelRenderer {
                         renderBlocksPass(level, visibleBlocksScratch, 0, renderAllFaces, translucentBlocksScratch);
 
                         if (!translucentBlocksScratch.isEmpty()) {
+                            sortTranslucentBlocksBackToFront(translucentBlocksScratch, camera);
                             setRenderPass(1);
                             GL11.glEnable(GL_BLEND);
                             GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
@@ -333,7 +336,7 @@ public class GuidebookLevelRenderer {
                         mc.entityRenderer.disableLightmap(partialTicks);
                     }
                 } catch (Throwable t) {
-                    log(t);
+                    GuideDebugLog.warn("Scene render warning", t);
                 } finally {
                     GL11.glMatrixMode(GL_PROJECTION);
                     GL11.glPopMatrix();
@@ -467,7 +470,7 @@ public class GuidebookLevelRenderer {
                         integrationRegistry.tryRenderPreviewWorldBlock(rb, fakeWorld, block, p[0], p[1], p[2]);
                     }
                 } catch (Throwable t) {
-                    log(t);
+                    GuideDebugLog.warn("Scene render warning", t);
                 }
             }
         } finally {
@@ -475,6 +478,22 @@ public class GuidebookLevelRenderer {
             tes.setTranslation(0.0D, 0.0D, 0.0D);
             mc.gameSettings.ambientOcclusion = savedAmbientOcclusion;
         }
+    }
+
+    private static void sortTranslucentBlocksBackToFront(List<int[]> blocks, CameraSettings camera) {
+        if (blocks.size() < 2) {
+            return;
+        }
+        var combined = camera.getCombinedMatrix();
+        float m02 = combined.m02();
+        float m12 = combined.m12();
+        float m22 = combined.m22();
+        float m32 = combined.m32();
+        blocks.sort((left, right) -> {
+            float leftDepth = m02 * (left[0] + 0.5f) + m12 * (left[1] + 0.5f) + m22 * (left[2] + 0.5f) + m32;
+            float rightDepth = m02 * (right[0] + 0.5f) + m12 * (right[1] + 0.5f) + m22 * (right[2] + 0.5f) + m32;
+            return Float.compare(rightDepth, leftDepth);
+        });
     }
 
     public static void resetRenderBlocksState(RenderBlocks renderBlocks, IBlockAccess blockAccess,
@@ -544,9 +563,25 @@ public class GuidebookLevelRenderer {
                 }
                 try {
                     preparePreviewModelLighting();
-                    dispatcher.renderTileEntityAt(te, te.xCoord, te.yCoord, te.zCoord, partialTicks);
+                    try (PreviewTileViewerScope ignored = PreviewTileViewerScope.open(te)) {
+                        double cameraX = TileEntityRendererDispatcher.staticPlayerX;
+                        double cameraY = TileEntityRendererDispatcher.staticPlayerY;
+                        double cameraZ = TileEntityRendererDispatcher.staticPlayerZ;
+                        GL11.glPushMatrix();
+                        GL11.glTranslated(cameraX, cameraY, cameraZ);
+                        try {
+                            dispatcher.renderTileEntityAt(
+                                te,
+                                te.xCoord - cameraX,
+                                te.yCoord - cameraY,
+                                te.zCoord - cameraZ,
+                                partialTicks);
+                        } finally {
+                            GL11.glPopMatrix();
+                        }
+                    }
                 } catch (Throwable t) {
-                    log(t);
+                    GuideDebugLog.warn("Scene render warning", t);
                 }
             }
         }
@@ -556,6 +591,95 @@ public class GuidebookLevelRenderer {
         GL11.glEnable(GL_DEPTH_TEST);
         GL11.glDisable(GL_BLEND);
         GL11.glDepthMask(true);
+    }
+
+    private static class PreviewTileViewerScope implements AutoCloseable {
+
+        private static final double VIEWER_DISTANCE = 3.0D;
+
+        private final EntityLivingBase viewer;
+        private final double oldPosX;
+        private final double oldPosY;
+        private final double oldPosZ;
+        private final double oldPrevPosX;
+        private final double oldPrevPosY;
+        private final double oldPrevPosZ;
+        private final double oldLastTickPosX;
+        private final double oldLastTickPosY;
+        private final double oldLastTickPosZ;
+        private final double oldStaticPlayerX;
+        private final double oldStaticPlayerY;
+        private final double oldStaticPlayerZ;
+        private final double oldRenderPosX;
+        private final double oldRenderPosY;
+        private final double oldRenderPosZ;
+
+        private PreviewTileViewerScope(EntityLivingBase viewer) {
+            this.viewer = viewer;
+            oldPosX = viewer.posX;
+            oldPosY = viewer.posY;
+            oldPosZ = viewer.posZ;
+            oldPrevPosX = viewer.prevPosX;
+            oldPrevPosY = viewer.prevPosY;
+            oldPrevPosZ = viewer.prevPosZ;
+            oldLastTickPosX = viewer.lastTickPosX;
+            oldLastTickPosY = viewer.lastTickPosY;
+            oldLastTickPosZ = viewer.lastTickPosZ;
+            oldStaticPlayerX = TileEntityRendererDispatcher.staticPlayerX;
+            oldStaticPlayerY = TileEntityRendererDispatcher.staticPlayerY;
+            oldStaticPlayerZ = TileEntityRendererDispatcher.staticPlayerZ;
+            oldRenderPosX = RenderManager.renderPosX;
+            oldRenderPosY = RenderManager.renderPosY;
+            oldRenderPosZ = RenderManager.renderPosZ;
+        }
+
+        @Nullable
+        private static PreviewTileViewerScope open(TileEntity tileEntity) {
+            if (!(Minecraft.getMinecraft().renderViewEntity instanceof GuidebookPreviewPlayer viewer)) {
+                return null;
+            }
+            PreviewTileViewerScope scope = new PreviewTileViewerScope(viewer);
+            scope.moveNear(tileEntity);
+            return scope;
+        }
+
+        private void moveNear(TileEntity tileEntity) {
+            // Same look vector as Entity.getLookVec(); the preview player faces along the scene's view ray.
+            double yaw = Math.toRadians(viewer.rotationYaw);
+            double pitch = Math.toRadians(viewer.rotationPitch);
+            double horizontal = Math.cos(pitch);
+            double lookX = -Math.sin(yaw) * horizontal;
+            double lookY = -Math.sin(pitch);
+            double lookZ = Math.cos(yaw) * horizontal;
+
+            double nearX = tileEntity.xCoord + 0.5D - lookX * VIEWER_DISTANCE;
+            double nearY = tileEntity.yCoord + 0.5D - lookY * VIEWER_DISTANCE;
+            double nearZ = tileEntity.zCoord + 0.5D - lookZ * VIEWER_DISTANCE;
+            viewer.setPosition(nearX, nearY, nearZ);
+            viewer.prevPosX = viewer.lastTickPosX = nearX;
+            viewer.prevPosY = viewer.lastTickPosY = nearY;
+            viewer.prevPosZ = viewer.lastTickPosZ = nearZ;
+            TileEntityRendererDispatcher.staticPlayerX = RenderManager.renderPosX = nearX;
+            TileEntityRendererDispatcher.staticPlayerY = RenderManager.renderPosY = nearY;
+            TileEntityRendererDispatcher.staticPlayerZ = RenderManager.renderPosZ = nearZ;
+        }
+
+        @Override
+        public void close() {
+            viewer.setPosition(oldPosX, oldPosY, oldPosZ);
+            viewer.prevPosX = oldPrevPosX;
+            viewer.prevPosY = oldPrevPosY;
+            viewer.prevPosZ = oldPrevPosZ;
+            viewer.lastTickPosX = oldLastTickPosX;
+            viewer.lastTickPosY = oldLastTickPosY;
+            viewer.lastTickPosZ = oldLastTickPosZ;
+            TileEntityRendererDispatcher.staticPlayerX = oldStaticPlayerX;
+            TileEntityRendererDispatcher.staticPlayerY = oldStaticPlayerY;
+            TileEntityRendererDispatcher.staticPlayerZ = oldStaticPlayerZ;
+            RenderManager.renderPosX = oldRenderPosX;
+            RenderManager.renderPosY = oldRenderPosY;
+            RenderManager.renderPosZ = oldRenderPosZ;
+        }
     }
 
     private void renderEntities(Iterable<Entity> entities, float partialTicks,
@@ -600,7 +724,7 @@ public class GuidebookLevelRenderer {
                     renderState.yaw(),
                     partialTicks);
             } catch (Throwable t) {
-                log(t);
+                GuideDebugLog.warn("Scene render warning", t);
             }
         }
         RenderHelper.disableStandardItemLighting();
@@ -1210,11 +1334,5 @@ public class GuidebookLevelRenderer {
         public float horizontalRightZ() {
             return horizontalRightZ;
         }
-    }
-
-    public static void log(Throwable t) {
-        try {
-            GuideDebugLog.warn("Scene render warning", t);
-        } catch (Throwable ignore) {}
     }
 }

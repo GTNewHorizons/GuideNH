@@ -74,7 +74,7 @@ public class CsvTableScript implements LytScript {
                 "");
             LytBlock table = CsvTableCompiler.buildTable(runtimeCompiler, rows, ph.header, ph.widths);
             if (table != null) {
-                ctx.replace(table);
+                ctx.replace(PageCompiler.wrapFloatAwareIfNeeded(table));
             } else {
                 ctx.replace(LytParagraph.error("[CsvTable] Failed to parse CSV: " + ph.src));
             }

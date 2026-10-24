@@ -12,7 +12,7 @@ categories:
 
 这一页是运行时渲染检查页，用来在游戏里确认 GuideNH 当前支持的 Markdown 与相关扩展效果。
 
-另见：[图表](./charts.md) · [函数图](./function-graph.md)
+另见：[图表](./charts.md) · [函数图](./function-graph.md) · [Markdown 表格扩展](./markdown-table.md)
 
 ## LaTeX 公式
 
@@ -247,20 +247,101 @@ Markdown：
 
 普通 Markdown 表格也可以使用运行时列宽 hint：
 
+{: widths="120,80" }
 | Name | Value |
 | --- | --- |
 | Iron | 42 |
 | Gold | 17 |
-{: widths="120,80" }
 
 三列表宽示例：
 
+{: widths="130,70,150" }
 | Material | Count | Notes |
 | --- | --- | --- |
 | Iron | 42 | base line |
 | Gold | 17 | compact |
 | Diamond | 9 | rare |
-{: widths="130,70,150" }
+
+HTML 表格可以表示标题、列分组、语义行分组和合并单元格。`<caption>` 会显示在表格上方。`<colgroup>` 与 `<col>` 接受像素或百分比 `width` 值（可选 `px` 后缀）；`span` 会将同一宽度重复应用到多个列。使用 `<thead>`、`<tbody>` 和 `<tfoot>` 对行分组。`th` 和 `td` 支持 `colspan`、`rowspan`、`align`、`valign`；`th` 还支持 `scope`、`abbr` 和 `headers`。站点导出会保留表格的 `width`、`border`、`cellpadding`、`cellspacing`、`frame`、`rules`、`summary`、`bgcolor` 和 `bordercolor` 属性。表格级别的 `widths` 属性也可以提供以逗号分隔的像素宽度 hint：
+
+```html
+<table widths="150,70,70,150">
+  <caption>燃料消耗速率</caption>
+  <colgroup>
+    <col width="150" />
+    <col width="70" span="2" />
+    <col width="150" />
+  </colgroup>
+  <thead>
+    <tr>
+      <th scope="col" rowspan="2" align="left">燃料</th>
+      <th scope="colgroup" colspan="2" align="center">燃烧速率</th>
+      <th scope="col" rowspan="2" align="right">备注</th>
+    </tr>
+    <tr>
+      <th scope="col" align="right">木炭</th>
+      <th scope="col" align="right">煤炭</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th scope="row" rowspan="2" align="left">固体燃料</th>
+      <td align="right">42</td>
+      <td align="right">17</td>
+      <td rowspan="2" align="left">每刻</td>
+    </tr>
+    <tr>
+      <td colspan="2" align="right">合计 59</td>
+    </tr>
+  </tbody>
+  <tfoot>
+    <tr>
+      <th scope="rowgroup" align="left">总计</th>
+      <td colspan="3" align="right">59 单位</td>
+    </tr>
+  </tfoot>
+</table>
+
+```
+
+效果：
+
+<table widths="150,70,70,150">
+  <caption>燃料消耗速率</caption>
+  <colgroup>
+    <col width="150" />
+    <col width="70" span="2" />
+    <col width="150" />
+  </colgroup>
+  <thead>
+    <tr>
+      <th scope="col" rowspan="2" align="left">燃料</th>
+      <th scope="colgroup" colspan="2" align="center">燃烧速率</th>
+      <th scope="col" rowspan="2" align="right">备注</th>
+    </tr>
+    <tr>
+      <th scope="col" align="right">木炭</th>
+      <th scope="col" align="right">煤炭</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th scope="row" rowspan="2" align="left">固体燃料</th>
+      <td align="right">42</td>
+      <td align="right">17</td>
+      <td rowspan="2" align="left">每刻</td>
+    </tr>
+    <tr>
+      <td colspan="2" align="right">合计 59</td>
+    </tr>
+  </tbody>
+  <tfoot>
+    <tr>
+      <th scope="rowgroup" align="left">总计</th>
+      <td colspan="3" align="right">59 单位</td>
+    </tr>
+  </tfoot>
+</table>
 
 ## 引用式链接与图片
 
@@ -296,13 +377,14 @@ Markdown：
 
 `<ContentTabs>` 可以把可替代的富内容放进同一组标签页中。每个子节点都必须是直接的
 `<Tab title="...">`。默认选中项可以通过 `default` 或 `defaultIndex` 指定，`color`
-可以覆盖类似引用块的强调线与高亮颜色，容器本身还支持通过 `title` 配合
+可以覆盖类似引用块的强调线与高亮颜色，`background` 可以用 `#RRGGBB`、`#AARRGGBB` 或 `transparent` 覆盖标签容器背景，容器本身还支持通过 `title` 配合
 `icon`、`iconPng` / `icon_png`、`iconItem` / `icon_item` 渲染一个可选的标记式标题行。
 
 <ContentTabs
   title="构建方案"
   iconItem="minecraft:crafting_table"
   color="#4f8cff"
+  background="#20252d"
   default="场景"
 >
   <Tab title="代码">
@@ -706,3 +788,7 @@ x/2           | color=#88cc77 domain=-pi..pi
 
 <Amount value="250" unit="fluid" />/s
 <Amount value="1200000" unit="fluid" format="compact" />/s
+
+## 表格扩展参考
+
+跨列、跨行、多行单元格、无表头表格、单元格 IAL 和完整 HTML 表格的可复制示例请参见[Markdown 表格扩展](./markdown-table.md)。游戏内、Web Editor 和 Site Export 都支持同一套语法。

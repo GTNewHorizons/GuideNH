@@ -48,7 +48,7 @@
 | 標籤 | 用途 | 關鍵屬性 |
 | --- | --- | --- |
 | `<div>` | 透傳塊包裝器 | 無 |
-| `<ContentTabs>` | 將可取代的富內容分組到獨立標籤頁中 | `title`、`color`、`icon`、`iconPng`、`icon_png`、`iconItem`、`icon_item`、`default`、`defaultIndex` |
+| `<ContentTabs>` | 將可取代的富內容分組到獨立標籤頁中 | `title`、`color`、`background`、`icon`、`iconPng`、`icon_png`、`iconItem`、`icon_item`、`default`、`defaultIndex` |
 | `<Tab>` | `<ContentTabs>` 內的單一內容面板 | `title` |
 | `<details>` | 可折疊運行時區塊 | `open`、`width`、`height`、`wrap`、`align` |
 | `<FileTree>` | 目錄樹式大綱（附連接線） | `indent`、`gap` |
@@ -151,6 +151,7 @@ Water is H<sub>2</sub>O and x<sup>2</sup> is a square.
   title="实现方案"
   icon="</>"
   color="#4f8cff"
+  background="#20252d"
   default="Java"
 >
   <Tab title="Java">
@@ -167,6 +168,7 @@ Water is H<sub>2</sub>O and x<sup>2</sup> is a square.
 - `default` 會符合第一個 `title` 完全相同的標籤頁
 - `defaultIndex` 使用從 `0` 開始的下標，並且在同時出現時優先權高於 `default`
 - `color` 可選，以 `#RRGGBB` 或 `#AARRGGBB` 覆蓋左側強調線與選取標籤的高亮顏色
+- background — 可選，用 #RRGGBB、#AARRGGBB 或 transparent 覆蓋標籤容器背景；省略時保留預設灰色背景
 - `title` 會在標籤列上方增加一個可選的純文字標題
 - `icon`、`iconPng` / `icon_png`、`iconItem` / `icon_item` 与 Markdown 标记/引用块标题的图标语义完全一致
 - 非法子节点或非法默认值会渲染为面向作者的可见错误

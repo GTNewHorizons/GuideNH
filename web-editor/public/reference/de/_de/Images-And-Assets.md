@@ -27,6 +27,8 @@ GuideNH resolves Die Pfad und lädt Die binary Ressource von Die Leitfaden Inhal
 
 ## `FloatingImage`
 
+Mit `wrap="inline"` wird das Bild vertikal zum umgebenden Text zentriert. Die Zeile wächst so weit, dass das gesamte Bild hineinpasst. Benachbarte Textzeilen behalten ihre normale Höhe; es gibt keine feste Obergrenze für die Zeilenhöhe. Soll ein sehr hohes Bild allein in einer Zeile stehen, setzen Sie das Tag in einen eigenen Absatz mit einer Leerzeile davor und danach.
+
 `<FloatingImage>` rendert Eine cropped bitmap region dass kann Gleitkommazahl mit Text oder sit truly inline innerhalb ein
 paragraph. It auch accepts explizit `modid:path` texture ids, so it kann reference texture assets von
 andere mods directly.

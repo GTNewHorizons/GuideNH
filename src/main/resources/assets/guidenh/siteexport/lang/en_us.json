@@ -10,9 +10,15 @@
     "reset": "Reset view",
     "previous": "Previous Keyframe",
     "playPause": "Play / Pause",
-    "restart": "Restart"
+    "restart": "Restart",
+    "ponder": "Ponder",
+    "tick": "Tick"
   },
-  "ponder": { "lmb": "LMB", "rmb": "RMB", "scroll": "Scroll" },
+  "ponder": {
+    "lmb": "LMB",
+    "rmb": "RMB",
+    "scroll": "Scroll"
+  },
   "navigation": {
     "open": "Navigation",
     "close": "Close navigation",

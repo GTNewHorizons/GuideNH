@@ -1165,7 +1165,7 @@ function createPonderControl(documentRef, control, currentTick, onChange, abortS
 
   const caption = documentRef.createElement("span");
   caption.className = "scene-state-control-label";
-  caption.textContent = control.label || "Ponder";
+  caption.textContent = control.label || sceneLabels().ponder || "Ponder";
   header.append(caption);
 
   const value = documentRef.createElement("span");
@@ -1228,7 +1228,7 @@ function createPonderControl(documentRef, control, currentTick, onChange, abortS
   const describeTick = (tick) => {
     const keyframe = keyframeByTick.get(tick) ?? null;
     const label = typeof keyframe?.label === "string" && keyframe.label.length > 0 ? keyframe.label : "";
-    const tickLabel = `${control.timeLabel || "Tick"} ${tick}`;
+    const tickLabel = `${control.timeLabel || sceneLabels().tick || "Tick"} ${tick}`;
     return label ? `${label} - ${tickLabel}` : tickLabel;
   };
 

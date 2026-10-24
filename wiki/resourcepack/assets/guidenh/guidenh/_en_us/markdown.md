@@ -12,7 +12,7 @@ categories:
 
 This page is a runtime sample sheet for checking what GuideNH currently renders in-game.
 
-See also: [Charts](./charts.md) · [Function Graphs](./function-graph.md)
+See also: [Charts](./charts.md) · [Function Graphs](./function-graph.md) · [Markdown Table Extensions](./markdown-table.md)
 
 ## LaTeX Formulas
 
@@ -248,20 +248,101 @@ Alignment check:
 
 Ordinary markdown tables can also use runtime width hints:
 
+{: widths="120,80" }
 | Name | Value |
 | --- | --- |
 | Iron | 42 |
 | Gold | 17 |
-{: widths="120,80" }
 
 Another width-hint sample with three columns:
 
+{: widths="130,70,150" }
 | Material | Count | Notes |
 | --- | --- | --- |
 | Iron | 42 | base line |
 | Gold | 17 | compact |
 | Diamond | 9 | rare |
-{: widths="130,70,150" }
+
+HTML tables can describe captions, column groups, semantic row groups, and merged cells. `<caption>` appears above the table. `<colgroup>` and `<col>` accept pixel or percentage `width` values (with an optional `px` suffix); `span` repeats one width for multiple columns. Use `<thead>`, `<tbody>`, and `<tfoot>` for row groups. `th` and `td` support `colspan`, `rowspan`, `align`, and `valign`; `th` supports `scope`, `abbr`, and `headers`. Table `width`, `border`, `cellpadding`, `cellspacing`, `frame`, `rules`, `summary`, `bgcolor`, and `bordercolor` attributes are preserved by the site exporter. A table-level `widths` attribute can also provide comma-separated pixel hints:
+
+```html
+<table widths="150,70,70,150">
+  <caption>Fuel burn rates</caption>
+  <colgroup>
+    <col width="150" />
+    <col width="70" span="2" />
+    <col width="150" />
+  </colgroup>
+  <thead>
+    <tr>
+      <th scope="col" rowspan="2" align="left">Fuel</th>
+      <th scope="colgroup" colspan="2" align="center">Burn rate</th>
+      <th scope="col" rowspan="2" align="right">Notes</th>
+    </tr>
+    <tr>
+      <th scope="col" align="right">Charcoal</th>
+      <th scope="col" align="right">Coal</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th scope="row" rowspan="2" align="left">Solid fuel</th>
+      <td align="right">42</td>
+      <td align="right">17</td>
+      <td rowspan="2" align="left">Per tick</td>
+    </tr>
+    <tr>
+      <td colspan="2" align="right">59 combined</td>
+    </tr>
+  </tbody>
+  <tfoot>
+    <tr>
+      <th scope="rowgroup" align="left">Total</th>
+      <td colspan="3" align="right">59 units</td>
+    </tr>
+  </tfoot>
+</table>
+
+```
+
+Result:
+
+<table widths="150,70,70,150">
+  <caption>Fuel burn rates</caption>
+  <colgroup>
+    <col width="150" />
+    <col width="70" span="2" />
+    <col width="150" />
+  </colgroup>
+  <thead>
+    <tr>
+      <th scope="col" rowspan="2" align="left">Fuel</th>
+      <th scope="colgroup" colspan="2" align="center">Burn rate</th>
+      <th scope="col" rowspan="2" align="right">Notes</th>
+    </tr>
+    <tr>
+      <th scope="col" align="right">Charcoal</th>
+      <th scope="col" align="right">Coal</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th scope="row" rowspan="2" align="left">Solid fuel</th>
+      <td align="right">42</td>
+      <td align="right">17</td>
+      <td rowspan="2" align="left">Per tick</td>
+    </tr>
+    <tr>
+      <td colspan="2" align="right">59 combined</td>
+    </tr>
+  </tbody>
+  <tfoot>
+    <tr>
+      <th scope="rowgroup" align="left">Total</th>
+      <td colspan="3" align="right">59 units</td>
+    </tr>
+  </tfoot>
+</table>
 
 ## Reference Links And Images
 
@@ -300,7 +381,8 @@ Text outside the block should still wrap around it when `wrap="square"` is used.
 
 `<ContentTabs>` groups alternative rich content under one tab strip. Each child must be a direct
 `<Tab title="...">`. The selected tab can be chosen with either `default` or `defaultIndex`,
-`color` can override the quote-like accent line/highlight, and the container itself can expose
+`color` can override the quote-like accent line/highlight, `background` can override the tab
+container background with `#RRGGBB`, `#AARRGGBB`, or `transparent`, and the container itself can expose
 an optional callout-style heading through `title` plus `icon`, `iconPng` / `icon_png`, or
 `iconItem` / `icon_item`.
 
@@ -308,6 +390,7 @@ an optional callout-style heading through `title` plus `icon`, `iconPng` / `icon
   title="Build Variants"
   iconItem="minecraft:crafting_table"
   color="#4f8cff"
+  background="#20252d"
   default="Scene"
 >
   <Tab title="Code">
@@ -555,3 +638,7 @@ Footnote ref[^one]
 
 <Amount value="250" unit="fluid" />/s
 <Amount value="1200000" unit="fluid" format="compact" />/s
+
+## Extended table reference
+
+For copy-ready examples of column spans, row spans, multiline cells, headerless tables, cell IAL attributes, and full HTML tables, see [Markdown Table Extensions](./markdown-table.md). The same syntax is available in the game, Web Editor, and Site Export.

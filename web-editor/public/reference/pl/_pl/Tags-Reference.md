@@ -49,7 +49,7 @@ Inline Markdown także obsługuje action links dla sound playback:
 | tag | Purpose | klucz atrybuty |
 | --- | --- | --- |
 | `<div>` | pass-through blok wrapper | none |
-| `<ContentTabs>` | groups alternative bogata treść under independent tabs | `title`, `color`, `icon`, `iconPng`, `icon_png`, `iconItem`, `icon_item`, `default`, `defaultIndex` |
+| `<ContentTabs>` | groups alternative bogata treść under independent tabs | `title`, `color`, `background`, `icon`, `iconPng`, `icon_png`, `iconItem`, `icon_item`, `default`, `defaultIndex` |
 | `<Tab>` | jeden treść panel wewnątrz `<ContentTabs>` | `title` |
 | `<details>` | collapsible czas wykonania blok | `open`, `width`, `height`, `wrap`, `align` |
 | `<FileTree>` | katalog-style outline z łącznik wiersze | `indent`, `gap` |
@@ -155,6 +155,7 @@ Groups alternative bogata treść under independent tabs. tylko bezpośredni `<T
   title="Implementation Options"
   icon="</>"
   color="#4f8cff"
+  background="#20252d"
   default="Java"
 >
   <Tab title="Java">
@@ -171,6 +172,7 @@ Groups alternative bogata treść under independent tabs. tylko bezpośredni `<T
 - `default` pasuje  pierwszy tab whose `title` pasuje exactly
 - `defaultIndex` is zero-based i wins over `default` gdy both są present
 - `color` optionally overrides  lewo accent wiersz i wybrany-tab wyróżniać z `#RRGGBB` lub `#AARRGGBB`
+- background — opcjonalnie zmienia tło kontenera kart na #RRGGBB, #AARRGGBB lub transparent; pominięcie zachowuje domyślne szare tło
 - `title` dodaje opcjonalny plain-tekst heading nad  tab strip
 - `icon`, `iconPng` / `icon_png`, i `iconItem` / `icon_item` używać  ten sam heading icon semantics as Markdown quote-style callouts
 - nieprawidłowy elementy podrzędne lub nieprawidłowy domyślne renderować widoczny autor-facing errors

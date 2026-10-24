@@ -11,6 +11,7 @@ This page lists the built-in runtime tags registered by `DefaultExtensions`.
   - [Recipes](Recipes)
   - [GameScene](GameScene)
   - [Annotations](Annotations)
+- Cross-renderer changes to `ContentTabs` should follow the [maintenance checklist](ContentTabs-Maintenance).
 
 ## Inline And Flow Tags
 
@@ -46,7 +47,7 @@ Inline markdown also supports action links for sound playback:
 | Tag | Purpose | Key attributes |
 | --- | --- | --- |
 | `<div>` | pass-through block wrapper | none |
-| `<ContentTabs>` | groups alternative rich content under independent tabs | `title`, `color`, `icon`, `iconPng`, `icon_png`, `iconItem`, `icon_item`, `default`, `defaultIndex` |
+| `<ContentTabs>` | groups alternative rich content under independent tabs | `title`, `color`, `background`, `icon`, `iconPng`, `icon_png`, `iconItem`, `icon_item`, `default`, `defaultIndex` |
 | `<Tab>` | one content panel inside `<ContentTabs>` | `title` |
 | `<details>` | collapsible runtime block | `open`, `width`, `height`, `wrap`, `align` |
 | `<FileTree>` | directory-style outline with connector lines | `indent`, `gap` |
@@ -152,6 +153,7 @@ Groups alternative rich content under independent tabs. Only direct `<Tab>` chil
   title="Implementation Options"
   icon="</>"
   color="#4f8cff"
+  background="#20252d"
   default="Java"
 >
   <Tab title="Java">
@@ -168,6 +170,7 @@ Groups alternative rich content under independent tabs. Only direct `<Tab>` chil
 - `default` matches the first tab whose `title` matches exactly
 - `defaultIndex` is zero-based and wins over `default` when both are present
 - `color` optionally overrides the left accent line and selected-tab highlight with `#RRGGBB` or `#AARRGGBB`
+- `background` optionally overrides the tab container background with `#RRGGBB`, `#AARRGGBB`, or `transparent`; the default keeps the normal gray callout background
 - `title` adds an optional plain-text heading above the tab strip
 - `icon`, `iconPng` / `icon_png`, and `iconItem` / `icon_item` use the same heading icon semantics as markdown quote-style callouts
 - invalid children or invalid defaults render visible author-facing errors
@@ -588,6 +591,19 @@ name,value
 iron,42
 gold,17
 ```
+````
+
+### HTML `<table>`
+
+The native HTML table tags are supported in GuideNH pages. Use `<caption>`, `<colgroup>` / `<col>`, and `<thead>` / `<tbody>` / `<tfoot>` to describe the table structure. Cells support `colspan`, `rowspan`, `align`, and `valign`; header cells additionally support `scope`, `abbr`, and `headers`. A table `align` value with commas (for example `left,center,right`) is retained as a per-column alignment extension; a single `left`, `center`, or `right` value positions the complete table. `width`, `border`, `cellpadding`, and `cellspacing` are supported in the game renderer and site export. The kramdown metadata line `{: widths="130,70,150" }` remains supported for Markdown tables.
+
+````md
+<table width="100%" cellpadding="2">
+  <caption>Fuel rates</caption>
+  <colgroup><col width="40%" /><col width="60%" /></colgroup>
+  <thead><tr><th scope="col">Fuel</th><th scope="col">Rate</th></tr></thead>
+  <tbody><tr><td>Coal</td><td align="right">42</td></tr></tbody>
+</table>
 ````
 
 ### `<Latex>`

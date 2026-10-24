@@ -1,0 +1,1450 @@
+{
+  "$id": "guidenh://schema/ponder.json",
+  "title": "Ponder",
+  "description": "GuideNH Ponder animation timeline. This schema is bundled locally and is usable offline.",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "totalTime": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Total duration in ticks (20 ticks = 1 second). Minimum clamped to 1."
+    },
+    "keyframes": {
+      "type": "array",
+      "description": "List of keyframe objects. May be empty.",
+      "items": {
+        "$ref": "#/$defs/keyframe"
+      }
+    }
+  },
+  "required": [
+    "totalTime",
+    "keyframes"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "keyframe": {
+      "type": "object",
+      "properties": {
+        "time": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Tick at which this keyframe occurs (0 <= time <= totalTime)."
+        },
+        "hidden": {
+          "type": "boolean",
+          "default": false,
+          "description": "When true, the keyframe still applies camera/NBT/entity/annotation state at its time, but no visible node is drawn for it on the progress bar and visible keyframe navigation skips it."
+        },
+        "label": {
+          "type": "string",
+          "description": "Optional fallback label shown when hovering the keyframe node on the progress bar."
+        },
+        "labelKey": {
+          "type": "string",
+          "description": "Translation key for the keyframe label. When resolved, it overrides label."
+        },
+        "camera": {
+          "$ref": "#/$defs/camera"
+        },
+        "cameraEaseTicks": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "default": null,
+          "description": "Ticks the camera takes to ease from the previous keyframe to this one. null = ease over the full segment. 0 = instant snap. N > 0 = ease over N ticks, then hold."
+        },
+        "layer": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1,
+          "default": null,
+          "description": "Visible layer override. null (or omitted) shows all layers. 1-based index."
+        },
+        "annotations": {
+          "type": "array",
+          "description": "Annotations shown while this keyframe is active (from its time until the next keyframe's time).",
+          "items": {
+            "$ref": "#/$defs/annotation"
+          }
+        },
+        "sounds": {
+          "type": "array",
+          "description": "Sounds played once when this keyframe becomes active during forward playback.",
+          "items": {
+            "$ref": "#/$defs/sound"
+          }
+        },
+        "particles": {
+          "type": "array",
+          "description": "Particle bursts or presets fired when this keyframe becomes active during forward playback.",
+          "items": {
+            "$ref": "#/$defs/particle"
+          }
+        },
+        "blockChanges": {
+          "type": "array",
+          "description": "Block replacements applied when this keyframe first becomes active. Seek-safe.",
+          "items": {
+            "$ref": "#/$defs/blockChange"
+          }
+        },
+        "mergeTileNBT": {
+          "type": "array",
+          "description": "Merge SNBT compounds into tile entities at block positions.",
+          "items": {
+            "$ref": "#/$defs/mergeTileNBT"
+          }
+        },
+        "modifyTileNBT": {
+          "type": "array",
+          "description": "Set one tile-entity NBT path to an SNBT value.",
+          "items": {
+            "$ref": "#/$defs/modifyTileNBT"
+          }
+        },
+        "removeTileNBT": {
+          "type": "array",
+          "description": "Remove one tile-entity NBT path.",
+          "items": {
+            "$ref": "#/$defs/removeTileNBT"
+          }
+        },
+        "createEntities": {
+          "type": "array",
+          "description": "Create Ponder-owned entities that can be referenced by later entity operations.",
+          "items": {
+            "$ref": "#/$defs/createEntity"
+          }
+        },
+        "setEntityNBT": {
+          "type": "array",
+          "description": "Replace a referenced entity's NBT with the supplied SNBT compound.",
+          "items": {
+            "$ref": "#/$defs/entityNbtOp"
+          }
+        },
+        "mergeEntityNBT": {
+          "type": "array",
+          "description": "Merge an SNBT compound into a referenced entity.",
+          "items": {
+            "$ref": "#/$defs/entityNbtOp"
+          }
+        },
+        "modifyEntityNBT": {
+          "type": "array",
+          "description": "Set one referenced entity NBT path to an SNBT value, and/or update transform, preview-player pose and mount state.",
+          "items": {
+            "$ref": "#/$defs/modifyEntityNBT"
+          }
+        },
+        "removeEntityNBT": {
+          "type": "array",
+          "description": "Remove one referenced entity NBT path.",
+          "items": {
+            "$ref": "#/$defs/removeEntityNBT"
+          }
+        },
+        "removeEntities": {
+          "type": "array",
+          "description": "Remove Ponder-owned entities by ref using the stable scene-entity registry.",
+          "items": {
+            "$ref": "#/$defs/entityRef"
+          }
+        },
+        "animateEntities": {
+          "type": "array",
+          "description": "Replay-safe timed animation presets applied to referenced Ponder entities.",
+          "items": {
+            "$ref": "#/$defs/entityAnimation"
+          }
+        }
+      },
+      "required": [
+        "time"
+      ],
+      "additionalProperties": false
+    },
+    "camera": {
+      "type": "object",
+      "description": "Camera state at this keyframe. null or omitted fields inherit from the nearest prior keyframe that defined them, else the scene default.",
+      "properties": {
+        "zoom": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0.1,
+          "maximum": 10.0,
+          "description": "Camera zoom level (0.1 - 10.0)."
+        },
+        "rotX": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "X-axis rotation in degrees."
+        },
+        "rotY": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "Y-axis rotation in degrees."
+        },
+        "rotZ": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "Z-axis rotation in degrees."
+        },
+        "offX": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "Horizontal pan offset in screen pixels."
+        },
+        "offY": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "Vertical pan offset in screen pixels."
+        }
+      },
+      "additionalProperties": false
+    },
+    "color": {
+      "type": "string",
+      "pattern": "^(0[xX])?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
+      "description": "ARGB hex color, e.g. \"0xFFFF8800\". The 0x prefix is optional."
+    },
+    "snbt": {
+      "type": "string",
+      "description": "SNBT string (MC 1.7.10 format, keys must be unquoted), e.g. {id:\"minecraft:iron_ingot\",Count:8b}."
+    },
+    "nbtPath": {
+      "type": "string",
+      "description": "Dotted NBT path with list indexes, e.g. Items[0].Count or InputTanks[0].TankContent.Amount."
+    },
+    "blockPos": {
+      "description": "Block coordinate as [x, y, z] or \"x y z\".",
+      "oneOf": [
+        {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 3,
+          "maxItems": 3
+        },
+        {
+          "type": "string",
+          "pattern": "^\\s*-?\\d+(\\.\\d+)?\\s+-?\\d+(\\.\\d+)?\\s+-?\\d+(\\.\\d+)?\\s*$"
+        }
+      ]
+    },
+    "alwaysOnTop": {
+      "type": "boolean",
+      "default": false,
+      "description": "If true, rendered through solid blocks."
+    },
+    "lineWidth": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "description": "GL line width."
+    },
+    "sound": {
+      "type": "object",
+      "properties": {
+        "sound": {
+          "type": "string",
+          "description": "Sound event id, e.g. guidenh:machine.start."
+        },
+        "src": {
+          "type": "string",
+          "description": "Sound file id or path; guidenh:sounds/machine/start.ogg becomes guidenh:machine.start."
+        },
+        "volume": {
+          "type": "number",
+          "minimum": 0,
+          "default": 1.0,
+          "description": "Playback volume before attenuation."
+        },
+        "pitch": {
+          "type": "number",
+          "default": 1.0,
+          "description": "Playback pitch."
+        },
+        "cooldown": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 250,
+          "description": "Minimum milliseconds before the same sound can play again."
+        },
+        "x": {
+          "type": "number",
+          "description": "Optional scene-space source position for screen-space attenuation."
+        },
+        "y": {
+          "type": "number",
+          "description": "Optional scene-space source position for screen-space attenuation."
+        },
+        "z": {
+          "type": "number",
+          "description": "Optional scene-space source position for screen-space attenuation."
+        },
+        "radius": {
+          "type": "number",
+          "description": "Attenuation radius in screen pixels. Defaults to scene short side * 0.75."
+        },
+        "minVolume": {
+          "type": "number",
+          "minimum": 0,
+          "default": 0.15,
+          "description": "Minimum attenuation factor."
+        }
+      },
+      "anyOf": [
+        {
+          "required": [
+            "sound"
+          ]
+        },
+        {
+          "required": [
+            "src"
+          ]
+        }
+      ],
+      "additionalProperties": false
+    },
+    "particleCoord": {
+      "description": "Scalar coordinate, or (for preset \"rain\") an array of endpoint pairs defining rectangular coverage.",
+      "oneOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 1
+        }
+      ]
+    },
+    "particle": {
+      "type": "object",
+      "properties": {
+        "preset": {
+          "type": "string",
+          "enum": [
+            "explosion",
+            "rain",
+            "weather",
+            "indicator",
+            "redstone"
+          ],
+          "description": "Special preset: explosion, rain/weather, indicator, or redstone."
+        },
+        "weather": {
+          "type": "string",
+          "enum": [
+            "rain",
+            "snow"
+          ],
+          "default": "rain",
+          "description": "Weather type used by preset \"rain\"."
+        },
+        "name": {
+          "$ref": "#/$defs/particleName"
+        },
+        "particle": {
+          "$ref": "#/$defs/particleName",
+          "description": "Compatibility alias for name."
+        },
+        "kind": {
+          "$ref": "#/$defs/particleName",
+          "description": "Compatibility alias for name."
+        },
+        "x": {
+          "$ref": "#/$defs/particleCoord"
+        },
+        "y": {
+          "type": "number",
+          "description": "Particle origin Y. Ignored by weather presets."
+        },
+        "z": {
+          "$ref": "#/$defs/particleCoord"
+        },
+        "vx": {
+          "type": "number",
+          "default": 0.0,
+          "description": "Initial motion X."
+        },
+        "vy": {
+          "type": "number",
+          "default": 0.0,
+          "description": "Initial motion Y."
+        },
+        "vz": {
+          "type": "number",
+          "default": 0.0,
+          "description": "Initial motion Z."
+        },
+        "motionX": {
+          "type": "number",
+          "description": "Alias for vx."
+        },
+        "motionY": {
+          "type": "number",
+          "description": "Alias for vy."
+        },
+        "motionZ": {
+          "type": "number",
+          "description": "Alias for vz."
+        },
+        "time": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Particle lifetime in ticks. For preset \"rain\" this is the total weather duration."
+        },
+        "lifetime": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Alias for time."
+        },
+        "size": {
+          "type": "number",
+          "description": "Generic particle half-size in block units."
+        },
+        "amount": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Generic particle count. For preset \"rain\", the average per-tick weather density."
+        },
+        "power": {
+          "type": "number",
+          "default": 2.0,
+          "description": "Explosion strength for the explosion preset."
+        }
+      },
+      "additionalProperties": false
+    },
+    "particleName": {
+      "type": "string",
+      "enum": [
+        "billboard",
+        "smoke",
+        "largesmoke",
+        "explode",
+        "flash",
+        "largeexplode",
+        "hugeexplosion"
+      ],
+      "description": "Generic particle appearance."
+    },
+    "blockXYZ": {
+      "type": "object",
+      "properties": {
+        "x": {
+          "type": "integer",
+          "description": "Block X in structure coordinates."
+        },
+        "y": {
+          "type": "integer",
+          "description": "Block Y in structure coordinates."
+        },
+        "z": {
+          "type": "integer",
+          "description": "Block Z in structure coordinates."
+        }
+      },
+      "required": [
+        "x",
+        "y",
+        "z"
+      ]
+    },
+    "blockChange": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/blockXYZ"
+        }
+      ],
+      "properties": {
+        "x": true,
+        "y": true,
+        "z": true,
+        "block": {
+          "type": "string",
+          "description": "Registry name, e.g. minecraft:furnace. Use minecraft:air to remove."
+        },
+        "meta": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0,
+          "description": "Block metadata / damage value."
+        },
+        "particles": {
+          "type": "boolean",
+          "default": true,
+          "description": "Spawn block-texture particles when this change fires during forward playback."
+        },
+        "nbt": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/snbt"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "SNBT tile entity tag. Keys must be unquoted. Ignored if the block has no tile entity."
+        }
+      },
+      "required": [
+        "block"
+      ],
+      "additionalProperties": false
+    },
+    "mergeTileNBT": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/blockXYZ"
+        }
+      ],
+      "properties": {
+        "x": true,
+        "y": true,
+        "z": true,
+        "nbt": {
+          "$ref": "#/$defs/snbt",
+          "description": "SNBT compound merged recursively into the tile entity."
+        }
+      },
+      "required": [
+        "nbt"
+      ],
+      "additionalProperties": false
+    },
+    "modifyTileNBT": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/blockXYZ"
+        }
+      ],
+      "properties": {
+        "x": true,
+        "y": true,
+        "z": true,
+        "path": {
+          "$ref": "#/$defs/nbtPath"
+        },
+        "value": {
+          "type": "string",
+          "description": "SNBT value written at path, e.g. 3b, 500, \"\\\"text\\\"\"."
+        }
+      },
+      "required": [
+        "path",
+        "value"
+      ],
+      "additionalProperties": false
+    },
+    "removeTileNBT": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/blockXYZ"
+        }
+      ],
+      "properties": {
+        "x": true,
+        "y": true,
+        "z": true,
+        "path": {
+          "$ref": "#/$defs/nbtPath"
+        }
+      },
+      "required": [
+        "path"
+      ],
+      "additionalProperties": false
+    },
+    "entityRef": {
+      "type": "object",
+      "properties": {
+        "ref": {
+          "type": "string",
+          "description": "Local reference name of a Ponder-owned entity."
+        }
+      },
+      "required": [
+        "ref"
+      ],
+      "additionalProperties": false
+    },
+    "createEntity": {
+      "type": "object",
+      "properties": {
+        "ref": {
+          "type": "string",
+          "description": "Required local reference name for later operations."
+        },
+        "sceneEntityId": {
+          "type": "string",
+          "description": "Stable scene-local id used for mount relations, replay-safe replacement, import/export restore and removal. Defaults to an id derived from ref."
+        },
+        "id": {
+          "type": "string",
+          "description": "Entity ID, e.g. minecraft:pig, Pig, player, or a mod entity ID."
+        },
+        "x": {
+          "type": "number",
+          "default": 0
+        },
+        "y": {
+          "type": "number",
+          "default": 0
+        },
+        "z": {
+          "type": "number",
+          "default": 0
+        },
+        "yaw": {
+          "type": "number",
+          "default": 0
+        },
+        "pitch": {
+          "type": "number",
+          "default": 0
+        },
+        "bodyYaw": {
+          "type": "number",
+          "description": "Living-entity body yaw override. Follows yaw if omitted."
+        },
+        "headYaw": {
+          "type": "number",
+          "description": "Living-entity head yaw override. Follows yaw if omitted."
+        },
+        "nbt": {
+          "$ref": "#/$defs/snbt",
+          "description": "SNBT compound applied when the entity is created."
+        },
+        "name": {
+          "type": "string",
+          "description": "Preview-player profile name."
+        },
+        "nameKey": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Translation key for the preview-player profile name; when resolved, it overrides name."
+        },
+        "uuid": {
+          "type": "string",
+          "description": "Preview-player profile UUID."
+        },
+        "mount": {
+          "type": "string",
+          "description": "Stable sceneEntityId (not ref) of the vehicle this entity should ride."
+        },
+        "unmount": {
+          "type": "boolean",
+          "description": "Clear the current stable mount relation before any later mount is applied."
+        },
+        "showName": {
+          "type": "boolean",
+          "description": "Show the entity nameplate when supported."
+        },
+        "showCape": {
+          "type": "boolean",
+          "description": "Show the preview-player cape when supported."
+        },
+        "baby": {
+          "type": "boolean",
+          "description": "Use the child model when supported."
+        },
+        "headRotation": {
+          "type": "string",
+          "description": "Preview-player head rotation as \"x y z\" degrees."
+        },
+        "leftArmRotation": {
+          "type": "string",
+          "description": "Preview-player left-arm rotation as \"x y z\" degrees."
+        },
+        "rightArmRotation": {
+          "type": "string",
+          "description": "Preview-player right-arm rotation as \"x y z\" degrees."
+        },
+        "leftLegRotation": {
+          "type": "string",
+          "description": "Preview-player left-leg rotation as \"x y z\" degrees."
+        },
+        "rightLegRotation": {
+          "type": "string",
+          "description": "Preview-player right-leg rotation as \"x y z\" degrees."
+        },
+        "capeRotation": {
+          "type": "string",
+          "description": "Preview-player cape rotation as \"x y z\" degrees."
+        }
+      },
+      "required": [
+        "ref",
+        "id"
+      ],
+      "additionalProperties": false
+    },
+    "entityNbtOp": {
+      "type": "object",
+      "properties": {
+        "ref": {
+          "type": "string",
+          "description": "Local reference name of a Ponder-owned entity."
+        },
+        "nbt": {
+          "$ref": "#/$defs/snbt"
+        }
+      },
+      "required": [
+        "ref",
+        "nbt"
+      ],
+      "additionalProperties": false
+    },
+    "modifyEntityNBT": {
+      "type": "object",
+      "description": "Either path + value, or transform / pose / mount fields (or both). Additional preview-player pose fields (e.g. leftArmRotation) are allowed.",
+      "properties": {
+        "ref": {
+          "type": "string",
+          "description": "Local reference name of a Ponder-owned entity."
+        },
+        "path": {
+          "$ref": "#/$defs/nbtPath"
+        },
+        "value": {
+          "type": "string",
+          "description": "SNBT value written at path. Escape SNBT string quotes inside JSON: \"\\\"hello\\\"\"."
+        },
+        "x": {
+          "type": "number"
+        },
+        "y": {
+          "type": "number"
+        },
+        "z": {
+          "type": "number"
+        },
+        "yaw": {
+          "type": "number"
+        },
+        "pitch": {
+          "type": "number"
+        },
+        "bodyYaw": {
+          "type": "number"
+        },
+        "headYaw": {
+          "type": "number"
+        },
+        "mount": {
+          "type": "string",
+          "description": "Stable sceneEntityId of the vehicle to ride."
+        },
+        "unmount": {
+          "type": "boolean",
+          "description": "Clear the current stable mount relation."
+        },
+        "showName": {
+          "type": "boolean",
+          "description": "Show the entity nameplate when supported."
+        },
+        "showCape": {
+          "type": "boolean",
+          "description": "Show the preview-player cape when supported."
+        },
+        "baby": {
+          "type": "boolean",
+          "description": "Use the child model when supported."
+        },
+        "headRotation": {
+          "type": "string",
+          "description": "Preview-player head rotation as \"x y z\" degrees."
+        },
+        "leftArmRotation": {
+          "type": "string",
+          "description": "Preview-player left-arm rotation as \"x y z\" degrees."
+        },
+        "rightArmRotation": {
+          "type": "string",
+          "description": "Preview-player right-arm rotation as \"x y z\" degrees."
+        },
+        "leftLegRotation": {
+          "type": "string",
+          "description": "Preview-player left-leg rotation as \"x y z\" degrees."
+        },
+        "rightLegRotation": {
+          "type": "string",
+          "description": "Preview-player right-leg rotation as \"x y z\" degrees."
+        },
+        "capeRotation": {
+          "type": "string",
+          "description": "Preview-player cape rotation as \"x y z\" degrees."
+        }
+      },
+      "required": [
+        "ref"
+      ],
+      "dependentRequired": {
+        "path": [
+          "value"
+        ],
+        "value": [
+          "path"
+        ]
+      }
+    },
+    "removeEntityNBT": {
+      "type": "object",
+      "properties": {
+        "ref": {
+          "type": "string",
+          "description": "Local reference name of a Ponder-owned entity."
+        },
+        "path": {
+          "$ref": "#/$defs/nbtPath"
+        }
+      },
+      "required": [
+        "ref",
+        "path"
+      ],
+      "additionalProperties": false
+    },
+    "annotation": {
+      "type": "object",
+      "required": [
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "diamond",
+            "box",
+            "block",
+            "blockBox",
+            "block_box",
+            "line",
+            "blockface",
+            "blockFace",
+            "block_face",
+            "text",
+            "input"
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "diamond"
+              }
+            }
+          },
+          "then": {
+            "$ref": "#/$defs/diamondAnnotation"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "box"
+              }
+            }
+          },
+          "then": {
+            "$ref": "#/$defs/boxAnnotation"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "enum": [
+                  "block",
+                  "blockBox",
+                  "block_box"
+                ]
+              }
+            }
+          },
+          "then": {
+            "$ref": "#/$defs/blockAnnotation"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "line"
+              }
+            }
+          },
+          "then": {
+            "$ref": "#/$defs/lineAnnotation"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "enum": [
+                  "blockface",
+                  "blockFace",
+                  "block_face"
+                ]
+              }
+            }
+          },
+          "then": {
+            "$ref": "#/$defs/blockFaceAnnotation"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "text"
+              }
+            }
+          },
+          "then": {
+            "$ref": "#/$defs/textAnnotation"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "input"
+              }
+            }
+          },
+          "then": {
+            "$ref": "#/$defs/inputAnnotation"
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "diamondAnnotation": {
+      "description": "3D diamond marker at a world position.",
+      "properties": {
+        "x": {
+          "type": "number",
+          "default": 0.0
+        },
+        "y": {
+          "type": "number",
+          "default": 0.0
+        },
+        "z": {
+          "type": "number",
+          "default": 0.0
+        },
+        "color": {
+          "$ref": "#/$defs/color",
+          "default": "0xFF00E000"
+        },
+        "tooltip": {
+          "type": "string",
+          "default": "",
+          "description": "Fallback hover text."
+        },
+        "tooltipKey": {
+          "type": "string",
+          "default": "",
+          "description": "Translation key for the hover text; overrides tooltip when resolved."
+        },
+        "alwaysOnTop": {
+          "$ref": "#/$defs/alwaysOnTop"
+        }
+      }
+    },
+    "boxAnnotation": {
+      "description": "Wireframe axis-aligned box from min to max.",
+      "properties": {
+        "minX": {
+          "type": "number",
+          "default": 0.0
+        },
+        "minY": {
+          "type": "number",
+          "default": 0.0
+        },
+        "minZ": {
+          "type": "number",
+          "default": 0.0
+        },
+        "maxX": {
+          "type": "number",
+          "default": 1.0
+        },
+        "maxY": {
+          "type": "number",
+          "default": 1.0
+        },
+        "maxZ": {
+          "type": "number",
+          "default": 1.0
+        },
+        "color": {
+          "$ref": "#/$defs/color",
+          "default": "0xFFFFFFFF"
+        },
+        "lineWidth": {
+          "$ref": "#/$defs/lineWidth"
+        },
+        "alwaysOnTop": {
+          "$ref": "#/$defs/alwaysOnTop"
+        },
+        "tooltip": {
+          "type": "string",
+          "description": "Fallback rich-text hover content."
+        },
+        "tooltipKey": {
+          "type": "string",
+          "description": "Translation key for hover content. When resolved, it overrides tooltip."
+        }
+      }
+    },
+    "blockAnnotation": {
+      "description": "Wireframe around one whole block (equivalent of <BlockAnnotation>).",
+      "properties": {
+        "pos": {
+          "$ref": "#/$defs/blockPos"
+        },
+        "x": {
+          "type": "number",
+          "default": 0,
+          "description": "Floored."
+        },
+        "y": {
+          "type": "number",
+          "default": 0,
+          "description": "Floored."
+        },
+        "z": {
+          "type": "number",
+          "default": 0,
+          "description": "Floored."
+        },
+        "blockX": {
+          "type": "integer",
+          "default": 0
+        },
+        "blockY": {
+          "type": "integer",
+          "default": 0
+        },
+        "blockZ": {
+          "type": "integer",
+          "default": 0
+        },
+        "color": {
+          "$ref": "#/$defs/color",
+          "default": "0xFFFFFFFF"
+        },
+        "lineWidth": {
+          "$ref": "#/$defs/lineWidth"
+        },
+        "alwaysOnTop": {
+          "$ref": "#/$defs/alwaysOnTop"
+        },
+        "tooltip": {
+          "type": "string",
+          "description": "Fallback rich-text hover content."
+        },
+        "tooltipKey": {
+          "type": "string",
+          "description": "Translation key for hover content. When resolved, it overrides tooltip."
+        }
+      }
+    },
+    "lineAnnotation": {
+      "description": "Line segment or polyline. points takes priority over from/to when it has at least two valid points.",
+      "properties": {
+        "fromX": {
+          "type": "number",
+          "default": 0.0
+        },
+        "fromY": {
+          "type": "number",
+          "default": 0.0
+        },
+        "fromZ": {
+          "type": "number",
+          "default": 0.0
+        },
+        "toX": {
+          "type": "number",
+          "default": 1.0
+        },
+        "toY": {
+          "type": "number",
+          "default": 1.0
+        },
+        "toZ": {
+          "type": "number",
+          "default": 1.0
+        },
+        "points": {
+          "description": "Polyline points as \"x y z; x y z; ...\" or [[x, y, z], ...].",
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "number"
+                },
+                "minItems": 3,
+                "maxItems": 3
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "color": {
+          "$ref": "#/$defs/color",
+          "default": "0xFFFFFFFF"
+        },
+        "arrow": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "start",
+            "end",
+            null
+          ],
+          "description": "Arrow head at start or end; omitted draws no arrow."
+        },
+        "lineWidth": {
+          "$ref": "#/$defs/lineWidth"
+        },
+        "alwaysOnTop": {
+          "$ref": "#/$defs/alwaysOnTop"
+        },
+        "tooltip": {
+          "type": "string",
+          "description": "Fallback rich-text hover content."
+        },
+        "tooltipKey": {
+          "type": "string",
+          "description": "Translation key for hover content. When resolved, it overrides tooltip."
+        }
+      }
+    },
+    "blockFaceAnnotation": {
+      "description": "Translucent solid overlay on all faces of a single block.",
+      "properties": {
+        "pos": {
+          "$ref": "#/$defs/blockPos"
+        },
+        "x": {
+          "type": "number",
+          "default": 0,
+          "description": "Floored."
+        },
+        "y": {
+          "type": "number",
+          "default": 0,
+          "description": "Floored."
+        },
+        "z": {
+          "type": "number",
+          "default": 0,
+          "description": "Floored."
+        },
+        "blockX": {
+          "type": "integer",
+          "default": 0
+        },
+        "blockY": {
+          "type": "integer",
+          "default": 0
+        },
+        "blockZ": {
+          "type": "integer",
+          "default": 0
+        },
+        "color": {
+          "$ref": "#/$defs/color",
+          "default": "0x80FFFFFF"
+        },
+        "alwaysOnTop": {
+          "$ref": "#/$defs/alwaysOnTop"
+        },
+        "tooltip": {
+          "type": "string",
+          "description": "Fallback rich-text hover content."
+        },
+        "tooltipKey": {
+          "type": "string",
+          "description": "Translation key for hover content. When resolved, it overrides tooltip."
+        }
+      }
+    },
+    "textAnnotation": {
+      "description": "Speech-bubble label anchored to a world position, or placed relative to the scene centre in independent mode. Supports GuideNH inline rich text (markdown + inline MDX tags); § codes are not supported.",
+      "properties": {
+        "x": {
+          "type": "number",
+          "default": 0.0
+        },
+        "y": {
+          "type": "number",
+          "default": 0.0
+        },
+        "z": {
+          "type": "number",
+          "default": 0.0
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Fallback rich text to display inside the bubble."
+        },
+        "color": {
+          "$ref": "#/$defs/color",
+          "default": "0xFFAAAAAA",
+          "description": "ARGB bubble border color."
+        },
+        "backgroundAlpha": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255,
+          "default": 204
+        },
+        "maxWidth": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0,
+          "description": "If > 0, wraps text at this width in pixels."
+        },
+        "independent": {
+          "type": "boolean",
+          "default": false,
+          "description": "Position relative to the scene centre instead of a world point."
+        },
+        "yOffset": {
+          "type": "integer",
+          "default": 0,
+          "description": "Pixel offset from the scene's vertical centre (positive = down). Used with independent."
+        },
+        "connectorSide": {
+          "type": "string",
+          "enum": [
+            "bottom",
+            "top",
+            "left",
+            "right",
+            "none"
+          ],
+          "default": "bottom"
+        },
+        "connectorOffset": {
+          "type": "integer",
+          "default": 0
+        },
+        "connectorLength": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 6
+        },
+        "hlMinX": {
+          "type": "number",
+          "default": 0.0
+        },
+        "hlMinY": {
+          "type": "number",
+          "default": 0.0
+        },
+        "hlMinZ": {
+          "type": "number",
+          "default": 0.0
+        },
+        "hlMaxX": {
+          "type": "number",
+          "default": 1.0
+        },
+        "hlMaxY": {
+          "type": "number",
+          "default": 1.0
+        },
+        "hlMaxZ": {
+          "type": "number",
+          "default": 1.0
+        },
+        "highlightColor": {
+          "$ref": "#/$defs/color",
+          "default": "0x8000FFAA"
+        },
+        "tooltip": {
+          "type": "string",
+          "description": "Fallback rich-text hover content."
+        },
+        "tooltipKey": {
+          "type": "string",
+          "description": "Translation key for hover content. When resolved, it overrides tooltip."
+        },
+        "textKey": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Translation key for the bubble content. When resolved, it overrides text."
+        }
+      },
+      "anyOf": [
+        {
+          "required": [
+            "text"
+          ]
+        },
+        {
+          "required": [
+            "textKey"
+          ]
+        }
+      ]
+    },
+    "inputAnnotation": {
+      "description": "Mouse-input icon hinting a player interaction.",
+      "properties": {
+        "x": {
+          "type": "number",
+          "default": 0.0
+        },
+        "y": {
+          "type": "number",
+          "default": 0.0
+        },
+        "z": {
+          "type": "number",
+          "default": 0.0
+        },
+        "inputType": {
+          "type": "string",
+          "pattern": "^([Ll][Mm][Bb]|[Rr][Mm][Bb]|[Ss][Cc][Rr][Oo][Ll][Ll])$",
+          "default": "lmb",
+          "description": "lmb, rmb or scroll (case-insensitive)."
+        },
+        "modifier": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "sneak",
+            "ctrl",
+            null
+          ],
+          "default": null
+        },
+        "item": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null,
+          "description": "Item registry ID shown left of the mouse icon; supports modid:item:meta."
+        },
+        "tooltip": {
+          "type": "string",
+          "description": "Fallback rich-text hover content."
+        },
+        "tooltipKey": {
+          "type": "string",
+          "description": "Translation key for hover content. When resolved, it overrides tooltip."
+        }
+      }
+    },
+    "entityAnimation": {
+      "type": "object",
+      "description": "Timed animation preset for a Ponder-owned entity.",
+      "properties": {
+        "ref": {
+          "type": "string",
+          "description": "Local entity reference."
+        },
+        "preset": {
+          "type": "string",
+          "enum": [
+            "leftclick",
+            "rightclick",
+            "jump",
+            "hurt",
+            "sneak",
+            "unsneak",
+            "walkto",
+            "moveto"
+          ],
+          "description": "Animation preset name."
+        },
+        "ticks": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Animation duration in ticks."
+        },
+        "x": {
+          "type": "number",
+          "description": "Target X for walkto/moveto."
+        },
+        "y": {
+          "type": "number",
+          "description": "Target Y for walkto/moveto."
+        },
+        "z": {
+          "type": "number",
+          "description": "Target Z for walkto/moveto."
+        },
+        "height": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Jump height in blocks."
+        }
+      },
+      "required": [
+        "ref",
+        "preset"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "x-guidenh-offline": true
+}

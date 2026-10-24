@@ -211,6 +211,8 @@ Sound campos:
 | `radius` | decimal | cena short lado * 0.75 | Attenuation radius em tela pixels. |
 | `minVolume` | decimal | `0.15` | Minimum attenuation factor. |
 
+
+Para validação offline no editor, adicione `"$schema": "guidenh://schema/ponder.json"` à raiz JSON. O esquema incluído está em `wiki/resourcepack/assets/guidenh/guidenh/assets/schema/ponder_schema.json` e nunca carrega uma URL remota.
 ---
 
 ## Keyframe Particles
@@ -386,7 +388,7 @@ seus próprio entities com `createEntities`, então destino those entities by `r
 | `yaw`, `pitch` | opcional spawn rotação. Defaults para `0, 0` a menos que `nbt` supplies `Rotation`. |
 | `bodyYaw`, `headYaw` | opcional living-entity corpo/head yaw substitui. Se omitted enquanto `yaw` é present, Elas follow `yaw`. |
 | `nbt` | opcional SNBT compound applied quando O entity é criado. |
-| `name`, `uuid` | opcional visualização-player profile campos quando creating Uma visualização player entity. |
+| `name`, `nameKey`, `uuid` | opcional visualização-player profile campos quando creating Uma visualização player entity. |
 | `mount` | opcional stable `sceneEntityId` of O vehicle que Este entity deve ride depois de creation ou later replay. |
 | `unmount` | opcional booleano que clears O entity's atual stable mount relation antes de qualquer later `mount` é applied. |
 
@@ -475,6 +477,8 @@ alterações durante playback. Seeking ou pausing sempre mostra Anotações at c
 cada entrada em O `annotations` array requires a `type` campo. Seven types são disponível.
 
 ---
+
+Todas as anotações Ponder aceitam `tooltip` e `tooltipKey`. A chave é resolvida pelos arquivos `lang` ativos e, se não existir, é usado o texto original.
 
 ### `diamond`
 
@@ -658,7 +662,8 @@ para Uma fixo espaço da tela posição que não faz project de mundo coordenada
 | campo | Tipo | Padrão | descrição |
 |-------|------|---------|-------------|
 | `x`, `y`, `z` | decimal | `0.0` | espaço do mundo anchor posição (ignored em independent modo). |
-| `text` | texto | - | **Obrigatório.** texto para exibir dentro de O bubble. |
+| `text` | texto | — | Texto de fallback exibido no balão. |
+| `textKey` | texto | — | Chave de tradução do texto do balão; quando resolvida, substitui `text`. |
 | `color` | texto | `"0xFFAAAAAA"` | ARGB cor of O bubble borda. |
 | `backgroundAlpha` | inteiro | `204` | fundo opacity de `0` (transparent) para `255` (opaque). O RGB cor remains O Padrão dark navy. |
 | `maxWidth` | inteiro | `0` | Se &gt; 0, wraps texto at Este largura em pixels. Omit ou Defina para `0` para a único-linha rótulo. |

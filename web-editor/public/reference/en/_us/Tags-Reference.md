@@ -46,7 +46,7 @@ Inline markdown also supports action links for sound playback:
 | Tag | Purpose | Key attributes |
 | --- | --- | --- |
 | `<div>` | pass-through block wrapper | none |
-| `<ContentTabs>` | groups alternative rich content under independent tabs | `title`, `color`, `icon`, `iconPng`, `icon_png`, `iconItem`, `icon_item`, `default`, `defaultIndex` |
+| `<ContentTabs>` | groups alternative rich content under independent tabs | `title`, `color`, `background`, `icon`, `iconPng`, `icon_png`, `iconItem`, `icon_item`, `default`, `defaultIndex` |
 | `<Tab>` | one content panel inside `<ContentTabs>` | `title` |
 | `<details>` | collapsible runtime block | `open`, `width`, `height`, `wrap`, `align` |
 | `<FileTree>` | directory-style outline with connector lines | `indent`, `gap` |
@@ -152,6 +152,7 @@ Groups alternative rich content under independent tabs. Only direct `<Tab>` chil
   title="Implementation Options"
   icon="</>"
   color="#4f8cff"
+  background="#20252d"
   default="Java"
 >
   <Tab title="Java">
@@ -168,6 +169,7 @@ Groups alternative rich content under independent tabs. Only direct `<Tab>` chil
 - `default` matches the first tab whose `title` matches exactly
 - `defaultIndex` is zero-based and wins over `default` when both are present
 - `color` optionally overrides the left accent line and selected-tab highlight with `#RRGGBB` or `#AARRGGBB`
+- background — optionally overrides the tab container background with #RRGGBB, #AARRGGBB, or transparent; omitted keeps the default gray background
 - `title` adds an optional plain-text heading above the tab strip
 - `icon`, `iconPng` / `icon_png`, and `iconItem` / `icon_item` use the same heading icon semantics as markdown quote-style callouts
 - invalid children or invalid defaults render visible author-facing errors

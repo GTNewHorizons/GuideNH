@@ -237,7 +237,7 @@ public class RecipeScript implements LytScript {
         }
 
         // Vanilla recipe fallback
-        List<RecipeLookup.Entry> entries = usageQuery ? Collections.emptyList() : RecipeLookup.findByOutput(item);
+        List<RecipeLookup.Entry> entries = usageQuery ? Collections.emptyList() : RecipeLookup.findByOutput(ph.ref);
         if (entries.isEmpty()) {
             showFallback(ctx, ph, "No recipe found for " + ph.idStr);
             return;

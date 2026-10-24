@@ -29,6 +29,7 @@ import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.color.ConstantColor;
 import com.hfstudio.guidenh.guide.compiler.tags.CsvTableCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.DetailsContentExtractor;
+import com.hfstudio.guidenh.guide.compiler.tags.FlowTagCompiler;
 import com.hfstudio.guidenh.guide.document.block.LatexRenderOptions;
 import com.hfstudio.guidenh.guide.document.block.LatexVerticalAlign;
 import com.hfstudio.guidenh.guide.document.block.LytBlock;
@@ -59,6 +60,8 @@ import com.hfstudio.guidenh.guide.internal.markdown.MarkdownActionLink;
 import com.hfstudio.guidenh.guide.internal.markdown.MarkdownHtmlRuntimeNormalizer;
 import com.hfstudio.guidenh.guide.internal.markdown.MarkdownLatexShorthand;
 import com.hfstudio.guidenh.guide.internal.markdown.MarkdownLiteralAutolink;
+import com.hfstudio.guidenh.guide.internal.markdown.MarkdownTableEnhancer;
+import com.hfstudio.guidenh.guide.internal.markdown.MarkdownTableSourceNormalizer;
 import com.hfstudio.guidenh.guide.internal.markdown.MdAstToMdxConverter;
 import com.hfstudio.guidenh.guide.internal.util.GuideStringLines;
 import com.hfstudio.guidenh.guide.internal.util.LangUtil;
@@ -230,7 +233,8 @@ public class PageCompiler {
         pageContent = normalizeLineEndings(pageContent);
         pageContent = FootnotePreprocessor.preprocess(pageContent);
         var sourceFrontmatter = parseFrontmatterFromSource(id, pageContent);
-        MarkdownLatexShorthand.MaskResult latexMask = MarkdownLatexShorthand.mask(pageContent);
+        String normalizedMarkdown = MarkdownTableSourceNormalizer.normalize(pageContent);
+        MarkdownLatexShorthand.MaskResult latexMask = MarkdownLatexShorthand.mask(normalizedMarkdown);
         // Masked before parsing, because `&[label](uri)` otherwise reads as an ordinary Markdown link and the
         // URI is consumed by the parser before the compiler can turn it into an action.
         MarkdownActionLink.MaskResult actionMask = MarkdownActionLink.mask(latexMask.source());
@@ -246,6 +250,7 @@ public class PageCompiler {
             MarkdownLatexShorthand.restore(astRoot, latexMask);
             MarkdownActionLink.restore(astRoot, actionMask);
             MarkdownHtmlRuntimeNormalizer.normalize(astRoot);
+            MarkdownTableEnhancer.enhance(astRoot, normalizedMarkdown);
 
             Map<String, MdAstDefinition> definitions = GuideMarkdownDefinitions.collect(astRoot);
             frontmatter = parseFrontmatter(id, astRoot);
@@ -620,19 +625,22 @@ public class PageCompiler {
         for (MdAstAnyContent child : children) {
             if (child instanceof MdxJsxFlowElement el && "p".equals(el.name())) {
                 compileFlowContext(el, layoutParent);
-            } else if (child instanceof MdxJsxFlowElement el) {
-                for (var nestedChild : el.children()) {
-                    compileFlowContent(layoutParent, nestedChild);
+            } else if (child instanceof MdxJsxFlowElement el
+                && tagCompilers.get(el.name()) instanceof FlowTagCompiler flowTagCompiler) {
+                    flowTagCompiler.compileInline(this, layoutParent, el);
+                } else if (child instanceof MdxJsxFlowElement el) {
+                    for (var nestedChild : el.children()) {
+                        compileFlowContent(layoutParent, nestedChild);
+                    }
+                } else if (child instanceof MdxJsxTextElement el) {
+                    compileFlowContent(layoutParent, el);
+                } else if (child instanceof MdAstParent<?>nestedParent) {
+                    for (var nestedChild : nestedParent.children()) {
+                        compileFlowContent(layoutParent, nestedChild);
+                    }
+                } else {
+                    compileFlowContent(layoutParent, child);
                 }
-            } else if (child instanceof MdxJsxTextElement el) {
-                compileFlowContent(layoutParent, el);
-            } else if (child instanceof MdAstParent<?>nestedParent) {
-                for (var nestedChild : nestedParent.children()) {
-                    compileFlowContent(layoutParent, nestedChild);
-                }
-            } else {
-                compileFlowContent(layoutParent, child);
-            }
         }
     }
 
@@ -808,7 +816,7 @@ public class PageCompiler {
             }
         }
 
-        boolean firstRow = true;
+        boolean firstRow = !astTable.headerless;
         int rowIndex = 0;
         for (int rowI = 0; rowI < rowCount; rowI++) {
             var astRow = astRows.get(rowI);

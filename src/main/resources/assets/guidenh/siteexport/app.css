@@ -166,6 +166,8 @@ hr {
 
 table {
     border-collapse: collapse;
+    border-spacing: 0;
+    table-layout: auto;
 }
 
 .guide-table-wrap,
@@ -178,27 +180,70 @@ table {
 
 .guide-table-wrap > table,
 .guide-csv-table-wrap > table {
-    width: max-content;
-    min-width: 100%;
+    width: 100%;
+    max-width: 100%;
     margin-bottom: 0;
 }
 
 table td, table th {
-    padding: 6px;
+    min-width: 0;
+    max-width: 100%;
+    padding: var(--guide-table-cell-padding, 6px);
+    border: 0;
+    text-align: left;
+    vertical-align: middle;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+table th {
+    border-bottom: var(--guide-table-inner-border, calc(1px * var(--gui-scale)) solid var(--color-table-border));
+}
+
+table tr + tr td,
+table tr + tr th {
+    border-top: var(--guide-table-inner-border, 1px solid var(--color-table-border));
+}
+
+table td + td,
+table td + th,
+table th + td,
+table th + th {
+    border-left: var(--guide-table-inner-border, 1px solid var(--color-table-border));
+}
+
+table[border]:not([border="0"]) td,
+table[border]:not([border="0"]) th {
+    border: var(--guide-table-cell-border, 1px solid var(--color-table-border));
+}
+
+table[border="0"] td,
+table[border="0"] th {
+    border: 0;
+}
+
+table caption {
+    padding: 0.35em 0;
+    font-weight: bold;
+    text-align: center;
+}
+
+table caption > p,
+table td > p:first-child,
+table th > p:first-child {
+    margin-top: 0;
+}
+
+table caption > p,
+table td > p:last-child,
+table th > p:last-child {
+    margin-bottom: 0;
 }
 
 th {
     font-weight: bold;
     font-family: var(--minecraft-font);
-    border-bottom: calc(1px * var(--gui-scale)) solid var(--color-table-border);
-}
-
-tr + tr td {
-    border-top: 1px solid var(--color-table-border);
-}
-
-td + td, th + th {
-    border-left: 1px solid var(--color-table-border);
 }
 
 code {
@@ -1127,6 +1172,7 @@ p {
 
 .guide-floating-image-wrap.guide-floating-image-inline {
     display: inline-block;
+    line-height: 0;
     vertical-align: middle;
 }
 
@@ -2158,6 +2204,7 @@ p {
 
 .guide-content-tabs {
     --guide-content-tabs-accent: rgba(124, 135, 149, 1);
+    --guide-content-tabs-background: rgba(64, 64, 64, 0.25);
     display: flex;
     flex-wrap: wrap;
     align-items: flex-end;
@@ -2166,7 +2213,7 @@ p {
     margin: 1rem 0;
     padding: 0.45rem 0.7rem 0.7rem 0.7rem;
     border-left: calc(2px * var(--gui-scale)) solid var(--guide-content-tabs-accent);
-    background: rgba(64, 64, 64, 0.25);
+    background: var(--guide-content-tabs-background);
     position: relative;
 }
 

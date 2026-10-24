@@ -285,18 +285,47 @@ function positionRichTooltip(host) {
   if (!richTooltipHost || richTooltipHost.hidden) return;
   const anchor = host.querySelector(".guide-tooltip-trigger") || host;
   const anchorRect = anchor.getBoundingClientRect();
-  const tooltipRect = richTooltipHost.getBoundingClientRect();
   const gap = 9;
-  let left = anchorRect.right + gap;
-  let top = anchorRect.top;
-  if (left + tooltipRect.width > window.innerWidth - 8) left = anchorRect.left - tooltipRect.width - gap;
-  if (left < 8) {
-    left = Math.min(window.innerWidth - tooltipRect.width - 8, Math.max(8, anchorRect.left));
-    top = anchorRect.bottom + gap;
-    if (top + tooltipRect.height > window.innerHeight - 8) top = anchorRect.top - tooltipRect.height - gap;
+  const viewport = elements.frame || elements.preview;
+  const viewportRect = viewport?.getBoundingClientRect?.();
+  const viewportLeft = Math.max(8, viewportRect?.left ?? 8);
+  const viewportRight = Math.min(window.innerWidth - 8, viewportRect?.right ?? window.innerWidth - 8);
+  const viewportTop = Math.max(8, viewportRect?.top ?? 8);
+  const viewportBottom = Math.min(window.innerHeight - 8, viewportRect?.bottom ?? window.innerHeight - 8);
+  const availableWidth = Math.max(1, viewportRight - viewportLeft);
+  const availableHeight = Math.max(1, viewportBottom - viewportTop);
+  richTooltipHost.style.maxWidth = `${Math.floor(availableWidth)}px`;
+  richTooltipHost.style.maxHeight = `${Math.floor(availableHeight)}px`;
+  const tooltipRect = richTooltipHost.getBoundingClientRect();
+  const tooltipWidth = Math.min(tooltipRect.width, availableWidth);
+  const tooltipHeight = Math.min(tooltipRect.height, availableHeight);
+  const rightCandidate = anchorRect.right + gap;
+  const leftCandidate = anchorRect.left - tooltipWidth - gap;
+  const rightFits = rightCandidate + tooltipWidth <= viewportRight;
+  const leftFits = leftCandidate >= viewportLeft;
+  let left;
+  if (rightFits) left = rightCandidate;
+  else if (leftFits) left = leftCandidate;
+  else {
+    const rightSpace = viewportRight - anchorRect.right - gap;
+    const leftSpace = anchorRect.left - viewportLeft - gap;
+    left = rightSpace >= leftSpace ? rightCandidate : leftCandidate;
   }
-  top = Math.min(Math.max(8, top), Math.max(8, window.innerHeight - tooltipRect.height - 8));
-  richTooltipHost.style.left = `${Math.round(Math.max(8, left))}px`;
+  left = Math.min(viewportRight - tooltipWidth, Math.max(viewportLeft, left));
+  const belowCandidate = anchorRect.bottom + gap;
+  const aboveCandidate = anchorRect.top - tooltipHeight - gap;
+  const belowFits = belowCandidate + tooltipHeight <= viewportBottom;
+  const aboveFits = aboveCandidate >= viewportTop;
+  let top = anchorRect.top;
+  if (top + tooltipHeight > viewportBottom) {
+    if (belowFits) top = belowCandidate;
+    else if (aboveFits) top = aboveCandidate;
+  } else if (top < viewportTop) {
+    if (belowFits) top = belowCandidate;
+    else if (aboveFits) top = aboveCandidate;
+  }
+  top = Math.min(viewportBottom - tooltipHeight, Math.max(viewportTop, top));
+  richTooltipHost.style.left = `${Math.round(left)}px`;
   richTooltipHost.style.top = `${Math.round(top)}px`;
 }
 
@@ -345,7 +374,8 @@ function installRichTooltipInteractions() {
   }
   if (!richTooltipGlobalListenersInstalled) {
     window.addEventListener("resize", () => { if (activeRichTooltip) positionRichTooltip(activeRichTooltip); }, { passive: true });
-    elements.preview.addEventListener("scroll", () => { if (activeRichTooltip) positionRichTooltip(activeRichTooltip); }, { passive: true });
+    const previewViewport = elements.frame || elements.preview;
+    previewViewport.addEventListener("scroll", () => { if (activeRichTooltip) positionRichTooltip(activeRichTooltip); }, { passive: true });
     richTooltipGlobalListenersInstalled = true;
   }
 }

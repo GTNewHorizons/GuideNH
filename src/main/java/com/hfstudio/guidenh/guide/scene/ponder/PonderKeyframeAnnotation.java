@@ -88,6 +88,9 @@ public class PonderKeyframeAnnotation {
     private String text;
     @Nullable
     private String textKey;
+    private transient String localizationFallbackText;
+    private transient String localizationFallbackTooltip;
+    private transient boolean localizationFallbackCaptured;
     @Nullable
     private String inputType;
     @Nullable
@@ -261,11 +264,18 @@ public class PonderKeyframeAnnotation {
         return tooltipKey;
     }
 
-    public void applyLocalizedTooltip(@Nullable String localizedTooltip) {
-        if (localizedTooltip == null || localizedTooltip.isEmpty()) {
-            return;
+    private void captureLocalizationFallback() {
+        if (!localizationFallbackCaptured) {
+            localizationFallbackText = text;
+            localizationFallbackTooltip = tooltip;
+            localizationFallbackCaptured = true;
         }
-        this.tooltip = localizedTooltip;
+    }
+
+    public void applyLocalizedTooltip(@Nullable String localizedTooltip) {
+        captureLocalizationFallback();
+        this.tooltip = localizedTooltip != null && !localizedTooltip.isEmpty() ? localizedTooltip
+            : localizationFallbackTooltip;
     }
 
     public boolean isAlwaysOnTop() {
@@ -283,10 +293,8 @@ public class PonderKeyframeAnnotation {
     }
 
     public void applyLocalizedText(@Nullable String localizedText) {
-        if (localizedText == null || localizedText.isEmpty()) {
-            return;
-        }
-        this.text = localizedText;
+        captureLocalizationFallback();
+        this.text = localizedText != null && !localizedText.isEmpty() ? localizedText : localizationFallbackText;
     }
 
     @Nullable

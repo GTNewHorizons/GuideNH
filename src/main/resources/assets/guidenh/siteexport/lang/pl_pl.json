@@ -10,9 +10,15 @@
     "reset": "Resetuj widok",
     "previous": "Poprzednia klatka kluczowa",
     "playPause": "Odtwórz/Wstrzymaj",
-    "restart": "Uruchom ponownie"
+    "restart": "Uruchom ponownie",
+    "ponder": "Ponder",
+    "tick": "Tik"
   },
-  "ponder": { "lmb": "Lewy przycisk", "rmb": "Prawy przycisk", "scroll": "Kółko myszy" },
+  "ponder": {
+    "lmb": "Lewy przycisk",
+    "rmb": "Prawy przycisk",
+    "scroll": "Kółko myszy"
+  },
   "navigation": {
     "open": "Nawigacja",
     "close": "Zamknij nawigację",

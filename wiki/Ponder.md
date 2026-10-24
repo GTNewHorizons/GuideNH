@@ -90,6 +90,8 @@ The `src` attribute accepts both relative and absolute IDs:
 | `totalTime` | integer | Yes | Total duration in ticks (20 ticks = 1 second). Minimum clamped to 1. |
 | `keyframes` | array | Yes | List of keyframe objects. May be empty. |
 
+For offline editor validation, add `"$schema": "guidenh://schema/ponder.json"` to the JSON root. The GuideNH mod exposes the bundled schema at `assets/guidenh/schema/ponder_schema.json`; the wiki example resource pack keeps a copy at `wiki/resourcepack/assets/guidenh/guidenh/assets/schema/ponder_schema.json`. Neither copy loads a remote URL.
+
 ### Keyframe fields
 
 | Field | Type | Required | Description |
@@ -383,7 +385,7 @@ their own entities with `createEntities`, then target those entities by `ref` in
 | `yaw`, `pitch` | Optional spawn rotation. Defaults to `0, 0` unless `nbt` supplies `Rotation`. |
 | `bodyYaw`, `headYaw` | Optional living-entity body/head yaw overrides. If omitted while `yaw` is present, they follow `yaw`. |
 | `nbt` | Optional SNBT compound applied when the entity is created. |
-| `name`, `uuid` | Optional preview-player profile fields when creating a preview player entity. |
+| `name`, `nameKey`, `uuid` | Optional preview-player profile fields when creating a preview player entity. `nameKey` overrides `name` when its translation is available and falls back to `name`. |
 | `mount` | Optional stable `sceneEntityId` of the vehicle that this entity should ride after creation or later replay. |
 | `unmount` | Optional boolean that clears the entity's current stable mount relation before any later `mount` is applied. |
 
@@ -469,6 +471,7 @@ changes during playback. Seeking or pausing always shows annotations at full opa
 
 ## Annotation Types
 
+Every Ponder annotation accepts `tooltip` and `tooltipKey`. The key is resolved from the active `lang` files and falls back to the original text when it is missing.
 Each entry in the `annotations` array requires a `type` field. Seven types are available.
 
 ---
@@ -655,7 +658,8 @@ For a fixed screen-space position that does not project from world coordinates, 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
 | `x`, `y`, `z` | float | `0.0` | World-space anchor position (ignored in independent mode). |
-| `text` | string | - | **Required.** Text to display inside the bubble. |
+| `text` | string | — | Fallback text to display inside the bubble. |
+| `textKey` | string | — | Translation key for the bubble text; when resolved it overrides `text`. |
 | `color` | string | `"0xFFAAAAAA"` | ARGB color of the bubble border. |
 | `backgroundAlpha` | integer | `204` | Background opacity from `0` (transparent) to `255` (opaque). The RGB color remains the default dark navy. |
 | `maxWidth` | integer | `0` | If &gt; 0, wraps text at this width in pixels. Omit or set to `0` for a single-line label. |

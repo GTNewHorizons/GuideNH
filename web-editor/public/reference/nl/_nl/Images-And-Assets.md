@@ -27,6 +27,8 @@ GuideNH resolves De pad en laadt De binary asset van De gids inhoud root.
 
 ## `FloatingImage`
 
+Met `wrap="inline"` wordt de afbeelding verticaal gecentreerd ten opzichte van de omringende tekst. De regel wordt hoger om de volledige afbeelding te bevatten. Aangrenzende tekstregels behouden hun normale hoogte; er geldt geen vaste maximale regelhoogte. Moet een zeer hoge afbeelding op een eigen regel staan, plaats de tag dan in een aparte alinea met een lege regel ervoor en erna.
+
 `<FloatingImage>` renders Een cropped bitmap region that kan kommagetal met tekst of sit truly inline binnen a
 paragraph. It ook accepts explicit `modid:path` texture ids, so it kan reference texture assets van
 other mods directly.

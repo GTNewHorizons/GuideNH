@@ -22,6 +22,10 @@ public abstract class FlowTagCompiler implements TagCompiler {
         compile(compiler, parent, el);
     }
 
+    public void compileInline(PageCompiler compiler, LytFlowParent parent, MdxJsxFlowElement el) {
+        compile(compiler, parent, el);
+    }
+
     @Override
     public final void compileBlockContext(PageCompiler compiler, LytBlockContainer parent, MdxJsxFlowElement el) {
         var paragraph = new LytParagraph();

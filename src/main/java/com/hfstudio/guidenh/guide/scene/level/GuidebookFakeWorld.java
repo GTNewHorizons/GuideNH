@@ -2,6 +2,7 @@ package com.hfstudio.guidenh.guide.scene.level;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.Set;
@@ -30,6 +31,7 @@ import com.hfstudio.guidenh.guide.internal.scene.GuidebookFakeRenderEnvironment;
 import com.hfstudio.guidenh.guide.scene.GuidebookLevelRenderer;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.integration.api.GuideNhIntegrationRegistry;
+import com.hfstudio.guidenh.integration.gregtech.GregTechHelpers;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
@@ -47,8 +49,10 @@ public class GuidebookFakeWorld extends WorldClient implements GuidebookPreviewW
     private final GuidebookLevel level;
     /** Stable read-only chunk views; renderer/CTM asks for the same coordinates repeatedly. */
     private final Long2ObjectOpenHashMap<GuidebookFakeChunk> chunkViews = new Long2ObjectOpenHashMap<>();
+    private final Long2ObjectOpenHashMap<TileEntity> trackedTileEntities = new Long2ObjectOpenHashMap<>();
     @Nullable
     private Set<TileEntity> markBlockForUpdateGuard;
+    private final Set<Long> neighborUpdateGuard = new HashSet<>();
 
     public GuidebookFakeWorld(GuidebookLevel level) {
         super(
@@ -96,6 +100,7 @@ public class GuidebookFakeWorld extends WorldClient implements GuidebookPreviewW
 
     @Override
     public void closePreviewWorld() {
+        GuidebookPreviewBlockPlacer.releasePlacementEntity(this);
         // WorldClient owns mutable entity/tile lists in addition to the level's canonical maps.
         // Clear those lists before dropping renderer references so a stale world cannot retain
         // scene objects after the page that created it is evicted.
@@ -104,7 +109,9 @@ public class GuidebookFakeWorld extends WorldClient implements GuidebookPreviewW
         playerEntities.clear();
         weatherEffects.clear();
         chunkViews.clear();
+        trackedTileEntities.clear();
         markBlockForUpdateGuard = null;
+        neighborUpdateGuard.clear();
         GuidebookFakeRenderEnvironment.releaseCachedPreviewPlayer(this);
         GuidebookLevelRenderer.getInstance()
             .releaseLevel(level);
@@ -148,8 +155,15 @@ public class GuidebookFakeWorld extends WorldClient implements GuidebookPreviewW
 
     @Override
     public Chunk getChunkFromBlockCoords(int x, int z) {
-        int chunkX = x >> 4;
-        int chunkZ = z >> 4;
+        return getChunkFromChunkCoords(x >> 4, z >> 4);
+    }
+
+    @Override
+    public Chunk getChunkFromChunkCoords(int chunkX, int chunkZ) {
+        if (level == null) {
+            // Still inside the World constructor; the views need the level.
+            return super.getChunkFromChunkCoords(chunkX, chunkZ);
+        }
         long key = ChunkCoordIntPair.chunkXZ2Int(chunkX, chunkZ);
         GuidebookFakeChunk chunk = chunkViews.get(key);
         if (chunk == null) {
@@ -261,10 +275,155 @@ public class GuidebookFakeWorld extends WorldClient implements GuidebookPreviewW
     public void markTileEntityChunkModified(int x, int y, int z, TileEntity tileEntity) {}
 
     @Override
-    public void notifyBlockChange(int x, int y, int z, Block block) {}
+    public void addBlockEvent(int x, int y, int z, Block block, int eventId, int eventParameter) {
+        Block actualBlock = getBlock(x, y, z);
+        if (actualBlock == null || actualBlock == Blocks.air) {
+            actualBlock = block;
+        }
+        if (actualBlock == null || actualBlock == Blocks.air) {
+            return;
+        }
+
+        boolean handled = false;
+        try {
+            handled = actualBlock.onBlockEventReceived(this, x, y, z, eventId, eventParameter);
+        } catch (Throwable failure) {
+            GuideDebugLog.warn(
+                "Preview block event failed at ({}, {}, {}) for {} (id={}, value={})",
+                x,
+                y,
+                z,
+                actualBlock,
+                eventId,
+                eventParameter,
+                failure);
+        }
+        if (handled) {
+            return;
+        }
+
+        TileEntity tileEntity = getTileEntity(x, y, z);
+        if (tileEntity == null || tileEntity.isInvalid()) {
+            return;
+        }
+        try {
+            tileEntity.receiveClientEvent(eventId, eventParameter);
+        } catch (Throwable failure) {
+            GuideDebugLog.warn(
+                "Preview TileEntity event failed at ({}, {}, {}) for {} (id={}, value={})",
+                x,
+                y,
+                z,
+                tileEntity.getClass()
+                    .getName(),
+                eventId,
+                eventParameter,
+                failure);
+        }
+    }
 
     @Override
-    public void notifyBlocksOfNeighborChange(int x, int y, int z, Block block) {}
+    public void notifyBlockChange(int x, int y, int z, Block block) {
+        notifyBlocksOfNeighborChange(x, y, z, block != null ? block : getBlock(x, y, z));
+    }
+
+    @Override
+    public void notifyBlocksOfNeighborChange(int x, int y, int z, Block block) {
+        long sourceKey = GuidebookLevel.packPos(x, y, z);
+        if (!neighborUpdateGuard.add(sourceKey)) {
+            return;
+        }
+        try {
+            for (ForgeDirection direction : ForgeDirection.VALID_DIRECTIONS) {
+                int neighborX = x + direction.offsetX;
+                int neighborY = y + direction.offsetY;
+                int neighborZ = z + direction.offsetZ;
+                Block neighbor = getBlock(neighborX, neighborY, neighborZ);
+                if (neighbor == null || neighbor == Blocks.air) {
+                    continue;
+                }
+                try {
+                    neighbor.onNeighborBlockChange(this, neighborX, neighborY, neighborZ, block);
+                } catch (Throwable failure) {
+                    GuideDebugLog.warn(
+                        "Preview neighbour update failed at ({}, {}, {}) for {} caused by ({}, {}, {})",
+                        neighborX,
+                        neighborY,
+                        neighborZ,
+                        neighbor,
+                        x,
+                        y,
+                        z,
+                        failure);
+                }
+            }
+        } finally {
+            neighborUpdateGuard.remove(sourceKey);
+        }
+    }
+
+    public void refreshPreviewNeighbors(Collection<int[]> positions) {
+        if (positions == null || positions.isEmpty()) {
+            return;
+        }
+        for (int[] position : positions) {
+            if (position == null || position.length < 3) {
+                continue;
+            }
+            int x = position[0];
+            int y = position[1];
+            int z = position[2];
+            Block block = getBlock(x, y, z);
+            if (block != null && block != Blocks.air) {
+                notifyBlockChange(x, y, z, block);
+            }
+        }
+    }
+
+    public void refreshPreviewTileEntityNeighbors(Iterable<TileEntity> tileEntities) {
+        if (tileEntities == null) {
+            return;
+        }
+        for (TileEntity tileEntity : tileEntities) {
+            if (tileEntity == null || tileEntity.isInvalid()) {
+                continue;
+            }
+            notifyBlockChange(tileEntity.xCoord, tileEntity.yCoord, tileEntity.zCoord, tileEntity.getBlockType());
+        }
+    }
+
+    public void refreshTileEntityDescriptions(Collection<TileEntity> tileEntities) {
+        if (tileEntities == null || tileEntities.isEmpty()) {
+            return;
+        }
+        for (TileEntity tileEntity : tileEntities) {
+            // GregTech's description rebuilds covers without their data; its prepare step replays the meta tile
+            // stream instead.
+            if (tileEntity == null || tileEntity.isInvalid() || GregTechHelpers.isGregTechTileEntity(tileEntity)) {
+                continue;
+            }
+            markBlockForUpdate(tileEntity.xCoord, tileEntity.yCoord, tileEntity.zCoord);
+        }
+    }
+
+    public void syncTileEntityAt(int x, int y, int z) {
+        long key = GuidebookLevel.packPos(x, y, z);
+        TileEntity current = level.getTileEntity(x, y, z);
+        TileEntity previous = trackedTileEntities.get(key);
+        if (previous == current) {
+            return;
+        }
+        if (previous != null) {
+            unregisterTrackedTileEntity(x, y, z, previous);
+        }
+        trackedTileEntities.remove(key);
+        if (current != null && !current.isInvalid()) {
+            current.setWorldObj(this);
+            current.validate();
+            addTileEntity(current);
+            trackedTileEntities.put(key, current);
+        }
+    }
 
     @Override
     public void setTileEntity(int x, int y, int z, TileEntity tileEntityIn) {
@@ -273,6 +432,7 @@ public class GuidebookFakeWorld extends WorldClient implements GuidebookPreviewW
         if (tileEntityIn != null) {
             tileEntityIn.validate();
             addTileEntity(tileEntityIn);
+            trackedTileEntities.put(GuidebookLevel.packPos(x, y, z), tileEntityIn);
         }
     }
 
@@ -333,10 +493,12 @@ public class GuidebookFakeWorld extends WorldClient implements GuidebookPreviewW
 
     public void updateEntitiesForPreview() {
         super.updateEntities();
+        GregTechHelpers.refreshPreviewClientEvents(loadedTileEntityList);
     }
 
     public void syncLoadedTileEntities(Collection<TileEntity> tileEntities) {
         loadedTileEntityList.clear();
+        trackedTileEntities.clear();
         if (tileEntities == null || tileEntities.isEmpty()) {
             return;
         }
@@ -345,6 +507,8 @@ public class GuidebookFakeWorld extends WorldClient implements GuidebookPreviewW
                 continue;
             }
             addTileEntity(tileEntity);
+            trackedTileEntities
+                .put(GuidebookLevel.packPos(tileEntity.xCoord, tileEntity.yCoord, tileEntity.zCoord), tileEntity);
         }
     }
 
@@ -364,6 +528,7 @@ public class GuidebookFakeWorld extends WorldClient implements GuidebookPreviewW
     }
 
     private void unregisterTrackedTileEntity(int x, int y, int z, TileEntity exactTileEntity) {
+        long key = GuidebookLevel.packPos(x, y, z);
         Iterator<TileEntity> iterator = loadedTileEntityList.iterator();
         while (iterator.hasNext()) {
             TileEntity tracked = iterator.next();
@@ -375,6 +540,10 @@ public class GuidebookFakeWorld extends WorldClient implements GuidebookPreviewW
                 : tracked.xCoord == x && tracked.yCoord == y && tracked.zCoord == z) {
                 iterator.remove();
             }
+        }
+        TileEntity tracked = trackedTileEntities.get(key);
+        if (exactTileEntity == null || tracked == exactTileEntity) {
+            trackedTileEntities.remove(key);
         }
     }
 
@@ -390,7 +559,16 @@ public class GuidebookFakeWorld extends WorldClient implements GuidebookPreviewW
             if (packet instanceof S35PacketUpdateTileEntity updatePacket) {
                 tileEntity.onDataPacket(null, updatePacket);
             }
-        } catch (Throwable ignored) {}
+        } catch (Throwable failure) {
+            GuideDebugLog.warn(
+                "Preview TileEntity description stream failed at ({}, {}, {}) for {}",
+                tileEntity.xCoord,
+                tileEntity.yCoord,
+                tileEntity.zCoord,
+                tileEntity.getClass()
+                    .getName(),
+                failure);
+        }
     }
 
     private boolean suppressAe2StaleTileDescriptionRefresh(@Nullable TileEntity te) {

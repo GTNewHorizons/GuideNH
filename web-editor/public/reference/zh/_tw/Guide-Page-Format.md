@@ -31,6 +31,7 @@ GuideNH 頁面目前支援範例指南裡常用的這些 Markdown 能力：
 - 圍籬程式碼區塊
 - 縮排程式碼區塊
 - GFM 表格
+- 具有標題、欄分組、列分組和合併儲存格的 HTML 表格
 - 純小寫 HTML 片段，如 `<kbd>`、`<sub>`
 - 頁面正文中的 MDX 註釋
 
@@ -184,14 +185,55 @@ gold,17
 普通 GFM Markdown 表格也可以在表格後面緊跟著一行執行時間屬性，提供列寬 hint：
 
 ````md
+{: widths="120,80" }
 | Name | Value |
 | --- | --- |
 | Iron | 42 |
 | Gold | 17 |
-{: widths="120,80" }
 ````
 
 這樣表格本體仍然保持標準 Markdown，只是在 GuideNH 運行時應用列的首選寬度。
+
+多行表頭和合併儲存格請使用 HTML 表格。`<caption>` 會顯示在表格上方。使用 `<colgroup>` 和 `<col>` 設定各欄的像素或百分比首選寬度；`width` 接受像素或百分比值（可選 `px` 後綴），`span` 會將同一寬度重複套用到多個欄。使用 `<thead>`、`<tbody>` 和 `<tfoot>` 對資料列分組。表頭和資料儲存格支援 `colspan`、`rowspan`、`align`、`valign`；`th` 還支援 `scope`、`abbr` 和 `headers`。網站匯出會保留 `width`、`border`、`cellpadding`、`cellspacing`、`frame`、`rules`、`summary`、`bgcolor` 和 `bordercolor` 等常用表格屬性。表格層級的 `widths` 屬性也可以提供以逗號分隔的像素寬度 hint：
+
+````md
+<table widths="150,70,70,150">
+  <caption>燃料消耗速率</caption>
+  <colgroup>
+    <col width="150" />
+    <col width="70" span="2" />
+    <col width="150" />
+  </colgroup>
+  <thead>
+    <tr>
+      <th scope="col" rowspan="2" align="left">燃料</th>
+      <th scope="colgroup" colspan="2" align="center">燃燒速率</th>
+      <th scope="col" rowspan="2" align="right">備註</th>
+    </tr>
+    <tr>
+      <th scope="col" align="right">木炭</th>
+      <th scope="col" align="right">煤炭</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th scope="row" rowspan="2" align="left">固體燃料</th>
+      <td align="right">42</td>
+      <td align="right">17</td>
+      <td rowspan="2" align="left">每刻</td>
+    </tr>
+    <tr>
+      <td colspan="2" align="right">合計 59</td>
+    </tr>
+  </tbody>
+  <tfoot>
+    <tr>
+      <th scope="rowgroup" align="left">總計</th>
+      <td colspan="3" align="right">59 單位</td>
+    </tr>
+  </tfoot>
+</table>
+````
 
 ## 任務清單、提示區塊與註腳
 
@@ -491,3 +533,32 @@ item_ids:
 - [導覽](Navigation)
 - [圖片與資源](Images-And-Assets)
 - [標籤參考](Tags-Reference)
+
+### Markdown 表格跨行、跨列与单元格属性
+
+GuideNH 在 GFM 表格上提供与 jekyll-spaceship 相同的紧凑合并语法：
+
+- 在单元格后增加一个 `|` 表示多占一列。`||` 表示 `colspan="2"`，`|||` 表示 `colspan="3"`。
+- 单元格以 `^^` 开头时，会继续合并上方同列单元格。内容会用换行追加到原单元格，并增加它的 `rowspan`。
+- 单元格两侧可以使用冒号控制对齐（`: 左对齐`、`右对齐 :`、`: 居中 :`）。
+- 单元格末尾的 IAL（`{: ... }`）可以设置安全属性。支持 `color`、`background`/`bgcolor`、`style`（颜色、背景、粗体、下划线和对齐声明）、`align`、`valign`、`id` 和 `class`。
+- 可以用单独一行的 `{:name: ...}` 定义可复用 IAL，再在单元格 IAL 中引用。危险 CSS 和外部 URL 会被忽略。
+
+```markdown
+{:warning: style="background: #4b2418; color: #ffd8c2; font-weight: bold"}
+| 阶段 | 产物 | 备注 |
+| --- | --- | --- |
+| : 糖酵解 : | 2 ATP ||
+| ^^ A. Peach | 3 ATP | {: warning } |
+| 最终合计 ||| {: style="text-align: right; background: #26364d"}
+```
+
+在不支持扩展的 Markdown 渲染器中，这仍然是普通表格：多出的空单元格不会破坏结构，`^^` 和 IAL 文本会保留。复杂表头以及显式 `rowspan`/`colspan` 仍可使用 HTML 表格。
+### Extended Markdown table syntax
+
+GuideNH also supports the jekyll-spaceship table extensions in every preview:
+
+- End a physical row with `\` to append the next physical row to the same cells; each part is rendered on a new line.
+- Use a delimiter row as the first row (`|--|--|`) for a headerless table. Its rows remain data rows and are not bolded.
+- Cell contents keep normal GuideNH Markdown and MDX inline syntax, including links, images, emphasis, and LaTeX.
+- Use HTML `<thead>`, `<tbody>`, and `<tfoot>` when explicit row groups are needed.

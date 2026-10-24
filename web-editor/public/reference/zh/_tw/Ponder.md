@@ -127,6 +127,8 @@ assets/<modid>/guidebooks/
 
 > **关于粒子效果：** 粒子效果只在正向播放、关键帧第一次激活时触发，粒子使用被替换方块的自身贴图。定位（倒帶/快轉）、重置或初始加載時粒子**不會**觸發，已有粒子會被清除。
 
+
+要在编辑器中离线校验，可在 JSON 根对象加入 `"$schema": "guidenh://schema/ponder.json"`。内置 schema 位于 `wiki/resourcepack/assets/guidenh/guidenh/assets/schema/ponder_schema.json`，不会加载远程 URL。
 ---
 
 ## 關鍵影格音效
@@ -325,7 +327,7 @@ assets/<modid>/guidebooks/
 | `yaw`, `pitch` | 可選產生旋轉。未填寫且 `nbt` 沒有 `Rotation` 時預設為 `0, 0`。 |
 | `bodyYaw`, `headYaw` | 可選的生物身體 / 頭部 yaw 覆蓋；若只寫 `yaw`，未寫這兩個字段時會默認跟隨 `yaw`。 |
 | `nbt` | 可選，實體建立時套用的 SNBT 複合標籤。 |
-| `name`, `uuid` | 可選，建立預覽玩家實體時使用的玩家檔案欄位。 |
+| `name`, `nameKey`, `uuid` | 可選，建立預覽玩家實體時使用的玩家檔案欄位。 |
 | `mount` | 可選，該實體創建後或後續重播時要騎乘的目標載具穩定 `sceneEntityId`。 |
 | `unmount` | 可選，布林值；在後續新的 `mount` 應用前，先清除該實體目前穩定騎乘關係。 |
 
@@ -408,6 +410,8 @@ assets/<modid>/guidebooks/
 每個註釋條目需要一個 `type` 字段，共支援七種類型。
 
 ---
+
+所有 Ponder 注解都支持 `tooltip` 和 `tooltipKey`。键会从当前资源包的 `lang` 文件解析；找不到时回退到原始文本。
 
 ### `diamond` — 菱形標記
 

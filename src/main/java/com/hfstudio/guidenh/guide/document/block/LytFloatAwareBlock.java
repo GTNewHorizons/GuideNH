@@ -37,15 +37,16 @@ public class LytFloatAwareBlock extends LytBlock {
     @Override
     protected LytRect computeLayout(LayoutContext context, int x, int y, int availableWidth) {
         int laneY = y;
+        int regionRight = x + availableWidth;
         while (true) {
-            int laneLeft = context.getLeftFloatRightEdgeOr(x);
-            int laneRight = context.getRightFloatLeftEdgeOr(x + availableWidth);
+            int laneLeft = Math.max(x, context.getLeftFloatRightEdgeOr(x, x, regionRight));
+            int laneRight = Math.min(regionRight, context.getRightFloatLeftEdgeOr(regionRight, x, regionRight));
             int laneWidth = Math.max(0, laneRight - laneLeft);
             if (laneWidth > 0) {
                 return inner.layout(context, laneLeft, laneY, laneWidth);
             }
 
-            var nextFloatBottom = context.getNextFloatBottomEdge(laneY);
+            var nextFloatBottom = context.getNextFloatBottomEdge(laneY, x, regionRight);
             if (nextFloatBottom.isEmpty()) {
                 return inner.layout(context, x, laneY, availableWidth);
             }

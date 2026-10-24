@@ -211,6 +211,8 @@ Sound campos:
 | `radius` | decimal | escena short lado * 0.75 | Attenuation radius en pantalla píxeles. |
 | `minVolume` | decimal | `0.15` | Minimum attenuation factor. |
 
+
+Para validar sin conexión en el editor, añade `"$schema": "guidenh://schema/ponder.json"` a la raíz JSON. El esquema incluido está en `wiki/resourcepack/assets/guidenh/guidenh/assets/schema/ponder_schema.json` y nunca carga una URL remota.
 ---
 
 ## Keyframe Particles
@@ -386,7 +388,7 @@ sus propio entities con `createEntities`, entonces destino those entities by `re
 | `yaw`, `pitch` | opcional spawn rotación. predeterminados a `0, 0` salvo `nbt` supplies `Rotation`. |
 | `bodyYaw`, `headYaw` | opcional living-entidad cuerpo/head yaw anula. Si omitido mientras `yaw` es present, Estas follow `yaw`. |
 | `nbt` | opcional SNBT compound applied cuando El entidad es creado. |
-| `name`, `uuid` | opcional vista previa-jugador profile campos cuando creating Un vista previa jugador entidad. |
+| `name`, `nameKey`, `uuid` | opcional vista previa-jugador profile campos cuando creating Un vista previa jugador entidad. |
 | `mount` | opcional stable `sceneEntityId` of El vehicle que esto entidad deberíUn ride después de creation o later replay. |
 | `unmount` | opcional booleano que clears El entidad's actual stable mount relation antes de cualquier later `mount` es applied. |
 
@@ -475,6 +477,8 @@ cambios durante playback. Seeking o pausing siempre muestra anotaciones at compl
 cada entrada en El `annotations` array requires a `type` campo. Seven types son disponible.
 
 ---
+
+Todas las anotaciones de Ponder aceptan `tooltip` y `tooltipKey`. La clave se resuelve desde los archivos `lang` activos y usa el texto original si falta.
 
 ### `diamond`
 
@@ -658,7 +662,8 @@ para Un fijo pantalla-espacio posición que hace no project de mundo coordenadas
 | campo | tipo | predeterminado | descripción |
 |-------|------|---------|-------------|
 | `x`, `y`, `z` | decimal | `0.0` | mundo-espacio ancla posición (ignored en independent modo). |
-| `text` | cadena | - | **obligatorio.** texto Un mostrar dentro de El burbuja. |
+| `text` | cadena | — | Texto de reserva para la burbuja. |
+| `textKey` | cadena | — | Clave de traducción del texto de la burbuja; al resolverse reemplaza `text`. |
 | `color` | cadena | `"0xFFAAAAAA"` | ARGB color of El burbuja borde. |
 | `backgroundAlpha` | entero | `204` | fondo opacity de `0` (transparente) a `255` (opaque). El RGB color remains El predeterminado dark navy. |
 | `maxWidth` | entero | `0` | Si &gt; 0, wraps texto at esto ancho en píxeles. Omit o Establezca a `0` para a único-línea etiqueta. |

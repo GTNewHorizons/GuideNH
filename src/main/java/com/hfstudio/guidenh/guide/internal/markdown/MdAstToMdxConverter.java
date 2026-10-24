@@ -45,7 +45,7 @@ import com.hfstudio.guidenh.libs.mdast.model.MdAstText;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstThematicBreak;
 import com.hfstudio.guidenh.libs.micromark.extensions.gfm.Align;
 
-public final class MdAstToMdxConverter {
+public class MdAstToMdxConverter {
 
     private MdAstToMdxConverter() {}
 
@@ -258,11 +258,26 @@ public final class MdAstToMdxConverter {
                 if (alignStr != null) {
                     el.addAttribute("align", alignStr);
                 }
+                for (var attribute : table.attributes.entrySet()) {
+                    el.addAttribute(attribute.getKey(), attribute.getValue());
+                }
+                if (table.headerless) {
+                    el.addAttribute("header", "false");
+                }
                 replacement = el;
             } else if (child instanceof GfmTableRow row) {
                 replacement = createFlow("tr", row.children());
             } else if (child instanceof GfmTableCell cell) {
                 replacement = createFlow("td", cell.children());
+                if (cell.columnSpan > 1) {
+                    replacement.addAttribute("colspan", cell.columnSpan);
+                }
+                if (cell.rowSpan > 1) {
+                    replacement.addAttribute("rowspan", cell.rowSpan);
+                }
+                for (var attribute : cell.attributes.entrySet()) {
+                    replacement.addAttribute(attribute.getKey(), attribute.getValue());
+                }
             } else if (child instanceof MdAstThematicBreak) {
                 replacement = createFlow("hr", new ArrayList<>());
             } else if (child instanceof MdAstDefinition def) {

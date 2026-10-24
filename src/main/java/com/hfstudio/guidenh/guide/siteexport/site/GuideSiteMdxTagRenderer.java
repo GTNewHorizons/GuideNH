@@ -1485,10 +1485,19 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         }
         String groupName = "guide-content-tabs-" + contentTabsSequence.getAndIncrement();
         html.append("<div class=\"guide-content-tabs\"");
-        if (parsed.accentCssColor != null) {
-            html.append(" style=\"--guide-content-tabs-accent:")
-                .append(escapeAttribute(parsed.accentCssColor))
-                .append(";\"");
+        if (parsed.accentCssColor != null || parsed.backgroundCssColor != null) {
+            html.append(" style=\"");
+            if (parsed.accentCssColor != null) {
+                html.append("--guide-content-tabs-accent:")
+                    .append(escapeAttribute(parsed.accentCssColor))
+                    .append(';');
+            }
+            if (parsed.backgroundCssColor != null) {
+                html.append("--guide-content-tabs-background:")
+                    .append(escapeAttribute(parsed.backgroundCssColor))
+                    .append(';');
+            }
+            html.append('"');
         }
         html.append(">");
         if (parsed.title != null || parsed.icon != null) {
@@ -1540,11 +1549,19 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         Integer defaultIndex = readPositiveOrZeroInt(readOptional(element, "defaultIndex"));
         String defaultTitle = readOptional(element, "default");
         String accentCssColor = null;
+        String backgroundCssColor = null;
         String rawColor = readOptional(element, "color");
         if (rawColor != null) {
             accentCssColor = parseLiteralColor(rawColor);
             if (accentCssColor == null) {
                 errors.add("Malformed color value");
+            }
+        }
+        String rawBackground = readOptional(element, "background");
+        if (rawBackground != null) {
+            backgroundCssColor = parseLiteralColor(rawBackground);
+            if (backgroundCssColor == null) {
+                errors.add("Malformed background color value");
             }
         }
         for (MdAstAnyContent child : element.children()) {
@@ -1568,7 +1585,8 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             tabs,
             selectedIndex,
             errors,
-            accentCssColor);
+            accentCssColor,
+            backgroundCssColor);
     }
 
     private String renderContentTabsIcon(QuoteIconSpec icon, GuideSiteTemplateRegistry templates,
@@ -3731,15 +3749,19 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         private final List<String> errors;
         @Nullable
         private final String accentCssColor;
+        @Nullable
+        private final String backgroundCssColor;
 
         private ParsedTabs(@Nullable String title, @Nullable QuoteIconSpec icon, List<ParsedTab> tabs,
-            int selectedIndex, List<String> errors, @Nullable String accentCssColor) {
+            int selectedIndex, List<String> errors, @Nullable String accentCssColor,
+            @Nullable String backgroundCssColor) {
             this.title = title;
             this.icon = icon;
             this.tabs = tabs;
             this.selectedIndex = selectedIndex;
             this.errors = errors;
             this.accentCssColor = accentCssColor;
+            this.backgroundCssColor = backgroundCssColor;
         }
     }
 

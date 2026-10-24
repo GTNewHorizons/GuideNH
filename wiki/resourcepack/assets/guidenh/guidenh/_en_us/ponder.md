@@ -30,6 +30,8 @@ Press ▶ to play, or drag the timeline. The keyframe nodes snap the timeline to
 
 ## JSON Schema
 
+For offline editor validation, add `"$schema": "guidenh://schema/ponder.json"` to the JSON root. The bundled schema is stored at `assets/schema/ponder_schema.json`; it never loads a remote URL.
+
 ```json
 {
   "totalTime": 360,
@@ -489,6 +491,7 @@ Supported entity state fields:
 - `x`, `y`, `z` reposition the referenced entity.
 - `yaw`, `pitch`, `bodyYaw`, and `headYaw` control the facing direction. If `yaw` is provided without `bodyYaw` / `headYaw`, they follow `yaw` by default.
 - `mount` attaches the current entity to another stable `sceneEntityId`. `unmount: true` clears the current stable mount relation.
+- `name` sets the preview-player profile name. `nameKey` resolves a translated profile name and falls back to `name` when missing.
 - `showName`, `showCape`, and `baby` mirror the same options from `<Entity>`.
 - Preview-player entities (`id: "player"` and the other preview-player aliases) also accept `headRotation`, `leftArmRotation`, `rightArmRotation`, `leftLegRotation`, `rightLegRotation`, and `capeRotation`, each written as `"x y z"` degrees.
 

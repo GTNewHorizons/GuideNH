@@ -127,6 +127,8 @@ assets/<modid>/guidebooks/
 
 > **关于粒子效果：** 粒子效果只在正向播放、关键帧第一次激活时触发，粒子使用被替换方块的自身贴图。定位（倒带/快进）、重置或初始加载时粒子**不会**触发，已有粒子会被清除。
 
+
+要在编辑器中离线校验，可在 JSON 根对象加入 `"$schema": "guidenh://schema/ponder.json"`。内置 schema 位于 `wiki/resourcepack/assets/guidenh/guidenh/assets/schema/ponder_schema.json`，不会加载远程 URL。
 ---
 
 ## 关键帧音效
@@ -325,7 +327,7 @@ assets/<modid>/guidebooks/
 | `yaw`, `pitch` | 可选生成旋转。未填写且 `nbt` 没有 `Rotation` 时默认为 `0, 0`。 |
 | `bodyYaw`, `headYaw` | 可选的生物身体 / 头部 yaw 覆盖；若只写 `yaw`，未写这两个字段时会默认跟随 `yaw`。 |
 | `nbt` | 可选，实体创建时应用的 SNBT 复合标签。 |
-| `name`, `uuid` | 可选，创建预览玩家实体时使用的玩家档案字段。 |
+| `name`, `nameKey`, `uuid` | 可选，创建预览玩家实体时使用的玩家档案字段。 |
 | `mount` | 可选，该实体创建后或后续重放时要骑乘的目标载具稳定 `sceneEntityId`。 |
 | `unmount` | 可选，布尔值；在后续新的 `mount` 应用前，先清除该实体当前稳定骑乘关系。 |
 
@@ -408,6 +410,8 @@ assets/<modid>/guidebooks/
 每个注释条目需要一个 `type` 字段，共支持七种类型。
 
 ---
+
+所有 Ponder 注解都支持 `tooltip` 和 `tooltipKey`。键会从当前资源包的 `lang` 文件解析；找不到时回退到原始文本。
 
 ### `diamond` — 菱形标记
 

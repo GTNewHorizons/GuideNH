@@ -33,8 +33,16 @@ public class GuideSiteHrefResolver {
     }
 
     public static String resolveRawHref(@Nullable ResourceLocation currentPageId, String href) {
-        if (href == null || href.isEmpty() || currentPageId == null) {
+        if (href == null || href.isEmpty()) {
             return href;
+        }
+        String compactHref = href.trim()
+            .toLowerCase(Locale.ROOT)
+            .replaceAll("[\\u0000-\\u0020]+", "");
+        if (compactHref.startsWith("javascript:") || compactHref.startsWith("vbscript:")
+            || compactHref.startsWith("data:")
+            || compactHref.startsWith("file:")) {
+            return "#";
         }
 
         URI uri;
@@ -45,6 +53,13 @@ public class GuideSiteHrefResolver {
         }
 
         if (uri != null && uri.isAbsolute()) {
+            return isSafeAbsoluteUri(uri) ? href : "#";
+        }
+        if (href.trim()
+            .startsWith("//")) {
+            return "#";
+        }
+        if (currentPageId == null) {
             return href;
         }
 
@@ -68,6 +83,14 @@ public class GuideSiteHrefResolver {
                 e);
             return href;
         }
+    }
+
+    private static boolean isSafeAbsoluteUri(URI uri) {
+        String scheme = uri.getScheme();
+        if (scheme == null) {
+            return false;
+        }
+        return "http".equalsIgnoreCase(scheme) || "https".equalsIgnoreCase(scheme) || "mailto".equalsIgnoreCase(scheme);
     }
 
     public static String resolvePageAnchor(@Nullable ResourceLocation currentPageId, PageAnchor anchor) {

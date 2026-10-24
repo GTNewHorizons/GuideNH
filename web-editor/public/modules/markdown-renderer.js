@@ -5,12 +5,12 @@ import { translatedString } from "./language.js";
 function copy(context, key) { return escapeHtml(translatedString(context?.locale || "en_us", key)); }
 
 const INLINE_TAGS = new Set(["a", "abbr", "b", "br", "code", "del", "em", "i", "img", "kbd", "mark", "small", "span", "strong", "sub", "sup", "u", "Color", "Spoiler", "Tooltip", "SoundLink", "PlayerName", "KeyBind", "ItemImage", "ItemIcon", "ItemLink", "CommandLink", "Latex", "Amount", "QuestLink", "FloatingImage"]);
-const BLOCK_TAGS = new Set(["address", "article", "aside", "blockquote", "details", "div", "dl", "dt", "dd", "fieldset", "figcaption", "figure", "footer", "h1", "h2", "h3", "h4", "h5", "h6", "header", "hr", "main", "nav", "ol", "p", "pre", "section", "table", "tbody", "td", "tfoot", "th", "thead", "tr", "ul", "video", "audio", "Latex", "Tooltip", "Spoiler", "ContentTabs", "Tab", "FileTree", "Row", "Column", "FootnoteList", "ItemGrid", "ItemImage", "ItemIcon", "ItemLink", "Block", "BlockImage", "FloatingImage", "GameScene", "Scene", "Structure", "Mermaid", "CsvTable", "ColumnChart", "BarChart", "LineChart", "PieChart", "ScatterChart", "FunctionGraph", "Function", "Recipe", "RecipeFor", "RecipesFor", "ImportPonder", "Ponder", "QuestCard", "SubPages", "Category", "Special", "ImageAnnotation", "BlockStats", "BlockStat", "ImportStructure", "ImportStructureLib", "IsometricCamera", "PlaySound", "RemoveBlocks", "RemoveEntity", "ReplaceBlock", "PlaceBlock", "BlockAnnotationTemplate", "Entity", "BoxAnnotation", "LineAnnotation", "DiamondAnnotation", "TextAnnotation", "InputAnnotation", "SoundArea", "NodeContent", "Series", "LineSeries", "Slice", "PieInset", "Plot", "Point", "Tier", "Channel", "Facing", "Rotation", "Flip", "Orientation", "GregTechActiveController", "GregTechPlaceHatches", "Comment"]);
-const SAFE_HTML_ATTRIBUTES = new Set(["class", "className", "id", "role", "aria-label", "aria-description", "colspan", "rowspan", "align", "width", "height", "style", "target", "rel", "href", "src", "alt", "poster", "controls", "autoplay", "loop", "muted", "playsinline"]);
-const HTML_CONTAINER_TAGS = new Set(["address", "article", "aside", "blockquote", "details", "div", "dl", "fieldset", "figure", "footer", "header", "main", "nav", "ol", "section", "table", "tbody", "tfoot", "thead", "tr", "ul"]);
+const BLOCK_TAGS = new Set(["address", "article", "aside", "blockquote", "caption", "col", "colgroup", "details", "div", "dl", "dt", "dd", "fieldset", "figcaption", "figure", "footer", "h1", "h2", "h3", "h4", "h5", "h6", "header", "hr", "main", "nav", "ol", "p", "pre", "section", "table", "tbody", "td", "tfoot", "th", "thead", "tr", "ul", "video", "audio", "Latex", "Tooltip", "Spoiler", "ContentTabs", "Tab", "FileTree", "Row", "Column", "FootnoteList", "ItemGrid", "ItemImage", "ItemIcon", "ItemLink", "Block", "BlockImage", "FloatingImage", "GameScene", "Scene", "Structure", "Mermaid", "CsvTable", "ColumnChart", "BarChart", "LineChart", "PieChart", "ScatterChart", "FunctionGraph", "Function", "Recipe", "RecipeFor", "RecipesFor", "ImportPonder", "Ponder", "QuestCard", "SubPages", "Category", "Special", "ImageAnnotation", "BlockStats", "BlockStat", "ImportStructure", "ImportStructureLib", "IsometricCamera", "PlaySound", "RemoveBlocks", "RemoveEntity", "ReplaceBlock", "PlaceBlock", "BlockAnnotationTemplate", "Entity", "BoxAnnotation", "LineAnnotation", "DiamondAnnotation", "TextAnnotation", "InputAnnotation", "SoundArea", "NodeContent", "Series", "LineSeries", "Slice", "PieInset", "Plot", "Point", "Tier", "Channel", "Facing", "Rotation", "Flip", "Orientation", "GregTechActiveController", "GregTechPlaceHatches", "Comment"]);
+const SAFE_HTML_ATTRIBUTES = new Set(["class", "className", "id", "role", "title", "lang", "dir", "aria-label", "aria-description", "colspan", "rowspan", "align", "valign", "width", "height", "scope", "span", "abbr", "headers", "axis", "char", "charoff", "summary", "border", "cellpadding", "cellspacing", "frame", "rules", "bordercolor", "bgcolor", "style", "target", "rel", "href", "src", "alt", "poster", "controls", "autoplay", "loop", "muted", "playsinline"]);
+const HTML_CONTAINER_TAGS = new Set(["address", "article", "aside", "blockquote", "caption", "colgroup", "details", "div", "dl", "fieldset", "figure", "footer", "header", "main", "nav", "ol", "section", "table", "tbody", "td", "tfoot", "th", "thead", "tr", "ul"]);
 const RUNTIME_TAGS = new Set(["Block", "BlockImage", "BlockId", "ItemId", "GameScene", "Scene", "Structure", "Recipe", "RecipeFor", "RecipesFor", "ImportPonder", "Ponder", "QuestCard", "QuestLink", "BlockStats", "BlockStat", "ImportStructure", "ImportStructureLib", "IsometricCamera", "PlaySound", "RemoveBlocks", "RemoveEntity", "ReplaceBlock", "PlaceBlock", "BlockAnnotationTemplate", "Entity", "BoxAnnotation", "LineAnnotation", "DiamondAnnotation", "TextAnnotation", "InputAnnotation", "SoundArea", "Series", "LineSeries", "Slice", "PieInset", "Plot", "Point", "Tier", "Channel", "Facing", "Rotation", "Flip", "Orientation", "GregTechActiveController", "GregTechPlaceHatches"]);
 const ITEM_PLACEHOLDER_TAGS = new Set(["ItemLink", "ItemImage", "ItemIcon", "Block", "BlockId", "ItemId"]);
-const VOID_TAGS = new Set(["area", "br", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr"]);
+const VOID_TAGS = new Set(["area", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr"]);
 
 export function parseFrontmatter(source) {
   const normalized = String(source ?? "").replaceAll("\r\n", "\n");
@@ -103,6 +103,7 @@ export function renderMarkdown(source, context = {}) {
 
 function renderBlocks(source, context) {
   const lines = String(source ?? "").replaceAll("\r\n", "\n").split("\n");
+  const tableDefinitions = collectTableAttributeDefinitions(lines);
   const output = [];
   let index = 0;
   while (index < lines.length) {
@@ -163,8 +164,19 @@ function renderBlocks(source, context) {
       while (index < lines.length && /^\s*>/.test(lines[index])) quote.push(lines[index++].replace(/^\s*>\s?/, ""));
       output.push(renderQuote(quote.join("\n"), context)); continue;
     }
-    const table = readMarkdownTable(lines, index);
-    if (table) { output.push(renderMarkdownTable(table.rows, table.widths, context)); index = table.nextIndex; continue; }
+    const leadingTableMeta = parseTableMetadataLine(line, tableDefinitions);
+    if (leadingTableMeta && isMarkdownTableStart(lines, index + 1)) {
+      const table = readMarkdownTable(lines, index + 1, tableDefinitions);
+      if (table) {
+        if (leadingTableMeta.widths.length) table.widths = leadingTableMeta.widths;
+        table.attributes = { ...leadingTableMeta.attributes, ...table.attributes };
+        output.push(renderMarkdownTable(table.rows, table.widths, context, table.definitions, table.attributes, table.headerless));
+        index = table.nextIndex;
+        continue;
+      }
+    }
+    const table = readMarkdownTable(lines, index, tableDefinitions);
+    if (table) { output.push(renderMarkdownTable(table.rows, table.widths, context, table.definitions, table.attributes, table.headerless)); index = table.nextIndex; continue; }
     const list = readList(lines, index);
     if (list) { output.push(renderList(list.items, list.ordered, context)); index = list.nextIndex; continue; }
     const paragraph = [line];
@@ -181,7 +193,7 @@ function renderParagraph(source, context) {
   if (standaloneTag && standaloneTag.nextIndex === trimmed.length && (standaloneTag.name === "Latex" || BLOCK_TAGS.has(standaloneTag.name) || BLOCK_TAGS.has(standaloneTag.name.toLowerCase()))) {
     return renderTag(standaloneTag.name, standaloneTag.attributes, standaloneTag.body, standaloneTag.selfClosing, context, false);
   }
-  const blockNames = [...BLOCK_TAGS].filter((name) => !["ItemImage", "ItemIcon", "ItemLink", "Block"].includes(name));
+  const blockNames = [...BLOCK_TAGS].filter((name) => !["ItemImage", "ItemIcon", "ItemLink", "Block", "FloatingImage"].includes(name));
   if (new RegExp(`<\\/?(?:${blockNames.join("|")})\\b`, "i").test(source)) return renderInline(source, context);
   return `<p>${renderInline(source, context)}</p>`;
 }
@@ -245,30 +257,231 @@ function attributesToText(attributes) {
   return Object.entries(attributes).map(([key, value]) => `${key}="${String(value).replaceAll('"', "&quot;")}"`).join(" ");
 }
 
-function readMarkdownTable(lines, index) {
-  if (!/^\s*\|?.*\|.*$/.test(lines[index]) || !/^\s*\|?\s*:?-{1,}:?\s*(?:\|\s*:?-{1,}:?\s*)+\|?\s*$/.test(lines[index + 1] || "")) return null;
-  const rows = [splitTableRow(lines[index]), splitTableRow(lines[index + 1])];
-  let cursor = index + 2;
-  while (cursor < lines.length && /^\s*\|?.*\|.*$/.test(lines[cursor]) && lines[cursor].trim()) rows.push(splitTableRow(lines[cursor++]));
+function readMarkdownTable(lines, index, definitions = {}) {
+  if (!isMarkdownTableStart(lines, index)) return null;
+  const headerless = isHeaderlessTableStart(lines, index);
+  const rows = [];
+  let cursor = headerless ? index + 1 : index + 2;
+  if (!headerless) rows.push(splitTableRow(lines[index]), splitTableRow(lines[index + 1]));
+  while (cursor < lines.length && rows.length < 4096 && /^\s*\|?.*\|.*$/.test(lines[cursor]) && lines[cursor].trim()) {
+    let row = splitTableRow(lines[cursor]);
+    while (hasTableContinuation(lines[cursor]) && cursor + 1 < lines.length
+      && /^\s*\|?.*\|.*$/.test(lines[cursor + 1]) && lines[cursor + 1].trim()) {
+      row = mergeTableRows(row, splitTableRow(lines[++cursor]));
+    }
+    rows.push(row);
+    cursor += 1;
+  }
   let widths = [];
-  const hint = lines[cursor]?.match(/^\s*\{:\s*widths\s*=\s*(?:["']([^"']+)["']|([^}\s]+))\s*\}\s*$/);
-  if (hint) { widths = splitComma(hint[1] || hint[2]).map(Number).filter(Number.isFinite); cursor += 1; }
-  return { rows, widths, nextIndex: cursor };
+  let attributes = {};
+  const metadata = parseTableMetadataLine(lines[cursor], definitions);
+  if (metadata) { attributes = metadata.attributes; widths = metadata.widths; cursor += 1; }
+  return { rows, widths, attributes, definitions, headerless, nextIndex: cursor };
+}
+
+function isMarkdownTableStart(lines, index) {
+  return index >= 0 && index + 1 < lines.length
+    && /^\s*\|?.*\|.*$/.test(lines[index])
+    && (isTableDelimiter(lines[index + 1]) || isTableDelimiter(lines[index]));
+}
+
+function isHeaderlessTableStart(lines, index) {
+  return isTableDelimiter(lines[index]) && index + 1 < lines.length
+    && /^\s*\|?.*\|.*$/.test(lines[index + 1]) && lines[index + 1].trim()
+    && !(index > 0 && /^\s*\|?.*\|.*$/.test(lines[index - 1]) && !isTableDelimiter(lines[index - 1]));
+}
+
+function isTableDelimiter(line) {
+  return /^\s*\|?\s*:?-{1,}:?\s*(?:\|\s*:?-{1,}:?\s*)+\|?\s*$/.test(line || "");
+}
+
+function hasTableContinuation(line) {
+  const match = String(line || "").match(/(\\+)\s*$/);
+  return Boolean(match && match[1].length % 2 === 1);
+}
+
+function mergeTableRows(first, second) {
+  const count = Math.max(first.length, second.length);
+  const merged = [];
+  for (let index = 0; index < count; index += 1) {
+    const left = first[index] || { text: "", continuation: false };
+    const right = second[index] || { text: "", continuation: false };
+    const text = left.text.replace(/\\\s*$/, "").trim();
+    merged.push({ text: `${text}${text ? "\n" : ""}${right.text}`, continuation: false });
+  }
+  return merged;
+}
+
+function parseTableMetadataLine(line, definitions = {}) {
+  const match = String(line || "").match(/^\s*\{:\s*(.*?)\s*}\s*$/);
+  if (!match) return null;
+  if (/^[A-Za-z][\w-]*\s*:/.test(match[1].trim())) return { attributes: {}, widths: [] };
+  const attributes = parseTableIal(match[1], definitions);
+  const widths = attributes.widths
+    ? splitComma(attributes.widths).map(Number).filter(Number.isFinite)
+    : [];
+  return { attributes, widths };
 }
 
 function splitTableRow(line) {
-  let text = line.trim();
-  if (text.startsWith("|")) text = text.slice(1);
-  if (text.endsWith("|")) text = text.slice(0, -1);
-  return text.split(/(?<!\\)\|/).map((cell) => cell.replaceAll("\\|", "|").trim());
+  const text = String(line || "").trim().replace(/^\|/, "");
+  const cells = [];
+  let value = "";
+  for (let index = 0; index < text.length;) {
+    if (text[index] === "\\" && index + 1 < text.length) {
+      value += text.slice(index, index + 2); index += 2; continue;
+    }
+    if (text[index] !== "|") { value += text[index++]; continue; }
+    let end = index + 1;
+    while (end < text.length && text[end] === "|") end += 1;
+    const run = end - index;
+    cells.push({ text: value.replaceAll("\\|", "|").trim(), continuation: false });
+    if (cells.length >= 2048) return cells;
+    value = "";
+    for (let count = 1; count < run; count += 1) cells.push({ text: "", continuation: true });
+    index = end;
+  }
+  if (value.trim()) cells.push({ text: value.replaceAll("\\|", "|").trim(), continuation: false });
+  return cells;
 }
 
-function renderMarkdownTable(rows, widths, context) {
-  const columns = Math.max(...rows.map((row) => row.length), 1);
+function collectTableAttributeDefinitions(lines) {
+  const definitions = {};
+  for (const line of lines) {
+    const match = line.match(/^\s*\{:\s*([A-Za-z][\w-]*)\s*:\s*(.*?)\s*}\s*$/);
+    if (!match) continue;
+    definitions[match[1]] = `${definitions[match[1]] || ""} ${match[2]}`.trim();
+  }
+  return definitions;
+}
+
+function parseTableIal(text, definitions, depth = 0) {
+  const attributes = {};
+  if (!text || depth > 8) return attributes;
+  const tokens = String(text).match(/(?:[^\s"']+|"[^"]*"|'[^']*')+/g) || [];
+  for (const token of tokens) {
+    if (token.startsWith("#")) attributes.id = token.slice(1);
+    else if (token.startsWith(".")) attributes.class = `${attributes.class ? `${attributes.class} ` : ""}${token.slice(1)}`;
+    else {
+      const equals = token.indexOf("=");
+      if (equals > 0) {
+        const key = token.slice(0, equals).toLowerCase();
+        const value = token.slice(equals + 1).replace(/^(?:"(.*)"|'(.*)')$/, (_match, doubleValue, singleValue) => doubleValue ?? singleValue ?? "");
+        if (["id", "class", "style", "align", "valign", "color", "bgcolor", "background", "widths"].includes(key)) attributes[key] = value;
+      } else if (definitions[token]) Object.assign(attributes, parseTableIal(definitions[token], definitions, depth + 1));
+    }
+  }
+  return attributes;
+}
+
+function sanitizeTableCellStyle(style) {
+  const allowed = new Set(["color", "background", "background-color", "font-weight", "text-decoration", "text-align", "vertical-align"]);
+  const result = [];
+  for (const declaration of String(style || "").split(";")) {
+    const separator = declaration.indexOf(":");
+    if (separator <= 0) continue;
+    const key = declaration.slice(0, separator).trim().toLowerCase();
+    const value = declaration.slice(separator + 1).trim();
+    const compactValue = value.replace(/[\u0000-\u0020]+/g, "").toLowerCase();
+    if (!allowed.has(key) || !value || /[<>\\\u0000-\u001f]/.test(value)
+      || /url\s*\(|expression\s*\(|(?:javascript|vbscript|data)\s*:/i.test(compactValue)) continue;
+    result.push(`${key}:${value}`);
+  }
+  return result.join(";");
+}
+
+function sanitizeCssText(style) {
+  const value = String(style || "").trim();
+  if (!value || value.length > 4096 || /[<>\\\u0000-\u001f]/.test(value)) return "";
+  const compact = value.replace(/[\u0000-\u0020]+/g, "").toLowerCase();
+  return /(?:javascript|vbscript|data)\s*:|url\s*\(|expression\s*\(/i.test(compact) ? "" : value;
+}
+
+function isSafeHtmlUrl(value, attribute) {
+  const normalized = String(value || "").trim();
+  if (!normalized) return true;
+  const compact = normalized.replace(/[\u0000-\u0020]+/g, "").toLowerCase();
+  if (/^(?:javascript|vbscript|file):/.test(compact)) return false;
+  if (attribute === "src" || attribute === "poster") {
+    if (compact.startsWith("data:")) return /^data:image\/(?:png|gif|jpe?g|webp);base64,/.test(compact);
+    return !/^[a-z][a-z0-9+.-]*:/.test(compact) || /^https?:/.test(compact);
+  }
+  return !/^[a-z][a-z0-9+.-]*:/.test(compact) || /^(?:https?:|mailto:)/.test(compact);
+}
+
+function normalizeMarkdownTable(rows, definitions, headerless = false) {
+  const normalizedRows = [];
+  let activeCells = [];
+  let previousRowCells = [];
+  rows.forEach((sourceRow, sourceRowIndex) => {
+    if (!headerless && sourceRowIndex === 1) { normalizedRows.push([]); return; }
+    const rowIndex = headerless ? sourceRowIndex : sourceRowIndex > 1 ? sourceRowIndex - 1 : 0;
+    const retained = [];
+    const rowCoverage = activeCells.slice();
+    let sourceIndex = 0;
+    let cursor = 0;
+    for (let index = 0; index < sourceRow.length; index += 1) {
+      const sourceCell = sourceRow[index];
+      if (sourceCell.continuation && !sourceCell.text.trim()) { sourceIndex += 1; continue; }
+      let text = sourceCell.text;
+      const ial = text.match(/\s*\{:\s*(.*?)\s*}\s*$/);
+      const attributes = ial ? parseTableIal(ial[1], definitions) : {};
+      if (ial) text = text.slice(0, ial.index).trim();
+      let continueAbove = /^\s*\^\^/.test(text);
+      if (continueAbove) text = text.replace(/^\s*\^\^\s*/, "");
+      const left = text.startsWith(":");
+      const right = text.endsWith(":");
+      if (left || right) {
+        attributes.align = left && right ? "center" : left ? "left" : "right";
+        if (left) text = text.slice(1).trim();
+        if (right) text = text.slice(0, -1).trim();
+      }
+      let columnSpan = 1;
+      sourceIndex += 1;
+      while (sourceIndex < sourceRow.length && sourceRow[sourceIndex].continuation) {
+        columnSpan += 1; sourceIndex += 1;
+        if (index + 1 < sourceRow.length && !sourceRow[index + 1].text.trim()) index += 1;
+      }
+      if (continueAbove) {
+        const target = previousRowCells.find((cell) => cursor >= cell.columnIndex && cursor < cell.columnIndex + cell.columnSpan);
+        if (target) {
+          target.parts.push(text);
+          target.rowSpan += 1;
+          Object.assign(target.attributes, attributes);
+          if (!rowCoverage.includes(target)) rowCoverage.push(target);
+          cursor = target.columnIndex + target.columnSpan;
+          continue;
+        }
+      }
+      while (rowCoverage.some((cell) => cursor >= cell.columnIndex && cursor < cell.columnIndex + cell.columnSpan)) cursor += 1;
+      const cell = { rowIndex, columnIndex: cursor, columnSpan, rowSpan: 1, parts: text.split("\n"), attributes };
+      retained.push(cell); cursor += columnSpan;
+    }
+    normalizedRows.push(retained);
+    previousRowCells = rowCoverage.concat(retained);
+    activeCells = rowCoverage.filter((cell) => rowIndex + 1 < cell.rowIndex + cell.rowSpan);
+  });
+  return normalizedRows;
+}
+
+function renderMarkdownTable(rows, widths, context, definitions = {}, tableAttributes = {}, headerless = false) {
+  const normalizedRows = normalizeMarkdownTable(rows, definitions, headerless);
+  const columns = Math.max(...normalizedRows.flatMap((row) => row.map((cell) => cell.columnIndex + cell.columnSpan)), 1);
   const colgroup = widths.length ? `<colgroup>${Array.from({ length: columns }, (_item, index) => `<col style="width:${Number(widths[index] || 0) || "auto"}px">`).join("")}</colgroup>` : "";
-  const head = rows[0] || [];
-  const body = rows.slice(2);
-  return `<div class="guide-table-wrap"><table>${colgroup}<thead><tr>${Array.from({ length: columns }, (_item, index) => `<th>${renderInline(head[index] || "", context)}</th>`).join("")}</tr></thead><tbody>${body.map((row) => `<tr>${Array.from({ length: columns }, (_item, index) => `<td>${renderInline(row[index] || "", context)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
+  const renderCell = (cell, tag) => {
+    const attributes = { ...cell.attributes };
+    if (cell.columnSpan > 1) attributes.colspan = cell.columnSpan;
+    if (cell.rowSpan > 1) attributes.rowspan = cell.rowSpan;
+    if (attributes.color) attributes.style = `${attributes.style || ""};color:${attributes.color}`;
+    if (attributes.bgcolor || attributes.background) attributes.style = `${attributes.style || ""};background:${attributes.bgcolor || attributes.background}`;
+    if (attributes.style) attributes.style = sanitizeTableCellStyle(attributes.style);
+    return `<${tag}${renderSafeHtmlAttributes(attributes)}>${cell.parts.map((part) => renderInline(part, context)).join("<br>")}</${tag}>`;
+  };
+  const head = headerless ? [] : normalizedRows[0] || [];
+  const body = headerless ? normalizedRows : normalizedRows.slice(2);
+  const safeTableAttributes = { ...tableAttributes, class: `guide-table ${tableAttributes.class || ""}`.trim() };
+  delete safeTableAttributes.widths;
+  return `<div class="guide-table-wrap"><table${renderSafeHtmlAttributes(safeTableAttributes)}>${colgroup}<thead><tr>${head.map((cell) => renderCell(cell, "th")).join("")}</tr></thead><tbody>${body.map((row) => `<tr>${row.map((cell) => renderCell(cell, "td")).join("")}</tr>`).join("")}</tbody></table></div>`;
 }
 
 function readList(lines, index) {
@@ -378,9 +591,20 @@ function readInlineToken(text, index, context) {
       return { html: `<sup id="footnote-ref-${escapeHtml(key)}-${number}" class="guide-footnote-ref"><a href="#footnote-${escapeHtml(key)}">[${number}]</a></sup>`, nextIndex: index + footnote[0].length };
     }
     const link = text.slice(index).match(/^\[([^\]]+)\]\(([^\s)]+)(?:\s+["']([^"']*)["'])?\)/);
-    if (link) return { html: `<a href="${escapeHtml(link[2])}"${link[3] ? ` aria-label="${escapeHtml(link[3])}"` : ""} data-guide-link>${renderInline(link[1], context)}</a>`, nextIndex: index + link[0].length };
+    if (link) {
+      const label = renderInline(link[1], context);
+      if (!isSafeHtmlUrl(link[2], "href")) return { html: label, nextIndex: index + link[0].length };
+      return { html: `<a href="${escapeHtml(link[2])}"${link[3] ? ` aria-label="${escapeHtml(link[3])}"` : ""} data-guide-link>${label}</a>`, nextIndex: index + link[0].length };
+    }
     const reference = text.slice(index).match(/^\[([^\]]+)\]\[([^\]]*)\]/);
-    if (reference) { const target = context.definitions?.get((reference[2] || reference[1]).toLowerCase()); if (target) return { html: `<a href="${escapeHtml(target.href)}"${target.title ? ` aria-label="${escapeHtml(target.title)}"` : ""} data-guide-link>${renderInline(reference[1], context)}</a>`, nextIndex: index + reference[0].length }; }
+    if (reference) {
+      const target = context.definitions?.get((reference[2] || reference[1]).toLowerCase());
+      if (target) {
+        const label = renderInline(reference[1], context);
+        if (!isSafeHtmlUrl(target.href, "href")) return { html: label, nextIndex: index + reference[0].length };
+        return { html: `<a href="${escapeHtml(target.href)}"${target.title ? ` aria-label="${escapeHtml(target.title)}"` : ""} data-guide-link>${label}</a>`, nextIndex: index + reference[0].length };
+      }
+    }
   }
   if (text[index] === "<") {
     const tag = readTagAt(text, index);
@@ -432,6 +656,7 @@ function renderTag(name, attributes, body, selfClosing, context, inline) {
   if (lowerName === "img") {
     const source = attr(attributes, "src") || "";
     const resolved = resolveAsset(source, context) || source;
+    if (!isSafeHtmlUrl(resolved, "src")) return "";
     return `<img class="guide-inline-image" src="${escapeHtml(resolved)}" alt="${escapeHtml(attr(attributes, "alt", "title") || "")}">`;
   }
   if (lowerName === "video" || lowerName === "audio") return renderMedia(lowerName, attributes, body, context);
@@ -519,7 +744,7 @@ function renderBlockTag(name, attributes, body, context) {
   }
   if (name === "div") {
     const className = attr(attributes, "class", "className");
-    const style = attr(attributes, "style");
+    const style = sanitizeCssText(attr(attributes, "style"));
     return `<div${className ? ` class="${escapeHtml(className)}"` : ""}${style ? ` style="${escapeHtml(style)}"` : ""}>${renderBlocks(body, context)}</div>`;
   }
   if (name === "section" || name === "article" || name === "figure") return `<${name}>${renderBlocks(body, context)}</${name}>`;
@@ -563,15 +788,20 @@ function renderMedia(name, attributes, body, context) {
   const source = attr(attributes, "src");
   const resolved = source ? resolveAsset(source, context) || source : "";
   const mediaAttributes = [`class="guide-media guide-${name}"`];
-  if (resolved) mediaAttributes.push(`src="${escapeHtml(resolved)}"`);
-  if (name === "video" && attr(attributes, "poster")) mediaAttributes.push(`poster="${escapeHtml(resolveAsset(attr(attributes, "poster"), context) || attr(attributes, "poster"))}"`);
+  if (resolved && isSafeHtmlUrl(resolved, "src")) mediaAttributes.push(`src="${escapeHtml(resolved)}"`);
+  if (name === "video" && attr(attributes, "poster")) {
+    const poster = resolveAsset(attr(attributes, "poster"), context) || attr(attributes, "poster");
+    if (isSafeHtmlUrl(poster, "poster")) mediaAttributes.push(`poster="${escapeHtml(poster)}"`);
+  }
   if (booleanAttr(attributes, "controls") !== false) mediaAttributes.push("controls");
   for (const key of ["autoplay", "loop", "muted", "playsinline"]) if (booleanAttr(attributes, key)) mediaAttributes.push(key);
   const sources = [...String(body || "").matchAll(/<source\b([^>]*)\/?>/gi)].map((match) => {
     const sourceAttributes = parseAttributes(match[1]);
     const sourceUrl = attr(sourceAttributes, "src");
     if (!sourceUrl) return "";
-    return `<source src="${escapeHtml(resolveAsset(sourceUrl, context) || sourceUrl)}"${attr(sourceAttributes, "type") ? ` type="${escapeHtml(attr(sourceAttributes, "type"))}"` : ""}>`;
+    const resolvedSource = resolveAsset(sourceUrl, context) || sourceUrl;
+    if (!isSafeHtmlUrl(resolvedSource, "src")) return "";
+    return `<source src="${escapeHtml(resolvedSource)}"${attr(sourceAttributes, "type") ? ` type="${escapeHtml(attr(sourceAttributes, "type"))}"` : ""}>`;
   }).join("");
   return `<${name} ${mediaAttributes.join(" ")}>${sources || (body && !/<source\b/i.test(body) ? renderInline(body, context) : "")}</${name}>`;
 }
@@ -579,21 +809,98 @@ function renderMedia(name, attributes, body, context) {
 function renderSafeHtmlTag(name, attributes, body, context) {
   const tag = String(name || "span").toLowerCase();
   if (!/^[a-z][a-z0-9-]*$/.test(tag)) return renderInline(body, context);
+  const safeAttributes = { ...attributes };
+  const tableWidths = tag === "table" ? parseTableWidthAttribute(safeAttributes.widths) : [];
+  const hasExplicitColgroup = tag === "table" && /<colgroup\b/i.test(String(body || ""));
+  delete safeAttributes.widths;
+  if (tag === "col") {
+    const width = parseTableWidthAttribute(safeAttributes.width)[0];
+    if (width && Number.parseFloat(width) > 0) safeAttributes.style = `width:${width};${safeAttributes.style || ""}`;
+    delete safeAttributes.width;
+    return `<col${renderSafeHtmlAttributes(safeAttributes)}>`;
+  }
+  let renderContext = context;
+  if (tag === "table") {
+    const tableAlign = String(safeAttributes.align || "").trim().toLowerCase();
+    const tableStyle = String(safeAttributes.style || "");
+    if (tableAlign && !tableAlign.includes(",")) {
+      const alignmentStyle = tableAlign === "center" ? "width:100%;max-width:100%;margin-left:auto;margin-right:auto;"
+        : tableAlign === "right" ? "width:100%;max-width:100%;margin-left:auto;margin-right:0;"
+          : tableAlign === "left" ? "width:100%;max-width:100%;margin-left:0;margin-right:auto;" : "";
+      if (alignmentStyle) safeAttributes.style = `${alignmentStyle}${tableStyle}`;
+    }
+    const cellPadding = normalizeTableLength(safeAttributes.cellpadding);
+    if (cellPadding !== null) safeAttributes.style = `--guide-table-cell-padding:${cellPadding};${safeAttributes.style || ""}`;
+    const cellSpacing = normalizeTableLength(safeAttributes.cellspacing);
+    if (cellSpacing !== null) safeAttributes.style = `border-collapse:separate;border-spacing:${cellSpacing};${safeAttributes.style || ""}`;
+    const borderValue = String(safeAttributes.border || "").trim();
+    if (/^\d+$/.test(borderValue)) {
+      safeAttributes.style = `--guide-table-border:${borderValue === "0" ? "0" : `${borderValue}px solid var(--border)`};${safeAttributes.style || ""}`;
+    }
+    const tableWidth = normalizeTableLength(safeAttributes.width);
+    if (tableWidth !== null) safeAttributes.style = `width:${tableWidth};min-width:0;${safeAttributes.style || ""}`;
+    renderContext = { ...context, tableAligns: tableAlign.includes(",") ? tableAlign.split(",") : [], tableColumnIndex: 0,
+      tableCellPadding: cellPadding === null ? undefined : cellPadding };
+    delete safeAttributes.align;
+  } else if (tag === "tr") {
+    renderContext = { ...context, tableColumnIndex: 0,
+      tableRowAlign: String(safeAttributes.align || "").trim().toLowerCase(),
+      tableRowVAlign: String(safeAttributes.valign || "").trim().toLowerCase() };
+  } else if (tag === "td" || tag === "th") {
+    const column = context.tableColumnIndex || 0;
+    const align = String(safeAttributes.align || context.tableRowAlign || context.tableAligns?.[column] || "").trim().toLowerCase();
+    if (["left", "center", "right"].includes(align)) safeAttributes.style = `text-align:${align};${safeAttributes.style || ""}`;
+    const valign = String(safeAttributes.valign || context.tableRowVAlign || "").trim().toLowerCase();
+    if (["top", "middle", "bottom", "baseline"].includes(valign)) safeAttributes.style = `vertical-align:${valign};${safeAttributes.style || ""}`;
+    if (context.tableCellPadding !== undefined) safeAttributes.style = `padding:${context.tableCellPadding};${safeAttributes.style || ""}`;
+    delete safeAttributes.align;
+    delete safeAttributes.valign;
+    context.tableColumnIndex = column + Math.max(1, Number(safeAttributes.colspan) || 1);
+  }
+  let caption = "";
+  if (tag === "table") {
+    const trimmed = String(body || "").trimStart();
+    const opening = readTagAt(trimmed, 0);
+    if (opening?.name.toLowerCase() === "caption") {
+      caption = renderSafeHtmlTag("caption", opening.attributes, opening.body, renderContext);
+      body = trimmed.slice(opening.nextIndex);
+    }
+  }
   const content = ["img", "br", "hr", "input", "source", "meta", "link"].includes(tag)
     ? ""
-    : tag === "pre" ? escapeHtml(body) : (HTML_CONTAINER_TAGS.has(tag) ? renderBlocks(body, context) : renderInline(body, context));
-  return `<${tag}${renderSafeHtmlAttributes(attributes)}>${content}</${tag}>`;
+    : tag === "pre" ? escapeHtml(body) : (HTML_CONTAINER_TAGS.has(tag) ? renderBlocks(body, renderContext) : renderInline(body, renderContext));
+  const colgroup = tableWidths.length && !hasExplicitColgroup
+    ? `<colgroup>${tableWidths.map((width) => width ? `<col style="width:${escapeHtml(width)}">` : "<col>").join("")}</colgroup>`
+    : "";
+  const rendered = `<${tag}${renderSafeHtmlAttributes(safeAttributes)}>${caption}${colgroup}${content}</${tag}>`;
+  return tag === "table" ? `<div class="guide-table-wrap">${rendered}</div>` : rendered;
+}
+
+function parseTableWidthAttribute(value) {
+  if (value === undefined || value === null) return [];
+  return String(value).split(",").map((entry) => normalizeTableLength(entry.trim(), true));
+}
+
+function normalizeTableLength(value, appendPixels = false) {
+  if (value === undefined || value === null) return null;
+  const text = String(value).trim();
+  if (!/^\d+(?:\.\d+)?(?:px|%|em|rem|vw|vh|pt)?$/i.test(text)) return null;
+  if (appendPixels && /^\d+(?:\.\d+)?$/.test(text)) return `${Math.min(10000, Math.round(Number(text)))}px`;
+  return text;
 }
 
 function renderSafeHtmlAttributes(attributes) {
   const result = [];
-  for (const [key, rawValue] of Object.entries(attributes || {})) {
+  for (const [key, originalValue] of Object.entries(attributes || {})) {
+    let rawValue = originalValue;
     const normalizedKey = key === "className" ? "class" : key.toLowerCase();
     if (!SAFE_HTML_ATTRIBUTES.has(key) && !SAFE_HTML_ATTRIBUTES.has(normalizedKey)) continue;
     if (rawValue === false || rawValue === undefined || rawValue === null) continue;
-    if (["href", "src", "poster"].includes(normalizedKey)) {
-      const value = String(rawValue);
-      if (/^\s*javascript:/i.test(value)) continue;
+    if (["href", "src", "poster"].includes(normalizedKey) && !isSafeHtmlUrl(rawValue, normalizedKey)) continue;
+    if (normalizedKey === "style") {
+      const safeStyle = sanitizeCssText(rawValue);
+      if (!safeStyle) continue;
+      rawValue = safeStyle;
     }
     if (rawValue === true) result.push(normalizedKey);
     else result.push(`${normalizedKey}="${escapeHtml(rawValue)}"`);
@@ -670,9 +977,10 @@ function renderContentTabs(attributes, body, context) {
   const fallbackIndex = tabs.findIndex((tab) => tab.title === attr(attributes, "default"));
   const defaultIndex = Math.max(0, Math.min(tabs.length - 1, requestedIndex !== undefined && Number.isFinite(Number(requestedIndex)) ? Number(requestedIndex) : (fallbackIndex >= 0 ? fallbackIndex : 0)));
   const accent = colorValue(attr(attributes, "color"), "var(--accent)");
+  const background = colorValue(attr(attributes, "background"), "var(--preview-quote-bg)");
   const icon = attr(attributes, "icon", "iconPng", "icon_png", "iconItem", "icon_item");
   const heading = attr(attributes, "title") ? `<strong>${icon ? `<span class="guide-tabs-icon">${escapeHtml(icon)}</span>` : ""}${escapeHtml(attr(attributes, "title"))}</strong>` : "";
-  return `<section class="guide-tabs" data-guide-tabs style="--guide-tabs-accent:${accent}"><div class="guide-tabs-heading">${heading}<div class="guide-tabs-buttons">${tabs.map((tab, index) => `<button type="button" data-guide-tab="${index}" class="${index === defaultIndex ? "active" : ""}">${escapeHtml(tab.title)}</button>`).join("")}</div></div>${tabs.map((tab, index) => `<div class="guide-tab-panel" data-guide-panel="${index}"${index === defaultIndex ? "" : " hidden"}>${renderBlocks(normalizeNestedMarkdown(tab.body), { ...context, suppressFootnotes: true })}</div>`).join("")}</section>`;
+  return `<section class="guide-tabs" data-guide-tabs style="--guide-tabs-accent:${accent};--guide-tabs-background:${background}"><div class="guide-tabs-heading">${heading}<div class="guide-tabs-buttons">${tabs.map((tab, index) => `<button type="button" data-guide-tab="${index}" class="${index === defaultIndex ? "active" : ""}">${escapeHtml(tab.title)}</button>`).join("")}</div></div>${tabs.map((tab, index) => `<div class="guide-tab-panel" data-guide-panel="${index}"${index === defaultIndex ? "" : " hidden"}>${renderBlocks(normalizeNestedMarkdown(tab.body), { ...context, suppressFootnotes: true })}</div>`).join("")}</section>`;
 }
 
 function renderFloatingImage(attributes, body, context, inline) {
@@ -704,16 +1012,19 @@ function renderFloatingImage(attributes, body, context, inline) {
       ? `${displayWidthValue !== undefined ? `width:${Math.max(1, displayWidth)}px;` : ""}${displayHeightValue !== undefined ? `height:${Math.max(1, displayHeight)}px;` : ""}`
       : "";
     const annotations = renderImageAnnotations(body, context, 1, 1, displayWidth || 1, displayHeight || 1);
-    return `<figure class="${className} guide-floating-image-full"${title ? ` aria-label="${escapeHtml(title)}"` : ""}><img src="${escapeHtml(image)}" alt="${escapeHtml(src)}"${imageStyle ? ` style="${imageStyle}"` : ""}><div class="guide-image-annotations">${annotations}</div></figure>`;
+    return `<span class="${className} guide-floating-image-full"${title ? ` aria-label="${escapeHtml(title)}"` : ""}><img src="${escapeHtml(image)}" alt="${escapeHtml(src)}"${imageStyle ? ` style="${imageStyle}"` : ""}><span class="guide-image-annotations">${annotations}</span></span>`;
   }
   const hasOnlyDisplayWidth = displayWidthValue !== undefined && displayHeightValue === undefined;
   const hasOnlyDisplayHeight = displayHeightValue !== undefined && displayWidthValue === undefined;
   const aspect = cropHeight / cropWidth;
   const finalWidth = hasOnlyDisplayHeight ? displayHeight * (1 / aspect) : displayWidth;
   const finalHeight = hasOnlyDisplayWidth ? displayWidth * aspect : displayHeight;
-  const style = `width:${Math.max(1, finalWidth)}px;height:${Math.max(1, finalHeight)}px;--crop-x:${x * scaleX}px;--crop-y:${y * scaleY}px;--crop-scale-x:${scaleX};--crop-scale-y:${scaleY}`;
+  // Crop offsets and source pixels must use the displayed crop's scale.
+  const effectiveScaleX = finalWidth / cropWidth;
+  const effectiveScaleY = finalHeight / cropHeight;
+  const style = `width:${Math.max(1, finalWidth)}px;height:${Math.max(1, finalHeight)}px;--crop-x:${x * effectiveScaleX}px;--crop-y:${y * effectiveScaleY}px;--crop-scale-x:${effectiveScaleX};--crop-scale-y:${effectiveScaleY}`;
   const annotations = renderImageAnnotations(body, context, cropWidth, cropHeight, finalWidth, finalHeight);
-  return `<figure class="${className}" style="${style}"${title ? ` aria-label="${escapeHtml(title)}"` : ""}><img src="${escapeHtml(image)}" alt="${escapeHtml(src)}"><div class="guide-image-annotations">${annotations}</div></figure>`;
+  return `<span class="${className}" style="${style}"${title ? ` aria-label="${escapeHtml(title)}"` : ""}><img src="${escapeHtml(image)}" alt="${escapeHtml(src)}"><span class="guide-image-annotations">${annotations}</span></span>`;
 }
 
 function renderImageAnnotations(body, context, cropWidth, cropHeight, displayWidth, displayHeight) {
@@ -936,6 +1247,7 @@ function resolveTextAsset(source, context) {
 
 function renderImage(alt, source, title, context) {
   const resolved = resolveAsset(source, context) || source;
+  if (!isSafeHtmlUrl(resolved, "src")) return escapeHtml(alt || title || "");
   return `<img class="guide-inline-image" src="${escapeHtml(resolved)}" alt="${escapeHtml(alt || title || "")}">`;
 }
 
