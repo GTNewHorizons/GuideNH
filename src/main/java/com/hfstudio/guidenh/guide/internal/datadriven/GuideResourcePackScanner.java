@@ -2,14 +2,18 @@ package com.hfstudio.guidenh.guide.internal.datadriven;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
 import java.util.zip.ZipFile;
 
 import net.minecraft.client.resources.IResourcePack;
@@ -137,10 +141,8 @@ final class GuideResourcePackScanner {
             if (!isLanguageFolder(language)) continue;
 
             Path languageRoot = languageDir.toPath();
-            try (var paths = Files.walk(languageRoot)) {
-                paths.forEach(path -> {
-                    if (!Files.isRegularFile(path)) return;
-
+            try {
+                walkRegularFiles(languageRoot, false, path -> {
                     String relativePath = languageRoot.relativize(path)
                         .toString();
                     if (relativePath.isEmpty() || relativePath.endsWith(".lang")) return;
@@ -160,17 +162,16 @@ final class GuideResourcePackScanner {
         // Assets placed beside the language folders are shared by every locale. They are
         // addressable through the plain guide asset path and must be indexed for both loose
         // directories and archive-backed resource packs.
-        try (var paths = Files.walk(guideRoot.toPath())) {
-            paths.forEach(path -> {
-                if (!Files.isRegularFile(path)) return;
-                Path relative = guideRoot.toPath()
-                    .relativize(path);
+        Path guidePath = guideRoot.toPath();
+        try {
+            walkRegularFiles(guidePath, true, path -> {
+                Path relative = guidePath.relativize(path);
                 if (relative.getNameCount() == 0) return;
-                String first = relative.getName(0)
-                    .toString();
-                if (isLanguageFolder(first) || relative.toString()
-                    .endsWith(".lang")) return;
                 String relativePath = relative.toString();
+                if (isLanguageFolder(
+                    relative.getName(0)
+                        .toString())
+                    || relativePath.endsWith(".lang")) return;
                 if (File.separatorChar != '/') relativePath = relativePath.replace(File.separatorChar, '/');
                 entries.add(new PackEntry(namespaceRoot.namespace(), "", relativePath));
             });
@@ -185,20 +186,52 @@ final class GuideResourcePackScanner {
             .resolve("lang");
         if (!Files.isDirectory(langRoot)) return;
 
-        try (var paths = Files.walk(langRoot)) {
-            paths.filter(Files::isRegularFile)
-                .filter(
-                    path -> path.getFileName()
-                        .toString()
-                        .endsWith(".lang"))
-                .map(resourcePackRoot.toPath()::relativize)
-                .map(Path::toString)
-                .map(path -> path.replace(File.separatorChar, '/'))
-                .forEach(langPaths::add);
+        Path packRoot = resourcePackRoot.toPath();
+        try {
+            walkRegularFiles(langRoot, false, path -> {
+                if (path.getFileName()
+                    .toString()
+                    .endsWith(".lang")) {
+                    langPaths.add(
+                        packRoot.relativize(path)
+                            .toString()
+                            .replace(File.separatorChar, '/'));
+                }
+            });
         } catch (IOException e) {
             GuideDebugLog
                 .warn("[GuideNH] [GuideResourcePackScanner] Failed to index language files in {}", langRoot, e);
         }
+    }
+
+    /**
+     * Visits regular files below {@code root} in the same order as {@link Files#walk}, but uses the attributes from the
+     * directory listing instead of asking the file system about every path again.
+     */
+    private static void walkRegularFiles(Path root, boolean skipLanguageFolders, Consumer<Path> action)
+        throws IOException {
+        Files.walkFileTree(root, new SimpleFileVisitor<>() {
+
+            @Override
+            public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
+                if (skipLanguageFolders && root.equals(dir.getParent())
+                    && isLanguageFolder(
+                        dir.getFileName()
+                            .toString())) {
+                    return FileVisitResult.SKIP_SUBTREE;
+                }
+                return FileVisitResult.CONTINUE;
+            }
+
+            @Override
+            public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
+                // a symlink counts by what it points to, like Files.isRegularFile
+                if (attrs.isSymbolicLink() ? Files.isRegularFile(file) : attrs.isRegularFile()) {
+                    action.accept(file);
+                }
+                return FileVisitResult.CONTINUE;
+            }
+        });
     }
 
     static List<File> guideRootCandidates(File resourcePackRoot, String namespace, String folder) {
