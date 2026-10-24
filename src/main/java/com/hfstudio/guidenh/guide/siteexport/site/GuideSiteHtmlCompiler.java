@@ -281,17 +281,20 @@ public class GuideSiteHtmlCompiler {
                         defaultNamespace,
                         currentPageId,
                         sceneResolver));
-            } else if (child instanceof MdxJsxFlowElement) {
-                html.append(
-                    compileChildren(
-                        ((MdxJsxFlowElement) child).children(),
-                        templates,
-                        defaultNamespace,
-                        currentPageId,
-                        sceneResolver));
-            } else {
-                html.append(compileNode(child, templates, defaultNamespace, currentPageId, sceneResolver));
-            }
+            } else if (child instanceof MdxJsxFlowElement flowElement && flowElement.children()
+                .isEmpty()) {
+                    html.append(compileNode(child, templates, defaultNamespace, currentPageId, sceneResolver));
+                } else if (child instanceof MdxJsxFlowElement) {
+                    html.append(
+                        compileChildren(
+                            ((MdxJsxFlowElement) child).children(),
+                            templates,
+                            defaultNamespace,
+                            currentPageId,
+                            sceneResolver));
+                } else {
+                    html.append(compileNode(child, templates, defaultNamespace, currentPageId, sceneResolver));
+                }
         }
         return html.toString();
     }

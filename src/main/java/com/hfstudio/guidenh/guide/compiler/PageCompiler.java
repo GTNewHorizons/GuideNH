@@ -29,6 +29,7 @@ import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.color.ConstantColor;
 import com.hfstudio.guidenh.guide.compiler.tags.CsvTableCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.DetailsContentExtractor;
+import com.hfstudio.guidenh.guide.compiler.tags.FlowTagCompiler;
 import com.hfstudio.guidenh.guide.document.block.LatexRenderOptions;
 import com.hfstudio.guidenh.guide.document.block.LatexVerticalAlign;
 import com.hfstudio.guidenh.guide.document.block.LytBlock;
@@ -624,19 +625,22 @@ public class PageCompiler {
         for (MdAstAnyContent child : children) {
             if (child instanceof MdxJsxFlowElement el && "p".equals(el.name())) {
                 compileFlowContext(el, layoutParent);
-            } else if (child instanceof MdxJsxFlowElement el) {
-                for (var nestedChild : el.children()) {
-                    compileFlowContent(layoutParent, nestedChild);
+            } else if (child instanceof MdxJsxFlowElement el
+                && tagCompilers.get(el.name()) instanceof FlowTagCompiler flowTagCompiler) {
+                    flowTagCompiler.compileInline(this, layoutParent, el);
+                } else if (child instanceof MdxJsxFlowElement el) {
+                    for (var nestedChild : el.children()) {
+                        compileFlowContent(layoutParent, nestedChild);
+                    }
+                } else if (child instanceof MdxJsxTextElement el) {
+                    compileFlowContent(layoutParent, el);
+                } else if (child instanceof MdAstParent<?>nestedParent) {
+                    for (var nestedChild : nestedParent.children()) {
+                        compileFlowContent(layoutParent, nestedChild);
+                    }
+                } else {
+                    compileFlowContent(layoutParent, child);
                 }
-            } else if (child instanceof MdxJsxTextElement el) {
-                compileFlowContent(layoutParent, el);
-            } else if (child instanceof MdAstParent<?>nestedParent) {
-                for (var nestedChild : nestedParent.children()) {
-                    compileFlowContent(layoutParent, nestedChild);
-                }
-            } else {
-                compileFlowContent(layoutParent, child);
-            }
         }
     }
 
