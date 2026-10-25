@@ -21,6 +21,7 @@ Este página lists O built-em execução tags registrado by `DefaultExtensions`.
 | --- | --- | --- |
 | `<a>` | interno/externo link e opcional anchor nome | `href`, `title`, `name` |
 | `<br>` | linha break | `clear="none\|left\|right\|all"` |
+| `<wbr>` | ponto opcional de quebra de linha dentro de uma palavra | nenhum |
 | `<kbd>` | keyboard-style inline emphasis | none |
 | `<sub>` | smaller inline subscript-style texto | none |
 | `<sup>` | smaller inline superscript-style texto | none |
@@ -111,6 +112,18 @@ Accepted `clear` valores:
 - `left`
 - `right`
 - `all`
+
+### `<wbr>`
+
+Marca um ponto opcional de quebra de linha dentro de uma palavra, como o elemento HTML `<wbr>`. Não exibe nada e não ocupa largura: a linha só quebra ali quando a palavra inteira não cabe, por exemplo um nome ou número longo em uma célula de tabela estreita em baixa resolução.
+
+````md
+| Block | Rate |
+| --- | --- |
+| Cobble<wbr>stone/s | 11,<wbr>520 |
+````
+
+`<wbr>` e `<wbr />` são aceitos e a tag não tem atributos. Ao contrário de um espaço, nunca deixa uma lacuna quando a palavra cabe. O Site Export e o Web Editor geram um `<wbr>` nativo.
 
 ### `<kbd>`, `<sub>`, e `<sup>`
 

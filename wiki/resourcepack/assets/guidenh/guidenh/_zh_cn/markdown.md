@@ -343,6 +343,22 @@ HTML 表格可以表示标题、列分组、语义行分组和合并单元格。
   </tfoot>
 </table>
 
+用 `<wbr>` 指定可选换行点。下面的列宽故意设得很窄：第一行会在每个 `<wbr>` 处换行，第二行没有 `<wbr>`，内容会被裁切。单词放得下时 `<wbr>` 不显示任何内容。
+
+```markdown
+{: widths="50,24" }
+| Item | Rate |
+| --- | --- |
+| Cobble<wbr>stone/s | 11,<wbr>520 |
+| Cobblestone/s | 11,520 |
+```
+
+{: widths="50,24" }
+| Item | Rate |
+| --- | --- |
+| Cobble<wbr>stone/s | 11,<wbr>520 |
+| Cobblestone/s | 11,520 |
+
 ## 引用式链接与图片
 
 [Guide Ref][doc]

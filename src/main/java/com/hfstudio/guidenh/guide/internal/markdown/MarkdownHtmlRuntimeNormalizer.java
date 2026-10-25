@@ -95,7 +95,7 @@ public class MarkdownHtmlRuntimeNormalizer {
             }
 
             String name = info.name();
-            if ("br".equals(name) && !info.closing()) {
+            if (("br".equals(name) || "wbr".equals(name)) && !info.closing()) {
                 children.set(i, createTextElement(info, new ArrayList<>()));
                 continue;
             }
@@ -333,7 +333,8 @@ public class MarkdownHtmlRuntimeNormalizer {
     }
 
     private static boolean isSupportedStandaloneFlowTag(TagInfo info) {
-        return !info.closing() && ("a".equals(info.name()) && info.selfClosing() || "br".equals(info.name()));
+        return !info.closing()
+            && ("a".equals(info.name()) && info.selfClosing() || "br".equals(info.name()) || "wbr".equals(info.name()));
     }
 
     private static int findClosingInlineTag(List<MdAstPhrasingContent> children, int start, String name) {

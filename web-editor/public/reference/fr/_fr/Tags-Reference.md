@@ -21,6 +21,7 @@ ceci page lists Le built-dans exécution balises enregistré by `DefaultExtensio
 | --- | --- | --- |
 | `<a>` | interne/externe lien et facultatif anchor nom | `href`, `title`, `name` |
 | `<br>` | ligne break | `clear="none\|left\|right\|all"` |
+| `<wbr>` | point de coupure facultatif dans un mot | aucun |
 | `<kbd>` | keyboard-style inline emphasis | none |
 | `<sub>` | smaller inline subscript-style texte | none |
 | `<sup>` | smaller inline superscript-style texte | none |
@@ -111,6 +112,18 @@ Accepted `clear` valeurs:
 - `left`
 - `right`
 - `all`
+
+### `<wbr>`
+
+Marque un point de coupure de ligne facultatif à l'intérieur d'un mot, comme l'élément HTML `<wbr>`. Il n'affiche rien et n'occupe aucune largeur : la ligne n'est coupée à cet endroit que si le mot entier ne tient pas, par exemple un long nom ou un long nombre dans une cellule de tableau étroite en basse résolution.
+
+````md
+| Block | Rate |
+| --- | --- |
+| Cobble<wbr>stone/s | 11,<wbr>520 |
+````
+
+`<wbr>` et `<wbr />` sont tous deux acceptés et la balise n'a pas d'attribut. Contrairement à une espace, il ne laisse aucun vide quand le mot tient. Site Export et le Web Editor produisent un `<wbr>` natif.
 
 ### `<kbd>`, `<sub>`, et `<sup>`
 

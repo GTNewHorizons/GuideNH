@@ -466,6 +466,9 @@ public class GuideSiteHtmlCompiler {
             }
             return "<span class=\"guide-export-error\">Invalid 'clear' attribute</span><br>";
         }
+        if ("wbr".equals(el.name())) {
+            return "<wbr>";
+        }
         if ("a".equals(el.name())) {
             return compileAnchorMdx(el, templates, defaultNamespace, currentPageId, sceneResolver);
         }
@@ -507,6 +510,7 @@ public class GuideSiteHtmlCompiler {
         if (isHtmlAnchorElement(flowElement))
             return compileHtmlAnchor(flowElement, templates, defaultNamespace, currentPageId, sceneResolver);
         if (isHtmlBreakElement(flowElement)) return compileHtmlBreak(flowElement);
+        if (isHtmlWordBreakElement(flowElement)) return "<wbr>";
         if (isTooltipElement(flowElement))
             return "<p>" + compileTooltip(flowElement, templates, defaultNamespace, currentPageId, sceneResolver)
                 + "</p>";
@@ -554,6 +558,7 @@ public class GuideSiteHtmlCompiler {
         if (isHtmlAnchorElement(textElement))
             return compileHtmlAnchor(textElement, templates, defaultNamespace, currentPageId, sceneResolver);
         if (isHtmlBreakElement(textElement)) return compileHtmlBreak(textElement);
+        if (isHtmlWordBreakElement(textElement)) return "<wbr>";
         if (isTooltipElement(textElement))
             return compileTooltip(textElement, templates, defaultNamespace, currentPageId, sceneResolver);
         if (isSpoilerElement(textElement))
@@ -1504,6 +1509,10 @@ public class GuideSiteHtmlCompiler {
 
     private boolean isHtmlBreakElement(MdxJsxElementFields element) {
         return "br".equals(element.name());
+    }
+
+    private boolean isHtmlWordBreakElement(MdxJsxElementFields element) {
+        return "wbr".equals(element.name());
     }
 
     private boolean isTooltipElement(MdxJsxElementFields element) {

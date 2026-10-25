@@ -260,6 +260,9 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         if ("br".equals(name)) {
             return "<br>";
         }
+        if ("wbr".equals(name)) {
+            return "<wbr>";
+        }
         if ("PlayerName".equals(name)) {
             return escapeHtml(resolvePlayerName());
         }

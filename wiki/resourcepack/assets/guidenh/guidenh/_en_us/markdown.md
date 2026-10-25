@@ -344,6 +344,22 @@ Result:
   </tfoot>
 </table>
 
+Optional break points with `<wbr>`. The columns below are deliberately narrow: the first row wraps at each `<wbr>`, the second row has none and gets clipped. When a word fits, `<wbr>` shows nothing.
+
+```markdown
+{: widths="50,24" }
+| Item | Rate |
+| --- | --- |
+| Cobble<wbr>stone/s | 11,<wbr>520 |
+| Cobblestone/s | 11,520 |
+```
+
+{: widths="50,24" }
+| Item | Rate |
+| --- | --- |
+| Cobble<wbr>stone/s | 11,<wbr>520 |
+| Cobblestone/s | 11,520 |
+
 ## Reference Links And Images
 
 [Guide Ref][doc]
