@@ -37,6 +37,7 @@ public class LineBuilder implements Consumer<LytFlowContent> {
     private static final ThreadLocal<BreakIterator> LINE_BREAK_ITERATOR = ThreadLocal
         .withInitial(BreakIterator::getLineInstance);
     private static final ConstantColor SPOILER_MASK_COLOR = new ConstantColor(ColorUtils.BLACK.getColor());
+    public static final char WORD_BREAK_OPPORTUNITY = '\u200B';
 
     private final LayoutContext context;
     private final List<Line> lines;
@@ -67,6 +68,12 @@ public class LineBuilder implements Consumer<LytFlowContent> {
     private int openLineMinTop = Integer.MAX_VALUE;
     private int openLineMaxBottom;
     private int openLineMaxRight;
+
+    /**
+     * Whether the open line ends on a {@link #WORD_BREAK_OPPORTUNITY}, so the next text may wrap before its
+     * first character. Needed because {@code <wbr>} becomes a text node of its own.
+     */
+    private boolean openLineEndsWithBreakOpportunity;
 
     public LineBuilder(LayoutContext context, int x, int y, int availableWidth, List<Line> lines,
         List<LineBlock> floats, TextAlignment alignment) {
@@ -174,6 +181,7 @@ public class LineBuilder implements Consumer<LytFlowContent> {
             el.bounds = el.bounds.withY(top);
             innerX += size.width();
             appendToOpenLine(el);
+            openLineEndsWithBreakOpportunity = false;
             includeVerticalBounds(-ascent, context.getDescent(style));
 
             // Since no margin is actually accounted for here, the remaining line width should just
@@ -235,14 +243,16 @@ public class LineBuilder implements Consumer<LytFlowContent> {
 
         char lastChar = '\0';
         var endOfOpenLine = getEndOfOpenLine();
-        if (endOfOpenLine instanceof LineTextRun textRun && !textRun.text.isEmpty()) {
-            lastChar = findLastVisibleChar(textRun.text);
-        } else if (endOfOpenLine == null || endOfOpenLine.floating) {
+        if (endOfOpenLine == null || endOfOpenLine.floating) {
             // Treat the first text in a line or text directly after a float as if it was after a line-break.
             lastChar = '\n';
+        } else if (openLineEndsWithBreakOpportunity) {
+            lastChar = WORD_BREAK_OPPORTUNITY;
+        } else if (endOfOpenLine instanceof LineTextRun textRun && !textRun.text.isEmpty()) {
+            lastChar = findLastVisibleChar(textRun.text);
         }
 
-        iterateRuns(layoutText, finalStyle, lastChar, (run, width, endLine) -> {
+        boolean endsWithBreakOpportunity = iterateRuns(layoutText, finalStyle, lastChar, (run, width, endLine) -> {
             if (!run.isEmpty()) {
                 var el = new LineTextRun(run.toString(), finalStyle, finalRevealStyle, finalHoverStyle);
                 el.flowContent = flowContent;
@@ -259,6 +269,7 @@ public class LineBuilder implements Consumer<LytFlowContent> {
                 endLine();
             }
         });
+        openLineEndsWithBreakOpportunity = endsWithBreakOpportunity && openLineElement != null;
     }
 
     private ResolvedTextStyle applySpoilerHiddenStyle(ResolvedTextStyle style) {
@@ -280,7 +291,10 @@ public class LineBuilder implements Consumer<LytFlowContent> {
             .mergeWith(style);
     }
 
-    private void iterateRuns(CharSequence text, ResolvedTextStyle style, char lastChar, LineConsumer consumer) {
+    /**
+     * @return whether the text ends on a {@link #WORD_BREAK_OPPORTUNITY} that no later character followed
+     */
+    private boolean iterateRuns(CharSequence text, ResolvedTextStyle style, char lastChar, LineConsumer consumer) {
         float curLineWidth = 0;
 
         lineBuffer.setLength(0);
@@ -293,13 +307,20 @@ public class LineBuilder implements Consumer<LytFlowContent> {
             .isCollapseWhitespace();
 
         boolean lastCharWasWhitespace = Character.isWhitespace(lastChar);
-        boolean canBreakAtStart = lastCharWasWhitespace;
+        boolean canBreakAtStart = lastCharWasWhitespace || lastChar == WORD_BREAK_OPPORTUNITY;
+        // Line-buffer offset of the latest explicit break opportunity, or -1 if there is none.
+        int wordBreakOffset = -1;
         boolean bold = style.bold();
         boolean visibleGlyphSeen = false;
 
         for (var i = 0; i < text.length(); i++) {
             char ch = text.charAt(i);
             int codePoint = ch;
+
+            if (ch == WORD_BREAK_OPPORTUNITY) {
+                wordBreakOffset = lineBuffer.length();
+                continue;
+            }
 
             if (GuideFontCompat.isFormattingCodeStart(text, i)) {
                 appendCharToLineBuffer(ch, 0f);
@@ -327,6 +348,7 @@ public class LineBuilder implements Consumer<LytFlowContent> {
                     consumer.visitRun(lineBuffer, curLineWidth, true);
                     lineBuffer.setLength(0);
                     lineBufferPrefixWidths[0] = 0f;
+                    wordBreakOffset = -1;
                     lastCharWasWhitespace = true;
                     remainingLineWidth = getAvailableHorizontalSpace();
                     continue;
@@ -361,22 +383,28 @@ public class LineBuilder implements Consumer<LytFlowContent> {
                     breakIterator.setText(charIterator);
                     precedingBreakOpportunity = breakIterator.preceding(lineBuffer.length());
                     lineBuffer.setLength(lineBuffer.length() - 1);
+                    // An explicit <wbr> later in the word wins over the last natural opportunity.
+                    precedingBreakOpportunity = Math.max(precedingBreakOpportunity, wordBreakOffset);
                 }
 
                 // If the preceding text chunk ended on a whitespace, we can break there if the
                 // current word does not offer us any opportunity to.
                 boolean lineBufferHasVisibleGlyph = containsVisibleGlyph(lineBuffer);
-                if (lineBufferHasVisibleGlyph
-                    && (precedingBreakOpportunity > 0 || precedingBreakOpportunity == 0 && canBreakAtStart)) {
+                if (lineBufferHasVisibleGlyph && (precedingBreakOpportunity > 0
+                    || precedingBreakOpportunity == 0 && (canBreakAtStart || wordBreakOffset == 0))) {
                     // Determine width up until the break opportunity.
                     float widthAtBreakOpportunity = lineBufferPrefixWidths[precedingBreakOpportunity];
 
                     consumer
                         .visitRun(lineBuffer.subSequence(0, precedingBreakOpportunity), widthAtBreakOpportunity, true);
                     deleteLineBufferPrefix(precedingBreakOpportunity);
+                    int removedChars = precedingBreakOpportunity;
                     if (!lineBuffer.isEmpty() && Character.isWhitespace(lineBuffer.charAt(0))) {
                         deleteLineBufferPrefix(1);
+                        removedChars++;
                     }
+                    // An opportunity at or before the break has been used; one beyond it still applies.
+                    wordBreakOffset = wordBreakOffset > removedChars ? wordBreakOffset - removedChars : -1;
                     curLineWidth = rebuildLineBufferWidths(style);
                     bold = resolveTrailingBold(style, lineBuffer);
                     visibleGlyphSeen = containsVisibleGlyph(lineBuffer);
@@ -399,6 +427,7 @@ public class LineBuilder implements Consumer<LytFlowContent> {
                     consumer.visitRun(lineBuffer, curLineWidth, true);
                     lineBuffer.setLength(0);
                     lineBufferPrefixWidths[0] = 0f;
+                    wordBreakOffset = -1;
                     curLineWidth = 0;
                     bold = style.bold();
                     visibleGlyphSeen = false;
@@ -417,9 +446,11 @@ public class LineBuilder implements Consumer<LytFlowContent> {
             }
         }
 
+        boolean endsWithBreakOpportunity = wordBreakOffset >= 0 && wordBreakOffset == lineBuffer.length();
         if (!lineBuffer.isEmpty()) {
             consumer.visitRun(lineBuffer, curLineWidth, false);
         }
+        return endsWithBreakOpportunity;
     }
 
     private void ensureTextSpaceIsAvailable(float requiredWidth) {
@@ -619,6 +650,7 @@ public class LineBuilder implements Consumer<LytFlowContent> {
         openLineMinTop = Integer.MAX_VALUE;
         openLineMaxBottom = 0;
         openLineMaxRight = 0;
+        openLineEndsWithBreakOpportunity = false;
 
         // Recompute now that floats may have been closed, what the horizontal space really is
         remainingLineWidth = getInnerRightEdge() - getInnerLeftEdge();

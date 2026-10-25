@@ -21,6 +21,7 @@ dies Seite lists Die built-in Laufzeit Tags registriert by `DefaultExtensions`.
 | --- | --- | --- |
 | `<a>` | intern/extern Link und optional anchor Name | `href`, `title`, `name` |
 | `<br>` | Linie break | `clear="none\|left\|right\|all"` |
+| `<wbr>` | optionaler Umbruchpunkt innerhalb eines Wortes | keine |
 | `<kbd>` | keyboard-style inline emphasis | none |
 | `<sub>` | smaller inline subscript-style Text | none |
 | `<sup>` | smaller inline superscript-style Text | none |
@@ -111,6 +112,18 @@ Accepted `clear` Werte:
 - `left`
 - `right`
 - `all`
+
+### `<wbr>`
+
+Markiert eine optionale Umbruchstelle innerhalb eines Wortes, wie das HTML-Element `<wbr>`. Es wird nichts angezeigt und es belegt keine Breite: Die Zeile wird dort nur umbrochen, wenn das ganze Wort nicht passt, etwa ein langer Name oder eine lange Zahl in einer schmalen Tabellenzelle bei niedriger Auflösung.
+
+````md
+| Block | Rate |
+| --- | --- |
+| Cobble<wbr>stone/s | 11,<wbr>520 |
+````
+
+`<wbr>` und `<wbr />` werden beide akzeptiert, das Tag hat keine Attribute. Anders als ein Leerzeichen erzeugt es keine Lücke, wenn das Wort passt. Site Export und der Web Editor geben ein natives `<wbr>` aus.
 
 ### `<kbd>`, `<sub>`, und `<sup>`
 

@@ -21,6 +21,7 @@ GuideNH の構文と実行時機能を説明します。コード、タグ、パ
 | --- | --- | --- |
 | `<a>` | 内部/外部 リンク と 任意の anchor 名前 | `href`, `title`, `name` |
 | `<br>` | 行 break | `clear="none\|left\|right\|all"` |
+| `<wbr>` | 単語内の任意改行位置 | なし |
 | `<kbd>` | keyboard-style inline emphasis | none |
 | `<sub>` | smaller inline subscript-style テキスト | none |
 | `<sup>` | smaller inline superscript-style テキスト | none |
@@ -111,6 +112,18 @@ Accepted `clear` 値:
 - `left`
 - `right`
 - `all`
+
+### `<wbr>`
+
+HTML の `<wbr>` 要素と同じく、単語の途中に任意の改行位置を指定します。何も表示せず幅も取りません。単語全体が収まらないときだけそこで改行されます。たとえば低解像度で狭い表のセルに入った長い名前や数値などです。
+
+````md
+| Block | Rate |
+| --- | --- |
+| Cobble<wbr>stone/s | 11,<wbr>520 |
+````
+
+`<wbr>` と `<wbr />` のどちらも使え、属性はありません。スペースと違い、単語が収まる場合に隙間が空くことはありません。Site Export と Web Editor はネイティブの `<wbr>` を出力します。
 
 ### `<kbd>`, `<sub>`, と `<sup>`
 

@@ -21,6 +21,7 @@ esto página lists El built-en ejecución etiquetas registrado by `DefaultExtens
 | --- | --- | --- |
 | `<a>` | interno/externo enlace y opcional ancla nombre | `href`, `title`, `name` |
 | `<br>` | línea break | `clear="none\|left\|right\|all"` |
+| `<wbr>` | punto de salto de línea opcional dentro de una palabra | ninguno |
 | `<kbd>` | keyboard-style inline emphasis | none |
 | `<sub>` | smaller inline subscript-style texto | none |
 | `<sup>` | smaller inline superscript-style texto | none |
@@ -111,6 +112,18 @@ Accepted `clear` valores:
 - `left`
 - `right`
 - `all`
+
+### `<wbr>`
+
+Marca un punto opcional de salto de línea dentro de una palabra, como el elemento HTML `<wbr>`. No muestra nada ni ocupa ancho: la línea solo se corta ahí cuando la palabra completa no cabe, por ejemplo un nombre o número largo en una celda de tabla estrecha a baja resolución.
+
+````md
+| Block | Rate |
+| --- | --- |
+| Cobble<wbr>stone/s | 11,<wbr>520 |
+````
+
+Se aceptan `<wbr>` y `<wbr />`, y la etiqueta no admite atributos. A diferencia de un espacio, nunca deja un hueco cuando la palabra cabe. Site Export y el Web Editor generan un `<wbr>` nativo.
 
 ### `<kbd>`, `<sub>`, y `<sup>`
 

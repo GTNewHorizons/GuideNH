@@ -21,6 +21,7 @@ Deze pagina lists De built-in runtime tags registered by `DefaultExtensions`.
 | --- | --- | --- |
 | `<a>` | internal/external link en optioneel anchor naam | `href`, `title`, `name` |
 | `<br>` | regel break | `clear="none\|left\|right\|all"` |
+| `<wbr>` | optioneel afbreekpunt binnen een woord | geen |
 | `<kbd>` | keyboard-style inline emphasis | none |
 | `<sub>` | smaller inline subscript-style tekst | none |
 | `<sup>` | smaller inline superscript-style tekst | none |
@@ -111,6 +112,18 @@ Accepted `clear` waarden:
 - `left`
 - `right`
 - `all`
+
+### `<wbr>`
+
+Markeert een optioneel regelafbreekpunt binnen een woord, net als het HTML-element `<wbr>`. Het toont niets en neemt geen breedte in: de regel breekt daar alleen af als het hele woord niet past, bijvoorbeeld een lange naam of een lang getal in een smalle tabelcel bij een lage resolutie.
+
+````md
+| Block | Rate |
+| --- | --- |
+| Cobble<wbr>stone/s | 11,<wbr>520 |
+````
+
+Zowel `<wbr>` als `<wbr />` wordt geaccepteerd en de tag heeft geen attributen. Anders dan een spatie laat het geen gat achter als het woord past. Site Export en de Web Editor geven een native `<wbr>` uit.
 
 ### `<kbd>`, `<sub>`, en `<sup>`
 

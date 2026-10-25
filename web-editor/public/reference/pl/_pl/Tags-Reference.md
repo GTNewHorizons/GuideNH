@@ -21,6 +21,7 @@ Ten strona lists  built-in czas wykonania tagi zarejestrowany by `DefaultExtensi
 | --- | --- | --- |
 | `<a>` | wewnętrzny/zewnętrzny odnośnik i opcjonalny kotwica nazwa | `href`, `title`, `name` |
 | `<br>` | wiersz break | `clear="none\|left\|right\|all"` |
+| `<wbr>` | opcjonalne miejsce łamania wiersza wewnątrz słowa | brak |
 | `<kbd>` | keyboard-style inline emphasis | none |
 | `<sub>` | smaller inline subscript-style tekst | none |
 | `<sup>` | smaller inline superscript-style tekst | none |
@@ -111,6 +112,18 @@ Accepted `clear` wartości:
 - `left`
 - `right`
 - `all`
+
+### `<wbr>`
+
+Oznacza opcjonalne miejsce łamania wiersza wewnątrz słowa, tak jak element HTML `<wbr>`. Niczego nie wyświetla i nie zajmuje szerokości: wiersz łamie się w tym miejscu tylko wtedy, gdy całe słowo się nie mieści, na przykład długa nazwa lub liczba w wąskiej komórce tabeli przy niskiej rozdzielczości.
+
+````md
+| Block | Rate |
+| --- | --- |
+| Cobble<wbr>stone/s | 11,<wbr>520 |
+````
+
+Akceptowane są zarówno `<wbr>`, jak i `<wbr />`; znacznik nie ma atrybutów. W przeciwieństwie do spacji nie zostawia przerwy, gdy słowo się mieści. Site Export i Web Editor generują natywny `<wbr>`.
 
 ### `<kbd>`, `<sub>`, i `<sup>`
 

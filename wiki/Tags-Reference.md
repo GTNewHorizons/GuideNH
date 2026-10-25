@@ -19,6 +19,7 @@ This page lists the built-in runtime tags registered by `DefaultExtensions`.
 | --- | --- | --- |
 | `<a>` | internal/external link and optional anchor name | `href`, `title`, `name` |
 | `<br>` | line break | `clear="none\|left\|right\|all"` |
+| `<wbr>` | optional line-break point inside a word | none |
 | `<kbd>` | keyboard-style inline emphasis | none |
 | `<sub>` | smaller inline subscript-style text | none |
 | `<sup>` | smaller inline superscript-style text | none |
@@ -109,6 +110,18 @@ Accepted `clear` values:
 - `left`
 - `right`
 - `all`
+
+### `<wbr>`
+
+Marks an optional line-break point inside a word, like the HTML `<wbr>` element. It renders nothing and takes no width: the line only breaks there when the whole word does not fit, such as a long name or number in a narrow table cell at a low resolution.
+
+````md
+| Block | Rate |
+| --- | --- |
+| Cobble<wbr>stone/s | 11,<wbr>520 |
+````
+
+`<wbr>` and `<wbr />` are both accepted and the tag takes no attributes. Unlike a space, it never shows up as a gap when the word fits. Site Export and the Web Editor output a native `<wbr>`.
 
 ### `<kbd>`, `<sub>`, And `<sup>`
 

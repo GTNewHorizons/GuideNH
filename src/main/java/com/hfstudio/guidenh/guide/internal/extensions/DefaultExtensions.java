@@ -52,6 +52,7 @@ import com.hfstudio.guidenh.guide.compiler.tags.SubscriptTagCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.SuperscriptTagCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.TableCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.TooltipTagCompiler;
+import com.hfstudio.guidenh.guide.compiler.tags.WordBreakCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.chart.BarChartCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.chart.ColumnChartCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.chart.LineChartCompiler;
@@ -137,6 +138,7 @@ public class DefaultExtensions {
                 new ItemLinkCompiler(),
                 new FloatingImageCompiler(),
                 new BreakCompiler(),
+                new WordBreakCompiler(),
                 new ContentTabsTagCompiler(),
                 new DetailsTagCompiler(),
                 new FileTreeTagCompiler(),
