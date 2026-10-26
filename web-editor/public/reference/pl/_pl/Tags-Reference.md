@@ -141,6 +141,8 @@ inline Markdown/tag treść, i  body może hold ordinary tekst plus arbitrary Ta
 `<BlockImage>`, `<FloatingImage>`, `<GameScene>`, tabele, Wykresy, i układ containers.
 gdy `height` is Ustaw, tylko  body scrolls;  summary wiersz i outer frame pozostają stały.
 
+Puste wiersze między `<summary>`, treścią i `</details>` są opcjonalne. Używaj znacznika w liczbie mnogiej `<details>`; `<detail>` nie jest obsługiwany. Zarówno podsumowanie, jak i treść obsługują Markdown w wierszu, `<ItemLink>`, `<ItemImage>` oraz inne znaczniki wierszowe. Kolejne bloki `<details>` pozostają niezależne.
+
 ````md
 <details open width="220" height="140" wrap="square" align="right">
 <summary>More <ItemImage id="minecraft:diamond" /></summary>

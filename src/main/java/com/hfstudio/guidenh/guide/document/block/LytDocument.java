@@ -139,7 +139,7 @@ public class LytDocument extends LytNode implements LytBlockContainer {
         } else {
             node.onDetach();
         }
-        for (var child : node.getChildren()) {
+        for (var child : node.getLifecycleChildren()) {
             cascadeLive(child, live);
         }
     }

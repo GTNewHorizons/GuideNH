@@ -141,6 +141,8 @@ inline markdown/Tag Inhalt, und Die Inhalt kann hold ordinary Text plus beliebig
 `<BlockImage>`, `<FloatingImage>`, `<GameScene>`, Tabellen, charts, und Layout containers.
 wenn `height` ist Setzen Sie, nur Die Inhalt scrolls; Die summary Zeile und outer frame stay festen.
 
+Leerzeilen zwischen `<summary>`, dem Inhalt und `</details>` sind optional. Verwende die Pluralform `<details>`; `<detail>` wird nicht unterstützt. Sowohl die Zusammenfassung als auch der Inhalt unterstützen Inline-Markdown, `<ItemLink>`, `<ItemImage>` und weitere Inline-Tags. Aufeinanderfolgende `<details>`-Blöcke bleiben unabhängig.
+
 ````md
 <details open width="220" height="140" wrap="square" align="right">
 <summary>More <ItemImage id="minecraft:diamond" /></summary>

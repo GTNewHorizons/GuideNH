@@ -58,6 +58,9 @@ public class LytDetailsBlock extends LytBlock implements InteractiveElement, Lyt
     private int dragLastDocumentY;
     private boolean draggingScrollbar;
     private int scrollbarGrabOffsetY;
+    private boolean contentMountDispatched;
+    @Nullable
+    private Runnable contentMountHandler;
 
     public LytDetailsBlock() {
         summaryRow.parent = this;
@@ -112,7 +115,28 @@ public class LytDetailsBlock extends LytBlock implements InteractiveElement, Lyt
             syncSummaryMarker();
             syncContentVisibility();
             invalidateLayout();
+            if (open && !contentMountDispatched && contentMountHandler != null) {
+                contentMountHandler.run();
+            }
         }
+    }
+
+    public void setContentMountHandler(@Nullable Runnable contentMountHandler) {
+        this.contentMountHandler = contentMountHandler;
+    }
+
+    public boolean isContentMountDispatched() {
+        return contentMountDispatched;
+    }
+
+    public void markContentMountDispatched() {
+        contentMountDispatched = true;
+    }
+
+    @Override
+    protected void onDetach() {
+        contentMountHandler = null;
+        contentMountDispatched = false;
     }
 
     public LytVBox getContentBox() {
@@ -156,6 +180,13 @@ public class LytDetailsBlock extends LytBlock implements InteractiveElement, Lyt
     @Override
     public List<? extends LytNode> getChildren() {
         return open ? List.of(summaryRow, content) : List.of(summaryRow);
+    }
+
+    @Override
+    public List<? extends LytNode> getLifecycleChildren() {
+        // Hidden content is still owned by this node and must receive document detach events,
+        // but it is deliberately omitted from regular traversal until it is opened.
+        return List.of(summaryRow, content);
     }
 
     @Override

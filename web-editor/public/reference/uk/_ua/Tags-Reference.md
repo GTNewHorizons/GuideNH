@@ -141,6 +141,8 @@ inline Markdown/тег вміст, і  body може hold ordinary текст pl
 `<BlockImage>`, `<FloatingImage>`, `<GameScene>`, таблиці, Діаграми, і структура containers.
 коли `height` is Установіть, лише  body scrolls;  summary рядок і outer frame залишаються фіксований.
 
+Порожні рядки між `<summary>`, вмістом і `</details>` необов’язкові. Використовуйте назву тегу в множині: `<details>`; `<detail>` не підтримується. І заголовок, і вміст підтримують рядковий Markdown, `<ItemLink>`, `<ItemImage>` та інші рядкові теги. Послідовні блоки `<details>` залишаються незалежними.
+
 ````md
 <details open width="220" height="140" wrap="square" align="right">
 <summary>More <ItemImage id="minecraft:diamond" /></summary>
