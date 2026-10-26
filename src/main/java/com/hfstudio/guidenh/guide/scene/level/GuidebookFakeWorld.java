@@ -139,11 +139,6 @@ public class GuidebookFakeWorld extends WorldClient implements GuidebookPreviewW
     @Override
     public int getBlockMetadata(int x, int y, int z) {
         if (level == null) return 0;
-        TileEntity tileEntity = level.getTileEntity(x, y, z);
-        Integer bartWorksMeta = GregTechHelpers.resolveBartWorksMetadata(tileEntity);
-        if (bartWorksMeta != null) {
-            return bartWorksMeta;
-        }
         return level.getBlockMetadata(x, y, z);
     }
 
