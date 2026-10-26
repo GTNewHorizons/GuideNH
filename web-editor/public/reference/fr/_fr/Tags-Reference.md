@@ -141,6 +141,8 @@ inline markdown/balise contenu, et Le corps peut hold ordinary texte plus arbitr
 `<BlockImage>`, `<FloatingImage>`, `<GameScene>`, tableaux, charts, et mise en page containers.
 lorsque `height` est Définissez, seulement Le corps scrolls; Le summary ligne et outer frame stay fixe.
 
+Les lignes vides entre `<summary>`, le contenu et `</details>` sont facultatives. Utilisez la balise au pluriel `<details>` ; `<detail>` n’est pas pris en charge. Le résumé et le contenu acceptent le Markdown en ligne, `<ItemLink>`, `<ItemImage>` et les autres balises en ligne. Les blocs `<details>` consécutifs restent indépendants.
+
 ````md
 <details open width="220" height="140" wrap="square" align="right">
 <summary>More <ItemImage id="minecraft:diamond" /></summary>

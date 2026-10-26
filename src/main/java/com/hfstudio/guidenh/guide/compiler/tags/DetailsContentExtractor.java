@@ -1,26 +1,76 @@
 package com.hfstudio.guidenh.guide.compiler.tags;
 
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.internal.util.GuideStringLines;
+import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
+import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxFlowElement;
+import com.hfstudio.guidenh.libs.mdast.model.MdAstAnyContent;
+import com.hfstudio.guidenh.libs.mdast.model.MdAstParagraph;
+import com.hfstudio.guidenh.libs.mdast.model.MdAstParent;
+import com.hfstudio.guidenh.libs.mdast.model.MdAstText;
 
 public class DetailsContentExtractor {
 
-    private static final Pattern SUMMARY_PATTERN = Pattern
-        .compile("(?is)^\\s*<\\s*summary\\b[^>]*>(.*?)</\\s*summary\\s*>\\s*(?:\\R)?");
-
     private DetailsContentExtractor() {}
 
-    public static DetailsContent extract(@Nullable String source) {
-        String body = source != null ? source : "";
-        Matcher matcher = SUMMARY_PATTERN.matcher(body);
-        if (!matcher.find()) {
-            return new DetailsContent(null, body);
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    public static DetailsChildren extractChildren(List<? extends MdAstAnyContent> children) {
+        List<MdAstAnyContent> body = new ArrayList<>(children);
+        for (int index = 0; index < body.size(); index++) {
+            MdAstAnyContent child = body.get(index);
+            if (child instanceof MdAstText text && text.value.isBlank()) {
+                continue;
+            }
+            if (child instanceof MdxJsxElementFields element && "summary".equals(element.name())) {
+                body.remove(index);
+                return new DetailsChildren(element, body);
+            }
+            if (child instanceof MdAstParent<?>paragraph && (paragraph instanceof MdAstParagraph
+                || paragraph instanceof MdxJsxElementFields element && "p".equals(element.name()))) {
+                List<?> inline = paragraph.children();
+                for (int inlineIndex = 0; inlineIndex < inline.size(); inlineIndex++) {
+                    Object content = inline.get(inlineIndex);
+                    if (content instanceof MdAstText text && text.value.isBlank()) {
+                        continue;
+                    }
+                    if (content instanceof MdxJsxElementFields summary && "summary".equals(summary.name())) {
+                        body.remove(index);
+                        if (inlineIndex + 1 < inline.size()) {
+                            MdxJsxFlowElement remainder = new MdxJsxFlowElement();
+                            remainder.setName("p");
+                            remainder.position = paragraph.position;
+                            ((List) remainder.children()).addAll(inline.subList(inlineIndex + 1, inline.size()));
+                            body.add(index, remainder);
+                        }
+                        return new DetailsChildren(summary, body);
+                    }
+                    break;
+                }
+            }
+            break;
         }
-        return new DetailsContent(matcher.group(1), body.substring(matcher.end()));
+        return new DetailsChildren(null, body);
+    }
+
+    public static List<? extends MdAstAnyContent> summaryChildren(MdxJsxElementFields summary) {
+        List<MdAstAnyContent> children = new ArrayList<>();
+        boolean previousParagraph = false;
+        for (MdAstAnyContent child : summary.children()) {
+            boolean paragraph = child instanceof MdAstParagraph
+                || child instanceof MdxJsxElementFields element && "p".equals(element.name());
+            if (paragraph && previousParagraph) {
+                MdAstText separator = new MdAstText();
+                separator.setValue("\n");
+                children.add(separator);
+            }
+            children.add(child);
+            previousParagraph = paragraph;
+        }
+        return children;
     }
 
     public static String dedent(String body) {
@@ -146,7 +196,7 @@ public class DetailsContentExtractor {
         return line.substring(index);
     }
 
-    public record DetailsContent(@Nullable String summaryMarkdown, String bodyMarkdown) {}
+    public record DetailsChildren(@Nullable MdxJsxElementFields summary, List<MdAstAnyContent> body) {}
 
     public record IndentationWarning(int relativeLine, int residualSpaces) {}
 }

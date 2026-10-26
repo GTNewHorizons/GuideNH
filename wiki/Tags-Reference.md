@@ -139,6 +139,8 @@ inline markdown/tag content, and the body can hold ordinary text plus arbitrary 
 `<BlockImage>`, `<FloatingImage>`, `<GameScene>`, tables, charts, and layout containers.
 When `height` is set, only the body scrolls; the summary row and outer frame stay fixed.
 
+Blank lines between `<summary>`, the body, and `</details>` are optional. Use the plural tag `<details>`; `<detail>` is not supported. Both the summary and body support inline Markdown, `<ItemLink>`, `<ItemImage>`, and other inline tags. Consecutive `<details>` blocks remain independent.
+
 ````md
 <details open width="220" height="140" wrap="square" align="right">
 <summary>More <ItemImage id="minecraft:diamond" /></summary>

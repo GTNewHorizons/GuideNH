@@ -137,6 +137,8 @@ Water is H<sub>2</sub>O and x<sup>2</sup> is a square.
 
 用於建立可折疊的運行時內容區塊。 `<summary>` 行支援常規行內 Markdown/標籤內容，正文則可以放普通文字與任意區塊級標籤，例如 `<BlockImage>`、`<FloatingImage>`、`<GameScene>`、表格、圖表或佈局容器。設定 `height` 時，只有正文區域滾動，標題行和外框保持固定。
 
+`<summary>`、內文和 `</details>` 之間不必保留空白行。請使用複數標籤 `<details>`，不支援 `<detail>`。標題和內文都支援行內 Markdown、`<ItemLink>`、`<ItemImage>` 等行內標籤。連續的 `<details>` 區塊各自獨立，不會吞掉後續內容。
+
 ````md
 <details open width="220" height="140" wrap="square" align="right">
 <summary>更多 <ItemImage id="minecraft:diamond" /></summary>

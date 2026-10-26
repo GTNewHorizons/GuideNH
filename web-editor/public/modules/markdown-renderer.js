@@ -751,11 +751,15 @@ function renderBlockTag(name, attributes, body, context) {
   if (name === "section" || name === "article" || name === "figure") return `<${name}>${renderBlocks(body, context)}</${name}>`;
   if (name === "video" || name === "audio") return renderMedia(name, attributes, body, context);
   if (name === "details") {
-    const summaryMatch = body.match(/<summary\b[^>]*>([\s\S]*?)<\/summary>/i);
-    const content = summaryMatch ? body.replace(summaryMatch[0], "") : body;
+    // Preserve offsets while protecting code spans in the same way as renderInline.
+    const summarySource = body.replace(/`([^`\n]+)`/g, (code) => " ".repeat(code.length));
+    const summaryMatch = summarySource.match(/(<summary\b[^>]*>)([\s\S]*?)(<\/summary\s*>)/i);
+    const summaryStart = summaryMatch ? summaryMatch.index + summaryMatch[1].length : 0;
+    const summary = summaryMatch ? body.slice(summaryStart, summaryStart + summaryMatch[2].length) : null;
+    const content = summaryMatch ? body.slice(0, summaryMatch.index) + body.slice(summaryMatch.index + summaryMatch[0].length) : body;
     const height = cssLength(attr(attributes, "height"), "");
     const width = cssLength(attr(attributes, "width"), "");
-    const details = `<details class="guide-details"${booleanAttr(attributes, "open") === false ? "" : " open"} style="${width ? `width:${escapeHtml(width)};` : ""}${height ? `--guide-details-height:${escapeHtml(height)};` : ""}"><summary>${summaryMatch ? renderInline(summaryMatch[1], context) : copy(context, "details")}</summary><div class="guide-details-body">${renderBlocks(content, { ...context, suppressFootnotes: true })}</div></details>`;
+    const details = `<details class="guide-details"${booleanAttr(attributes, "open") === false ? "" : " open"} style="${width ? `width:${escapeHtml(width)};` : ""}${height ? `--guide-details-height:${escapeHtml(height)};` : ""}"><summary>${summary !== null ? renderInline(summary, context) : copy(context, "details")}</summary><div class="guide-details-body">${renderBlocks(content, { ...context, suppressFootnotes: true })}</div></details>`;
     return applyWrap(details, attributes);
   }
   if (name === "ContentTabs") return renderContentTabs(attributes, body, context);

@@ -141,6 +141,8 @@ inline markdown/etiqueta contenido, y El cuerpo puede hold ordinary texto plus a
 `<BlockImage>`, `<FloatingImage>`, `<GameScene>`, tablas, charts, y diseño containers.
 cuando `height` es Establezca, solo El cuerpo scrolls; El summary fila y outer frame permanecer fijo.
 
+Las líneas en blanco entre `<summary>`, el contenido y `</details>` son opcionales. Usa la etiqueta en plural `<details>`; `<detail>` no es compatible. Tanto el resumen como el contenido admiten Markdown en línea, `<ItemLink>`, `<ItemImage>` y otras etiquetas en línea. Los bloques `<details>` consecutivos son independientes.
+
 ````md
 <details open width="220" height="140" wrap="square" align="right">
 <summary>More <ItemImage id="minecraft:diamond" /></summary>

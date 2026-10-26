@@ -262,6 +262,17 @@ public class MarkdownHtmlRuntimeNormalizer {
 
     private static void normalizeFlowChildren(List<MdAstAnyContent> children) {
         for (int i = 0; i < children.size(); i++) {
+            // Closing an inline summary may resume a paragraph that immediately ends. It has no
+            // source content and must not add a blank block to a template's compiled details body.
+            if (children.get(i) instanceof MdAstParagraph paragraph && paragraph.children()
+                .isEmpty()
+                && paragraph.position != null
+                && paragraph.position.start != null
+                && paragraph.position.end != null
+                && paragraph.position.start.offset() == paragraph.position.end.offset()) {
+                children.remove(i--);
+                continue;
+            }
             if (!(children.get(i) instanceof MdAstHTML html)) {
                 continue;
             }

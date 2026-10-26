@@ -372,6 +372,21 @@ HTML 表格可以表示标题、列分组、语义行分组和合并单元格。
 
 `<details>` 支持 `width`、`height`、`wrap`、`align`。`<summary>` 支持行内标签，正文则可以混排普通文本与任意运行时块。设置高度时，标题和外框保持固定，只有正文区域滚动。
 
+标题、正文和结束标签之间不必保留空行，连续的面板也各自独立。
+标题和正文都支持行内 Markdown，以及 `<ItemLink>`、`<ItemImage>` 等行内标签。
+请使用复数标签 `<details>`，不支持 `<detail>`。
+
+<details open>
+  <summary>紧凑面板 1 <ItemImage id="minecraft:diamond" /></summary>
+  **加粗文本**、*斜体文本*，以及 <ItemLink id="minecraft:diamond" /> <ItemImage id="minecraft:diamond" />。
+</details>
+<details open>
+  <summary>紧凑面板 2 <ItemLink id="minecraft:crafting_table" /></summary>
+  这是独立的面板，包含 <ItemImage id="minecraft:crafting_table" /> 和**格式化文本**。
+</details>
+
+这个段落位于两个面板之外。折叠任意面板后，它都应该保持可见。
+
 <details open width="220" height="150" wrap="square" align="right">
 <summary>混合运行时内容 <ItemImage id="minecraft:diamond" /></summary>
 

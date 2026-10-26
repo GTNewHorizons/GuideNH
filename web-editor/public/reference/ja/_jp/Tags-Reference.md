@@ -141,6 +141,8 @@ inline Markdown/タグ コンテンツ, と  本文 できます hold ordinary �
 `<BlockImage>`, `<FloatingImage>`, `<GameScene>`, 表, チャート, と レイアウト containers.
 場合 `height` 設定されている場合, のみ  本文 scrolls;  summary 行 と outer frame stay 固定.
 
+`<summary>`、本文、`</details>` の間に空行を入れる必要はありません。タグ名は複数形の `<details>` を使用してください。`<detail>` はサポートされていません。見出しと本文の両方で、インライン Markdown、`<ItemLink>`、`<ItemImage>` などのインラインタグを使用できます。連続する `<details>` ブロックはそれぞれ独立しています。
+
 ````md
 <details open width="220" height="140" wrap="square" align="right">
 <summary>More <ItemImage id="minecraft:diamond" /></summary>

@@ -141,6 +141,8 @@ inline Markdown/tag inhoud, en De body kan hold ordinary tekst plus arbitrary Bl
 `<BlockImage>`, `<FloatingImage>`, `<GameScene>`, tabellen, Grafieken, en layout containers.
 wanneer `height` is Stel in, alleen De body scrolls; De summary rij en outer frame stay vast.
 
+Lege regels tussen `<summary>`, de inhoud en `</details>` zijn optioneel. Gebruik het meervoud `<details>`; `<detail>` wordt niet ondersteund. Zowel de samenvatting als de inhoud ondersteunen inline Markdown, `<ItemLink>`, `<ItemImage>` en andere inline tags. Opeenvolgende `<details>`-blokken blijven onafhankelijk.
+
 ````md
 <details open width="220" height="140" wrap="square" align="right">
 <summary>More <ItemImage id="minecraft:diamond" /></summary>

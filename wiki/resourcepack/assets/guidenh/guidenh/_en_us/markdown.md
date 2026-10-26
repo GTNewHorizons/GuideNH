@@ -375,6 +375,21 @@ Optional break points with `<wbr>`. The columns below are deliberately narrow: t
 the body can mix ordinary text with arbitrary runtime blocks. When a height is set, the summary and
 outer frame stay fixed while only the body scrolls.
 
+Blank lines around the summary and body are optional, and consecutive panels remain independent.
+Both the title and body can contain inline Markdown and tags such as `<ItemLink>` and `<ItemImage>`.
+Use the plural tag `<details>`; `<detail>` is not supported.
+
+<details open>
+  <summary>Compact panel 1 <ItemImage id="minecraft:diamond" /></summary>
+  **Bold text**, *italic text*, and <ItemLink id="minecraft:diamond" /> <ItemImage id="minecraft:diamond" />.
+</details>
+<details open>
+  <summary>Compact panel 2 <ItemLink id="minecraft:crafting_table" /></summary>
+  This is a separate panel with <ItemImage id="minecraft:crafting_table" /> and **formatted text**.
+</details>
+
+This paragraph is outside both panels and must remain visible when either panel is collapsed.
+
 <details open width="220" height="150" wrap="square" align="right">
 <summary>Mixed runtime content <ItemImage id="minecraft:diamond" /></summary>
 
