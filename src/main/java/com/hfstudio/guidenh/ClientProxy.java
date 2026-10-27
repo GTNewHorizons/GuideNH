@@ -69,6 +69,7 @@ import com.hfstudio.guidenh.network.GuideNhRegionExportClientHandler;
 import com.hfstudio.guidenh.network.GuideNhRegionExportReplyMessage;
 import com.hfstudio.structurelibexport.StructureExportBootstrap;
 
+import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.common.event.FMLInitializationEvent;
 import cpw.mods.fml.common.event.FMLLoadCompleteEvent;
 import cpw.mods.fml.common.event.FMLPostInitializationEvent;
@@ -118,8 +119,12 @@ public class ClientProxy extends CommonProxy {
     public void init(FMLInitializationEvent event) {
         super.init(event);
         RegionWandSelection.reloadBindings();
+        GuideReloadListener reloadListener = new GuideReloadListener();
         ((IReloadableResourceManager) Minecraft.getMinecraft()
-            .getResourceManager()).registerReloadListener(new GuideReloadListener());
+            .getResourceManager()).registerReloadListener(reloadListener);
+        FMLCommonHandler.instance()
+            .bus()
+            .register(reloadListener);
         DefaultGuideResourcePackManager.init();
         ClientCommandHandler.instance.registerCommand(new GuideNhClientCommand());
         StructureExportBootstrap.registerClientCommands();

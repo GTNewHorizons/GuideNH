@@ -72,7 +72,13 @@ public class CategoryIndex implements PageIndex {
     public void rebuild(List<ParsedGuidePage> pages) {
         categories.clear();
         canonicalCategoryNames.clear();
-        for (ParsedGuidePage page : pages) {
+        // The first spelling of a category wins, so the page order has to be the same on every run
+        var sortedPages = new ArrayList<>(pages);
+        sortedPages.sort(
+            Comparator.comparing(
+                page -> page.getId()
+                    .toString()));
+        for (ParsedGuidePage page : sortedPages) {
             indexPage(page);
         }
         sortMembers();
