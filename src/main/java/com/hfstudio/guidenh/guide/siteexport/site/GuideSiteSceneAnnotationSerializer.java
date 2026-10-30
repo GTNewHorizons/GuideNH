@@ -1,6 +1,7 @@
 package com.hfstudio.guidenh.guide.siteexport.site;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -9,8 +10,10 @@ import java.util.Map;
 import java.util.Optional;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.entity.Entity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.ResourceLocation;
 
 import org.jetbrains.annotations.Nullable;
@@ -98,15 +101,23 @@ import com.hfstudio.guidenh.guide.internal.structure.GuideTextNbtCodec;
 import com.hfstudio.guidenh.guide.internal.tooltip.GuideItemTooltipLines;
 import com.hfstudio.guidenh.guide.scene.GuidebookSceneLayerSelection;
 import com.hfstudio.guidenh.guide.scene.LytGuidebookScene;
+import com.hfstudio.guidenh.guide.scene.StructureLibSceneCondition;
 import com.hfstudio.guidenh.guide.scene.annotation.DiamondAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.InWorldAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.InWorldBlockFaceOverlayAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.InWorldBoxAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.InWorldLineAnnotation;
+import com.hfstudio.guidenh.guide.scene.annotation.InWorldOutlineAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.OverlayAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.PonderInputAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.SceneAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.TextAnnotation;
+import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
+import com.hfstudio.guidenh.guide.scene.outline.OutlineBatch;
+import com.hfstudio.guidenh.guide.scene.outline.OutlineFrame;
+import com.hfstudio.guidenh.guide.scene.outline.OutlineTargetResolver;
+import com.hfstudio.guidenh.guide.scene.outline.OutlineTargetSet;
+import com.hfstudio.guidenh.guide.scene.support.GuideBlockBoundsResolver;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
 import com.hfstudio.guidenh.guide.style.TextAlignment;
@@ -147,8 +158,21 @@ public class GuideSiteSceneAnnotationSerializer {
     public static AnnotationPayload serialize(LytGuidebookScene scene, GuideSiteTemplateRegistry templates,
         @Nullable ResourceLocation currentPageId, @Nullable GuideSitePageAssetExporter assetExporter,
         GuideSiteItemIconResolver itemIconResolver) {
+        return serialize(
+            scene,
+            templates,
+            currentPageId,
+            assetExporter,
+            itemIconResolver,
+            GuideSiteOutlineMeshExporter.NONE);
+    }
+
+    public static AnnotationPayload serialize(LytGuidebookScene scene, GuideSiteTemplateRegistry templates,
+        @Nullable ResourceLocation currentPageId, @Nullable GuideSitePageAssetExporter assetExporter,
+        GuideSiteItemIconResolver itemIconResolver, GuideSiteOutlineMeshExporter outlineMeshes) {
         List<Map<String, Object>> inWorld = new ArrayList<>();
         List<Map<String, Object>> overlay = new ArrayList<>();
+        List<InWorldOutlineAnnotation> outlines = new ArrayList<>();
 
         if (scene != null) {
             GuidebookSceneLayerSelection layerSelection = GuidebookSceneLayerSelection
@@ -163,8 +187,21 @@ public class GuideSiteSceneAnnotationSerializer {
                     case InWorldLineAnnotation line -> inWorld.add(serializeLine(line, templates, currentPageId, assetExporter, itemIconResolver));
                     case InWorldBlockFaceOverlayAnnotation blockOverlay -> inWorld.add(
                             serializeBlockOverlay(blockOverlay, templates, currentPageId, assetExporter, itemIconResolver));
+                    case InWorldOutlineAnnotation outline -> outlines.add(outline);
                     default -> addContributedPayload(inWorld, annotation);
                 }
+            }
+            for (List<InWorldOutlineAnnotation> group : groupOutlines(outlines)) {
+                inWorld.add(
+                    serializeOutline(
+                        scene,
+                        group,
+                        layerSelection,
+                        outlineMeshes,
+                        templates,
+                        currentPageId,
+                        assetExporter,
+                        itemIconResolver));
             }
             for (InWorldAnnotation annotation : scene.collectStructureLibHatchOverlaysForExport(layerSelection)) {
                 if (annotation instanceof InWorldBlockFaceOverlayAnnotation blockOverlay) {
@@ -318,6 +355,116 @@ public class GuideSiteSceneAnnotationSerializer {
             new float[] { blockOverlay.getBlockX() + 1f, blockOverlay.getBlockY() + 1f,
                 blockOverlay.getBlockZ() + 1f });
         return data;
+    }
+
+    private static List<List<InWorldOutlineAnnotation>> groupOutlines(List<InWorldOutlineAnnotation> outlines) {
+        Map<OutlineGroupKey, List<InWorldOutlineAnnotation>> groups = new LinkedHashMap<>();
+        for (InWorldOutlineAnnotation outline : outlines) {
+            groups.computeIfAbsent(OutlineGroupKey.of(outline), key -> new ArrayList<>())
+                .add(outline);
+        }
+        return new ArrayList<>(groups.values());
+    }
+
+    private static Map<String, Object> serializeOutline(LytGuidebookScene scene, List<InWorldOutlineAnnotation> group,
+        GuidebookSceneLayerSelection layerSelection, GuideSiteOutlineMeshExporter outlineMeshes,
+        GuideSiteTemplateRegistry templates, @Nullable ResourceLocation currentPageId,
+        @Nullable GuideSitePageAssetExporter assetExporter, GuideSiteItemIconResolver itemIconResolver) {
+        InWorldOutlineAnnotation first = group.getFirst();
+        Map<String, Object> data = createBaseInWorldAnnotation(
+            "outline",
+            first.getColor(),
+            first.getThickness(),
+            first.isAlwaysOnTop(),
+            first.getTooltip(),
+            templates,
+            currentPageId,
+            assetExporter,
+            itemIconResolver);
+        // Outline widths are screen pixels, unlike the world-space thickness of boxes and lines.
+        data.put("thickness", first.getThickness());
+        appendStructureLibCondition(data, first);
+        if (first.isPulse()) {
+            data.put("pulse", true);
+            data.put("pulsePeriod", first.getPulsePeriod());
+        }
+        GuideSiteOutlineMeshExporter.Meshes meshes = exportOutlineMeshes(outlineMeshes, group);
+        if (meshes.geometryPath() != null) {
+            data.put("geometrySrc", GuideSitePageAssetExporter.ROOT_PREFIX + meshes.geometryPath());
+        }
+        if (meshes.cutoutPath() != null) {
+            data.put("cutoutSrc", GuideSitePageAssetExporter.ROOT_PREFIX + meshes.cutoutPath());
+        }
+        if (data.containsKey("contentTemplateId")) {
+            data.put("pickBoxes", collectOutlinePickBoxes(scene, group, layerSelection));
+        }
+        return data;
+    }
+
+    private static GuideSiteOutlineMeshExporter.Meshes exportOutlineMeshes(GuideSiteOutlineMeshExporter exporter,
+        List<InWorldOutlineAnnotation> group) {
+        try {
+            return exporter.export(group);
+        } catch (Exception e) {
+            GuideDebugLog.warnAlways("[GuideNH] [SceneExport] Outline meshes could not be exported: {}", e.toString());
+            return GuideSiteOutlineMeshExporter.Meshes.EMPTY;
+        }
+    }
+
+    private static List<float[]> collectOutlinePickBoxes(LytGuidebookScene scene, List<InWorldOutlineAnnotation> group,
+        GuidebookSceneLayerSelection layerSelection) {
+        GuidebookLevel level = scene.getLevel();
+        OutlineFrame frame = new OutlineFrame();
+        for (InWorldOutlineAnnotation outline : group) {
+            OutlineTargetResolver.collect(level, outline, layerSelection, 0L, frame);
+        }
+        List<float[]> boxes = new ArrayList<>();
+        for (int i = 0; i < frame.batchCount(); i++) {
+            OutlineBatch batch = frame.batch(i);
+            appendPickBoxes(level, batch.getSolid(), boxes);
+            appendPickBoxes(level, batch.getCutout(), boxes);
+        }
+        return boxes;
+    }
+
+    private static void appendPickBoxes(GuidebookLevel level, OutlineTargetSet targets, List<float[]> boxes) {
+        for (int[] position : targets.blocks()) {
+            AxisAlignedBB bounds = GuideBlockBoundsResolver
+                .resolveSelectedBounds(level, position[0], position[1], position[2]);
+            if (bounds != null) {
+                boxes.add(toBox(bounds));
+            }
+        }
+        for (Entity entity : targets.entities()) {
+            if (entity.boundingBox != null) {
+                boxes.add(toBox(entity.boundingBox));
+            }
+        }
+        float[] raw = targets.boxes();
+        for (int i = 0; i < targets.boxCount(); i++) {
+            boxes.add(Arrays.copyOfRange(raw, i * 6, i * 6 + 6));
+        }
+    }
+
+    private static float[] toBox(AxisAlignedBB box) {
+        return new float[] { (float) box.minX, (float) box.minY, (float) box.minZ, (float) box.maxX, (float) box.maxY,
+            (float) box.maxZ };
+    }
+
+    private record OutlineGroupKey(@Nullable Integer color, float thickness, boolean alwaysOnTop, boolean pulse,
+        float pulsePeriod, @Nullable GuideTooltip tooltip, @Nullable StructureLibSceneCondition condition) {
+
+        static OutlineGroupKey of(InWorldOutlineAnnotation outline) {
+            return new OutlineGroupKey(
+                outline.getColor() != null ? outline.getColor()
+                    .resolve() : null,
+                outline.getThickness(),
+                outline.isAlwaysOnTop(),
+                outline.isPulse(),
+                outline.getPulsePeriod(),
+                outline.getTooltip(),
+                outline.getStructureLibCondition());
+        }
     }
 
     private static Map<String, Object> serializeDiamond(DiamondAnnotation diamond, GuideSiteTemplateRegistry templates,

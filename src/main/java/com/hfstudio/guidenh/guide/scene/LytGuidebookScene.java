@@ -73,6 +73,7 @@ import com.hfstudio.guidenh.guide.scene.annotation.InWorldBlockFaceOverlayAnnota
 import com.hfstudio.guidenh.guide.scene.annotation.InWorldBoxAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.InWorldBoxFaceOverlayAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.InWorldLineAnnotation;
+import com.hfstudio.guidenh.guide.scene.annotation.InWorldOutlineAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.OverlayAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.PonderInputAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.SceneAnnotation;
@@ -87,6 +88,8 @@ import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookPreviewBlockPlacer;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookPreviewRuntimeMutationTracker;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookTileEntityLoader;
+import com.hfstudio.guidenh.guide.scene.outline.OutlineRegion;
+import com.hfstudio.guidenh.guide.scene.outline.OutlineTargetResolver;
 import com.hfstudio.guidenh.guide.scene.ponder.PonderEntityAnimationRuntimeSupport;
 import com.hfstudio.guidenh.guide.scene.ponder.PonderKeyframe;
 import com.hfstudio.guidenh.guide.scene.ponder.PonderKeyframeBlockChange;
@@ -1089,6 +1092,10 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         if (annotation instanceof InWorldBoxFaceOverlayAnnotation overlayAnnotation) {
             return intersectsVisibleLayer(overlayAnnotation.min().y, overlayAnnotation.max().y, visibleLayerY);
         }
+        if (annotation instanceof InWorldOutlineAnnotation outlineAnnotation) {
+            OutlineRegion region = outlineAnnotation.layerCullingRegion();
+            return region == null || intersectsVisibleLayer(region.minY(), region.maxY(), visibleLayerY);
+        }
         return true;
     }
 
@@ -1116,6 +1123,10 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         }
         if (annotation instanceof InWorldBoxFaceOverlayAnnotation overlayAnnotation) {
             return intersectsLayerSelection(overlayAnnotation.min().y, overlayAnnotation.max().y, layerSelection);
+        }
+        if (annotation instanceof InWorldOutlineAnnotation outlineAnnotation) {
+            OutlineRegion region = outlineAnnotation.layerCullingRegion();
+            return region == null || intersectsLayerSelection(region.minY(), region.maxY(), layerSelection);
         }
         return true;
     }
@@ -2243,6 +2254,8 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
                         hovered = boxRayContains(box, ray);
                     } else if (a instanceof InWorldLineAnnotation line) {
                         hovered = lineScreenContains(line, viewport, mouseX, mouseY);
+                    } else if (a instanceof InWorldOutlineAnnotation outline) {
+                        hovered = OutlineTargetResolver.intersectsRay(level, outline, ray);
                     }
                 }
                 a.setHovered(hovered);

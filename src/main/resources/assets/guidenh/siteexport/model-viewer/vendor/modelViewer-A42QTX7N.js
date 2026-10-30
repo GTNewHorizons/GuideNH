@@ -3516,6 +3516,7 @@ function Tm(s,e,t){
 
 const guidenhCreateBaseAnnotation=jl;
 jl=function(annotation){
+  if(guidenhIsOutlineAnnotation(annotation))return guidenhCreateOutlinePickGroup(annotation);
   if(annotation?.siteControl==="floorGrid")return guidenhCreateHoverHighlightObject(annotation);
   return guidenhCreateBaseAnnotation(annotation);
 };
@@ -3587,6 +3588,389 @@ function guidenhDisposeSceneGroup(s){
       for(let n of t)n?.dispose?.();
     }else t?.dispose?.();
   });
+}
+
+const GUIDENH_OUTLINE_MAX_SLOTS = 16;
+const GUIDENH_OUTLINE_MAX_RADIUS = 24;
+const GUIDENH_OUTLINE_ROOT_PREFIX = "{{root}}/";
+const GUIDENH_OUTLINE_PULSE_MIN = 0.3;
+const GUIDENH_GL_LESS_EQUAL_DEPTH = 3;
+const GUIDENH_GL_DOUBLE_SIDE = 2;
+const GUIDENH_GL_NORMAL_BLENDING = 1;
+const GUIDENH_GL_CUSTOM_BLENDING = 5;
+const GUIDENH_GL_MAX_EQUATION = 104;
+const GUIDENH_GL_ONE_FACTOR = 201;
+
+const guidenhOutlineMaskVertexShader = `
+varying vec2 vUv;
+void main() {
+  vUv = uv;
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+}`;
+
+const guidenhOutlineMaskFragmentShader = `
+uniform sampler2D uMap;
+uniform float uCutout;
+uniform vec4 uValue;
+varying vec2 vUv;
+void main() {
+  if (uCutout > 0.5 && texture2D(uMap, vUv).a < 0.1) discard;
+  gl_FragColor = uValue;
+}`;
+
+const guidenhOutlineQuadVertexShader = `
+varying vec2 vUv;
+void main() {
+  vUv = position.xy * 0.5 + 0.5;
+  gl_Position = vec4(position.xy, 0.0, 1.0);
+}`;
+
+// Same encoding as the in-game passes: spans walk outward and stop at the nearest mask texel, writing
+// R = slot, G = visibility, B = |dx| / 255 and A = thickness * 8 / 255 (never zero for a hit).
+const guidenhOutlineSpanFragmentShader = `
+#define MAX_RADIUS ${GUIDENH_OUTLINE_MAX_RADIUS}
+#define MAX_SLOTS ${GUIDENH_OUTLINE_MAX_SLOTS}
+uniform sampler2D uMask;
+uniform vec2 uTexel;
+uniform float uRadius;
+uniform float uThickness[MAX_SLOTS];
+varying vec2 vUv;
+vec4 maskAt(float u) {
+  if (u < 0.0 || u > 1.0) return vec4(0.0);
+  return texture2D(uMask, vec2(u, vUv.y));
+}
+float thicknessOf(float slot) {
+  float thickness = 0.0;
+  for (int i = 0; i < MAX_SLOTS; i++) {
+    if (float(i + 1) == slot) thickness = uThickness[i];
+  }
+  return thickness;
+}
+void main() {
+  vec4 hit = vec4(0.0);
+  float nearest = 0.0;
+  for (int i = 0; i <= MAX_RADIUS; i++) {
+    float offset = float(i);
+    if (offset > uRadius) break;
+    hit = maskAt(vUv.x - offset * uTexel.x);
+    if (hit.r == 0.0) hit = maskAt(vUv.x + offset * uTexel.x);
+    if (hit.r > 0.0) {
+      nearest = offset;
+      break;
+    }
+  }
+  if (hit.r == 0.0) {
+    gl_FragColor = vec4(0.0);
+  } else {
+    float slot = floor(hit.r * 255.0 + 0.5);
+    float thickness = clamp(thicknessOf(slot) * 8.0 / 255.0, 1.0 / 255.0, 1.0);
+    gl_FragColor = vec4(hit.r, hit.g, nearest / 255.0, thickness);
+  }
+}`;
+
+const guidenhOutlineCompositeFragmentShader = `
+#define MAX_RADIUS ${GUIDENH_OUTLINE_MAX_RADIUS}
+#define MAX_SLOTS ${GUIDENH_OUTLINE_MAX_SLOTS}
+uniform sampler2D uSpans;
+uniform vec2 uTexel;
+uniform float uRadius;
+uniform vec4 uVisible[MAX_SLOTS];
+uniform vec4 uOccluded[MAX_SLOTS];
+varying vec2 vUv;
+vec4 colorOf(float slot, bool visible) {
+  vec4 color = vec4(0.0);
+  for (int i = 0; i < MAX_SLOTS; i++) {
+    if (float(i + 1) == slot) color = visible ? uVisible[i] : uOccluded[i];
+  }
+  return color;
+}
+vec4 spanAt(float dy) {
+  float v = vUv.y + dy * uTexel.y;
+  if (v < 0.0 || v > 1.0) return vec4(0.0);
+  return texture2D(uSpans, vec2(vUv.x, v));
+}
+float coverageOf(vec4 hit, float dy) {
+  if (hit.a == 0.0) return 0.0;
+  float dx = hit.b * 255.0;
+  return clamp(hit.a * 255.0 / 8.0 + 1.0 - sqrt(dx * dx + dy * dy), 0.0, 1.0);
+}
+void main() {
+  vec4 best = spanAt(0.0);
+  if (best.a > 0.0 && best.b == 0.0) discard;
+  float bestCoverage = coverageOf(best, 0.0);
+  for (int j = 1; j <= MAX_RADIUS; j++) {
+    float dy = float(j);
+    if (dy > uRadius || bestCoverage >= 1.0) break;
+    vec4 below = spanAt(-dy);
+    float belowCoverage = coverageOf(below, dy);
+    if (belowCoverage > bestCoverage) {
+      bestCoverage = belowCoverage;
+      best = below;
+    }
+    vec4 above = spanAt(dy);
+    float aboveCoverage = coverageOf(above, dy);
+    if (aboveCoverage > bestCoverage) {
+      bestCoverage = aboveCoverage;
+      best = above;
+    }
+  }
+  if (bestCoverage <= 0.0) discard;
+  vec4 color = colorOf(floor(best.r * 255.0 + 0.5), best.g > 0.5);
+  gl_FragColor = vec4(color.rgb, color.a * bestCoverage);
+}`;
+
+function guidenhIsOutlineAnnotation(annotation) {
+  return annotation?.type === "outline";
+}
+
+function guidenhParseOutlineColor(value) {
+  const match = /^rgba\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*\)$/i.exec(`${value ?? ""}`.trim());
+  if (!match) return [1, 1, 1, 1];
+  const channel = index => Math.max(0, Math.min(255, Number(match[index]) || 0)) / 255;
+  return [channel(1), channel(2), channel(3), Math.max(0, Math.min(1, Number(match[4]) || 0))];
+}
+
+function guidenhResolveOutlineSource(loader, source) {
+  return source.startsWith(GUIDENH_OUTLINE_ROOT_PREFIX)
+    ? loader.assetBaseUrl + source.slice(GUIDENH_OUTLINE_ROOT_PREFIX.length)
+    : source;
+}
+
+function guidenhCreateOutlinePickGroup(annotation) {
+  const group = new Dt;
+  if (!annotation?.contentTemplateId || !Array.isArray(annotation.pickBoxes)) return group;
+  for (const box of annotation.pickBoxes) {
+    if (!Array.isArray(box) || box.length < 6) continue;
+    const mesh = new ft(new Nn(box[3] - box[0], box[4] - box[1], box[5] - box[2]), new cn);
+    mesh.position.set((box[0] + box[3]) / 2, (box[1] + box[4]) / 2, (box[2] + box[5]) / 2);
+    mesh.visible = false;
+    mesh.userData.annotation = annotation;
+    group.add(mesh);
+  }
+  return group;
+}
+
+function guidenhCreateOutlineMaskMaterial(slot, map, cutout, depthPass) {
+  return new hn({
+    vertexShader: guidenhOutlineMaskVertexShader,
+    fragmentShader: guidenhOutlineMaskFragmentShader,
+    uniforms: {
+      uMap: { value: map },
+      uCutout: { value: cutout && map ? 1 : 0 },
+      uValue: { value: depthPass ? [0, 1, 0, 1] : [slot / 255, 0, 0, 1] },
+    },
+    side: GUIDENH_GL_DOUBLE_SIDE,
+    depthTest: depthPass,
+    depthWrite: false,
+    depthFunc: GUIDENH_GL_LESS_EQUAL_DEPTH,
+    polygonOffset: depthPass,
+    polygonOffsetFactor: -1,
+    polygonOffsetUnits: -4,
+    blending: GUIDENH_GL_CUSTOM_BLENDING,
+    blendEquation: GUIDENH_GL_MAX_EQUATION,
+    blendEquationAlpha: GUIDENH_GL_MAX_EQUATION,
+    blendSrc: GUIDENH_GL_ONE_FACTOR,
+    blendDst: GUIDENH_GL_ONE_FACTOR,
+    blendSrcAlpha: GUIDENH_GL_ONE_FACTOR,
+    blendDstAlpha: GUIDENH_GL_ONE_FACTOR,
+  });
+}
+
+function guidenhCreateOutlineQuad(fragmentShader, uniforms, blending) {
+  const geometry = new Mt;
+  geometry.setAttribute("position", new vt([-1, -1, 0, 1, -1, 0, 1, 1, 0, -1, -1, 0, 1, 1, 0, -1, 1, 0], 3));
+  const material = new hn({
+    vertexShader: guidenhOutlineQuadVertexShader,
+    fragmentShader,
+    uniforms,
+    depthTest: false,
+    depthWrite: false,
+    blending,
+    transparent: blending !== 0,
+  });
+  const mesh = new ft(geometry, material);
+  mesh.frustumCulled = false;
+  const scene = new tr;
+  scene.add(mesh);
+  return { scene, material, geometry };
+}
+
+async function guidenhLoadOutlineMeshes(loader, scene, source, slot, cutout, signal) {
+  try {
+    const loaded = await Ya(loader, guidenhResolveOutlineSource(loader, source), signal);
+    loaded.group.traverse(object => {
+      if (!object.isMesh) return;
+      const map = object.material?.map ?? null;
+      object.material?.dispose?.();
+      object.userData.guidenhOutlinePasses = [
+        guidenhCreateOutlineMaskMaterial(slot, map, cutout, false),
+        guidenhCreateOutlineMaskMaterial(slot, map, cutout, true),
+      ];
+      object.material = object.userData.guidenhOutlinePasses[0];
+      object.frustumCulled = false;
+    });
+    scene.add(loaded.group);
+  } catch (error) {
+    signal?.throwIfAborted();
+    console.warn("Failed to load outline meshes %s", source, error);
+  }
+}
+
+async function guidenhCreateOutlineCompositor(renderer, loader, annotations, signal, logicalWidth) {
+  const outlines = (Array.isArray(annotations) ? annotations : [])
+    .filter(annotation => guidenhIsOutlineAnnotation(annotation) && (annotation.geometrySrc || annotation.cutoutSrc));
+  if (!outlines.length) return null;
+
+  const maskScene = new tr;
+  const entries = [];
+  for (let index = 0; index < outlines.length; index++) {
+    const annotation = outlines[index];
+    const slot = Math.min(index + 1, GUIDENH_OUTLINE_MAX_SLOTS);
+    entries.push({ annotation, slot, color: guidenhParseOutlineColor(annotation.color) });
+    if (annotation.geometrySrc) await guidenhLoadOutlineMeshes(loader, maskScene, annotation.geometrySrc, slot, false, signal);
+    if (annotation.cutoutSrc) await guidenhLoadOutlineMeshes(loader, maskScene, annotation.cutoutSrc, slot, true, signal);
+  }
+
+  const targetOptions = { minFilter: st, magFilter: st, generateMipmaps: false };
+  const maskTarget = new on(1, 1, { ...targetOptions, depthBuffer: true });
+  const spanTarget = new on(1, 1, { ...targetOptions, depthBuffer: false });
+  const spanQuad = guidenhCreateOutlineQuad(guidenhOutlineSpanFragmentShader, {
+    uMask: { value: maskTarget.texture },
+    uTexel: { value: new ve(1, 1) },
+    uRadius: { value: 1 },
+    uThickness: { value: new Array(GUIDENH_OUTLINE_MAX_SLOTS).fill(0) },
+  }, 0);
+  const compositeQuad = guidenhCreateOutlineQuad(guidenhOutlineCompositeFragmentShader, {
+    uSpans: { value: spanTarget.texture },
+    uTexel: { value: new ve(1, 1) },
+    uRadius: { value: 1 },
+    uVisible: { value: Array.from({ length: GUIDENH_OUTLINE_MAX_SLOTS }, () => [0, 0, 0, 0]).flat() },
+    uOccluded: { value: Array.from({ length: GUIDENH_OUTLINE_MAX_SLOTS }, () => [0, 0, 0, 0]).flat() },
+  }, GUIDENH_GL_NORMAL_BLENDING);
+  const quadCamera = new Ei;
+  const size = new ve;
+  const clearColor = new De;
+  const lastView = new C;
+  const lastProjection = [];
+  const lastWorld = [];
+  let maskValid = false;
+
+  function setMaskPass(depthPass) {
+    maskScene.traverse(object => {
+      const passes = object.userData.guidenhOutlinePasses;
+      if (passes) object.material = passes[depthPass ? 1 : 0];
+    });
+  }
+
+  function cameraChanged(camera, offset) {
+    const world = camera.matrixWorld.elements;
+    const projection = camera.projectionMatrix.elements;
+    let changed = !maskValid || !lastView.equals(offset);
+    for (let i = 0; i < 16 && !changed; i++) {
+      changed = world[i] !== lastWorld[i] || projection[i] !== lastProjection[i];
+    }
+    for (let i = 0; i < 16; i++) {
+      lastWorld[i] = world[i];
+      lastProjection[i] = projection[i];
+    }
+    lastView.copy(offset);
+    return changed;
+  }
+
+  function updateStyles(time, hoveredTemplateId, pixelScale) {
+    const visible = compositeQuad.material.uniforms.uVisible.value;
+    const occluded = compositeQuad.material.uniforms.uOccluded.value;
+    // Thickness is baked into the span target, so changing it invalidates the cached mask.
+    const thickness = spanQuad.material.uniforms.uThickness.value;
+    let maxThickness = 0;
+    for (const entry of entries) {
+      const annotation = entry.annotation;
+      const hovered = hoveredTemplateId && annotation.contentTemplateId === hoveredTemplateId;
+      const rgb = entry.color.slice(0, 3).map(channel => hovered ? Math.min(1, channel + 127 / 255) : channel);
+      let alpha = entry.color[3];
+      if (annotation.pulse) {
+        const period = Math.max(1, (Number(annotation.pulsePeriod) || 2) * 1000);
+        const wave = 0.5 - 0.5 * Math.cos((time % period) / period * Math.PI * 2);
+        alpha *= GUIDENH_OUTLINE_PULSE_MIN + (1 - GUIDENH_OUTLINE_PULSE_MIN) * wave;
+      }
+      const offset = (entry.slot - 1) * 4;
+      visible.splice(offset, 4, rgb[0], rgb[1], rgb[2], alpha);
+      if (annotation.alwaysOnTop) {
+        occluded.splice(offset, 4, rgb[0], rgb[1], rgb[2], alpha);
+      } else {
+        occluded.splice(offset, 4, ...rgb.map(channel => Math.max(0, channel - 127 / 255)), alpha / 2);
+      }
+      const slotThickness = (Number(annotation.thickness) || 1) * pixelScale;
+      if (thickness[entry.slot - 1] !== slotThickness) {
+        thickness[entry.slot - 1] = slotThickness;
+        maskValid = false;
+      }
+      maxThickness = Math.max(maxThickness, slotThickness);
+    }
+    return Math.min(GUIDENH_OUTLINE_MAX_RADIUS, Math.ceil(maxThickness) + 1);
+  }
+
+  function rebuildMask(scene, camera, offset, radius) {
+    maskScene.position.copy(offset);
+    renderer.setRenderTarget(maskTarget);
+    renderer.setClearColor(0x000000, 0);
+    renderer.clear(true, true, true);
+    // Depth-only use of the real scene: its colors are cleared again before the mask is drawn.
+    renderer.render(scene, camera);
+    renderer.clear(true, false, false);
+    setMaskPass(false);
+    renderer.render(maskScene, camera);
+    setMaskPass(true);
+    renderer.render(maskScene, camera);
+    spanQuad.material.uniforms.uRadius.value = radius;
+    renderer.setRenderTarget(spanTarget);
+    renderer.render(spanQuad.scene, quadCamera);
+    maskValid = true;
+  }
+
+  return {
+    render(scene, camera, offset, time, hoveredTemplateId) {
+      renderer.getDrawingBufferSize(size);
+      if (size.x <= 0 || size.y <= 0) return;
+      if (maskTarget.width !== size.x || maskTarget.height !== size.y) {
+        maskTarget.setSize(size.x, size.y);
+        spanTarget.setSize(size.x, size.y);
+        spanQuad.material.uniforms.uTexel.value.set(1 / size.x, 1 / size.y);
+        compositeQuad.material.uniforms.uTexel.value.set(1 / size.x, 1 / size.y);
+        maskValid = false;
+      }
+      const radius = updateStyles(time, hoveredTemplateId, size.x / Math.max(1, logicalWidth));
+      const previousTarget = renderer.getRenderTarget();
+      const previousAutoClear = renderer.autoClear;
+      const previousClearAlpha = renderer.getClearAlpha();
+      renderer.getClearColor(clearColor);
+      renderer.autoClear = false;
+      try {
+        if (cameraChanged(camera, offset) || spanQuad.material.uniforms.uRadius.value !== radius) {
+          rebuildMask(scene, camera, offset, radius);
+        }
+        compositeQuad.material.uniforms.uRadius.value = radius;
+        renderer.setRenderTarget(null);
+        renderer.render(compositeQuad.scene, quadCamera);
+      } finally {
+        renderer.setRenderTarget(previousTarget);
+        renderer.setClearColor(clearColor, previousClearAlpha);
+        renderer.autoClear = previousAutoClear;
+      }
+    },
+    dispose() {
+      maskScene.traverse(object => {
+        object.geometry?.dispose?.();
+        for (const material of object.userData.guidenhOutlinePasses ?? []) material.dispose();
+      });
+      for (const quad of [spanQuad, compositeQuad]) {
+        quad.geometry.dispose();
+        quad.material.dispose();
+      }
+      maskTarget.dispose();
+      spanTarget.dispose();
+    },
+  };
 }
 
 function guidenhScaleFrameTexture(texture, scale) {
@@ -3700,6 +4084,7 @@ async function Am(s,e,t,n,i=[],r=[],o=[],a,c,l,h){
     let q=guidenhCreateHoverRuntimeTarget(A);
     q&&(v.push(q),g.add(q.highlightObject),g.add(q.pickMesh));
   }
+  let guidenhOutlines=await guidenhCreateOutlineCompositor(f,d,i,l,h),guidenhHoveredTemplateId;
   let M,S=new Ei,baseZoom,logicalCamera;
   const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
   S.near=-1000;
@@ -3834,10 +4219,12 @@ async function Am(s,e,t,n,i=[],r=[],o=[],a,c,l,h){
     }
     for(let q of g.userData.guidenhBillboardMeshes??[])q.quaternion.copy(S.quaternion);
     f.render(w,S);
+    guidenhOutlines?.render(w,S,g.position,A,guidenhHoveredTemplateId);
     const pointer=a.current;
     if(pointer!==lastPickPointer||g!==lastPickGroup||S.zoom!==lastPickZoom
       ||!S.position.equals(lastPickPosition)||!S.quaternion.equals(lastPickRotation)){
       const picked=pointer?Tm(pointer,S,w):void 0;
+      guidenhHoveredTemplateId=picked?.templateId;
       W(picked?.hoverRuntimeTarget);
       c(picked ? { templateId: picked.templateId, shiftTemplateId: picked.shiftTemplateId } : null);
       lastPickPointer=pointer;
@@ -3879,6 +4266,7 @@ async function Am(s,e,t,n,i=[],r=[],o=[],a,c,l,h){
       f.setAnimationLoop(null);
       f.domElement.remove();
       guidenhDisposeSceneGroup(g);
+      guidenhOutlines?.dispose();
       disposeAnimations(_);
       for (const texture of d.textures) texture.dispose();
       f.dispose();
@@ -3888,7 +4276,8 @@ async function Am(s,e,t,n,i=[],r=[],o=[],a,c,l,h){
     },
     async replaceScene(source,annotations=[],overlays=[],targets=[],options={}) {
       const next=await Ya(d,source,l);
-      if(D){guidenhDisposeSceneGroup(next.group);disposeAnimations(next.animatedTextureParts);return;}
+      const nextOutlines=await guidenhCreateOutlineCompositor(f,d,annotations,l,h);
+      if(D){guidenhDisposeSceneGroup(next.group);disposeAnimations(next.animatedTextureParts);nextOutlines?.dispose();return;}
       const center=new kt().expandByObject(next.group).getCenter(new C);
       next.group.position.copy(center.negate());
       for (const annotation of annotations) next.group.add(jl(annotation));
@@ -3904,6 +4293,8 @@ async function Am(s,e,t,n,i=[],r=[],o=[],a,c,l,h){
       disposeAnimations(_);
       g=next.group;
       _=next.animatedTextureParts;
+      guidenhOutlines?.dispose();
+      guidenhOutlines=nextOutlines;
       if (options.resetCamera && next.cameraProps && logicalCamera) {
         const nextCamera = S.clone();
         nextCamera.position.set(0,0,15);

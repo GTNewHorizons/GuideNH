@@ -19,6 +19,7 @@ GuideNH scène Annotaties are kind tags binnen `<GameScene>` / `<Scene>`. They r
 - `<BoxAnnotation>`
 - `<LineAnnotation>`
 - `<DiamondAnnotation>`
+- `<OutlineAnnotation>`
 - `<TextAnnotation>`
 
 GuideNH ook ondersteunt `<BlockAnnotationTemplate>`, which applies its kind Annotaties naar iedere al-placed matching blok in De huidige scène.
@@ -161,6 +162,64 @@ Example:
   ### Activated Beacon
   Hover for rich content.
 </DiamondAnnotation>
+````
+
+## `<OutlineAnnotation>`
+
+Tekent een gloeiende silhouetomlijning rond blokken en entiteiten, zoals het Gloeien-effect. De omlijning volgt de gerenderde vorm van elk doel, blijft zichtbaar door blokken en entiteiten ervoor en versmelt met rakende omlijningen tot één vorm.
+
+| Attribuut | Vereist | Betekenis |
+| --- | --- | --- |
+| `pos` | nee | te omlijnen blok `x y z`; standaard `0 0 0`, het gevonden blok binnen `<BlockAnnotationTemplate>` |
+| `min` / `max` | nee | inclusieve blokhoeken van een gebied; elk blok daarin wordt omlijnd |
+| `entity` | nee | `sceneEntityId` van een te omlijnen `<Entity>` |
+| `target` | nee | `blocks` (standaard), `entities` of `all`: wat binnen het gebied wordt omlijnd; `entities` zonder gebied omlijnt alle entiteiten |
+| `mode` | nee | `auto` (standaard), `geometry`, `cutout` of `bounds` |
+| `color` | nee | omlijningskleur; weggelaten is wit, of de scorebordteamkleur voor entiteiten |
+| `thickness` | nee | omlijningsbreedte in GUI-pixels, `0.25` tot `8`, standaard `1` |
+| `alwaysOnTop` | nee | booleaanse expressie; verborgen delen behouden volle helderheid in plaats van te worden gedimd |
+| `pulse` | nee | booleaanse expressie; laat de omlijning ademen |
+| `pulsePeriod` | nee | ademperiode in seconden, standaard `2` |
+
+Silhouetmodi:
+
+- `auto` kiest per doel. Gesloten modellen (kubussen, glas, ijs, vloeistoffen, ruiten, multipart- en kabelblokken, OBJ- en TESR-modellen) gebruiken hun geometrie, zodat doorzichtige texturen zoals glas het hele blok omlijnen in plaats van het glazen frame. Sprite-achtige weergaven (bloemen, jonge boompjes, gewassen, fakkels, rails, ladders, klimplanten, redstone) en entiteiten gebruiken de textuuralfa, zodat de omlijning de getekende vorm volgt in plaats van de vlakken. Blokken die niets renderen gebruiken hun selectiekader.
+- `geometry` gebruikt altijd de gerenderde geometrie.
+- `cutout` gebruikt altijd de textuuralfa.
+- `bounds` omlijnt de selectiekaders van blokken en de hitboxen van entiteiten.
+
+Regels:
+
+- de omlijning wordt alleen buiten het silhouet getekend; het doel zelf wordt niet gekleurd
+- delen achter andere blokken of entiteiten blijven zichtbaar en worden gedimd zoals andere verborgen annotaties; `alwaysOnTop` houdt volle helderheid
+- onzichtbare entiteiten krijgen ook een omlijning
+- rakende of overlappende omlijningen versmelten tot één, ook tussen verschillende annotaties
+- doorschijnende kleuren en de zachte rand worden met de scène gemengd, de rand wordt nooit zwart
+- kindinhoud wordt de tooltip; die verschijnt bij het aanwijzen van elk omlijnd blok of elke entiteit
+- binnen `<BlockAnnotationTemplate>` is `pos` relatief aan elk gevonden blok en versmelten de omlijningen van alle treffers tot één vorm
+- geëxporteerde sites tekenen dezelfde omlijning met WebGL
+
+Voorbeeld:
+
+````md
+<GameScene zoom={3} interactive={true}>
+  <Block id="minecraft:glass" />
+  <Block id="minecraft:red_flower" x="2" />
+  <Entity id="minecraft:sheep" sceneEntityId="sheep" x="1.5" z="2.5" />
+  <OutlineAnnotation pos="0 0 0" color="#55FFFF">
+    Glas wordt als volledige kubus omlijnd.
+  </OutlineAnnotation>
+  <OutlineAnnotation pos="2 0 0" color="#FFFF55" thickness="1.5" />
+  <OutlineAnnotation entity="sheep" color="#FFAA00" alwaysOnTop={true} pulse={true} />
+</GameScene>
+````
+
+Alle overeenkomende blokken van een structuur omlijnen:
+
+````md
+<BlockAnnotationTemplate id="minecraft:glass">
+  <OutlineAnnotation color="#AAFFFF" />
+</BlockAnnotationTemplate>
 ````
 
 ## `<TextAnnotation>`

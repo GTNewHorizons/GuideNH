@@ -789,6 +789,20 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
             AttributeSyntax.of("alwaysOnTop", SyntaxValueKind.BOOLEAN));
 
         sink.attributes(
+            "OutlineAnnotation",
+            AttributeSyntax.of("pos", SyntaxValueKind.VECTOR3),
+            AttributeSyntax.of("min", SyntaxValueKind.VECTOR3),
+            AttributeSyntax.of("max", SyntaxValueKind.VECTOR3),
+            AttributeSyntax.of("entity", SyntaxValueKind.STRING),
+            AttributeSyntax.of("target", SyntaxValueKind.ENUM, "blocks", "entities", "all"),
+            AttributeSyntax.of("mode", SyntaxValueKind.ENUM, "auto", "geometry", "cutout", "bounds"),
+            AttributeSyntax.of("color", SyntaxValueKind.COLOR),
+            AttributeSyntax.of("thickness", SyntaxValueKind.FLOAT),
+            AttributeSyntax.of("alwaysOnTop", SyntaxValueKind.BOOLEAN),
+            AttributeSyntax.of("pulse", SyntaxValueKind.BOOLEAN),
+            AttributeSyntax.of("pulsePeriod", SyntaxValueKind.FLOAT));
+
+        sink.attributes(
             "TextAnnotation",
             AttributeSyntax.of("text", SyntaxValueKind.STRING),
             AttributeSyntax.of("color", SyntaxValueKind.COLOR),
@@ -913,6 +927,7 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
         sink.attributes("BoxAnnotation", SHOW_WHEN_STRUCTURE, SHOW_WHEN_TIER, SHOW_WHEN_CHANNELS);
         sink.attributes("LineAnnotation", SHOW_WHEN_STRUCTURE, SHOW_WHEN_TIER, SHOW_WHEN_CHANNELS);
         sink.attributes("DiamondAnnotation", SHOW_WHEN_STRUCTURE, SHOW_WHEN_TIER, SHOW_WHEN_CHANNELS);
+        sink.attributes("OutlineAnnotation", SHOW_WHEN_STRUCTURE, SHOW_WHEN_TIER, SHOW_WHEN_CHANNELS);
         sink.attributes("TextAnnotation", SHOW_WHEN_STRUCTURE, SHOW_WHEN_TIER, SHOW_WHEN_CHANNELS);
         sink.attributes("BlockAnnotationTemplate", SHOW_WHEN_STRUCTURE, SHOW_WHEN_TIER, SHOW_WHEN_CHANNELS);
         sink.attributes("PlaySound", SHOW_WHEN_STRUCTURE, SHOW_WHEN_TIER, SHOW_WHEN_CHANNELS);
@@ -1319,6 +1334,7 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
             "BoxAnnotation",
             "LineAnnotation",
             "DiamondAnnotation",
+            "OutlineAnnotation",
             "TextAnnotation",
             "BlockAnnotationTemplate");
 
@@ -1352,6 +1368,7 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
             "BoxAnnotation",
             "LineAnnotation",
             "DiamondAnnotation",
+            "OutlineAnnotation",
             "TextAnnotation",
             "BlockAnnotationTemplate");
         sink.children(
@@ -1384,6 +1401,7 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
             "BoxAnnotation",
             "LineAnnotation",
             "DiamondAnnotation",
+            "OutlineAnnotation",
             "TextAnnotation",
             "BlockAnnotationTemplate");
         sink.children("BarChart", "Series", "LineSeries", "PieInset");
@@ -1425,6 +1443,7 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
             "BoxAnnotation",
             "LineAnnotation",
             "DiamondAnnotation",
+            "OutlineAnnotation",
             "TextAnnotation",
             "BlockAnnotationTemplate");
         sink.preferredChildren(
@@ -1433,6 +1452,7 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
             "BoxAnnotation",
             "LineAnnotation",
             "DiamondAnnotation",
+            "OutlineAnnotation",
             "TextAnnotation",
             "BlockAnnotationTemplate");
         sink.preferredChildren(
@@ -1441,6 +1461,7 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
             "BoxAnnotation",
             "LineAnnotation",
             "DiamondAnnotation",
+            "OutlineAnnotation",
             "TextAnnotation",
             "BlockAnnotationTemplate");
         sink.preferredChildren(
@@ -1449,6 +1470,16 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
             "BoxAnnotation",
             "LineAnnotation",
             "DiamondAnnotation",
+            "OutlineAnnotation",
+            "TextAnnotation",
+            "BlockAnnotationTemplate");
+        sink.preferredChildren(
+            "OutlineAnnotation",
+            "BlockAnnotation",
+            "BoxAnnotation",
+            "LineAnnotation",
+            "DiamondAnnotation",
+            "OutlineAnnotation",
             "TextAnnotation",
             "BlockAnnotationTemplate");
         sink.preferredChildren(
@@ -1457,6 +1488,7 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
             "BoxAnnotation",
             "LineAnnotation",
             "DiamondAnnotation",
+            "OutlineAnnotation",
             "TextAnnotation",
             "BlockAnnotationTemplate");
         sink.preferredChildren(
@@ -1465,6 +1497,7 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
             "BoxAnnotation",
             "LineAnnotation",
             "DiamondAnnotation",
+            "OutlineAnnotation",
             "TextAnnotation",
             "BlockAnnotationTemplate");
         sink.preferredChildren(
@@ -1474,6 +1507,7 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
             "BoxAnnotation",
             "LineAnnotation",
             "DiamondAnnotation",
+            "OutlineAnnotation",
             "TextAnnotation",
             "BlockAnnotationTemplate");
         sink.children("GameScene", "InputAnnotation");

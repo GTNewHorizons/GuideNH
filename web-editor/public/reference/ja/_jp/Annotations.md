@@ -16,6 +16,7 @@ GuideNH のシーン注釈は `<GameScene>` / `<Scene>` 内の子タグです。
 - `<BoxAnnotation>`
 - `<LineAnnotation>`
 - `<DiamondAnnotation>`
+- `<OutlineAnnotation>`
 - `<TextAnnotation>`
 
 `<BlockAnnotationTemplate>` は、現在のシーンにすでに配置された一致ブロックごとに子注釈を適用します。
@@ -134,6 +135,64 @@ GuideNH のシーン注釈は `<GameScene>` / `<Scene>` 内の子タグです。
   ### Activated Beacon
   Hover for rich content.
 </DiamondAnnotation>
+````
+
+## `<OutlineAnnotation>`
+
+発光エフェクトのように、ブロックやエンティティの周囲にシルエットの輪郭線を描きます。輪郭は各ターゲットの描画された形状に沿い、手前のブロックやエンティティを透過して見え、接する輪郭同士は 1 つの形に結合されます。
+
+| 属性 | 必須 | 意味 |
+| --- | --- | --- |
+| `pos` | いいえ | 輪郭を描くブロック `x y z`。既定値は `0 0 0` で、`<BlockAnnotationTemplate>` 内では一致したブロックです |
+| `min` / `max` | いいえ | 範囲の両端を含むブロック座標。範囲内のすべてのブロックに輪郭を描きます |
+| `entity` | いいえ | 輪郭を描く `<Entity>` の `sceneEntityId` |
+| `target` | いいえ | `blocks`（既定）、`entities`、`all`。範囲内で輪郭を描く対象です。範囲なしの `entities` はすべてのエンティティが対象です |
+| `mode` | いいえ | `auto`（既定）、`geometry`、`cutout`、`bounds` |
+| `color` | いいえ | 輪郭の色。省略時は白、エンティティはスコアボードのチーム色 |
+| `thickness` | いいえ | GUI ピクセル単位の輪郭の太さ。`0.25` から `8`、既定値 `1` |
+| `alwaysOnTop` | いいえ | boolean expression。隠れた部分を暗くせず、そのままの明るさで描きます |
+| `pulse` | いいえ | boolean expression。輪郭を呼吸するように明滅させます |
+| `pulsePeriod` | いいえ | 明滅の周期（秒）。既定値 `2` |
+
+シルエットモード:
+
+- `auto` はターゲットごとに選びます。閉じたモデル（立方体、ガラス、氷、液体、板ガラス、マルチパートやケーブルのブロック、OBJ や TESR のモデル）はジオメトリを使うため、ガラスのような透けるテクスチャでもガラス枠ではなくブロック全体の輪郭になります。スプライト状の描画（花、苗木、作物、松明、レール、はしご、ツタ、レッドストーン）とエンティティはテクスチャのアルファを使うため、面ではなく描かれた形に沿います。何も描画しないブロックは選択ボックスを使います。
+- `geometry` は常に描画されたジオメトリを使います。
+- `cutout` は常にテクスチャのアルファを使います。
+- `bounds` はブロックの選択ボックスとエンティティの当たり判定の輪郭を描きます。
+
+ルール:
+
+- 輪郭はシルエットの外側だけに描かれ、ターゲット自体は着色されません
+- 他のブロックやエンティティに隠れた部分も見えたままで、他の隠れた注釈と同様に暗く描かれます。`alwaysOnTop` ではそのままの明るさです
+- 透明化したエンティティにも輪郭が付きます
+- 接するまたは重なる輪郭は、異なる注釈同士でも 1 本の輪郭に結合されます
+- 半透明の色と柔らかい縁はシーンと正しく合成され、縁が黒くなることはありません
+- 子コンテンツはツールチップになり、輪郭の付いたブロックやエンティティにホバーすると表示されます
+- `<BlockAnnotationTemplate>` 内では `pos` は一致した各ブロックからの相対位置で、すべての一致の輪郭が 1 つの形に結合されます
+- エクスポートしたサイトでは WebGL で同じ輪郭を描きます
+
+例:
+
+````md
+<GameScene zoom={3} interactive={true}>
+  <Block id="minecraft:glass" />
+  <Block id="minecraft:red_flower" x="2" />
+  <Entity id="minecraft:sheep" sceneEntityId="sheep" x="1.5" z="2.5" />
+  <OutlineAnnotation pos="0 0 0" color="#55FFFF">
+    ガラスは立方体全体として輪郭が描かれます。
+  </OutlineAnnotation>
+  <OutlineAnnotation pos="2 0 0" color="#FFFF55" thickness="1.5" />
+  <OutlineAnnotation entity="sheep" color="#FFAA00" alwaysOnTop={true} pulse={true} />
+</GameScene>
+````
+
+構造内の一致するすべてのブロックに輪郭を描く:
+
+````md
+<BlockAnnotationTemplate id="minecraft:glass">
+  <OutlineAnnotation color="#AAFFFF" />
+</BlockAnnotationTemplate>
 ````
 
 ## `<TextAnnotation>`

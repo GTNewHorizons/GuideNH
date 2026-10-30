@@ -101,6 +101,95 @@ categories:
   </LineAnnotation>
 </GameScene>
 
+## 描边注解
+
+`<OutlineAnnotation>` 会在方块和实体周围绘制类似发光效果的轮廓。轮廓贴合实际渲染出的剪影，被前方物体遮挡时依然可见，相互接触的轮廓会合并成一个整体。用 `pos` 指定单个方块，用包含两端的 `min` / `max` 指定方块区域，或用 `entity="sceneEntityId"` 指定实体；`target="entities"` 或 `target="all"` 还会描边区域内的实体。
+
+属性：`color`（默认白色，实体默认使用队伍颜色）、以 GUI 像素为单位的 `thickness`（默认 `1`）、`alwaysOnTop`、`pulse={true}` 呼吸灯及可选的 `pulsePeriod`（秒），以及 `mode`（`auto`、`geometry`、`cutout`、`bounds`）。子内容会成为悬停 tooltip。
+
+默认的 `mode="auto"` 下，封闭模型使用几何体轮廓，贴图式渲染使用纹理透明度：
+
+<GameScene width="384" height="224" zoom={4} interactive={true}>
+  <Block id="minecraft:glass" />
+  <Block id="minecraft:stained_glass" meta="14" x="2" />
+  <Block id="minecraft:red_flower" x="4" />
+  <Block id="minecraft:sapling" z="2" />
+  <Block id="minecraft:torch" meta="5" x="2" z="2" />
+  <Block id="minecraft:chest" x="4" z="2" />
+  <OutlineAnnotation pos="0 0 0" color="#55FFFF">
+    **玻璃**：描出完整的立方体轮廓，而不是沿着透明的边框纹理。
+  </OutlineAnnotation>
+  <OutlineAnnotation pos="2 0 0" color="#FF5555">
+    **染色玻璃**：半透明方块同样保留几何体轮廓。
+  </OutlineAnnotation>
+  <OutlineAnnotation pos="4 0 0" color="#FFFF55">
+    **花**：交叉贴图按纹理透明度描边，而不是两个四边形面片。
+  </OutlineAnnotation>
+  <OutlineAnnotation pos="0 0 2" color="#55FF55" />
+  <OutlineAnnotation pos="2 0 2" color="#FFAA00" />
+  <OutlineAnnotation pos="4 0 2" color="#FF55FF">
+    **箱子**：方块实体渲染器按其模型描边。
+  </OutlineAnnotation>
+</GameScene>
+
+区域和模板会合并成一个轮廓，模板生成的轮廓带有呼吸灯效果：
+
+<GameScene width="384" height="224" zoom={4} interactive={true}>
+  <Block id="minecraft:iron_block" />
+  <Block id="minecraft:iron_block" x="1" />
+  <Block id="minecraft:iron_block" x="2" />
+  <Block id="minecraft:iron_block" z="1" />
+  <Block id="minecraft:iron_block" x="1" z="1" />
+  <Block id="minecraft:iron_block" x="2" z="1" />
+  <Block id="minecraft:diamond_block" x="4" />
+  <Block id="minecraft:diamond_block" x="4" z="2" />
+  <OutlineAnnotation min="0 0 0" max="2 0 1" color="#55FFFF" thickness="1.5">
+    **区域**：`min` / `max` 把六个方块描成一个整体。
+  </OutlineAnnotation>
+  <BlockAnnotationTemplate id="minecraft:diamond_block">
+    <OutlineAnnotation color="#FFFF55" pulse={true}>
+      **模板**：每个钻石块都会获得呼吸灯描边。
+    </OutlineAnnotation>
+  </BlockAnnotationTemplate>
+</GameScene>
+
+被遮挡的目标可以透过墙壁看到；不开启 `alwaysOnTop` 时被遮挡部分会变暗：
+
+<GameScene width="384" height="224" zoom={4} interactive={true}>
+  <Block id="minecraft:gold_block" />
+  <Block id="minecraft:stone" x="-1" />
+  <Block id="minecraft:stone" x="1" />
+  <Block id="minecraft:stone" z="-1" />
+  <Block id="minecraft:stone" z="1" />
+  <Block id="minecraft:stone" y="1" />
+  <Block id="minecraft:gold_block" x="4" />
+  <Block id="minecraft:stone" x="3" />
+  <Block id="minecraft:stone" x="5" />
+  <Block id="minecraft:stone" x="4" z="-1" />
+  <Block id="minecraft:stone" x="4" z="1" />
+  <Block id="minecraft:stone" x="4" y="1" />
+  <OutlineAnnotation pos="0 0 0" color="#FFAA00">
+    **被遮挡**：被遮挡的轮廓会变暗。
+  </OutlineAnnotation>
+  <OutlineAnnotation pos="4 0 0" color="#FFAA00" alwaysOnTop={true}>
+    **alwaysOnTop**：被遮挡的轮廓保持完整亮度。
+  </OutlineAnnotation>
+</GameScene>
+
+实体按模型和皮肤描边，隐身实体也同样适用：
+
+<GameScene width="320" height="192" zoom={4} interactive={true}>
+  <Block id="minecraft:grass" />
+  <Block id="minecraft:grass" x="1" />
+  <Block id="minecraft:grass" x="2" />
+  <Entity id="minecraft:sheep" sceneEntityId="sheep" x="0.5" y="1" z="0.5" />
+  <Entity id="minecraft:zombie" sceneEntityId="zombie" x="2.5" y="1" z="0.5" />
+  <OutlineAnnotation entity="sheep">
+    实体默认使用白色，或者使用其计分板队伍颜色。
+  </OutlineAnnotation>
+  <OutlineAnnotation entity="zombie" color="#FF5555" thickness="2" alwaysOnTop={true} />
+</GameScene>
+
 ## 文本注解
 
 `<TextAnnotation>` 是通用的气泡文本注解，既可用于普通游戏场景（`<GameScene>`），也可用于导入的思索时间轴。

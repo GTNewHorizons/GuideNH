@@ -1163,7 +1163,13 @@ public class GuideSiteExportTask {
         scene.getLevel()
             .prepareForStaticExport();
         GuideSiteSceneAnnotationSerializer.AnnotationPayload annotationPayload = GuideSiteSceneAnnotationSerializer
-            .serialize(scene, templates, parsedPage.getId(), assetExporter, itemIconResolver);
+            .serialize(
+                scene,
+                templates,
+                parsedPage.getId(),
+                assetExporter,
+                itemIconResolver,
+                group -> exporter.exportOutlineMeshes(scene, group));
         String hoverTargetsJson = GuideSiteSceneHoverTargetSerializer
             .serialize(scene, templates, parsedPage.getId(), assetExporter, itemIconResolver);
         String sceneSoundsJson = serializeSceneSounds(scene, parsedPage.getId(), assetExporter);

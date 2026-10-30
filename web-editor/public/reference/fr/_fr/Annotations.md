@@ -19,6 +19,7 @@ GuideNH scène annotations sont enfant balises dans `<GameScene>` / `<Scene>`. E
 - `<BoxAnnotation>`
 - `<LineAnnotation>`
 - `<DiamondAnnotation>`
+- `<OutlineAnnotation>`
 - `<TextAnnotation>`
 
 GuideNH aussi prend en charge `<BlockAnnotationTemplate>`, qui s’applique son enfant annotations vers chaque déjà-placed correspondant bloc dans Le actuel scène.
@@ -161,6 +162,64 @@ Exemple:
   ### Activated Beacon
   Hover for rich content.
 </DiamondAnnotation>
+````
+
+## `<OutlineAnnotation>`
+
+Dessine un contour de silhouette lumineux autour des blocs et des entités, comme l'effet Surbrillance. Le contour suit la forme rendue de chaque cible, reste visible à travers les blocs et entités placés devant et fusionne avec les contours qui le touchent en une seule forme.
+
+| attribut | obligatoire | Meaning |
+| --- | --- | --- |
+| `pos` | non | bloc `x y z` à entourer ; `0 0 0` par défaut, le bloc correspondant dans `<BlockAnnotationTemplate>` |
+| `min` / `max` | non | coins de bloc inclusifs d'une région ; chaque bloc qu'elle contient est entouré |
+| `entity` | non | `sceneEntityId` d'une `<Entity>` à entourer |
+| `target` | non | `blocks` (par défaut), `entities` ou `all` : ce qui est entouré dans la région ; `entities` sans région entoure toutes les entités |
+| `mode` | non | `auto` (par défaut), `geometry`, `cutout` ou `bounds` |
+| `color` | non | couleur du contour ; blanc si omis, ou la couleur d'équipe du tableau des scores pour les entités |
+| `thickness` | non | largeur du contour en pixels d'interface, de `0.25` à `8`, `1` par défaut |
+| `alwaysOnTop` | non | expression booléenne ; les parties masquées gardent leur pleine luminosité au lieu d'être assombries |
+| `pulse` | non | expression booléenne ; fait respirer le contour |
+| `pulsePeriod` | non | période de respiration en secondes, `2` par défaut |
+
+Modes de silhouette :
+
+- `auto` choisit pour chaque cible. Les modèles fermés (cubes, verre, glace, fluides, vitres, blocs multipart et câbles, modèles OBJ et TESR) utilisent leur géométrie, donc les textures transparentes comme le verre entourent tout le bloc et non le cadre du verre. Les rendus de type sprite (fleurs, pousses, cultures, torches, rails, échelles, lianes, redstone) et les entités utilisent l'alpha de la texture, donc le contour suit la forme dessinée et non les quads. Les blocs qui ne rendent rien utilisent leur boîte de sélection.
+- `geometry` utilise toujours la géométrie rendue.
+- `cutout` utilise toujours l'alpha de la texture.
+- `bounds` entoure les boîtes de sélection des blocs et les boîtes de collision des entités.
+
+Règles :
+
+- le contour n'est dessiné qu'à l'extérieur de la silhouette ; la cible elle-même n'est pas teintée
+- les parties masquées par d'autres blocs ou entités restent visibles et sont assombries comme les autres annotations masquées ; `alwaysOnTop` les garde à pleine luminosité
+- les entités invisibles reçoivent aussi un contour
+- les contours qui se touchent ou se chevauchent fusionnent en un seul, y compris entre annotations différentes
+- les couleurs translucides et le bord adouci sont mélangés avec la scène, le bord ne devient jamais noir
+- le contenu enfant devient l'infobulle ; elle s'affiche au survol de tout bloc ou entité entouré
+- dans `<BlockAnnotationTemplate>`, `pos` est relatif à chaque bloc correspondant et les contours de toutes les correspondances fusionnent en une forme
+- les sites exportés dessinent le même contour avec WebGL
+
+Exemple :
+
+````md
+<GameScene zoom={3} interactive={true}>
+  <Block id="minecraft:glass" />
+  <Block id="minecraft:red_flower" x="2" />
+  <Entity id="minecraft:sheep" sceneEntityId="sheep" x="1.5" z="2.5" />
+  <OutlineAnnotation pos="0 0 0" color="#55FFFF">
+    Le verre est entouré comme un cube complet.
+  </OutlineAnnotation>
+  <OutlineAnnotation pos="2 0 0" color="#FFFF55" thickness="1.5" />
+  <OutlineAnnotation entity="sheep" color="#FFAA00" alwaysOnTop={true} pulse={true} />
+</GameScene>
+````
+
+Entourer tous les blocs correspondants d'une structure :
+
+````md
+<BlockAnnotationTemplate id="minecraft:glass">
+  <OutlineAnnotation color="#AAFFFF" />
+</BlockAnnotationTemplate>
 ````
 
 ## `<TextAnnotation>`

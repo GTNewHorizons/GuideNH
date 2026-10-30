@@ -73,6 +73,7 @@ import com.hfstudio.guidenh.guide.scene.annotation.compiler.BlockAnnotationTempl
 import com.hfstudio.guidenh.guide.scene.annotation.compiler.BoxAnnotationElementCompiler;
 import com.hfstudio.guidenh.guide.scene.annotation.compiler.DiamondAnnotationElementCompiler;
 import com.hfstudio.guidenh.guide.scene.annotation.compiler.LineAnnotationElementCompiler;
+import com.hfstudio.guidenh.guide.scene.annotation.compiler.OutlineAnnotationElementCompiler;
 import com.hfstudio.guidenh.guide.scene.element.BlockElementCompiler;
 import com.hfstudio.guidenh.guide.scene.element.EntityElementCompiler;
 import com.hfstudio.guidenh.guide.scene.element.ImportPonderElementCompiler;
@@ -220,6 +221,7 @@ public class DefaultExtensions {
                 new BoxAnnotationElementCompiler(),
                 new LineAnnotationElementCompiler(),
                 new DiamondAnnotationElementCompiler(),
+                new OutlineAnnotationElementCompiler(),
                 new BlockAnnotationTemplateElementCompiler(),
                 new TextAnnotationElementCompiler(),
                 new ParticleElementCompiler(),

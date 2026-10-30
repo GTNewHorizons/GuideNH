@@ -19,6 +19,7 @@ GuideNH cena Anotações são filho tags dentro de `<GameScene>` / `<Scene>`. El
 - `<BoxAnnotation>`
 - `<LineAnnotation>`
 - `<DiamondAnnotation>`
+- `<OutlineAnnotation>`
 - `<TextAnnotation>`
 
 GuideNH também suporta `<BlockAnnotationTemplate>`, que aplica seu filho Anotações para cada já-placed correspondente bloco em O atual cena.
@@ -161,6 +162,64 @@ Exemplo:
   ### Activated Beacon
   Hover for rich content.
 </DiamondAnnotation>
+````
+
+## `<OutlineAnnotation>`
+
+Desenha um contorno de silhueta brilhante ao redor de blocos e entidades, como o efeito Brilho. O contorno segue a forma renderizada de cada alvo, continua visível através de blocos e entidades à frente e se funde com contornos que o tocam em uma única forma.
+
+| Atributo | Obrigatório | Significado |
+| --- | --- | --- |
+| `pos` | não | bloco `x y z` a contornar; padrão `0 0 0`, o bloco correspondente dentro de `<BlockAnnotationTemplate>` |
+| `min` / `max` | não | cantos de bloco inclusivos de uma região; cada bloco dentro dela é contornado |
+| `entity` | não | `sceneEntityId` de uma `<Entity>` a contornar |
+| `target` | não | `blocks` (padrão), `entities` ou `all`: o que é contornado dentro da região; `entities` sem região contorna todas as entidades |
+| `mode` | não | `auto` (padrão), `geometry`, `cutout` ou `bounds` |
+| `color` | não | cor do contorno; omitida usa branco, ou a cor do time do placar para entidades |
+| `thickness` | não | largura do contorno em pixels de GUI, de `0.25` a `8`, padrão `1` |
+| `alwaysOnTop` | não | expressão booleana; partes ocultas mantêm o brilho total em vez de escurecer |
+| `pulse` | não | expressão booleana; faz o contorno respirar |
+| `pulsePeriod` | não | período da respiração em segundos, padrão `2` |
+
+Modos de silhueta:
+
+- `auto` decide por alvo. Modelos fechados (cubos, vidro, gelo, fluidos, painéis, blocos multipart e de cabos, modelos OBJ e TESR) usam sua geometria, então texturas transparentes como vidro contornam o bloco inteiro em vez da moldura do vidro. Renderizações tipo sprite (flores, mudas, plantações, tochas, trilhos, escadas de mão, trepadeiras, redstone) e entidades usam o alfa da textura, então o contorno segue a forma desenhada em vez dos quads. Blocos que não renderizam nada usam sua caixa de seleção.
+- `geometry` sempre usa a geometria renderizada.
+- `cutout` sempre usa o alfa da textura.
+- `bounds` contorna as caixas de seleção dos blocos e as caixas de colisão das entidades.
+
+Regras:
+
+- o contorno é desenhado apenas fora da silhueta; o alvo em si não é tingido
+- partes escondidas atrás de outros blocos ou entidades continuam visíveis e são escurecidas como outras anotações ocultas; `alwaysOnTop` mantém o brilho total
+- entidades invisíveis também recebem contorno
+- contornos que se tocam ou se sobrepõem se fundem em um só, inclusive entre anotações diferentes
+- cores translúcidas e a borda suave são misturadas com a cena, então a borda nunca fica preta
+- o conteúdo filho vira a dica; ela aparece ao passar sobre qualquer bloco ou entidade contornado
+- dentro de `<BlockAnnotationTemplate>`, `pos` é relativo a cada bloco correspondente e os contornos de todas as correspondências se fundem em uma forma
+- sites exportados desenham o mesmo contorno com WebGL
+
+Exemplo:
+
+````md
+<GameScene zoom={3} interactive={true}>
+  <Block id="minecraft:glass" />
+  <Block id="minecraft:red_flower" x="2" />
+  <Entity id="minecraft:sheep" sceneEntityId="sheep" x="1.5" z="2.5" />
+  <OutlineAnnotation pos="0 0 0" color="#55FFFF">
+    O vidro é contornado como um cubo inteiro.
+  </OutlineAnnotation>
+  <OutlineAnnotation pos="2 0 0" color="#FFFF55" thickness="1.5" />
+  <OutlineAnnotation entity="sheep" color="#FFAA00" alwaysOnTop={true} pulse={true} />
+</GameScene>
+````
+
+Contornar todos os blocos correspondentes de uma estrutura:
+
+````md
+<BlockAnnotationTemplate id="minecraft:glass">
+  <OutlineAnnotation color="#AAFFFF" />
+</BlockAnnotationTemplate>
 ````
 
 ## `<TextAnnotation>`
