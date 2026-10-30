@@ -2,6 +2,7 @@ package com.hfstudio.guidenh.guide.layout.flow;
 
 import java.text.BreakIterator;
 import java.text.CharacterIterator;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Consumer;
@@ -12,6 +13,7 @@ import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.color.ConstantColor;
 import com.hfstudio.guidenh.guide.document.DefaultStyles;
 import com.hfstudio.guidenh.guide.document.LytRect;
+import com.hfstudio.guidenh.guide.document.block.LytBlock;
 import com.hfstudio.guidenh.guide.document.block.LytImage;
 import com.hfstudio.guidenh.guide.document.block.LytItemImage;
 import com.hfstudio.guidenh.guide.document.flow.InlineBlockAlignment;
@@ -141,6 +143,11 @@ public class LineBuilder implements Consumer<LytFlowContent> {
 
         // Is there enough space to have this element here?
         var outerWidth = size.width() + marginLeft + marginRight;
+        boolean floating = inlineBlock.getAlignment() == InlineBlockAlignment.FLOAT_LEFT
+            || inlineBlock.getAlignment() == InlineBlockAlignment.FLOAT_RIGHT;
+        if (!floating && outerWidth > remainingLineWidth && isInlineImage(block) && !openLineEndsWithBreakOpportunity) {
+            moveGluedTailToNextLine(false);
+        }
         ensureSpaceIsAvailable(outerWidth);
 
         var el = new LineBlock(block);
@@ -413,6 +420,10 @@ public class LineBuilder implements Consumer<LytFlowContent> {
                         continue;
                     }
 
+                    if (!canBreakAtStart && wordBreakOffset != 0) {
+                        // Text glued to an inline image (e.g. punctuation after an item link) takes it along
+                        moveGluedTailToNextLine(true);
+                    }
                     ensureTextSpaceIsAvailable(advance);
 
                     // If no wider lane exists (for example, a genuinely narrow table cell), keep
@@ -422,6 +433,15 @@ public class LineBuilder implements Consumer<LytFlowContent> {
                     visibleGlyphSeen = visibleGlyphSeen || advance > 0f;
                     continue;
                 } else {
+                    // The word touches an inline image at the end of the line (e.g. an item link's icon):
+                    // wrap them together instead of splitting the word.
+                    if (moveGluedTailToNextLine(true) && curLineWidth + advance <= remainingLineWidth) {
+                        curLineWidth += advance;
+                        appendCodePointToLineBuffer(codePoint, advance);
+                        visibleGlyphSeen = visibleGlyphSeen || advance > 0f;
+                        continue;
+                    }
+
                     // We exceeded the line length, but did not find a break opportunity
                     // this causes a forced break mid-word
                     consumer.visitRun(lineBuffer, curLineWidth, true);
@@ -700,12 +720,153 @@ public class LineBuilder implements Consumer<LytFlowContent> {
     }
 
     private boolean isInlineImage(LineElement element) {
-        if (!(element instanceof LineBlock lineBlock)) {
+        return element instanceof LineBlock lineBlock && !lineBlock.floating && isInlineImage(lineBlock.getBlock());
+    }
+
+    private static boolean isInlineImage(LytBlock block) {
+        return block instanceof LytImage
+            || block instanceof LytItemImage itemImage && itemImage.isInline() && itemImage.isShowingIcon();
+    }
+
+    /**
+     * Moves the end of the open line that offers no break opportunity onto a new line: the inline images at its end
+     * plus the word directly touching them. Keeps an item link's icon on the same line as its label.
+     *
+     * @param requireTrailingImage whether the open line has to end on an inline image; otherwise only the last word is
+     *                             moved, as it touches an image that is about to be appended
+     */
+    private boolean moveGluedTailToNextLine(boolean requireTrailingImage) {
+        if (openLineElement == null) {
             return false;
         }
-        return lineBlock.getBlock() instanceof LytImage
-            || lineBlock.getBlock() instanceof LytItemImage itemImage && itemImage.isInline()
-                && itemImage.isShowingIcon();
+
+        var elements = new ArrayList<LineElement>();
+        // Offset of each element from where the previous one ended (inline block margins)
+        var offsets = new ArrayList<Integer>();
+        int origin = 0;
+        for (var el = openLineElement; el != null; el = el.next) {
+            elements.add(el);
+            offsets.add(el.bounds.x() - origin);
+            origin += el.bounds.width();
+        }
+
+        int start = elements.size();
+        while (start > 0 && isInlineImage(elements.get(start - 1))) {
+            start--;
+        }
+        if (requireTrailingImage && start == elements.size()) {
+            return false;
+        }
+
+        if (start > 0 && elements.get(start - 1) instanceof LineTextRun run) {
+            int wordStart = findGluedWordStart(run);
+            if (wordStart > 0) {
+                var head = run.text.substring(0, wordStart);
+                var headRun = copyTextRun(run, head, run.bounds.x());
+                var tailRun = copyTextRun(run, collectFormattingCodes(head) + run.text.substring(wordStart), 0);
+                elements.set(start - 1, headRun);
+                elements.add(start, tailRun);
+                offsets.add(start, 0);
+            } else if (wordStart == 0 && start >= 2 && endsWithBreakOpportunity(elements.get(start - 2))) {
+                start--;
+            }
+        }
+        if (start == 0 || start == elements.size()) {
+            // Either the whole line is one unbreakable unit or there is nothing to move
+            return false;
+        }
+
+        openLineElement = null;
+        openLineTail = null;
+        openLineMinTop = Integer.MAX_VALUE;
+        openLineMaxBottom = 0;
+        openLineMaxRight = 0;
+        for (int i = 0; i < start; i++) {
+            var el = elements.get(i);
+            el.next = null;
+            reappendToOpenLine(el);
+        }
+        endLine();
+
+        int x = 0;
+        for (int i = start; i < elements.size(); i++) {
+            var el = elements.get(i);
+            el.next = null;
+            el.bounds = el.bounds.withX(x + offsets.get(i));
+            reappendToOpenLine(el);
+            x += el.bounds.width();
+        }
+        innerX = x;
+        remainingLineWidth -= x;
+        openLineEndsWithBreakOpportunity = false;
+        return true;
+    }
+
+    private void reappendToOpenLine(LineElement el) {
+        appendToOpenLine(el);
+        if (el instanceof LineBlock && el.flowContent != null) {
+            var style = el.flowContent.resolveStyle();
+            includeVerticalBounds(-context.getAscent(style), context.getDescent(style));
+        }
+    }
+
+    /**
+     * @return where the word at the end of the run starts, or -1 if the run ends on a break opportunity
+     */
+    private int findGluedWordStart(LineTextRun run) {
+        if (run.text.isEmpty() || run.style.inlineCode() || Character.isWhitespace(findLastVisibleChar(run.text))) {
+            return -1;
+        }
+        var breakIterator = LINE_BREAK_ITERATOR.get();
+        breakIterator.setText(run.text);
+        return Math.max(0, breakIterator.preceding(run.text.length()));
+    }
+
+    private boolean endsWithBreakOpportunity(LineElement element) {
+        if (element instanceof LineTextRun run) {
+            return Character.isWhitespace(findLastVisibleChar(run.text));
+        }
+        return !isInlineImage(element);
+    }
+
+    private LineTextRun copyTextRun(LineTextRun run, String text, int x) {
+        var copy = new LineTextRun(text, run.style, run.revealStyle, run.hoverStyle);
+        copy.flowContent = run.flowContent;
+        copy.bounds = new LytRect(x, run.bounds.y(), measureText(text, run.style), run.bounds.height());
+        return copy;
+    }
+
+    private int measureText(CharSequence text, ResolvedTextStyle style) {
+        float width = 0f;
+        boolean visibleGlyphSeen = false;
+        for (int index = 0; index < text.length(); index++) {
+            if (GuideFontCompat.isFormattingCodeStart(text, index)) {
+                index++;
+                continue;
+            }
+            int codePoint = Character.codePointAt(text, index);
+            float advance = context.getRenderedAdvance(codePoint, style, visibleGlyphSeen);
+            width += Math.max(0f, advance);
+            index += Character.charCount(codePoint) - 1;
+            if (advance > 0f) {
+                visibleGlyphSeen = true;
+            }
+        }
+        return Math.round(width);
+    }
+
+    /**
+     * @return the formatting codes in the text, so text split off after it keeps rendering the same
+     */
+    private static String collectFormattingCodes(CharSequence text) {
+        var codes = new StringBuilder();
+        for (int index = 0; index < text.length(); index++) {
+            if (GuideFontCompat.isFormattingCodeStart(text, index)) {
+                codes.append(text, index, index + 2);
+                index++;
+            }
+        }
+        return codes.toString();
     }
 
     public void end() {
