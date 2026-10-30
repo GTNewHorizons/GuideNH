@@ -16,6 +16,7 @@ GuideNH scene annotations are child tags inside `<GameScene>` / `<Scene>`. They 
 - `<BoxAnnotation>`
 - `<LineAnnotation>`
 - `<DiamondAnnotation>`
+- `<OutlineAnnotation>`
 - `<TextAnnotation>`
 
 GuideNH also supports `<BlockAnnotationTemplate>`, which applies its child annotations to every already-placed matching block in the current scene.
@@ -158,6 +159,64 @@ Example:
   ### Activated Beacon
   Hover for rich content.
 </DiamondAnnotation>
+````
+
+## `<OutlineAnnotation>`
+
+Draws a glow-style silhouette outline around blocks and entities, like the Glowing effect. The contour follows the rendered shape of every target, stays visible through blocks and entities in front of it, and merges with touching outlines into one shape.
+
+| Attribute | Required | Meaning |
+| --- | --- | --- |
+| `pos` | no | `x y z` block to outline; defaults to `0 0 0`, the matched block inside `<BlockAnnotationTemplate>` |
+| `min` / `max` | no | inclusive block corners of a region; every block inside it is outlined |
+| `entity` | no | `sceneEntityId` of an `<Entity>` to outline |
+| `target` | no | `blocks` (default), `entities`, or `all`: what is outlined inside the region; `entities` without a region outlines every entity |
+| `mode` | no | `auto` (default), `geometry`, `cutout`, or `bounds` |
+| `color` | no | outline color; omitted uses white, or the scoreboard team color for entities |
+| `thickness` | no | outline width in GUI pixels, `0.25` to `8`, default `1` |
+| `alwaysOnTop` | no | boolean expression; occluded parts keep full brightness instead of being dimmed |
+| `pulse` | no | boolean expression; makes the outline breathe |
+| `pulsePeriod` | no | breathing period in seconds, default `2` |
+
+Silhouette modes:
+
+- `auto` decides per target. Closed models (cubes, glass, ice, fluids, panes, multipart and cable blocks, OBJ and TESR models) use their geometry, so see-through textures such as glass outline the whole block instead of the glass frame. Sprite-like renders (flowers, saplings, crops, torches, rails, ladders, vines, redstone) and entities use texture alpha, so the outline follows the drawn shape instead of the quads. Blocks that render nothing use their selection box.
+- `geometry` always uses the rendered geometry.
+- `cutout` always uses texture alpha.
+- `bounds` outlines the selection boxes of blocks and the bounding boxes of entities.
+
+Rules:
+
+- the contour is drawn outside the silhouette only; the target itself is not tinted
+- parts hidden behind other blocks or entities stay visible and are dimmed like other occluded annotations; `alwaysOnTop` keeps them at full brightness
+- invisible entities still get an outline
+- touching or overlapping outlines merge into one contour, also across different annotations
+- translucent colors and the soft edge are blended with the scene, so the edge never turns black
+- child content becomes the tooltip; hovering any outlined block or entity shows it
+- inside `<BlockAnnotationTemplate>`, `pos` is relative to each matched block and the outlines of all matches merge into one shape
+- exported sites draw the same outline with WebGL
+
+Example:
+
+````md
+<GameScene zoom={3} interactive={true}>
+  <Block id="minecraft:glass" />
+  <Block id="minecraft:red_flower" x="2" />
+  <Entity id="minecraft:sheep" sceneEntityId="sheep" x="1.5" z="2.5" />
+  <OutlineAnnotation pos="0 0 0" color="#55FFFF">
+    Glass is outlined as a full cube.
+  </OutlineAnnotation>
+  <OutlineAnnotation pos="2 0 0" color="#FFFF55" thickness="1.5" />
+  <OutlineAnnotation entity="sheep" color="#FFAA00" alwaysOnTop={true} pulse={true} />
+</GameScene>
+````
+
+Outline every matching block of a structure:
+
+````md
+<BlockAnnotationTemplate id="minecraft:glass">
+  <OutlineAnnotation color="#AAFFFF" />
+</BlockAnnotationTemplate>
 ````
 
 ## `<TextAnnotation>`

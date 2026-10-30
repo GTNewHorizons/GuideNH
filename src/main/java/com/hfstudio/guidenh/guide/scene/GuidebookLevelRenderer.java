@@ -22,6 +22,7 @@ import net.minecraft.client.renderer.OpenGlHelper;
 import net.minecraft.client.renderer.RenderBlocks;
 import net.minecraft.client.renderer.RenderHelper;
 import net.minecraft.client.renderer.Tessellator;
+import net.minecraft.client.renderer.entity.Render;
 import net.minecraft.client.renderer.entity.RenderManager;
 import net.minecraft.client.renderer.texture.TextureMap;
 import net.minecraft.client.renderer.tileentity.TileEntityRendererDispatcher;
@@ -45,14 +46,18 @@ import com.hfstudio.guidenh.guide.internal.scene.GuidebookPreviewPlayer;
 import com.hfstudio.guidenh.guide.internal.util.DisplayScale;
 import com.hfstudio.guidenh.guide.scene.annotation.InWorldAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.InWorldAnnotationRenderer;
+import com.hfstudio.guidenh.guide.scene.element.GuidebookNameplateControllable;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
+import com.hfstudio.guidenh.guide.scene.outline.GuidebookOutlineRenderer;
+import com.hfstudio.guidenh.guide.scene.outline.OutlineTargetDrawer;
+import com.hfstudio.guidenh.guide.scene.outline.OutlineTargetSet;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.guide.siteexport.site.GuideSiteSceneTessellatorCapture;
 import com.hfstudio.guidenh.integration.api.client.GuideNhClientIntegrationRegistry;
 import com.hfstudio.guidenh.integration.gregtech.GregTechHelpers;
 import com.hfstudio.guidenh.mixins.early.forge.AccessorForgeHooksClient;
 
-public class GuidebookLevelRenderer {
+public class GuidebookLevelRenderer implements OutlineTargetDrawer {
 
     public static final GuidebookLevelRenderer INSTANCE = new GuidebookLevelRenderer();
     public static final int FULL_BRIGHTNESS = 15728880;
@@ -73,6 +78,9 @@ public class GuidebookLevelRenderer {
     private final ArrayList<GuidebookSceneWeatherRenderColumn> weatherColumnsScratch = new ArrayList<>();
     private final ArrayList<GuidebookSceneWeatherRenderColumn> weatherColumnPool = new ArrayList<>();
     private final BillboardAxes billboardAxesScratch = new BillboardAxes();
+
+    private final GuidebookOutlineRenderer outlineRenderer = new GuidebookOutlineRenderer();
+    private final Runnable noOutlineState = () -> {};
 
     // The block access is rebound before every block render and cleared after the frame.
     private RenderBlocks cachedRenderBlocks;
@@ -314,6 +322,13 @@ public class GuidebookLevelRenderer {
                         renderEntities(level.getEntities(), partialTicks, layerSelection, camera);
 
                         if (!annotations.isEmpty()) {
+                            outlineRenderer.render(
+                                level,
+                                annotations,
+                                effectiveSelection,
+                                this,
+                                camera.getCombinedMatrix(),
+                                partialTicks);
                             InWorldAnnotationRenderer.render(annotations);
                         }
                         if (weatherEffects != null && !weatherEffects.isEmpty()) {
@@ -373,11 +388,96 @@ public class GuidebookLevelRenderer {
         }
     }
 
+    public void renderOutlineTargets(GuidebookLevel level, CameraSettings camera, int width, int height,
+        OutlineTargetSet targets, float partialTicks) {
+        try (var env = GuidebookFakeRenderEnvironment.enter(level, camera, partialTicks)) {
+            level.prepareForStaticExport();
+            GL11.glPushAttrib(
+                GL11.GL_ENABLE_BIT | GL11.GL_COLOR_BUFFER_BIT
+                    | GL11.GL_DEPTH_BUFFER_BIT
+                    | GL11.GL_LIGHTING_BIT
+                    | GL11.GL_TEXTURE_BIT
+                    | GL11.GL_CURRENT_BIT
+                    | GL11.GL_VIEWPORT_BIT
+                    | GL11.GL_TRANSFORM_BIT
+                    | GL11.GL_POLYGON_BIT);
+            GL11.glViewport(0, 0, width, height);
+            GL11.glMatrixMode(GL_PROJECTION);
+            GL11.glPushMatrix();
+            loadMatrix(camera.getProjectionMatrix());
+            GL11.glMatrixMode(GL_MODELVIEW);
+            GL11.glPushMatrix();
+            loadMatrix(camera.getViewMatrix());
+            try {
+                draw(level, targets, partialTicks, noOutlineState);
+            } catch (Throwable t) {
+                GuideDebugLog.warn("Scene outline export warning", t);
+            } finally {
+                GL11.glMatrixMode(GL_PROJECTION);
+                GL11.glPopMatrix();
+                GL11.glMatrixMode(GL_MODELVIEW);
+                GL11.glPopMatrix();
+                GL11.glPopAttrib();
+            }
+        } finally {
+            clearCachedRenderBlocksReference();
+        }
+    }
+
+    @Override
+    public void drawBlocks(GuidebookLevel level, List<int[]> blocks) {
+        Minecraft.getMinecraft()
+            .getTextureManager()
+            .bindTexture(TextureMap.locationBlocksTexture);
+        for (int pass = 0; pass < 2; pass++) {
+            setRenderPass(pass);
+            renderBlocksPass(level, blocks, pass, true, null);
+        }
+        setRenderPass(-1);
+    }
+
+    @Override
+    public void drawTileEntity(TileEntity tile, float partialTicks) {
+        // Pass 1 carries effects such as beacon beams; it only defines the shape of tiles drawn there alone.
+        int pass = tile.shouldRenderInPass(0) ? 0 : 1;
+        setRenderPass(pass);
+        renderBlockEntity(TileEntityRendererDispatcher.instance, tile, pass, partialTicks);
+        setRenderPass(-1);
+    }
+
+    @Override
+    public void drawEntity(Entity entity, float partialTicks) {
+        Render render = RenderManager.instance.getEntityRenderObject(entity);
+        if (render == null) {
+            return;
+        }
+        GuideEntityRenderStateResolver.ResolvedEntityRenderState renderState = GuideEntityRenderStateResolver
+            .resolve(entity, partialTicks, entityRenderState);
+        boolean invisible = entity.isInvisible();
+        GuidebookNameplateControllable nameplate = entity instanceof GuidebookNameplateControllable controllable
+            && controllable.isGuidebookNameplateVisible() ? controllable : null;
+        try {
+            // Like the glowing effect, an outline keeps invisible entities visible as a contour.
+            entity.setInvisible(false);
+            if (nameplate != null) {
+                nameplate.setGuidebookNameplateVisible(false);
+            }
+            preparePreviewModelLighting();
+            render.doRender(entity, renderState.x(), renderState.y(), renderState.z(), renderState.yaw(), partialTicks);
+        } catch (Throwable t) {
+            GuideDebugLog.warn("Scene outline render warning", t);
+        } finally {
+            entity.setInvisible(invisible);
+            if (nameplate != null) {
+                nameplate.setGuidebookNameplateVisible(true);
+            }
+        }
+    }
+
     public void releaseLevel(GuidebookLevel level) {
         clearCachedRenderBlocksReference();
     }
 
-    /** Clears the renderer's process-wide fake-world binding during client world unload. */
     public void clearClientRuntimeCaches() {
         clearCachedRenderBlocksReference();
         weatherColumnsScratch.clear();
@@ -548,41 +648,7 @@ public class GuidebookLevelRenderer {
             setTileEntityRenderPassState(pass);
             preparePreviewModelLighting();
             for (TileEntity te : tileEntities) {
-                // Preview repair can allocate and touch integration state. A culled tile or a
-                // tile without a TESR does not need that work in this frame.
-                if (GregTechHelpers.isGregTechTileEntity(te) && !GregTechHelpers.hasValidMetaTileBinding(te)) {
-                    GregTechHelpers.logInfoOnce(
-                        "render-invalid-tesr-pass:" + pass + ":" + GregTechHelpers.describeTile(te),
-                        "Render pass {} found invalid GregTech tile before TESR render: {}",
-                        pass,
-                        GregTechHelpers.describeTile(te));
-                    GregTechHelpers.repairMetaTileBinding(te);
-                }
-                if (!te.shouldRenderInPass(pass)) {
-                    continue;
-                }
-                try {
-                    preparePreviewModelLighting();
-                    try (PreviewTileViewerScope ignored = PreviewTileViewerScope.open(te)) {
-                        double cameraX = TileEntityRendererDispatcher.staticPlayerX;
-                        double cameraY = TileEntityRendererDispatcher.staticPlayerY;
-                        double cameraZ = TileEntityRendererDispatcher.staticPlayerZ;
-                        GL11.glPushMatrix();
-                        GL11.glTranslated(cameraX, cameraY, cameraZ);
-                        try {
-                            dispatcher.renderTileEntityAt(
-                                te,
-                                te.xCoord - cameraX,
-                                te.yCoord - cameraY,
-                                te.zCoord - cameraZ,
-                                partialTicks);
-                        } finally {
-                            GL11.glPopMatrix();
-                        }
-                    }
-                } catch (Throwable t) {
-                    GuideDebugLog.warn("Scene render warning", t);
-                }
+                renderBlockEntity(dispatcher, te, pass, partialTicks);
             }
         }
         setRenderPass(-1);
@@ -591,6 +657,45 @@ public class GuidebookLevelRenderer {
         GL11.glEnable(GL_DEPTH_TEST);
         GL11.glDisable(GL_BLEND);
         GL11.glDepthMask(true);
+    }
+
+    private static void renderBlockEntity(TileEntityRendererDispatcher dispatcher, TileEntity te, int pass,
+        float partialTicks) {
+        // Preview repair can allocate and touch integration state. A culled tile or a
+        // tile without a TESR does not need that work in this frame.
+        if (GregTechHelpers.isGregTechTileEntity(te) && !GregTechHelpers.hasValidMetaTileBinding(te)) {
+            GregTechHelpers.logInfoOnce(
+                "render-invalid-tesr-pass:" + pass + ":" + GregTechHelpers.describeTile(te),
+                "Render pass {} found invalid GregTech tile before TESR render: {}",
+                pass,
+                GregTechHelpers.describeTile(te));
+            GregTechHelpers.repairMetaTileBinding(te);
+        }
+        if (!te.shouldRenderInPass(pass)) {
+            return;
+        }
+        try {
+            preparePreviewModelLighting();
+            try (PreviewTileViewerScope ignored = PreviewTileViewerScope.open(te)) {
+                double cameraX = TileEntityRendererDispatcher.staticPlayerX;
+                double cameraY = TileEntityRendererDispatcher.staticPlayerY;
+                double cameraZ = TileEntityRendererDispatcher.staticPlayerZ;
+                GL11.glPushMatrix();
+                GL11.glTranslated(cameraX, cameraY, cameraZ);
+                try {
+                    dispatcher.renderTileEntityAt(
+                        te,
+                        te.xCoord - cameraX,
+                        te.yCoord - cameraY,
+                        te.zCoord - cameraZ,
+                        partialTicks);
+                } finally {
+                    GL11.glPopMatrix();
+                }
+            }
+        } catch (Throwable t) {
+            GuideDebugLog.warn("Scene render warning", t);
+        }
     }
 
     private static class PreviewTileViewerScope implements AutoCloseable {

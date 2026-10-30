@@ -6794,6 +6794,12 @@ public class GuideScreen extends GuiContainer
             clampScroll();
             return;
         }
+        if (mc.thePlayer == null) {
+            if (keyCode == Keyboard.KEY_ESCAPE) {
+                mc.displayGuiScreen(null);
+            }
+            return;
+        }
         super.keyTyped(typedChar, keyCode);
     }
 

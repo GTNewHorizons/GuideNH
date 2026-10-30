@@ -104,6 +104,95 @@ All three support `color="#AARRGGBB" or "#RRGGBB"`, `thickness` in pixel units (
   </LineAnnotation>
 </GameScene>
 
+## Outline Annotation
+
+`<OutlineAnnotation>` draws a glow-style contour around blocks and entities. The contour follows the rendered silhouette, stays visible through anything in front of it, and merges with touching outlines into one shape. Target a block with `pos`, a block region with inclusive `min` / `max` corners, or an entity with `entity="sceneEntityId"`; `target="entities"` or `target="all"` also outlines the entities inside a region.
+
+Attributes: `color` (white by default, team color for entities), `thickness` in GUI pixels (default `1`), `alwaysOnTop`, `pulse={true}` with an optional `pulsePeriod` in seconds, and `mode` (`auto`, `geometry`, `cutout`, `bounds`). Child content becomes the hover tooltip.
+
+With the default `mode="auto"`, closed models use their geometry and sprite-like renders use texture alpha:
+
+<GameScene width="384" height="224" zoom={4} interactive={true}>
+  <Block id="minecraft:glass" />
+  <Block id="minecraft:stained_glass" meta="14" x="2" />
+  <Block id="minecraft:red_flower" x="4" />
+  <Block id="minecraft:sapling" z="2" />
+  <Block id="minecraft:torch" meta="5" x="2" z="2" />
+  <Block id="minecraft:chest" x="4" z="2" />
+  <OutlineAnnotation pos="0 0 0" color="#55FFFF">
+    **Glass**: outlined as a full cube instead of along the transparent frame texture.
+  </OutlineAnnotation>
+  <OutlineAnnotation pos="2 0 0" color="#FF5555">
+    **Stained glass**: translucent blocks keep their geometry as well.
+  </OutlineAnnotation>
+  <OutlineAnnotation pos="4 0 0" color="#FFFF55">
+    **Flower**: crossed sprites follow their texture alpha, not the two quads.
+  </OutlineAnnotation>
+  <OutlineAnnotation pos="0 0 2" color="#55FF55" />
+  <OutlineAnnotation pos="2 0 2" color="#FFAA00" />
+  <OutlineAnnotation pos="4 0 2" color="#FF55FF">
+    **Chest**: tile entity renderers are outlined from their model.
+  </OutlineAnnotation>
+</GameScene>
+
+Regions and templates merge into one contour; the template outline breathes:
+
+<GameScene width="384" height="224" zoom={4} interactive={true}>
+  <Block id="minecraft:iron_block" />
+  <Block id="minecraft:iron_block" x="1" />
+  <Block id="minecraft:iron_block" x="2" />
+  <Block id="minecraft:iron_block" z="1" />
+  <Block id="minecraft:iron_block" x="1" z="1" />
+  <Block id="minecraft:iron_block" x="2" z="1" />
+  <Block id="minecraft:diamond_block" x="4" />
+  <Block id="minecraft:diamond_block" x="4" z="2" />
+  <OutlineAnnotation min="0 0 0" max="2 0 1" color="#55FFFF" thickness="1.5">
+    **Region**: `min` / `max` outlines all six blocks as one shape.
+  </OutlineAnnotation>
+  <BlockAnnotationTemplate id="minecraft:diamond_block">
+    <OutlineAnnotation color="#FFFF55" pulse={true}>
+      **Template**: every diamond block gets a breathing outline.
+    </OutlineAnnotation>
+  </BlockAnnotationTemplate>
+</GameScene>
+
+Hidden targets stay visible through walls. Without `alwaysOnTop` the hidden part is dimmed:
+
+<GameScene width="384" height="224" zoom={4} interactive={true}>
+  <Block id="minecraft:gold_block" />
+  <Block id="minecraft:stone" x="-1" />
+  <Block id="minecraft:stone" x="1" />
+  <Block id="minecraft:stone" z="-1" />
+  <Block id="minecraft:stone" z="1" />
+  <Block id="minecraft:stone" y="1" />
+  <Block id="minecraft:gold_block" x="4" />
+  <Block id="minecraft:stone" x="3" />
+  <Block id="minecraft:stone" x="5" />
+  <Block id="minecraft:stone" x="4" z="-1" />
+  <Block id="minecraft:stone" x="4" z="1" />
+  <Block id="minecraft:stone" x="4" y="1" />
+  <OutlineAnnotation pos="0 0 0" color="#FFAA00">
+    **Hidden**: the occluded outline is dimmed.
+  </OutlineAnnotation>
+  <OutlineAnnotation pos="4 0 0" color="#FFAA00" alwaysOnTop={true}>
+    **alwaysOnTop**: the occluded outline keeps full brightness.
+  </OutlineAnnotation>
+</GameScene>
+
+Entities are outlined from their model and skin, including invisible ones:
+
+<GameScene width="320" height="192" zoom={4} interactive={true}>
+  <Block id="minecraft:grass" />
+  <Block id="minecraft:grass" x="1" />
+  <Block id="minecraft:grass" x="2" />
+  <Entity id="minecraft:sheep" sceneEntityId="sheep" x="0.5" y="1" z="0.5" />
+  <Entity id="minecraft:zombie" sceneEntityId="zombie" x="2.5" y="1" z="0.5" />
+  <OutlineAnnotation entity="sheep">
+    Entities default to white, or to their scoreboard team color.
+  </OutlineAnnotation>
+  <OutlineAnnotation entity="zombie" color="#FF5555" thickness="2" alwaysOnTop={true} />
+</GameScene>
+
 ## Text Annotation
 
 `<TextAnnotation>` is the shared speech-bubble annotation for normal `<GameScene>` pages and imported Ponder timelines.

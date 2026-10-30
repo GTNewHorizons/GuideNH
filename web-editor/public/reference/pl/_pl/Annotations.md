@@ -19,6 +19,7 @@ GuideNH scena Adnotacje są element podrzędny tagi wewnątrz `<GameScene>` / `<
 - `<BoxAnnotation>`
 - `<LineAnnotation>`
 - `<DiamondAnnotation>`
+- `<OutlineAnnotation>`
 - `<TextAnnotation>`
 
 GuideNH także obsługuje `<BlockAnnotationTemplate>`, który stosuje jego element podrzędny Adnotacje do każdy już-umieszczony pasujący blok in  bieżący scena.
@@ -161,6 +162,64 @@ Przykład:
   ### Activated Beacon
   Hover for rich content.
 </DiamondAnnotation>
+````
+
+## `<OutlineAnnotation>`
+
+Rysuje świecący kontur sylwetki wokół bloków i bytów, podobnie jak efekt Blask. Kontur podąża za wyrenderowanym kształtem każdego celu, pozostaje widoczny przez bloki i byty przed nim i łączy się ze stykającymi się konturami w jeden kształt.
+
+| Atrybut | Wymagane | Znaczenie |
+| --- | --- | --- |
+| `pos` | nie | blok `x y z` do obrysowania; domyślnie `0 0 0`, czyli dopasowany blok w `<BlockAnnotationTemplate>` |
+| `min` / `max` | nie | narożniki bloków obszaru (włącznie); obrysowywany jest każdy blok w środku |
+| `entity` | nie | `sceneEntityId` obrysowywanego `<Entity>` |
+| `target` | nie | `blocks` (domyślnie), `entities` lub `all`: co jest obrysowywane w obszarze; `entities` bez obszaru obrysowuje wszystkie byty |
+| `mode` | nie | `auto` (domyślnie), `geometry`, `cutout` lub `bounds` |
+| `color` | nie | kolor konturu; pominięty oznacza biały lub kolor drużyny z tablicy wyników dla bytów |
+| `thickness` | nie | szerokość konturu w pikselach GUI, od `0.25` do `8`, domyślnie `1` |
+| `alwaysOnTop` | nie | wyrażenie logiczne; zasłonięte części zachowują pełną jasność zamiast zostać przyciemnione |
+| `pulse` | nie | wyrażenie logiczne; kontur pulsuje jak oddech |
+| `pulsePeriod` | nie | okres pulsowania w sekundach, domyślnie `2` |
+
+Tryby sylwetki:
+
+- `auto` wybiera dla każdego celu. Zamknięte modele (sześciany, szkło, lód, płyny, szyby, bloki wieloczęściowe i kablowe, modele OBJ i TESR) używają geometrii, więc przezroczyste tekstury, takie jak szkło, obrysowują cały blok zamiast ramki szkła. Renderowanie w stylu sprite (kwiaty, sadzonki, uprawy, pochodnie, tory, drabiny, pnącza, redstone) i byty używają kanału alfa tekstury, więc kontur podąża za narysowanym kształtem zamiast za ścianami. Bloki, które niczego nie renderują, używają swojego pola zaznaczenia.
+- `geometry` zawsze używa wyrenderowanej geometrii.
+- `cutout` zawsze używa kanału alfa tekstury.
+- `bounds` obrysowuje pola zaznaczenia bloków i hitboksy bytów.
+
+Zasady:
+
+- kontur jest rysowany tylko na zewnątrz sylwetki; sam cel nie jest barwiony
+- części zasłonięte przez inne bloki lub byty pozostają widoczne i są przyciemniane jak inne zasłonięte adnotacje; `alwaysOnTop` zachowuje pełną jasność
+- niewidzialne byty również otrzymują kontur
+- stykające się lub nakładające kontury łączą się w jeden, także między różnymi adnotacjami
+- półprzezroczyste kolory i miękka krawędź są mieszane ze sceną, więc krawędź nigdy nie staje się czarna
+- zawartość potomna staje się podpowiedzią; pojawia się po najechaniu na dowolny obrysowany blok lub byt
+- w `<BlockAnnotationTemplate>` atrybut `pos` jest względny wobec każdego dopasowanego bloku, a kontury wszystkich dopasowań łączą się w jeden kształt
+- eksportowane strony rysują ten sam kontur za pomocą WebGL
+
+Przykład:
+
+````md
+<GameScene zoom={3} interactive={true}>
+  <Block id="minecraft:glass" />
+  <Block id="minecraft:red_flower" x="2" />
+  <Entity id="minecraft:sheep" sceneEntityId="sheep" x="1.5" z="2.5" />
+  <OutlineAnnotation pos="0 0 0" color="#55FFFF">
+    Szkło jest obrysowywane jako pełny sześcian.
+  </OutlineAnnotation>
+  <OutlineAnnotation pos="2 0 0" color="#FFFF55" thickness="1.5" />
+  <OutlineAnnotation entity="sheep" color="#FFAA00" alwaysOnTop={true} pulse={true} />
+</GameScene>
+````
+
+Obrysuj wszystkie pasujące bloki struktury:
+
+````md
+<BlockAnnotationTemplate id="minecraft:glass">
+  <OutlineAnnotation color="#AAFFFF" />
+</BlockAnnotationTemplate>
 ````
 
 ## `<TextAnnotation>`

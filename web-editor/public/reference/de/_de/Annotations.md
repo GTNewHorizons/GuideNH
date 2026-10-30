@@ -19,6 +19,7 @@ GuideNH Szene Annotationen sind untergeordnetes Element Tags innerhalb `<GameSce
 - `<BoxAnnotation>`
 - `<LineAnnotation>`
 - `<DiamondAnnotation>`
+- `<OutlineAnnotation>`
 - `<TextAnnotation>`
 
 GuideNH auch unterstützt `<BlockAnnotationTemplate>`, das auf seine untergeordnetes Element Annotationen zu jede bereits-placed passend Block in Die aktuell Szene.
@@ -161,6 +162,64 @@ Beispiel:
   ### Activated Beacon
   Hover for rich content.
 </DiamondAnnotation>
+````
+
+## `<OutlineAnnotation>`
+
+Zeichnet eine leuchtende Silhouettenkontur um Blöcke und Entitäten, ähnlich dem Leuchten-Effekt. Die Kontur folgt der gerenderten Form jedes Ziels, bleibt durch davorliegende Blöcke und Entitäten sichtbar und verschmilzt mit berührenden Konturen zu einer Form.
+
+| Attribut | erforderlich | Bedeutung |
+| --- | --- | --- |
+| `pos` | nein | zu umrandender Block `x y z`; Standard `0 0 0`, in `<BlockAnnotationTemplate>` der gefundene Block |
+| `min` / `max` | nein | Blockecken eines Bereichs (inklusive); jeder Block darin wird umrandet |
+| `entity` | nein | `sceneEntityId` einer `<Entity>`, die umrandet wird |
+| `target` | nein | `blocks` (Standard), `entities` oder `all`: was im Bereich umrandet wird; `entities` ohne Bereich umrandet alle Entitäten |
+| `mode` | nein | `auto` (Standard), `geometry`, `cutout` oder `bounds` |
+| `color` | nein | Konturfarbe; ohne Angabe weiß, bei Entitäten die Farbe ihres Scoreboard-Teams |
+| `thickness` | nein | Konturbreite in GUI-Pixeln, `0.25` bis `8`, Standard `1` |
+| `alwaysOnTop` | nein | boolescher Ausdruck; verdeckte Teile behalten die volle Helligkeit statt abgedunkelt zu werden |
+| `pulse` | nein | boolescher Ausdruck; lässt die Kontur pulsieren |
+| `pulsePeriod` | nein | Pulsdauer in Sekunden, Standard `2` |
+
+Silhouettenmodi:
+
+- `auto` entscheidet pro Ziel. Geschlossene Modelle (Würfel, Glas, Eis, Flüssigkeiten, Scheiben, Multipart- und Kabelblöcke, OBJ- und TESR-Modelle) nutzen ihre Geometrie, sodass durchsichtige Texturen wie Glas den ganzen Block umranden statt nur den Glasrahmen. Sprite-artige Darstellungen (Blumen, Setzlinge, Feldfrüchte, Fackeln, Schienen, Leitern, Ranken, Redstone) und Entitäten nutzen das Textur-Alpha, sodass die Kontur der gezeichneten Form statt den Flächen folgt. Blöcke ohne eigene Darstellung nutzen ihre Auswahlbox.
+- `geometry` nutzt immer die gerenderte Geometrie.
+- `cutout` nutzt immer das Textur-Alpha.
+- `bounds` umrandet die Auswahlboxen von Blöcken und die Hitboxen von Entitäten.
+
+Regeln:
+
+- die Kontur wird nur außerhalb der Silhouette gezeichnet; das Ziel selbst wird nicht eingefärbt
+- von anderen Blöcken oder Entitäten verdeckte Teile bleiben sichtbar und werden wie andere verdeckte Annotationen abgedunkelt; `alwaysOnTop` behält die volle Helligkeit
+- unsichtbare Entitäten erhalten trotzdem eine Kontur
+- sich berührende oder überlappende Konturen verschmelzen zu einer, auch über verschiedene Annotationen hinweg
+- durchscheinende Farben und der weiche Rand werden mit der Szene gemischt, der Rand wird nie schwarz
+- Kindinhalt wird zum Tooltip; er erscheint beim Überfahren jedes umrandeten Blocks oder jeder Entität
+- in `<BlockAnnotationTemplate>` ist `pos` relativ zu jedem gefundenen Block, und die Konturen aller Treffer verschmelzen zu einer Form
+- exportierte Websites zeichnen dieselbe Kontur mit WebGL
+
+Beispiel:
+
+````md
+<GameScene zoom={3} interactive={true}>
+  <Block id="minecraft:glass" />
+  <Block id="minecraft:red_flower" x="2" />
+  <Entity id="minecraft:sheep" sceneEntityId="sheep" x="1.5" z="2.5" />
+  <OutlineAnnotation pos="0 0 0" color="#55FFFF">
+    Glas wird als ganzer Würfel umrandet.
+  </OutlineAnnotation>
+  <OutlineAnnotation pos="2 0 0" color="#FFFF55" thickness="1.5" />
+  <OutlineAnnotation entity="sheep" color="#FFAA00" alwaysOnTop={true} pulse={true} />
+</GameScene>
+````
+
+Alle passenden Blöcke einer Struktur umranden:
+
+````md
+<BlockAnnotationTemplate id="minecraft:glass">
+  <OutlineAnnotation color="#AAFFFF" />
+</BlockAnnotationTemplate>
 ````
 
 ## `<TextAnnotation>`

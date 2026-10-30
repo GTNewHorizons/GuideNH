@@ -18,6 +18,7 @@ GuideNH 的场景注解是放在游戏场景（`<GameScene>` / `<Scene>`）内�
 - `<BoxAnnotation>`
 - `<LineAnnotation>`
 - `<DiamondAnnotation>`
+- `<OutlineAnnotation>`
 - `<TextAnnotation>`
 
 GuideNH 还支持 `<BlockAnnotationTemplate>`，它会把自己的子注解应用到当前场景里所有已经存在且匹配的方块上。
@@ -158,6 +159,64 @@ GuideNH 会在每个轴上自动交换反向提供的 min/max 坐标。
   ### Activated Beacon
   Hover for rich content.
 </DiamondAnnotation>
+````
+
+## `<OutlineAnnotation>`
+
+在方块和实体周围绘制类似发光效果的轮廓描边。轮廓贴合每个目标实际渲染出的形状，即使被前方的方块或实体遮挡也依然可见，相互接触的轮廓会合并成一个整体。
+
+| 属性 | 必需 | 含义 |
+| --- | --- | --- |
+| `pos` | 否 | 要描边的方块 `x y z`；默认 `0 0 0`，在 `<BlockAnnotationTemplate>` 内即为匹配到的方块 |
+| `min` / `max` | 否 | 区域的方块角坐标（包含两端），区域内的每个方块都会被描边 |
+| `entity` | 否 | 要描边的 `<Entity>` 的 `sceneEntityId` |
+| `target` | 否 | `blocks`（默认）、`entities` 或 `all`：区域内描边哪些内容；没有区域时 `entities` 会描边场景中的所有实体 |
+| `mode` | 否 | `auto`（默认）、`geometry`、`cutout` 或 `bounds` |
+| `color` | 否 | 轮廓颜色；省略时为白色，实体则使用其计分板队伍颜色 |
+| `thickness` | 否 | 轮廓宽度，单位为 GUI 像素，范围 `0.25` 到 `8`，默认 `1` |
+| `alwaysOnTop` | 否 | boolean expression；被遮挡的部分保持完整亮度而不会变暗 |
+| `pulse` | 否 | boolean expression；开启呼吸灯效果 |
+| `pulsePeriod` | 否 | 呼吸周期，单位秒，默认 `2` |
+
+轮廓模式：
+
+- `auto` 按目标自动选择。封闭模型（完整方块、玻璃、冰、流体、玻璃板、多部件与线缆方块、OBJ 和 TESR 模型）使用几何体轮廓，因此玻璃这类透明纹理会描出整个方块的立方体轮廓，而不是玻璃边框的纹理边界。贴图式渲染（花、树苗、作物、火把、铁轨、梯子、藤蔓、红石）和实体使用纹理透明度，轮廓贴合画出的形状而不是四边形面片。不渲染任何内容的方块使用其选择框。
+- `geometry` 始终使用渲染出的几何体。
+- `cutout` 始终使用纹理透明度。
+- `bounds` 描边方块的选择框和实体的碰撞箱。
+
+规则：
+
+- 只在轮廓外侧绘制描边，不会给目标本身着色
+- 被其他方块或实体遮挡的部分依然可见，并像其他被遮挡的注解一样变暗；`alwaysOnTop` 会让它们保持完整亮度
+- 隐身的实体同样会被描边
+- 相互接触或重叠的轮廓会合并为一条轮廓线，不同注解之间也会合并
+- 半透明颜色和柔和边缘会与场景正确混合，边缘不会变黑
+- 子内容会成为 tooltip；悬停任意被描边的方块或实体即可显示
+- 在 `<BlockAnnotationTemplate>` 内，`pos` 相对于每个匹配到的方块，所有匹配方块的轮廓会合并成一个整体
+- 导出的网站会用 WebGL 绘制相同的轮廓
+
+示例：
+
+````md
+<GameScene zoom={3} interactive={true}>
+  <Block id="minecraft:glass" />
+  <Block id="minecraft:red_flower" x="2" />
+  <Entity id="minecraft:sheep" sceneEntityId="sheep" x="1.5" z="2.5" />
+  <OutlineAnnotation pos="0 0 0" color="#55FFFF">
+    玻璃会被描成完整的立方体轮廓。
+  </OutlineAnnotation>
+  <OutlineAnnotation pos="2 0 0" color="#FFFF55" thickness="1.5" />
+  <OutlineAnnotation entity="sheep" color="#FFAA00" alwaysOnTop={true} pulse={true} />
+</GameScene>
+````
+
+描边结构中所有匹配的方块：
+
+````md
+<BlockAnnotationTemplate id="minecraft:glass">
+  <OutlineAnnotation color="#AAFFFF" />
+</BlockAnnotationTemplate>
 ````
 
 ## `<TextAnnotation>`

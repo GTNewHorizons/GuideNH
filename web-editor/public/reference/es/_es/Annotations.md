@@ -19,6 +19,7 @@ GuideNH escena anotaciones son hijo etiquetas dentro de `<GameScene>` / `<Scene>
 - `<BoxAnnotation>`
 - `<LineAnnotation>`
 - `<DiamondAnnotation>`
+- `<OutlineAnnotation>`
 - `<TextAnnotation>`
 
 GuideNH también admite `<BlockAnnotationTemplate>`, que aplica su hijo anotaciones Un cada ya-colocado coincidente bloque en El actual escena.
@@ -161,6 +162,64 @@ Ejemplo:
   ### Activated Beacon
   Hover for rich content.
 </DiamondAnnotation>
+````
+
+## `<OutlineAnnotation>`
+
+Dibuja un contorno de silueta brillante alrededor de bloques y entidades, como el efecto Brillo. El contorno sigue la forma renderizada de cada objetivo, sigue siendo visible a través de los bloques y entidades que tiene delante y se fusiona con los contornos que lo tocan en una sola forma.
+
+| atributo | obligatorio | significado |
+| --- | --- | --- |
+| `pos` | no | bloque `x y z` a contornear; por defecto `0 0 0`, el bloque coincidente dentro de `<BlockAnnotationTemplate>` |
+| `min` / `max` | no | esquinas de bloque inclusivas de una región; se contornea cada bloque dentro de ella |
+| `entity` | no | `sceneEntityId` de una `<Entity>` a contornear |
+| `target` | no | `blocks` (por defecto), `entities` o `all`: qué se contornea dentro de la región; `entities` sin región contornea todas las entidades |
+| `mode` | no | `auto` (por defecto), `geometry`, `cutout` o `bounds` |
+| `color` | no | color del contorno; si se omite, blanco, o el color del equipo del marcador para entidades |
+| `thickness` | no | ancho del contorno en píxeles de GUI, de `0.25` a `8`, por defecto `1` |
+| `alwaysOnTop` | no | expresión booleana; las partes ocultas conservan el brillo completo en lugar de oscurecerse |
+| `pulse` | no | expresión booleana; hace que el contorno respire |
+| `pulsePeriod` | no | periodo de respiración en segundos, por defecto `2` |
+
+Modos de silueta:
+
+- `auto` decide por objetivo. Los modelos cerrados (cubos, vidrio, hielo, fluidos, paneles, bloques multiparte y de cables, modelos OBJ y TESR) usan su geometría, así las texturas transparentes como el vidrio contornean el bloque entero y no el marco del vidrio. Los renderizados tipo sprite (flores, brotes, cultivos, antorchas, raíles, escaleras de mano, enredaderas, redstone) y las entidades usan el alfa de la textura, así el contorno sigue la forma dibujada y no los quads. Los bloques que no renderizan nada usan su caja de selección.
+- `geometry` usa siempre la geometría renderizada.
+- `cutout` usa siempre el alfa de la textura.
+- `bounds` contornea las cajas de selección de los bloques y las cajas de colisión de las entidades.
+
+Reglas:
+
+- el contorno solo se dibuja fuera de la silueta; el objetivo no se tiñe
+- las partes ocultas tras otros bloques o entidades siguen visibles y se oscurecen como otras anotaciones ocultas; `alwaysOnTop` las mantiene con brillo completo
+- las entidades invisibles también reciben contorno
+- los contornos que se tocan o se solapan se fusionan en uno, también entre anotaciones distintas
+- los colores translúcidos y el borde suave se mezclan con la escena, así el borde nunca se vuelve negro
+- el contenido hijo se convierte en el tooltip; aparece al pasar sobre cualquier bloque o entidad contorneado
+- dentro de `<BlockAnnotationTemplate>`, `pos` es relativo a cada bloque coincidente y los contornos de todas las coincidencias se fusionan en una forma
+- los sitios exportados dibujan el mismo contorno con WebGL
+
+Ejemplo:
+
+````md
+<GameScene zoom={3} interactive={true}>
+  <Block id="minecraft:glass" />
+  <Block id="minecraft:red_flower" x="2" />
+  <Entity id="minecraft:sheep" sceneEntityId="sheep" x="1.5" z="2.5" />
+  <OutlineAnnotation pos="0 0 0" color="#55FFFF">
+    El vidrio se contornea como un cubo completo.
+  </OutlineAnnotation>
+  <OutlineAnnotation pos="2 0 0" color="#FFFF55" thickness="1.5" />
+  <OutlineAnnotation entity="sheep" color="#FFAA00" alwaysOnTop={true} pulse={true} />
+</GameScene>
+````
+
+Contornear todos los bloques coincidentes de una estructura:
+
+````md
+<BlockAnnotationTemplate id="minecraft:glass">
+  <OutlineAnnotation color="#AAFFFF" />
+</BlockAnnotationTemplate>
 ````
 
 ## `<TextAnnotation>`
