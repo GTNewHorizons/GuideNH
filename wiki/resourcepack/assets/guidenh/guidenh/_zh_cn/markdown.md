@@ -75,7 +75,7 @@ $$\begin{pmatrix} a & b \\ c & d \end{pmatrix}$$
 | `formula` | 字符串（必填） | — | LaTeX 源码 |
 | `color` | `#RRGGBB` 或 `#AARRGGBB` | `#FFFFFF` | 字形颜色 |
 | `scale` | float | `1.0` | 显示大小倍率 |
-| `sourceScale` | float | `100.0` | jlatexmath 渲染分辨率 |
+| `sourceScale` | float | `100.0` | jlatexmath 排版基准尺寸（站点导出 PNG 分辨率；游戏内始终匹配屏幕分辨率） |
 | `tooltip` | 字符串 | — | 自定义普通 tooltip 文本 |
 | `showTooltip` | boolean | `false` | 没有自定义 tooltip 时，悬停显示原式内容 |
 | `valign` | `baseline`/`top`/`center`/`bottom` | `baseline` | 行内公式垂直对齐方式 |

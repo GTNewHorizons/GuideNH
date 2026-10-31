@@ -7,18 +7,22 @@ import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferInt;
 import java.nio.ByteBuffer;
+import java.nio.FloatBuffer;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import net.minecraft.client.renderer.Tessellator;
 
+import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
+import org.lwjgl.opengl.GL12;
 import org.scilab.forge.jlatexmath.ParseException;
 import org.scilab.forge.jlatexmath.TeXConstants;
 import org.scilab.forge.jlatexmath.TeXFormula;
 import org.scilab.forge.jlatexmath.TeXIcon;
 
 import com.hfstudio.guidenh.guide.color.ColorUtils;
+import com.hfstudio.guidenh.guide.internal.util.DisplayScale;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 
 public class GuideLatexRenderer {
@@ -34,6 +38,14 @@ public class GuideLatexRenderer {
     /** Maps sourceScale float (rounded to string) -> calibrated reference height in pixels. */
     private final ConcurrentHashMap<String, Integer> refHeightCache = new ConcurrentHashMap<>();
 
+    /** Lazily queried {@code GL_MAX_TEXTURE_SIZE}; only touched on the render thread. */
+    private int maxTextureSize;
+
+    /** Render-thread scratch state for {@link #readModelViewScale()}. */
+    private final FloatBuffer modelViewBuffer = BufferUtils.createFloatBuffer(16);
+    private float modelViewScaleX = 1f;
+    private float modelViewScaleY = 1f;
+
     protected GuideLatexRenderer() {}
 
     /**
@@ -48,12 +60,7 @@ public class GuideLatexRenderer {
         String key = GuideLatexTextureCache.buildScaleKey(sourceScale);
         Integer height = refHeightCache.computeIfAbsent(key, k -> {
             try {
-                TeXFormula formula = new TeXFormula(CALIBRATION_FORMULA);
-                TeXIcon icon = formula.new TeXIconBuilder().setStyle(TeXConstants.STYLE_DISPLAY)
-                    .setSize(sourceScale)
-                    .setFGColor(new Color(DEFAULT_FILL_COLOR_ARGB, true))
-                    .build();
-                icon.setInsets(new Insets(2, 2, 2, 2));
+                TeXIcon icon = createIcon(CALIBRATION_FORMULA, DEFAULT_FILL_COLOR_ARGB, sourceScale);
                 int h = icon.getIconHeight();
                 return Math.max(1, h);
             } catch (ParseException e) {
@@ -109,12 +116,7 @@ public class GuideLatexRenderer {
         }
 
         try {
-            TeXFormula texFormula = new TeXFormula(formula);
-            TeXIcon icon = texFormula.new TeXIconBuilder().setStyle(TeXConstants.STYLE_DISPLAY)
-                .setSize(sourceScale)
-                .setFGColor(new Color(fillColorArgb, true))
-                .build();
-            icon.setInsets(new Insets(2, 2, 2, 2));
+            TeXIcon icon = createIcon(formula, fillColorArgb, sourceScale);
             int w = icon.getIconWidth();
             int h = icon.getIconHeight();
             int d = getIconDepthPx(icon);
@@ -132,15 +134,61 @@ public class GuideLatexRenderer {
     }
 
     /**
-     * Returns (and caches) the OpenGL texture for {@code formula}.
+     * Rasterizes {@code formula} at the physical pixel size it occupies on screen and draws it into the GUI-space
+     * rectangle {@code (x, y, displayW, displayH)}.
+     *
+     * <p>
+     * The texture is rendered at {@code displayW/H * guiScaleFactor * modelViewScale} pixels instead of the (much
+     * larger) {@code sourceScale} size, so the GPU barely has to minify it. Minifying a large texture with plain
+     * bilinear sampling skips whole texel rows, which made thin strokes such as fraction bars, minus signs and
+     * small superscripts disappear on 1080p-class displays.
      * Must be called from the Minecraft render thread.
      *
-     * @param formula       LaTeX source string
-     * @param fillColorArgb ARGB colour for the glyph pixels
-     * @param sourceScale   jlatexmath render quality (e.g. 100.0f)
+     * @return {@code true} if the formula was drawn, {@code false} if it failed to parse or render
+     */
+    public boolean drawLatex(String formula, int fillColorArgb, float sourceScale, int x, int y, int displayW,
+        int displayH) {
+        if (displayW <= 0 || displayH <= 0) {
+            return false;
+        }
+        int guiScale = Math.max(1, DisplayScale.scaleFactor());
+        readModelViewScale();
+        long texW = (long) Math.ceil(displayW * GuideLatexRasterMath.quantizePixelScale(guiScale * modelViewScaleX));
+        long texH = (long) Math.ceil(displayH * GuideLatexRasterMath.quantizePixelScale(guiScale * modelViewScaleY));
+        int maxSize = getMaxTextureSize();
+        if (texW > maxSize || texH > maxSize) {
+            double shrink = Math.min((double) maxSize / texW, (double) maxSize / texH);
+            texW = Math.max(1, (long) Math.floor(texW * shrink));
+            texH = Math.max(1, (long) Math.floor(texH * shrink));
+        }
+        int[] tex = getOrCreateTexture(formula, fillColorArgb, sourceScale, (int) texW, (int) texH);
+        if (tex == null) {
+            return false;
+        }
+        renderLatex(x, y, displayW, displayH, tex[0]);
+        return true;
+    }
+
+    /**
+     * Returns (and caches) the OpenGL texture for {@code formula} at its native {@code sourceScale} size.
+     * Prefer {@link #drawLatex}, which rasterizes at the on-screen resolution.
+     * Must be called from the Minecraft render thread.
+     *
      * @return [textureId, widthPx, heightPx] or null on failure
      */
     public int[] getOrCreateTexture(String formula, int fillColorArgb, float sourceScale) {
+        return getOrCreateTexture(formula, fillColorArgb, sourceScale, -1, -1);
+    }
+
+    /**
+     * Returns (and caches) the OpenGL texture for {@code formula}, rasterized into a {@code targetW x targetH}
+     * pixel image. The formula is laid out at {@code sourceScale} and then scaled as vector geometry, so the
+     * result is properly anti-aliased at the target resolution. Non-positive target sizes use the native icon size.
+     * Must be called from the Minecraft render thread.
+     *
+     * @return [textureId, widthPx, heightPx] or null on failure
+     */
+    public int[] getOrCreateTexture(String formula, int fillColorArgb, float sourceScale, int targetW, int targetH) {
         if (formula == null || formula.isEmpty()) {
             return null;
         }
@@ -148,32 +196,26 @@ public class GuideLatexRenderer {
             return null;
         }
 
-        String texKey = GuideLatexTextureCache.buildTextureCacheKey(formula, fillColorArgb, sourceScale);
+        String texKey = GuideLatexTextureCache
+            .buildTextureCacheKey(formula, fillColorArgb, sourceScale, Math.max(0, targetW), Math.max(0, targetH));
         int[] cached = GuideLatexTextureCache.INSTANCE.getTexture(texKey);
         if (cached != null) {
             return cached;
         }
 
         try {
-            TeXFormula texFormula = new TeXFormula(formula);
-            TeXIcon icon = texFormula.new TeXIconBuilder().setStyle(TeXConstants.STYLE_DISPLAY)
-                .setSize(sourceScale)
-                .setFGColor(new Color(fillColorArgb, true))
-                .build();
-            icon.setInsets(new Insets(2, 2, 2, 2));
-            icon.setForeground(new Color(fillColorArgb, true));
+            TeXIcon icon = createIcon(formula, fillColorArgb, sourceScale);
 
-            BufferedImage image = renderToImage(icon);
+            String sizeKey = GuideLatexTextureCache.buildSizeCacheKey(formula, sourceScale);
+            GuideLatexTextureCache.INSTANCE
+                .putSize(sizeKey, icon.getIconWidth(), icon.getIconHeight(), getIconDepthPx(icon));
+
+            BufferedImage image = renderToImage(icon, targetW, targetH);
             int w = image.getWidth();
             int h = image.getHeight();
 
             int textureId = uploadToGL(image, w, h);
             GuideLatexTextureCache.INSTANCE.putTexture(texKey, textureId, w, h);
-
-            String sizeKey = GuideLatexTextureCache.buildSizeCacheKey(formula, sourceScale);
-            int d = getIconDepthPx(icon);
-            GuideLatexTextureCache.INSTANCE.putSize(sizeKey, w, h, d);
-
             return new int[] { textureId, w, h };
         } catch (ParseException e) {
             GuideDebugLog.warn("[GuideNH/LaTeX] Parse error rendering '{}': {}", formula, e.getMessage());
@@ -204,8 +246,9 @@ public class GuideLatexRenderer {
         try {
             GL11.glEnable(GL11.GL_TEXTURE_2D);
             GL11.glBindTexture(GL11.GL_TEXTURE_2D, textureId);
-            GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_LINEAR);
-            GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER, GL11.GL_LINEAR);
+            // The GUI render context enables an alpha test (alpha > 0.1). It would discard the faint
+            // anti-aliased pixels that make up thin strokes such as fraction bars and minus signs.
+            GL11.glDisable(GL11.GL_ALPHA_TEST);
             GL11.glEnable(GL11.GL_BLEND);
             GL11.glBlendFunc(GL11.GL_ONE, GL11.GL_ONE_MINUS_SRC_ALPHA);
             ColorUtils.applyGlColor(ColorUtils.WHITE.getColor());
@@ -222,19 +265,59 @@ public class GuideLatexRenderer {
         }
     }
 
+    private static TeXIcon createIcon(String formula, int fillColorArgb, float sourceScale) throws ParseException {
+        TeXFormula texFormula = new TeXFormula(formula);
+        TeXIcon icon = texFormula.new TeXIconBuilder().setStyle(TeXConstants.STYLE_DISPLAY)
+            .setSize(sourceScale)
+            .setFGColor(new Color(fillColorArgb, true))
+            .build();
+        icon.setInsets(new Insets(2, 2, 2, 2));
+        icon.setForeground(new Color(fillColorArgb, true));
+        return icon;
+    }
+
+    /**
+     * Reads the X/Y scale of the current modelview matrix (document zoom, Mermaid node scaling, ...) so the texture
+     * matches the physical pixel size the quad will cover.
+     */
+    private void readModelViewScale() {
+        modelViewBuffer.clear();
+        GL11.glGetFloat(GL11.GL_MODELVIEW_MATRIX, modelViewBuffer);
+        float m00 = modelViewBuffer.get(0);
+        float m01 = modelViewBuffer.get(1);
+        float m10 = modelViewBuffer.get(4);
+        float m11 = modelViewBuffer.get(5);
+        float sx = (float) Math.sqrt(m00 * m00 + m01 * m01);
+        float sy = (float) Math.sqrt(m10 * m10 + m11 * m11);
+        modelViewScaleX = Float.isFinite(sx) && sx > 0.01f ? sx : 1f;
+        modelViewScaleY = Float.isFinite(sy) && sy > 0.01f ? sy : 1f;
+    }
+
+    private int getMaxTextureSize() {
+        int size = maxTextureSize;
+        if (size <= 0) {
+            size = Math.max(1024, GL11.glGetInteger(GL11.GL_MAX_TEXTURE_SIZE));
+            maxTextureSize = size;
+        }
+        return size;
+    }
+
     private static int getIconDepthPx(TeXIcon icon) {
         return Math.max(0, (int) Math.ceil(icon.getTrueIconDepth()));
     }
 
-    private BufferedImage renderToImage(TeXIcon icon) {
-        int w = icon.getIconWidth();
-        int h = icon.getIconHeight();
+    private static BufferedImage renderToImage(TeXIcon icon, int targetW, int targetH) {
+        int iconW = Math.max(1, icon.getIconWidth());
+        int iconH = Math.max(1, icon.getIconHeight());
+        int w = targetW > 0 ? targetW : iconW;
+        int h = targetH > 0 ? targetH : iconH;
 
         BufferedImage image = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB_PRE);
         Graphics2D g = image.createGraphics();
         try {
             g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_LCD_HRGB);
+            // LCD (sub-pixel) text AA is meaningless on a translucent texture; use grayscale coverage AA.
+            g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
             g.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
             g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
             g.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
@@ -247,6 +330,10 @@ public class GuideLatexRenderer {
             g.setColor(new Color(ColorUtils.TRANSPARENT.getColor(), true));
             g.fillRect(0, 0, w, h);
 
+            if (w != iconW || h != iconH) {
+                // Scale the vector output instead of the bitmap so strokes are rasterized with correct coverage.
+                g.scale((double) w / iconW, (double) h / iconH);
+            }
             icon.paintIcon(null, g, 0, 0);
         } finally {
             g.dispose();
@@ -258,7 +345,47 @@ public class GuideLatexRenderer {
         int[] pixels = ((DataBufferInt) image.getRaster()
             .getDataBuffer()).getData();
 
-        ByteBuffer buffer = ByteBuffer.allocateDirect(w * h * 4);
+        int textureId = GL11.glGenTextures();
+        GL11.glBindTexture(GL11.GL_TEXTURE_2D, textureId);
+        GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_S, GL12.GL_CLAMP_TO_EDGE);
+        GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_T, GL12.GL_CLAMP_TO_EDGE);
+        GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER, GL11.GL_LINEAR);
+
+        // Upload a full area-averaged mip chain so the formula stays legible (no skipped strokes) even when a
+        // parent transform draws it smaller than the resolution it was rasterized at.
+        int level = 0;
+        int levelW = w;
+        int levelH = h;
+        int[] levelPixels = pixels;
+        while (true) {
+            GL11.glTexImage2D(
+                GL11.GL_TEXTURE_2D,
+                level,
+                GL11.GL_RGBA8,
+                levelW,
+                levelH,
+                0,
+                GL11.GL_RGBA,
+                GL11.GL_UNSIGNED_BYTE,
+                toRgbaBuffer(levelPixels));
+            if (levelW == 1 && levelH == 1) {
+                break;
+            }
+            int nextW = Math.max(1, levelW >> 1);
+            int nextH = Math.max(1, levelH >> 1);
+            levelPixels = GuideLatexRasterMath.downsample(levelPixels, levelW, levelH, nextW, nextH);
+            levelW = nextW;
+            levelH = nextH;
+            level++;
+        }
+        GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL12.GL_TEXTURE_MAX_LEVEL, level);
+        GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_LINEAR_MIPMAP_LINEAR);
+        GL11.glBindTexture(GL11.GL_TEXTURE_2D, 0);
+        return textureId;
+    }
+
+    private static ByteBuffer toRgbaBuffer(int[] pixels) {
+        ByteBuffer buffer = ByteBuffer.allocateDirect(pixels.length * 4);
         for (int pixel : pixels) {
             buffer.put((byte) ((pixel >> 16) & 0xFF));
             buffer.put((byte) ((pixel >> 8) & 0xFF));
@@ -266,15 +393,6 @@ public class GuideLatexRenderer {
             buffer.put((byte) ((pixel >> 24) & 0xFF));
         }
         buffer.flip();
-
-        int textureId = GL11.glGenTextures();
-        GL11.glBindTexture(GL11.GL_TEXTURE_2D, textureId);
-        GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_LINEAR);
-        GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER, GL11.GL_LINEAR);
-        GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_S, GL11.GL_CLAMP);
-        GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_T, GL11.GL_CLAMP);
-        GL11.glTexImage2D(GL11.GL_TEXTURE_2D, 0, GL11.GL_RGBA8, w, h, 0, GL11.GL_RGBA, GL11.GL_UNSIGNED_BYTE, buffer);
-        GL11.glBindTexture(GL11.GL_TEXTURE_2D, 0);
-        return textureId;
+        return buffer;
     }
 }

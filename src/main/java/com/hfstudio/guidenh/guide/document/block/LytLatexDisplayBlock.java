@@ -95,15 +95,16 @@ public class LytLatexDisplayBlock extends LytBlock implements InteractiveElement
             return;
         }
 
-        int[] tex = GuideLatexRenderer.INSTANCE.getOrCreateTexture(formula, fillColorArgb, sourceScale);
-        if (tex == null) {
-            return;
-        }
-
         int centeredX = bounds.x() + (bounds.width() - formulaDisplayW) / 2;
         int formulaY = bounds.y() + VERTICAL_MARGIN;
-        GuideLatexRenderer.INSTANCE
-            .renderLatex(centeredX + offsetX, formulaY + offsetY, formulaDisplayW, formulaDisplayH, tex[0]);
+        GuideLatexRenderer.INSTANCE.drawLatex(
+            formula,
+            fillColorArgb,
+            sourceScale,
+            centeredX + offsetX,
+            formulaY + offsetY,
+            formulaDisplayW,
+            formulaDisplayH);
     }
 
     @Override

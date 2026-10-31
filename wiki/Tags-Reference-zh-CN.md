@@ -577,7 +577,7 @@ GuideNH 页面支持原生 HTML 表格标签。使用 `<caption>`、`<colgroup>`
 | `formula` | 字符串 | *（必填）* | LaTeX 源字符串 |
 | `color` | `#RRGGBB` 或 `#AARRGGBB` | `#FFFFFF` | 字形填充颜色 |
 | `scale` | float | `1.0` | 在自动行高缩放的基础上额外叠加的显示大小倍率 |
-| `sourceScale` | float | `100.0` | jlatexmath 内部渲染分辨率；数值越高，在较大尺寸下渲染越清晰 |
+| `sourceScale` | float | `100.0` | jlatexmath 排版尺寸（测量基准）。游戏内公式始终按实际屏幕分辨率光栅化；站点导出时决定 PNG 分辨率 |
 | `tooltip` | 字符串 | *无* | 鼠标悬停时显示的普通文本 tooltip |
 | `showTooltip` | boolean | `false` | 鼠标悬停时以 tooltip 展示原始 LaTeX 源文本 |
 | `valign` | `baseline` / `top` / `center` / `bottom` | `baseline` | 仅限行内公式。行内垂直对齐方式：`baseline`（默认）使公式数学基线与文字基线对齐；`top` 使公式顶部与行顶对齐；`center` 将公式垂直居中于文字行高；`bottom` 使公式底部与文字底部对齐 |
@@ -641,7 +641,7 @@ $$\begin{pmatrix} a & b \\ c & d \end{pmatrix}$$
 - 公式高度以当前行文字高度为基准自动校准。简单公式与文字等高；含分数、求和、积分等高度较大的公式会自动扩展所在行的行高。
 - `valign` 仅对行内公式生效。块级（展示式）公式始终水平居中；如需垂直方向调整，请使用 `offsetY`。
 - `color` 默认为白色（`#FFFFFF`）。如需半透明填充，使用 `#AARRGGBB` 格式。
-- `sourceScale` 仅影响渲染清晰度，不改变显示大小。低于 `16` 的值会被截断为 `16`。
+- `sourceScale` 不改变显示大小。游戏内公式会按屏幕实际像素尺寸（考虑 GUI 缩放）光栅化，因此分数线、减号等细笔画在低分辨率屏幕上也不会丢失；`sourceScale` 只影响站点导出 PNG 的分辨率。低于 `16` 的值会被截断为 `16`。
 - tooltip 优先级为：标签体富文本 Markdown、`tooltip="..."`、最后才是 `showTooltip={true}` 的原始源码回退。
 - 标签体 tooltip 会按普通指南 Markdown 编译，因此可以包含粗体、列表、链接、物品标签和嵌套 `<Latex>` 公式。
 - `$$公式$$` 简写语法始终使用默认参数。如需自定义颜色、比例、对齐或悬停提示，请使用 `<Latex>` 标签。
