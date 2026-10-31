@@ -12,7 +12,7 @@ public class GuideLatexTextureCache {
 
     public static final GuideLatexTextureCache INSTANCE = new GuideLatexTextureCache();
 
-    private static final int MAX_TEXTURE_ENTRIES = 128;
+    private static final int MAX_TEXTURE_ENTRIES = 256;
     private static final int MAX_FAILURE_ENTRIES = 256;
     private static final int MAX_SIZE_ENTRIES = 512;
 
@@ -131,7 +131,17 @@ public class GuideLatexTextureCache {
      * @return cache key string
      */
     public static String buildTextureCacheKey(String formula, int fillColorArgb, float sourceScale) {
-        return toHexColor(fillColorArgb) + ':' + buildScaleKey(sourceScale) + ':' + formula;
+        return buildTextureCacheKey(formula, fillColorArgb, sourceScale, 0, 0);
+    }
+
+    /**
+     * Builds the texture cache key for a formula rasterized into a {@code targetW x targetH} pixel texture.
+     * A target size of {@code 0} means the native {@code sourceScale} size.
+     */
+    public static String buildTextureCacheKey(String formula, int fillColorArgb, float sourceScale, int targetW,
+        int targetH) {
+        return toHexColor(
+            fillColorArgb) + ':' + buildScaleKey(sourceScale) + ':' + targetW + 'x' + targetH + ':' + formula;
     }
 
     /**

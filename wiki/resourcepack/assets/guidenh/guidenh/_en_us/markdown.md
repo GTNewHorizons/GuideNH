@@ -76,7 +76,7 @@ $$\begin{pmatrix} a & b \\ c & d \end{pmatrix}$$
 | `formula` | String (required) | — | LaTeX source |
 | `color` | `#RRGGBB` or `#AARRGGBB` | `#FFFFFF` | Glyph colour |
 | `scale` | float | `1.0` | Display size multiplier |
-| `sourceScale` | float | `100.0` | jlatexmath render quality |
+| `sourceScale` | float | `100.0` | jlatexmath layout reference size (site-export PNG resolution; in game formulas always match the screen resolution) |
 | `tooltip` | String | — | Plain custom tooltip text |
 | `showTooltip` | boolean | `false` | Show formula source on hover when no custom tooltip is provided |
 | `valign` | `baseline`/`top`/`center`/`bottom` | `baseline` | Inline vertical alignment |

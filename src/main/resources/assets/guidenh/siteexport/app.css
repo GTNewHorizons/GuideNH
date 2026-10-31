@@ -2405,6 +2405,12 @@ p {
     font-size: 18px;
 }
 
+/* LaTeX labels are high-resolution PNGs drawn much smaller; the global `pixelated`
+   (nearest-neighbour) rendering would drop thin strokes such as fraction bars and minus signs. */
+.guide-function-graph image.guide-function-graph-latex {
+    image-rendering: auto;
+}
+
 .guide-function-graph polyline,
 .guide-chart polyline {
     stroke-width: 3;

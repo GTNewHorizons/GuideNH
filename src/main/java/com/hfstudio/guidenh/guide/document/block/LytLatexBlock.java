@@ -143,13 +143,14 @@ public class LytLatexBlock extends LytBlock implements InteractiveElement {
             return;
         }
 
-        int[] tex = GuideLatexRenderer.INSTANCE.getOrCreateTexture(formula, fillColorArgb, sourceScale);
-        if (tex == null) {
-            return;
-        }
-
-        GuideLatexRenderer.INSTANCE
-            .renderLatex(bounds.x() + offsetX, bounds.y() + renderYOffset, formulaDisplayW, formulaDisplayH, tex[0]);
+        GuideLatexRenderer.INSTANCE.drawLatex(
+            formula,
+            fillColorArgb,
+            sourceScale,
+            bounds.x() + offsetX,
+            bounds.y() + renderYOffset,
+            formulaDisplayW,
+            formulaDisplayH);
     }
 
     @Override

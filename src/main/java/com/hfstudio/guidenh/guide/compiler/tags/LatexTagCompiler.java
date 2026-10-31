@@ -32,8 +32,9 @@ import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxTextElement;
  * <li>{@code color} (String, optional, default {@code "#FFFFFF"}) — formula glyph colour as {@code #RRGGBB}
  * or {@code #AARRGGBB}</li>
  * <li>{@code scale} (float, optional, default {@code 1.0}) — multiplier applied to the automatic display size</li>
- * <li>{@code sourceScale} (float, optional, default {@code 100.0}) — jlatexmath internal render quality;
- * higher values produce crisper output at the cost of more memory</li>
+ * <li>{@code sourceScale} (float, optional, default {@code 100.0}) — jlatexmath layout size used as the measuring
+ * reference. In game the formula is always rasterized at the on-screen pixel size; in site export this sets the
+ * PNG resolution</li>
  * <li>{@code showTooltip} (boolean, optional, default {@code false}) — when {@code true}, hovering over
  * the formula shows the raw LaTeX source in a tooltip</li>
  * <li>{@code tooltip} (String, optional) — plain tooltip text. Child Markdown content takes precedence

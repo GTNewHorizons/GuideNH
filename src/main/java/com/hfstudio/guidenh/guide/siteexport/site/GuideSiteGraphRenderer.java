@@ -2944,7 +2944,7 @@ public class GuideSiteGraphRenderer {
                     .append(esc(segment.text()))
                     .append("</text>");
             } else {
-                svg.append("<image href=\"")
+                svg.append("<image class=\"guide-function-graph-latex\" href=\"")
                     .append(
                         esc(
                             segment.exported()

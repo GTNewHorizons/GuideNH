@@ -617,7 +617,7 @@ Renders a LaTeX math formula using jlatexmath. When used inline (inside a paragr
 | `formula` | string | *(required)* | LaTeX source string |
 | `color` | `#RRGGBB` or `#AARRGGBB` | `#FFFFFF` | Glyph fill colour |
 | `scale` | float | `1.0` | Display size multiplier applied on top of the automatic line-height scaling |
-| `sourceScale` | float | `100.0` | jlatexmath internal render resolution; higher values improve quality at large sizes |
+| `sourceScale` | float | `100.0` | jlatexmath layout size used as the measuring reference. In game the formula is always rasterized at the actual screen resolution; in site export it sets the PNG resolution |
 | `tooltip` | string | *(none)* | Plain tooltip text shown on hover |
 | `showTooltip` | boolean | `false` | Show the raw LaTeX source as a tooltip on hover |
 | `valign` | `baseline` / `top` / `center` / `bottom` | `baseline` | Inline-only. Vertical alignment within the text line: `baseline` (default) aligns the formula's math baseline with the text baseline; `top` aligns the formula top with the line top; `center` centers it on the text; `bottom` aligns the formula bottom with the text bottom |
@@ -681,7 +681,7 @@ Notes:
 - The formula height is calibrated to the current line text height. Simple formulas render at text height; taller formulas (fractions, summations, integrals, etc.) expand the enclosing line height automatically.
 - `valign` only applies to inline formulas. Display-mode (block-level) formulas are always centered horizontally; use `offsetY` to shift them vertically within the block.
 - `color` defaults to white (`#FFFFFF`). Use `#AARRGGBB` format for a semi-transparent fill.
-- `sourceScale` only affects render sharpness, not the displayed size. Values below `16` are clamped to `16`.
+- `sourceScale` does not change the displayed size. In game, formulas are rasterized at the on-screen pixel size (GUI scale aware), so thin strokes such as fraction bars and minus signs stay visible on low-resolution displays; `sourceScale` only affects the site-export PNG resolution. Values below `16` are clamped to `16`.
 - Tooltip priority is: rich child Markdown content, then `tooltip="..."`, then `showTooltip={true}` raw source fallback.
 - Child tooltip content is compiled as regular guide Markdown, so it can include bold text, lists, links, item tags, and nested `<Latex>` formulas.
 - The `$$formula$$` shorthand always uses default parameters. Use the `<Latex>` tag for custom colour, scale, alignment or tooltip.

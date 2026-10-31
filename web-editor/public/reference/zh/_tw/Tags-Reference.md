@@ -614,7 +614,7 @@ gold,17
 | `formula` | 字串 | *（必填）* | LaTeX 來源字串 |
 | `color` | `#RRGGBB` 或 `#AARRGGBB` | `#FFFFFF` | 字形填充顏色 |
 | `scale` | float | `1.0` | 在自動行高縮放的基礎上額外疊加的顯示大小倍率 |
-| `sourceScale` | float | `100.0` | jlatexmath 內部渲染解析度；數值越高，在較大尺寸下渲染越清晰 |
+| `sourceScale` | float | `100.0` | jlatexmath 排版尺寸（測量基準）。遊戲內公式一律依實際螢幕解析度光柵化；網站匯出時決定 PNG 解析度 |
 | `tooltip` | 字串 | *無* | 滑鼠懸停時顯示的普通文字 tooltip |
 | `showTooltip` | boolean | `false` | 滑鼠懸停時以 tooltip 展示原始 LaTeX 來源文本 |
 | `valign` | `baseline` / `top` / `center` / `bottom` | `baseline` | 仅限行内公式。行內垂直對齊方式：`baseline`（預設）使公式數學基線與文字基線對齊；`top` 使公式頂部與行頂對齊；`center` 將公式垂直居中於文字行高；`bottom` 將公式底部對齊文字對齊 |
@@ -678,7 +678,7 @@ $$\begin{pmatrix} a & b \\ c & d \end{pmatrix}$$
 - 公式高度以目前行文字高度為基準自動校準。簡單公式與文字等高；含分數、求和、積分等高度較大的公式會自動擴展所在行的行高。
 - `valign` 僅對行內公式生效。塊級（展示式）公式始終水平居中；如需垂直方向調整，請使用 `offsetY`。
 - `color` 預設為白色（`#FFFFFF`）。如需半透明填充，使用 `#AARRGGBB` 格式。
-- `sourceScale` 僅影響渲染清晰度，不會改變顯示大小。低於 `16` 的值會被截斷為 `16`。
+- `sourceScale` 不會改變顯示大小。遊戲內公式會依螢幕實際像素尺寸（考慮 GUI 縮放）光柵化，因此分數線、減號等細筆畫在低解析度螢幕上也不會消失；`sourceScale` 只影響網站匯出 PNG 的解析度。低於 `16` 的值會被截斷為 `16`。
 - tooltip 優先權為：標籤體富文本 Markdown、`tooltip="..."`、最後才是 `showTooltip={true}` 的原始原始碼回退。
 - 標籤體 tooltip 會以普通指南 Markdown 編譯，因此可以包含粗體、列表、連結、物品標籤和巢狀 `<Latex>` 公式。
 - `$$公式$$` 簡寫語法始終使用預設參數。如需自訂顏色、比例、對齊或懸停提示，請使用 `<Latex>` 標籤。

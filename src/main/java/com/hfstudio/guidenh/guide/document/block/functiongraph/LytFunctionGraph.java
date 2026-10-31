@@ -1130,22 +1130,20 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
             }
 
             LatexMetrics metrics = measureLatex(segment.getValue(), lineHeight);
-            int[] texture = metrics != null
-                ? GuideLatexRenderer.INSTANCE
-                    .getOrCreateTexture(segment.getValue(), fillColor, LABEL_LATEX_SOURCE_SCALE)
-                : null;
-            if (metrics == null || texture == null) {
+            boolean drawn = metrics != null && GuideLatexRenderer.INSTANCE.drawLatex(
+                segment.getValue(),
+                fillColor,
+                LABEL_LATEX_SOURCE_SCALE,
+                cursorX,
+                y + (totalHeight - metrics.height) / 2,
+                metrics.width,
+                metrics.height);
+            if (!drawn) {
                 String fallback = delimitedFormula(segment.getValue());
                 context.drawText(fallback, cursorX, y + (totalHeight - lineHeight) / 2, style);
                 cursorX += context.getStringWidth(fallback, style);
                 continue;
             }
-            GuideLatexRenderer.INSTANCE.renderLatex(
-                cursorX,
-                y + (totalHeight - metrics.height) / 2,
-                metrics.width,
-                metrics.height,
-                texture[0]);
             cursorX += metrics.width;
         }
     }
