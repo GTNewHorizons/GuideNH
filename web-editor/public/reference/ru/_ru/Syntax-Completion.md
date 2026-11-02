@@ -319,3 +319,48 @@ Guide.builder(id).extension(SyntaxSlot.EXTENSION_POINT, new MyModSlot()).build()
 записывает, а нормализованная форма удаляет фиксацию.
 - Плагин, который выдает ошибку, сообщается с его пространством имен и пропускается, поэтому за сбой придется платить самостоятельно.
 вклад, а не редактор.
+
+## Регистрация обработчиков действий
+
+Пользовательские действия `&` используют `ActionLinkResolver.EXTENSION_POINT` в существующей `ExtensionCollection` каждого руководства. Встроенные схемы: `sound`, `sound-src` и `nei`. Индекс строится один раз без учёта регистра; повторная регистрация отклоняется, неизвестные схемы сохраняются как исходный текст.
+
+```md
+&[Все рецепты коксовой печи](nei:handler?handlerId=gt.recipe.cokeoven)
+&[Посмотреть рецепты](nei:recipes?id=minecraft:iron_ingot)
+&[Посмотреть применения](nei:usage?id=gregtech:gt.blockmachines:236&handlerId=gt.recipe.cokeoven)
+
+<NeiRecipeLink handlerId="gt.recipe.cokeoven">Открыть NEI</NeiRecipeLink>
+```
+
+Зарегистрируйте обработчик дополнения и соответствующий компилятор тега в конструкторе руководства. Обработчик создаёт строчный AST-тег; компилятор отвечает за разметку и отложенное действие. `SyntaxSlot` обеспечивает дополнение, замену и выделение в редакторе, но не регистрирует исполняемые действия. Поиск предметов и рецептов NEI выполняется только после нажатия.
+
+```java
+import java.util.ArrayList;
+import java.util.Set;
+
+import com.hfstudio.guidenh.guide.Guide;
+import com.hfstudio.guidenh.guide.compiler.ActionLinkResolver;
+import com.hfstudio.guidenh.guide.internal.markdown.MarkdownActionLink;
+import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxTextElement;
+
+public class MyActionResolver implements ActionLinkResolver {
+    @Override
+    public Set<String> getSchemes() {
+        return Set.of("inspect");
+    }
+
+    @Override
+    public MdxJsxTextElement resolve(String label, String destination, String defaultNamespace) {
+        MdxJsxTextElement element = new MdxJsxTextElement("MyActionLink", new ArrayList<>());
+        element.addAttribute("target", destination.substring(destination.indexOf(':') + 1));
+        element.addChild(MarkdownActionLink.plainLabel(label));
+        return element;
+    }
+}
+```
+
+```java
+Guide.builder(id).extension(ActionLinkResolver.EXTENSION_POINT, new MyActionResolver()).build();
+```
+
+Расширения руководства также передаются в Site Export, подсказки и фрагменты сцен. Предпросмотр показывает неактивный текст NEI с переведённым пояснением. Web Editor локально обрабатывает поддерживаемые схемы и не выполняет Java-обработчики дополнений.

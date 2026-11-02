@@ -191,3 +191,31 @@ configuration changes every page; naming a handler on a tag changes only that pa
 ## Live Runtime Example
 
 See `wiki/resourcepack/assets/guidenh/guidenh/_en_us/index.md` for extensive recipe samples, including handler filters and wildcard/NBT item ids.
+
+## Inline NEI recipe links
+
+Use a custom action link to open NEI from prose without rendering a recipe card. This follows the existing `&[label](sound:...)` convention.
+
+```md
+&[Check all Coke Oven recipes](nei:handler?handlerId=gt.recipe.cokeoven)
+&[Check recipes](nei:recipes?id=minecraft:iron_ingot)
+&[Check usages](nei:usage?id=gregtech:gt.blockmachines:236&handlerId=gt.recipe.cokeoven)
+
+<NeiRecipeLink handlerId="gt.recipe.cokeoven">Check NEI</NeiRecipeLink>
+<NeiRecipeLink id="minecraft:iron_ingot">Check **recipes**</NeiRecipeLink>
+<NeiRecipeLink mode="usage" id="gregtech:gt.blockmachines:236" handlerId="gt.recipe.cokeoven" title="NEI">Check usages</NeiRecipeLink>
+
+&[Book recipes with SNBT](nei:recipes?id=minecraft:written_book:0:%7Btitle:%22Guide%2BNEI%22%2Cauthor:GuideNH%7D)
+```
+
+`handler` requires `handlerId` and forbids `id`; it opens every recipe in the selected handler. `recipes` requires `id` and opens recipes producing that item. `usage` requires `id` and opens usages including catalyst behavior, regardless of Ctrl. The latter two modes accept an optional `handlerId` filter.
+
+`<NeiRecipeLink>` accepts only `id`, `handlerId`, `mode`, and optional tooltip `title`. Without `mode`, an `id` selects `recipes`; otherwise it selects `handler`. Visible inline children are required. Use the tag for rich formatting; custom action labels are plain text.
+
+Handler selection matches the exact overlay identifier or handler ID, case-insensitively. Unlike the existing recipe-card `handlerId` filter, it does not use a class-name substring fallback. Normal and serial handlers are included; categories sharing a Java class remain distinct.
+
+Item IDs use the current page namespace when omitted and retain registry-name casing, metadata and SNBT. Wildcard metadata uses the existing concrete-stack rules; it does not request every metadata variant. URI values are decoded once as strict UTF-8; literal `+` stays `+`. Percent-encode SNBT and reserved characters such as `&`, `#`, `%`, `?`, and `)`.
+
+Duplicate or unknown query parameters, invalid escapes, fragments, unsupported modes, conflicting attributes, and missing targets produce authoring errors. Only ampersand actions and `<NeiRecipeLink>` are NEI entry points; ordinary, reference, and HTML-anchor links are not aliases, and `nei://` is unsupported.
+
+Items and NEI recipes are resolved only on click. Missing NEI or an empty result leaves the guide open and reports a localized message. Web Editor, exported sites and IDE previews show inactive text with an explanation to open the guide in GuideNH.

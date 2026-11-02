@@ -322,3 +322,48 @@ Conventions que matter para Un plugin:
   escribe, y Un normalized form drops El commit.
 - Un plugin que throws es reported con su espacio de nombres y skipped, so Un failure costs su propio
   contributions rather que El editor.
+
+## Registro de resolutores de acciones
+
+Las acciones `&` personalizadas usan `ActionLinkResolver.EXTENSION_POINT` en la `ExtensionCollection` de cada guía. Los esquemas integrados son `sound`, `sound-src` y `nei`. Se indexan una vez sin distinguir mayúsculas; se rechazan registros duplicados y los esquemas desconocidos conservan el texto original.
+
+```md
+&[Ver todas las recetas del horno de coque](nei:handler?handlerId=gt.recipe.cokeoven)
+&[Ver recetas](nei:recipes?id=minecraft:iron_ingot)
+&[Ver usos](nei:usage?id=gregtech:gt.blockmachines:236&handlerId=gt.recipe.cokeoven)
+
+<NeiRecipeLink handlerId="gt.recipe.cokeoven">Abrir NEI</NeiRecipeLink>
+```
+
+Registra el resolutor del complemento y su compilador de etiquetas en el constructor de la guía. El resolutor genera una etiqueta AST en línea; el compilador aporta el diseño y el comportamiento diferido. `SyntaxSlot` ofrece completado, sustitución y selección en el editor, pero no registra acciones de ejecución. Los objetos y las recetas NEI se consultan solo al hacer clic.
+
+```java
+import java.util.ArrayList;
+import java.util.Set;
+
+import com.hfstudio.guidenh.guide.Guide;
+import com.hfstudio.guidenh.guide.compiler.ActionLinkResolver;
+import com.hfstudio.guidenh.guide.internal.markdown.MarkdownActionLink;
+import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxTextElement;
+
+public class MyActionResolver implements ActionLinkResolver {
+    @Override
+    public Set<String> getSchemes() {
+        return Set.of("inspect");
+    }
+
+    @Override
+    public MdxJsxTextElement resolve(String label, String destination, String defaultNamespace) {
+        MdxJsxTextElement element = new MdxJsxTextElement("MyActionLink", new ArrayList<>());
+        element.addAttribute("target", destination.substring(destination.indexOf(':') + 1));
+        element.addChild(MarkdownActionLink.plainLabel(label));
+        return element;
+    }
+}
+```
+
+```java
+Guide.builder(id).extension(ActionLinkResolver.EXTENSION_POINT, new MyActionResolver()).build();
+```
+
+Las extensiones de la guía también llegan a Site Export, las ayudas emergentes y los fragmentos de escena. Las vistas previas muestran texto NEI inactivo con una explicación traducida. Web Editor procesa sus esquemas compatibles localmente y no ejecuta resolutores Java de complementos.

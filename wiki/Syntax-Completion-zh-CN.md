@@ -297,3 +297,49 @@ Guide.builder(id).extension(SyntaxSlot.EXTENSION_POINT, new MyModSlot()).build()
 - `SyntaxSlot.match` 请返回文档里真实存在的那段文本：编辑器写入前会重新核对，规范化后的形式会让这次确认被丢弃。
 - 插件抛异常会被记录（带命名空间）并跳过，因此失败只影响你自己的贡献，不会拖垮编辑器。
 
+## 运行时动作解析器注册
+
+自定义 `&[文字](scheme:payload)` 使用现有每指南 `ExtensionCollection` 中的 `ActionLinkResolver.EXTENSION_POINT`。`DefaultExtensions` 注册 `sound`、`sound-src` 和 `nei`。编译器只建立一次忽略大小写的 scheme 索引，拒绝重复注册，将动作展开成 AST 标签；未知 scheme 保留原始文本，已注册动作格式错误则产生编写诊断。直接站点导出接收所属指南的扩展，并向 tooltip 编译器传递同一快照。
+
+```md
+&[查看焦炉全部配方](nei:handler?handlerId=gt.recipe.cokeoven)
+&[查看合成配方](nei:recipes?id=minecraft:iron_ingot)
+&[查看物品用途](nei:usage?id=gregtech:gt.blockmachines:236&handlerId=gt.recipe.cokeoven)
+
+<NeiRecipeLink handlerId="gt.recipe.cokeoven">查看 NEI</NeiRecipeLink>
+```
+
+```java
+import java.util.ArrayList;
+import java.util.Set;
+
+import com.hfstudio.guidenh.guide.Guide;
+import com.hfstudio.guidenh.guide.compiler.ActionLinkResolver;
+import com.hfstudio.guidenh.guide.internal.markdown.MarkdownActionLink;
+import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxTextElement;
+
+public class MyActionResolver implements ActionLinkResolver {
+    @Override
+    public Set<String> getSchemes() {
+        return Set.of("inspect");
+    }
+
+    @Override
+    public MdxJsxTextElement resolve(String label, String destination, String defaultNamespace) {
+        MdxJsxTextElement element = new MdxJsxTextElement("MyActionLink", new ArrayList<>());
+        element.addAttribute("target", destination.substring(destination.indexOf(':') + 1));
+        element.addChild(MarkdownActionLink.plainLabel(label));
+        return element;
+    }
+}
+```
+
+将解析器与 `MyActionLink` 的标签编译器一起注册到指南构建器：
+
+```java
+Guide.builder(id).extension(ActionLinkResolver.EXTENSION_POINT, new MyActionResolver()).build();
+```
+
+解析器负责语法展开，标签编译器负责布局与延迟执行；不要在解析器中查询游戏注册表。`SyntaxContributor` 负责属性和插入片段，`SyntaxSlot` 负责自定义语法的编辑器补全、替换和选择；注册槽位并不会注册运行时动作。这些都是现有基础设施中的不同扩展点，不是另一套全局注册表。需要导出表现时另行注册站点标签渲染器。Web Editor 用小型 scheme 到标签的映射处理受支持动作，不执行 Java 扩展。
+
+内置补全包含处理器、产出配方、用途动作片段，以及 `NeiRecipeLink` 容器的物品 ID 和 `handler` / `recipes` / `usage` 值补全；未新增 handler-ID 运行时桥接能力。

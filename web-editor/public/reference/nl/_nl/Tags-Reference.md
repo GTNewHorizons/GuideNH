@@ -29,6 +29,7 @@ Deze pagina lists De built-in runtime tags registered by `DefaultExtensions`.
 | `<Spoiler>` | verborgen inline tekst revealed on zweven | none |
 | `<Tooltip>` | rich zweven tooltip met Markdown/tag kinderen | `label` |
 | `<SoundLink>` | clickable rich-tekst sound trigger | `sound` of `src`, `volume`, `pitch`, `cooldown` |
+| `<NeiRecipeLink>` | NEI inline recipe link | `id`, `handlerId`, `mode`, `title` |
 | `<mark>` | inline highlighted tekst; equivalent naar `==text==` met optioneel kleur control | `color` |
 | `<PlayerName>` | inserts huidige player username | none |
 | `<KeyBind>` | inserts keybinding weergeven naam | `id` of `action` |
@@ -884,3 +885,31 @@ Voorbeeld:
 <Amount value="250" unit="fluid" /> L/s
 <Amount value="1200000" format="compact" /> items
 ````
+
+## NEI-links in lopende tekst
+
+Een aangepaste actielink opent NEI vanuit tekst zonder receptkaart, volgens de bestaande vorm `&[tekst](sound:...)`.
+
+```md
+&[Alle cokesovenrecepten bekijken](nei:handler?handlerId=gt.recipe.cokeoven)
+&[Recepten bekijken](nei:recipes?id=minecraft:iron_ingot)
+&[Toepassingen bekijken](nei:usage?id=gregtech:gt.blockmachines:236&handlerId=gt.recipe.cokeoven)
+
+<NeiRecipeLink handlerId="gt.recipe.cokeoven">NEI openen</NeiRecipeLink>
+<NeiRecipeLink id="minecraft:iron_ingot">**Recepten** bekijken</NeiRecipeLink>
+<NeiRecipeLink mode="usage" id="gregtech:gt.blockmachines:236" handlerId="gt.recipe.cokeoven" title="NEI">Toepassingen bekijken</NeiRecipeLink>
+
+&[Boekrecepten met SNBT](nei:recipes?id=minecraft:written_book:0:%7Btitle:%22Guide%2BNEI%22%2Cauthor:GuideNH%7D)
+```
+
+`handler` vereist `handlerId`, verbiedt `id` en opent alle recepten van de handler. `recipes` vereist `id` voor productierecepten; `usage` vereist `id` voor toepassingen inclusief katalysatoren, ongeacht Ctrl. Deze laatste twee accepteren een optioneel `handlerId`-filter.
+
+`<NeiRecipeLink>` accepteert alleen `id`, `handlerId`, `mode` en tooltip `title`. Zonder `mode` wordt met `id` de modus `recipes` gekozen, anders `handler`. Zichtbare inline-inhoud is verplicht. Actielabels zijn platte tekst; de tag ondersteunt opmaak.
+
+Overlay-ID of handler-ID moet exact overeenkomen, zonder onderscheid tussen hoofdletters. De gedeeltelijke klassenaamfilter van receptkaarten wordt niet gebruikt. Normale en seriële handlers zijn inbegrepen; categorieën met dezelfde Java-klasse blijven apart.
+
+Zonder naamruimte geldt die van de pagina. Hoofdletters, metadata en SNBT blijven behouden; jokers volgen bestaande regels voor concrete stapels. URI-waarden worden eenmaal strikt als UTF-8 gedecodeerd; `+` blijft `+`. Gebruik procentcodering voor SNBT en `&`, `#`, `%`, `?`, `)`.
+
+Dubbele of onbekende parameters, ongeldige escapes, fragmenten, onjuiste modi, tegenstrijdige attributen en ontbrekende doelen geven auteursfouten. Alleen `&`-acties en `<NeiRecipeLink>` werken; gewone links, verwijzingen, HTML-ankers en `nei://` zijn geen aliassen.
+
+Voorwerpen en recepten worden pas bij klikken opgezocht. Zonder NEI of resultaten blijft de gids open met een vertaalde melding. Browser- en IDE-voorbeelden tonen inactieve tekst met het advies de gids in GuideNH te openen.

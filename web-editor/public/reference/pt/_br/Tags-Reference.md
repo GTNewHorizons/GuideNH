@@ -29,6 +29,7 @@ Este página lists O built-em execução tags registrado by `DefaultExtensions`.
 | `<Spoiler>` | oculto inline texto revealed on passar o mouse | none |
 | `<Tooltip>` | rico passar o mouse dica com Markdown/tag filhos | `label` |
 | `<SoundLink>` | clickable rico-texto sound trigger | `sound` ou `src`, `volume`, `pitch`, `cooldown` |
+| `<NeiRecipeLink>` | NEI inline recipe link | `id`, `handlerId`, `mode`, `title` |
 | `<mark>` | inline highlighted texto; equivalent para `==text==` com opcional cor control | `color` |
 | `<PlayerName>` | inserts atual player username | none |
 | `<KeyBind>` | inserts keybinding exibir nome | `id` ou `action` |
@@ -884,3 +885,31 @@ Exemplo:
 <Amount value="250" unit="fluid" /> L/s
 <Amount value="1200000" format="compact" /> items
 ````
+
+## Links NEI no texto
+
+Um link de ação personalizado abre o NEI no texto sem renderizar um cartão de receita. Segue o formato existente `&[texto](sound:...)`.
+
+```md
+&[Ver todas as receitas do forno de coque](nei:handler?handlerId=gt.recipe.cokeoven)
+&[Ver receitas](nei:recipes?id=minecraft:iron_ingot)
+&[Ver usos](nei:usage?id=gregtech:gt.blockmachines:236&handlerId=gt.recipe.cokeoven)
+
+<NeiRecipeLink handlerId="gt.recipe.cokeoven">Abrir NEI</NeiRecipeLink>
+<NeiRecipeLink id="minecraft:iron_ingot">Ver **receitas**</NeiRecipeLink>
+<NeiRecipeLink mode="usage" id="gregtech:gt.blockmachines:236" handlerId="gt.recipe.cokeoven" title="NEI">Ver usos</NeiRecipeLink>
+
+&[Receitas de livros com SNBT](nei:recipes?id=minecraft:written_book:0:%7Btitle:%22Guide%2BNEI%22%2Cauthor:GuideNH%7D)
+```
+
+`handler` exige `handlerId`, proíbe `id` e abre todas as receitas do manipulador. `recipes` exige `id` para receitas de produção; `usage` exige `id` para usos com catalisadores, independentemente de Ctrl. Os dois últimos aceitam um filtro `handlerId` opcional.
+
+`<NeiRecipeLink>` aceita apenas `id`, `handlerId`, `mode` e a dica `title`. Sem `mode`, usa `recipes` quando existe `id`, senão `handler`. Exige conteúdo visível. Rótulos de ações são texto simples; a tag permite formatação.
+
+O identificador de sobreposição ou manipulador é comparado exatamente, sem distinguir maiúsculas. Não há a busca parcial por classe dos cartões. Inclui manipuladores normais e seriais sem unir categorias da mesma classe Java.
+
+Sem namespace, usa o da página. Preserva maiúsculas, metadados e SNBT; curingas seguem as regras existentes de pilhas concretas. A URI é decodificada uma vez como UTF-8 estrito; `+` permanece `+`. Codifique SNBT e `&`, `#`, `%`, `?`, `)` com porcentagem.
+
+Parâmetros duplicados ou desconhecidos, escapes inválidos, fragmentos, modos não aceitos, atributos conflitantes e destinos ausentes geram erros de autoria. Só ações `&` e `<NeiRecipeLink>` são entradas; links comuns, referências, âncoras HTML e `nei://` não são aliases.
+
+Itens e receitas são resolvidos somente ao clicar. Sem NEI ou resultados, o guia continua aberto com uma mensagem traduzida. Navegadores e prévias do IDE mostram texto inativo com a orientação de abrir no GuideNH.

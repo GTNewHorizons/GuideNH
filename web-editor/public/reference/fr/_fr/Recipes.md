@@ -194,3 +194,31 @@ configuration modifications chaque page; naming Un handler on Un balise modifica
 ## Live exécution Exemple
 
 Voir `wiki/resourcepack/assets/guidenh/guidenh/_en_us/index.md` pour extensive recipe samples, including handler filters et wildcard/NBT élément ids.
+
+## Liens NEI dans le texte
+
+Un lien d’action ouvre NEI depuis le texte sans afficher de carte de recette, selon la convention `&[texte](sound:...)`.
+
+```md
+&[Voir toutes les recettes du four à coke](nei:handler?handlerId=gt.recipe.cokeoven)
+&[Voir les recettes](nei:recipes?id=minecraft:iron_ingot)
+&[Voir les utilisations](nei:usage?id=gregtech:gt.blockmachines:236&handlerId=gt.recipe.cokeoven)
+
+<NeiRecipeLink handlerId="gt.recipe.cokeoven">Ouvrir NEI</NeiRecipeLink>
+<NeiRecipeLink id="minecraft:iron_ingot">Voir les **recettes**</NeiRecipeLink>
+<NeiRecipeLink mode="usage" id="gregtech:gt.blockmachines:236" handlerId="gt.recipe.cokeoven" title="NEI">Voir les utilisations</NeiRecipeLink>
+
+&[Recettes de livres avec SNBT](nei:recipes?id=minecraft:written_book:0:%7Btitle:%22Guide%2BNEI%22%2Cauthor:GuideNH%7D)
+```
+
+`handler` exige `handlerId`, interdit `id` et ouvre toutes les recettes du gestionnaire. `recipes` exige `id` pour les recettes de production ; `usage` exige `id` pour les utilisations avec catalyseurs, indépendamment de Ctrl. Ces deux modes acceptent un filtre `handlerId` facultatif.
+
+`<NeiRecipeLink>` accepte seulement `id`, `handlerId`, `mode` et l’infobulle `title`. Sans `mode`, la présence de `id` choisit `recipes`, sinon `handler`. Un contenu visible est obligatoire. Les actions ont un libellé brut ; la balise accepte du texte enrichi.
+
+La sélection compare exactement l’identifiant de superposition ou du gestionnaire, sans tenir compte de la casse. Elle n’utilise pas la recherche partielle de noms de classes des cartes. Les gestionnaires normaux et sériels sont inclus sans fusion des catégories partageant une classe Java.
+
+Sans espace de noms, celui de la page est utilisé. La casse, les métadonnées et SNBT sont conservés ; les jokers suivent les règles existantes des piles concrètes. Le décodage UTF-8 strict a lieu une seule fois ; `+` reste `+`. Encodez SNBT et `&`, `#`, `%`, `?`, `)` avec des pourcentages.
+
+Les paramètres inconnus ou répétés, les échappements incorrects, fragments, modes invalides, attributs incompatibles et cibles absentes produisent des erreurs de rédaction. Seules les actions `&` et `<NeiRecipeLink>` sont admises ; les liens ordinaires, références, ancres HTML et `nei://` ne sont pas des alias.
+
+Les objets et recettes sont chargés au clic. Sans NEI ou résultat, le guide reste ouvert avec un message traduit. Le navigateur et les aperçus IDE affichent du texte inactif invitant à ouvrir le guide dans GuideNH.

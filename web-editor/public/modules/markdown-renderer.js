@@ -1,10 +1,11 @@
-import { attr, booleanAttr, colorValue, cssLength, escapeHtml, numberAttr, parseAttributes, parseCsv, splitComma } from "./html-utils.js";
+import { attr, booleanAttr, colorValue, cssLength, DUPLICATE_ATTRIBUTES, escapeHtml, numberAttr, parseAttributes, parseCsv, splitComma } from "./html-utils.js";
 import { renderChart, renderFunctionGraph, renderMermaidDiagram } from "./visual-renderers.js";
 import { translatedString } from "./language.js";
+import { createActionLinkError, expandActionLink, formatActionLinkError, readActionLink, resolveNeiAttributes } from "./action-links.js";
 
 function copy(context, key) { return escapeHtml(translatedString(context?.locale || "en_us", key)); }
 
-const INLINE_TAGS = new Set(["a", "abbr", "b", "br", "wbr", "code", "del", "em", "i", "img", "kbd", "mark", "small", "span", "strong", "sub", "sup", "u", "Color", "Spoiler", "Tooltip", "SoundLink", "PlayerName", "KeyBind", "ItemImage", "ItemIcon", "ItemLink", "CommandLink", "Latex", "Amount", "QuestLink", "FloatingImage"]);
+const INLINE_TAGS = new Set(["a", "abbr", "b", "br", "wbr", "code", "del", "em", "i", "img", "kbd", "mark", "small", "span", "strong", "sub", "sup", "u", "Color", "Spoiler", "Tooltip", "SoundLink", "NeiRecipeLink", "PlayerName", "KeyBind", "ItemImage", "ItemIcon", "ItemLink", "CommandLink", "Latex", "Amount", "QuestLink", "FloatingImage"]);
 const BLOCK_TAGS = new Set(["address", "article", "aside", "blockquote", "caption", "col", "colgroup", "details", "div", "dl", "dt", "dd", "fieldset", "figcaption", "figure", "footer", "h1", "h2", "h3", "h4", "h5", "h6", "header", "hr", "main", "nav", "ol", "p", "pre", "section", "table", "tbody", "td", "tfoot", "th", "thead", "tr", "ul", "video", "audio", "Latex", "Tooltip", "Spoiler", "ContentTabs", "Tab", "FileTree", "Row", "Column", "FootnoteList", "ItemGrid", "ItemImage", "ItemIcon", "ItemLink", "Block", "BlockImage", "FloatingImage", "GameScene", "Scene", "Structure", "Mermaid", "CsvTable", "ColumnChart", "BarChart", "LineChart", "PieChart", "ScatterChart", "FunctionGraph", "Function", "Recipe", "RecipeFor", "RecipesFor", "ImportPonder", "Ponder", "QuestCard", "SubPages", "Category", "Special", "ImageAnnotation", "BlockStats", "BlockStat", "ImportStructure", "ImportStructureLib", "IsometricCamera", "PlaySound", "RemoveBlocks", "RemoveEntity", "ReplaceBlock", "PlaceBlock", "BlockAnnotationTemplate", "Entity", "BoxAnnotation", "LineAnnotation", "DiamondAnnotation", "OutlineAnnotation", "TextAnnotation", "InputAnnotation", "SoundArea", "NodeContent", "Series", "LineSeries", "Slice", "PieInset", "Plot", "Point", "Tier", "Channel", "Facing", "Rotation", "Flip", "Orientation", "GregTechActiveController", "GregTechPlaceHatches", "Comment"]);
 const SAFE_HTML_ATTRIBUTES = new Set(["class", "className", "id", "role", "title", "lang", "dir", "aria-label", "aria-description", "colspan", "rowspan", "align", "valign", "width", "height", "scope", "span", "abbr", "headers", "axis", "char", "charoff", "summary", "border", "cellpadding", "cellspacing", "frame", "rules", "bordercolor", "bgcolor", "style", "target", "rel", "href", "src", "alt", "poster", "controls", "autoplay", "loop", "muted", "playsinline"]);
 const HTML_CONTAINER_TAGS = new Set(["address", "article", "aside", "blockquote", "caption", "colgroup", "details", "div", "dl", "fieldset", "figure", "footer", "header", "main", "nav", "ol", "section", "table", "tbody", "td", "tfoot", "th", "thead", "tr", "ul"]);
@@ -540,19 +541,14 @@ function renderQuote(source, context) {
 function renderInline(source, context) {
   const text = String(source ?? "");
   const tokens = [];
-  const codeProtected = text.replace(/`([^`\n]+)`/g, (_match, code) => {
-    const marker = `\u0000${tokens.length}\u0000`;
-    tokens.push(`<code>${escapeHtml(code)}</code>`);
-    return marker;
-  });
   let cursor = 0;
   let protectedText = "";
-  while (cursor < codeProtected.length) {
-    const next = findInlineToken(codeProtected, cursor);
-    if (!next) { protectedText += codeProtected.slice(cursor); break; }
-    protectedText += codeProtected.slice(cursor, next.index);
-    const token = readInlineToken(codeProtected, next.index, context);
-    if (!token) { protectedText += codeProtected[next.index]; cursor = next.index + 1; continue; }
+  while (cursor < text.length) {
+    const next = findInlineToken(text, cursor);
+    if (!next) { protectedText += text.slice(cursor); break; }
+    protectedText += text.slice(cursor, next.index);
+    const token = readInlineToken(text, next.index, context);
+    if (!token) { protectedText += text[next.index]; cursor = next.index + 1; continue; }
     const marker = `\u0000${tokens.length}\u0000`;
     tokens.push(token.html);
     protectedText += marker;
@@ -566,12 +562,33 @@ function renderInline(source, context) {
   return html.replace(/\u0000(\d+)\u0000/g, (_match, index) => tokens[Number(index)] || "");
 }
 
+const INLINE_TOKEN_PATTERN = /&\[|`|<|!\[|\[|\$\$/g;
+
 function findInlineToken(text, start) {
-  const candidates = ["<", "![", "[", "$$", "[^"].map((needle) => ({ needle, index: text.indexOf(needle, start) })).filter((item) => item.index >= 0).sort((left, right) => left.index - right.index);
-  return candidates[0] || null;
+  INLINE_TOKEN_PATTERN.lastIndex = start;
+  return INLINE_TOKEN_PATTERN.exec(text);
 }
 
 function readInlineToken(text, index, context) {
+  if (text[index] === "`") {
+    const code = text.slice(index).match(/^`([^`\n]+)`/);
+    if (code) return { html: `<code>${escapeHtml(code[1])}</code>`, nextIndex: index + code[0].length };
+  }
+  if (text.startsWith("&[", index)) {
+    const link = readActionLink(text, index);
+    if (link) {
+      let html;
+      try {
+        const expanded = expandActionLink(link, context.namespace || "minecraft");
+        if (!expanded) html = escapeHtml(link.source);
+        else if (expanded.name === "NeiRecipeLink") html = renderNeiLink(expanded.attributes, escapeHtml(link.label), context);
+        else html = renderSoundLink(expanded.attributes, escapeHtml(link.label));
+      } catch (error) {
+        html = renderActionLinkError(error, context);
+      }
+      return { html, nextIndex: link.nextIndex };
+    }
+  }
   if (text.startsWith("$$", index)) {
     const end = text.indexOf("$$", index + 2);
     if (end >= 0) return { html: renderLatex(text.slice(index + 2, end), {}, true), nextIndex: end + 2 };
@@ -674,7 +691,8 @@ function renderTag(name, attributes, body, selfClosing, context, inline) {
   if (name === "Tooltip") return renderRichTooltip(attributes, body, context);
   if (name === "PlayerName") return `<span class="guide-runtime-inline guide-player-name">[player]</span>`;
   if (name === "KeyBind") return `<kbd class="guide-keybind">${escapeHtml(attr(attributes, "id", "action") || "key")}</kbd>`;
-  if (name === "SoundLink") return `<span class="guide-sound-link" data-sound="${escapeHtml(attr(attributes, "sound", "id") || "sound")}">${renderInline(body || attr(attributes, "label", "text") || "Sound", context)}</span>`;
+  if (name === "SoundLink") return renderSoundLink(attributes, renderInline(body || attr(attributes, "label", "text") || "Sound", context));
+  if (name === "NeiRecipeLink") return renderNeiLink(attributes, renderInline(body, context), context);
   if (name === "CommandLink" || name === "QuestLink") return `<span class="guide-runtime-inline guide-link-placeholder">${renderInline(body || attr(attributes, "text", "id") || name, context)}</span>`;
   if (lowerName === "br") return `<br${attr(attributes, "clear") ? ` data-clear="${escapeHtml(attr(attributes, "clear"))}"` : ""}>`;
   if (lowerName === "wbr") return "<wbr>";
@@ -687,6 +705,28 @@ function renderTag(name, attributes, body, selfClosing, context, inline) {
   if (INLINE_TAGS.has(name) || INLINE_TAGS.has(lowerName)) return `<span>${renderInline(body, context)}</span>`;
   if (name[0] === name[0]?.toLowerCase()) return renderSafeHtmlTag(lowerName, attributes, body, context);
   return `<span class="guide-tag-card unknown guide-inline-unknown"><span class="guide-tag-name">&lt;${escapeHtml(name)}&gt;</span><em>${copy(context, "previewPending")}</em></span>`;
+}
+
+function renderSoundLink(attributes, content) {
+  return `<span class="guide-sound-link" data-sound="${escapeHtml(attr(attributes, "sound", "src", "id") || "sound")}">${content}</span>`;
+}
+
+function renderNeiLink(attributes, content, context) {
+  try {
+    if (attributes[DUPLICATE_ATTRIBUTES]?.length) throw createActionLinkError("neiDuplicateAttributeError", "NeiRecipeLink attributes must be unique.");
+    const target = resolveNeiAttributes(attributes, context.namespace || "minecraft");
+    if (!content.replace(/<[^>]*>/g, "").trim() && !/<(?:img|svg)\b/.test(content)) throw createActionLinkError("neiContentError", "NeiRecipeLink requires visible inline content.");
+    const explanation = translatedString(context.locale || "en_us", "neiLinkInGame");
+    const title = target.title ? `${target.title}\n${explanation}` : explanation;
+    return `<span class="guide-nei-link" title="${escapeHtml(title)}">${content}</span>`;
+  } catch (error) {
+    return renderActionLinkError(error, context);
+  }
+}
+
+function renderActionLinkError(error, context) {
+  const message = formatActionLinkError(error, key => translatedString(context.locale || "en_us", key));
+  return `<span class="guide-export-error">${escapeHtml(message)}</span>`;
 }
 
 function renderAmount(attributes, context = {}) {

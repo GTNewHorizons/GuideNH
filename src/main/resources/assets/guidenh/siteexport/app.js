@@ -8,6 +8,13 @@ import { ensureSiteLanguage, siteText } from "./locale.js";
 const AMOUNT_UNIT_STORAGE_KEY = "guidenh.amount.fluidUnit";
 let configuredFluidUnit = "mB";
 
+function localizeNeiLinks(root) {
+  for (const link of root.querySelectorAll?.("[data-guide-nei-link]") || []) {
+    const explanation = siteText("nei", "inGame");
+    link.title = [link.dataset.guideNeiTitle, explanation].filter(Boolean).join("\n");
+  }
+}
+
 function validFluidUnit(value) {
   return value === "L" || value === "mB";
 }
@@ -623,6 +630,7 @@ function installTooltips(root) {
     stopImageLayout(tooltipRoot);
     stopIngredientCycling(tooltipRoot);
     tooltipRoot.innerHTML = nextState.html;
+    localizeNeiLinks(tooltipRoot);
     tooltipRoot.hidden = false;
     installIngredientCycling(tooltipRoot);
     installImageAnnotations(tooltipRoot);
@@ -956,6 +964,7 @@ function installTooltips(root) {
 }
 
 function installPageBehaviors(root, hydrateScenes = true) {
+  localizeNeiLinks(root);
   installMediaWikiSpecialFilters(root);
   installIngredientCycling(root);
   installImageAnnotations(root);

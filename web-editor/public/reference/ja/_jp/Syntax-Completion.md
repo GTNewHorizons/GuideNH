@@ -268,3 +268,48 @@ Mod 自身のテンプレート例には `<BlockStat item="" count="1" />`、`<I
 - `SyntaxValueKind` には `"MYMOD_MACHINE"` のような Mod namespace 付き ID を使います。
 - `SyntaxSlot.match` からドキュメントが実際に保持する文字列を返します。
 - 例外を投げたプラグインは namespace とともにログへ記録され、そのプラグインだけがスキップされます。
+
+## 実行時アクションリゾルバーの登録
+
+カスタム `&` アクションは、ガイドごとの既存の `ExtensionCollection` と `ActionLinkResolver.EXTENSION_POINT` を使って登録します。組み込みスキームは `sound`、`sound-src`、`nei` です。スキームは大文字小文字を区別せず一度だけ索引化し、重複登録を拒否し、不明なスキームは原文を保持します。
+
+```md
+&[コークス炉の全レシピを確認](nei:handler?handlerId=gt.recipe.cokeoven)
+&[レシピを確認](nei:recipes?id=minecraft:iron_ingot)
+&[用途を確認](nei:usage?id=gregtech:gt.blockmachines:236&handlerId=gt.recipe.cokeoven)
+
+<NeiRecipeLink handlerId="gt.recipe.cokeoven">NEI を開く</NeiRecipeLink>
+```
+
+追加 Mod のリゾルバーと対応するタグコンパイラーをガイドビルダーへ登録します。リゾルバーはインライン AST タグを生成し、タグコンパイラーが配置と遅延動作を担当します。`SyntaxSlot` はエディターの補完、置換、選択用で、実行時アクションを登録しません。アイテム解決と NEI 検索はクリック後にのみ実行します。
+
+```java
+import java.util.ArrayList;
+import java.util.Set;
+
+import com.hfstudio.guidenh.guide.Guide;
+import com.hfstudio.guidenh.guide.compiler.ActionLinkResolver;
+import com.hfstudio.guidenh.guide.internal.markdown.MarkdownActionLink;
+import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxTextElement;
+
+public class MyActionResolver implements ActionLinkResolver {
+    @Override
+    public Set<String> getSchemes() {
+        return Set.of("inspect");
+    }
+
+    @Override
+    public MdxJsxTextElement resolve(String label, String destination, String defaultNamespace) {
+        MdxJsxTextElement element = new MdxJsxTextElement("MyActionLink", new ArrayList<>());
+        element.addAttribute("target", destination.substring(destination.indexOf(':') + 1));
+        element.addChild(MarkdownActionLink.plainLabel(label));
+        return element;
+    }
+}
+```
+
+```java
+Guide.builder(id).extension(ActionLinkResolver.EXTENSION_POINT, new MyActionResolver()).build();
+```
+
+ガイドの拡張は直接 Site Export、ツールチップ、シーン断片にも渡されます。ブラウザープレビューは無効な NEI テキストと翻訳済みの説明を表示します。Web Editor は対応スキームをローカル処理し、Java の追加 Mod リゾルバーは実行しません。

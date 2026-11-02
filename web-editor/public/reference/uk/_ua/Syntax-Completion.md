@@ -322,3 +322,48 @@ Conventions який matter для plugin:
   writes, і normalized form drops  commit.
 - plugin який throws is reported з його простір імен і skipped, so failure costs your власний
   contributions rather ніж  редактор.
+
+## Реєстрація обробників дій
+
+Власні дії `&` використовують `ActionLinkResolver.EXTENSION_POINT` в наявній `ExtensionCollection` кожного посібника. Вбудовані схеми: `sound`, `sound-src` і `nei`. Індекс створюється один раз без урахування регістру; повторні реєстрації відхиляються, а невідомі схеми зберігають вихідний текст.
+
+```md
+&[Усі рецепти коксової печі](nei:handler?handlerId=gt.recipe.cokeoven)
+&[Переглянути рецепти](nei:recipes?id=minecraft:iron_ingot)
+&[Переглянути застосування](nei:usage?id=gregtech:gt.blockmachines:236&handlerId=gt.recipe.cokeoven)
+
+<NeiRecipeLink handlerId="gt.recipe.cokeoven">Відкрити NEI</NeiRecipeLink>
+```
+
+Зареєструйте обробник доповнення та відповідний компілятор тегів у конструкторі посібника. Обробник створює вбудований AST-тег, а компілятор відповідає за розміщення й відкладену дію. `SyntaxSlot` забезпечує доповнення, заміну та вибір у редакторі, але не реєструє дії виконання. Предмети й рецепти NEI шукаються лише після натискання.
+
+```java
+import java.util.ArrayList;
+import java.util.Set;
+
+import com.hfstudio.guidenh.guide.Guide;
+import com.hfstudio.guidenh.guide.compiler.ActionLinkResolver;
+import com.hfstudio.guidenh.guide.internal.markdown.MarkdownActionLink;
+import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxTextElement;
+
+public class MyActionResolver implements ActionLinkResolver {
+    @Override
+    public Set<String> getSchemes() {
+        return Set.of("inspect");
+    }
+
+    @Override
+    public MdxJsxTextElement resolve(String label, String destination, String defaultNamespace) {
+        MdxJsxTextElement element = new MdxJsxTextElement("MyActionLink", new ArrayList<>());
+        element.addAttribute("target", destination.substring(destination.indexOf(':') + 1));
+        element.addChild(MarkdownActionLink.plainLabel(label));
+        return element;
+    }
+}
+```
+
+```java
+Guide.builder(id).extension(ActionLinkResolver.EXTENSION_POINT, new MyActionResolver()).build();
+```
+
+Розширення посібника також передаються до Site Export, підказок і фрагментів сцен. Попередній перегляд показує неактивний текст NEI з перекладеним поясненням. Web Editor локально обробляє підтримувані схеми й не виконує Java-обробники доповнень.

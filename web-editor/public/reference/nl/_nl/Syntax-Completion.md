@@ -322,3 +322,48 @@ Conventions that matter voor Een plugin:
   writes, en Een normalized form drops De commit.
 - Een plugin that throws is reported met its namespace en skipped, so Een failure costs your own
   contributions rather than De editor.
+
+## Actieresolvers registreren
+
+Aangepaste `&`-acties gebruiken `ActionLinkResolver.EXTENSION_POINT` in de bestaande `ExtensionCollection` per gids. Ingebouwde schema’s zijn `sound`, `sound-src` en `nei`. Schema’s worden eenmaal hoofdletterongevoelig geïndexeerd; dubbele registraties worden geweigerd en onbekende schema’s blijven brontekst.
+
+```md
+&[Alle cokesovenrecepten bekijken](nei:handler?handlerId=gt.recipe.cokeoven)
+&[Recepten bekijken](nei:recipes?id=minecraft:iron_ingot)
+&[Toepassingen bekijken](nei:usage?id=gregtech:gt.blockmachines:236&handlerId=gt.recipe.cokeoven)
+
+<NeiRecipeLink handlerId="gt.recipe.cokeoven">NEI openen</NeiRecipeLink>
+```
+
+Registreer de addon-resolver en bijbehorende tagcompiler in de gidsbouwer. De resolver maakt een inline AST-tag; de tagcompiler verzorgt de opmaak en uitgestelde werking. `SyntaxSlot` verzorgt aanvullen, vervangen en selecteren in de editor, maar registreert geen runtimeacties. Voorwerpen en NEI-recepten worden pas na een klik opgezocht.
+
+```java
+import java.util.ArrayList;
+import java.util.Set;
+
+import com.hfstudio.guidenh.guide.Guide;
+import com.hfstudio.guidenh.guide.compiler.ActionLinkResolver;
+import com.hfstudio.guidenh.guide.internal.markdown.MarkdownActionLink;
+import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxTextElement;
+
+public class MyActionResolver implements ActionLinkResolver {
+    @Override
+    public Set<String> getSchemes() {
+        return Set.of("inspect");
+    }
+
+    @Override
+    public MdxJsxTextElement resolve(String label, String destination, String defaultNamespace) {
+        MdxJsxTextElement element = new MdxJsxTextElement("MyActionLink", new ArrayList<>());
+        element.addAttribute("target", destination.substring(destination.indexOf(':') + 1));
+        element.addChild(MarkdownActionLink.plainLabel(label));
+        return element;
+    }
+}
+```
+
+```java
+Guide.builder(id).extension(ActionLinkResolver.EXTENSION_POINT, new MyActionResolver()).build();
+```
+
+De gidsextensies worden ook doorgegeven aan Site Export, tooltips en scènefragmenten. Browservoorbeelden tonen inactieve NEI-tekst met een vertaalde uitleg. Web Editor verwerkt ondersteunde schema’s lokaal en voert geen Java-addon-resolvers uit.

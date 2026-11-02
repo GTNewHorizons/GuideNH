@@ -297,3 +297,47 @@ Guide.builder(id).extension(SyntaxSlot.EXTENSION_POINT, new MyModSlot()).build()
 - `SyntaxSlot.match` 請回傳文件裡真實存在的那段文字：編輯器寫入前會重新核對，規範化後的形式會讓這次確認被丟棄。
 - 插件拋異常會被記錄（有命名空間）並且跳過，因此失敗只影響你自己的貢獻，不會拖垮編輯器。
 
+## 執行時動作解析器註冊
+
+自訂 `&` 動作透過現有的每指南 `ExtensionCollection` 與 `ActionLinkResolver.EXTENSION_POINT` 註冊。內建協定為 `sound`、`sound-src`、`nei`。編譯器僅索引一次協定，忽略大小寫，拒絕重複註冊，並將未知協定保留為原文。
+
+```md
+&[查看焦爐全部配方](nei:handler?handlerId=gt.recipe.cokeoven)
+&[查看合成配方](nei:recipes?id=minecraft:iron_ingot)
+&[查看物品用途](nei:usage?id=gregtech:gt.blockmachines:236&handlerId=gt.recipe.cokeoven)
+
+<NeiRecipeLink handlerId="gt.recipe.cokeoven">查看 NEI</NeiRecipeLink>
+```
+
+將附加模組的解析器與對應標籤編譯器註冊到指南建構器。解析器展開為行內 AST 標籤，標籤編譯器負責版面與延遲行為。`SyntaxSlot` 負責編輯器補全、取代與選取，不會註冊執行時動作。物品查詢和 NEI 搜尋僅在點擊後執行。
+
+```java
+import java.util.ArrayList;
+import java.util.Set;
+
+import com.hfstudio.guidenh.guide.Guide;
+import com.hfstudio.guidenh.guide.compiler.ActionLinkResolver;
+import com.hfstudio.guidenh.guide.internal.markdown.MarkdownActionLink;
+import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxTextElement;
+
+public class MyActionResolver implements ActionLinkResolver {
+    @Override
+    public Set<String> getSchemes() {
+        return Set.of("inspect");
+    }
+
+    @Override
+    public MdxJsxTextElement resolve(String label, String destination, String defaultNamespace) {
+        MdxJsxTextElement element = new MdxJsxTextElement("MyActionLink", new ArrayList<>());
+        element.addAttribute("target", destination.substring(destination.indexOf(':') + 1));
+        element.addChild(MarkdownActionLink.plainLabel(label));
+        return element;
+    }
+}
+```
+
+```java
+Guide.builder(id).extension(ActionLinkResolver.EXTENSION_POINT, new MyActionResolver()).build();
+```
+
+指南擴充同時傳遞給直接 Site Export、提示框與場景片段。瀏覽器預覽顯示不可點擊的 NEI 文字與本地化說明。Web Editor 在本機處理支援的協定，不執行 Java 附加模組解析器。

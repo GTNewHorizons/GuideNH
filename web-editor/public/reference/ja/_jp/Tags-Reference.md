@@ -29,6 +29,7 @@ GuideNH の構文と実行時機能を説明します。コード、タグ、パ
 | `<Spoiler>` | 非表示 inline テキスト revealed on ホバー | none |
 | `<Tooltip>` | リッチ ホバー ツールチップ とともに Markdown/タグ 子要素 | `label` |
 | `<SoundLink>` | clickable リッチ-テキスト sound trigger | `sound` または `src`, `volume`, `pitch`, `cooldown` |
+| `<NeiRecipeLink>` | NEI inline recipe link | `id`, `handlerId`, `mode`, `title` |
 | `<mark>` | inline highlighted テキスト; equivalent へ `==text==` とともに 任意の 色 control | `color` |
 | `<PlayerName>` | inserts 現在の player username | none |
 | `<KeyBind>` | inserts keybinding 表示 名前 | `id` または `action` |
@@ -884,3 +885,31 @@ See <QuestLink id="AAAAAAAAAAAAAAAAAAAMug==" text="Compact quest id example" /> 
 <Amount value="250" unit="fluid" /> L/s
 <Amount value="1200000" format="compact" /> items
 ````
+
+## 文章内の NEI レシピリンク
+
+カスタムアクションリンクで、レシピカードを描画せずに文章から NEI を開けます。既存の `&[文字](sound:...)` と同じ形式です。
+
+```md
+&[コークス炉の全レシピを確認](nei:handler?handlerId=gt.recipe.cokeoven)
+&[レシピを確認](nei:recipes?id=minecraft:iron_ingot)
+&[用途を確認](nei:usage?id=gregtech:gt.blockmachines:236&handlerId=gt.recipe.cokeoven)
+
+<NeiRecipeLink handlerId="gt.recipe.cokeoven">NEI を開く</NeiRecipeLink>
+<NeiRecipeLink id="minecraft:iron_ingot">**レシピ**を確認</NeiRecipeLink>
+<NeiRecipeLink mode="usage" id="gregtech:gt.blockmachines:236" handlerId="gt.recipe.cokeoven" title="NEI">用途を確認</NeiRecipeLink>
+
+&[SNBT 付きの本のレシピ](nei:recipes?id=minecraft:written_book:0:%7Btitle:%22Guide%2BNEI%22%2Cauthor:GuideNH%7D)
+```
+
+`handler` は `handlerId` が必須で `id` は指定できず、全レシピを開きます。`recipes` は `id` を使って生成レシピを、`usage` は Ctrl 状態に関係なく触媒を含む用途を開きます。後者の2つは `handlerId` による絞り込みが可能です。
+
+`<NeiRecipeLink>` の属性は `id`、`handlerId`、`mode`、ツールチップ `title` のみです。`mode` を省略すると、`id` がある場合は `recipes`、なければ `handler` です。見える子要素が必要です。アクションのラベルはプレーンテキストで、タグは装飾に対応します。
+
+overlay identifier または handler ID と、大文字小文字を区別せず完全一致で照合します。既存カードのクラス名部分一致は使いません。通常・直列ハンドラーを含み、同じ Java クラスの異なるカテゴリを統合しません。
+
+名前空間省略時は現在のページのものを使用します。登録名の大文字小文字、メタデータ、SNBT を保持し、ワイルドカードは既存の具体的スタック規則に従います。URI は厳密な UTF-8 で1回だけ復号し、`+` はそのままです。SNBT と `&`、`#`、`%`、`?`、`)` はパーセント符号化してください。
+
+重複・未知の引数、不正なエスケープ、フラグメント、不明なモード、矛盾する属性、対象不足は記述エラーになります。入口は `&` アクションと `<NeiRecipeLink>` のみで、通常・参照リンク、HTML アンカー、`nei://` は別名として使えません。
+
+アイテム解決と NEI 検索はクリック時のみ行います。NEI がない場合や結果が空の場合はガイドを維持して翻訳済みメッセージを表示します。ブラウザーと IDE のプレビューは無効な文字を表示し、GuideNH で開くよう案内します。

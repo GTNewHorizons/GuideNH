@@ -29,6 +29,7 @@
 | `<Spoiler>` | прихований inline текст revealed on наведення | none |
 | `<Tooltip>` | розширений наведення підказка з Markdown/тег дочірні елементи | `label` |
 | `<SoundLink>` | clickable розширений-текст sound trigger | `sound` або `src`, `volume`, `pitch`, `cooldown` |
+| `<NeiRecipeLink>` | NEI inline recipe link | `id`, `handlerId`, `mode`, `title` |
 | `<mark>` | inline highlighted текст; equivalent до `==text==` з необов’язковий колір control | `color` |
 | `<PlayerName>` | inserts поточний гравець username | none |
 | `<KeyBind>` | inserts keybinding відображати назва | `id` або `action` |
@@ -884,3 +885,31 @@ See <QuestLink id="AAAAAAAAAAAAAAAAAAAMug==" text="Compact quest id example" /> 
 <Amount value="250" unit="fluid" /> L/s
 <Amount value="1200000" format="compact" /> items
 ````
+
+## Посилання NEI в тексті
+
+Власне посилання дії відкриває NEI з тексту без відображення картки рецепта. Використовується формат `&[текст](sound:...)`.
+
+```md
+&[Усі рецепти коксової печі](nei:handler?handlerId=gt.recipe.cokeoven)
+&[Переглянути рецепти](nei:recipes?id=minecraft:iron_ingot)
+&[Переглянути застосування](nei:usage?id=gregtech:gt.blockmachines:236&handlerId=gt.recipe.cokeoven)
+
+<NeiRecipeLink handlerId="gt.recipe.cokeoven">Відкрити NEI</NeiRecipeLink>
+<NeiRecipeLink id="minecraft:iron_ingot">Переглянути **рецепти**</NeiRecipeLink>
+<NeiRecipeLink mode="usage" id="gregtech:gt.blockmachines:236" handlerId="gt.recipe.cokeoven" title="NEI">Переглянути застосування</NeiRecipeLink>
+
+&[Рецепти книг зі SNBT](nei:recipes?id=minecraft:written_book:0:%7Btitle:%22Guide%2BNEI%22%2Cauthor:GuideNH%7D)
+```
+
+`handler` потребує `handlerId`, забороняє `id` і відкриває всі рецепти обробника. `recipes` потребує `id` для рецептів отримання; `usage` потребує `id` для застосувань із каталізаторами незалежно від Ctrl. Останні два режими приймають додатковий фільтр `handlerId`.
+
+`<NeiRecipeLink>` приймає лише `id`, `handlerId`, `mode` і підказку `title`. Без `mode` наявність `id` вибирає `recipes`, інакше `handler`. Видимий вміст обов’язковий. Підпис дії — звичайний текст; тег підтримує форматування.
+
+Ідентифікатор накладання або обробника порівнюється точно, без урахування регістру. Частковий пошук за Java-класом із карток не використовується. Включено звичайні та послідовні обробники без об’єднання категорій одного класу.
+
+Без простору імен використовується простір сторінки. Регістр, метадані та SNBT зберігаються; шаблони метаданих дотримуються правил конкретних стеків. URI суворо декодується як UTF-8 один раз; `+` залишається `+`. Кодуйте SNBT і `&`, `#`, `%`, `?`, `)` відсотками.
+
+Повторні або невідомі параметри, неправильне екранування, фрагменти, режими, конфліктні атрибути та відсутність цілі спричиняють помилки автора. Підтримуються лише дії `&` і `<NeiRecipeLink>`; звичайні посилання, посилання за міткою, HTML-якорі й `nei://` не є псевдонімами.
+
+Предмети та рецепти визначаються лише після натискання. Без NEI або результатів посібник залишається відкритим із перекладеним повідомленням. Браузер та IDE показують неактивний текст із пропозицією відкрити посібник у GuideNH.

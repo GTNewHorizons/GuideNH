@@ -177,3 +177,31 @@ GuideNH 会按以下顺序尝试配方：
 ## 实时运行示例
 
 可参考 `wiki/resourcepack/assets/guidenh/guidenh/_en_us/index.md`，其中包含大量配方示例，包括 handler 过滤、通配 meta 和带 NBT 的物品 id。
+
+## 行内 NEI 配方链接
+
+使用自定义动作链接，可以在正文中打开 NEI，而不渲染配方卡片。语法沿用已有的 `&[文字](sound:...)`。
+
+```md
+&[查看焦炉全部配方](nei:handler?handlerId=gt.recipe.cokeoven)
+&[查看合成配方](nei:recipes?id=minecraft:iron_ingot)
+&[查看物品用途](nei:usage?id=gregtech:gt.blockmachines:236&handlerId=gt.recipe.cokeoven)
+
+<NeiRecipeLink handlerId="gt.recipe.cokeoven">查看 NEI</NeiRecipeLink>
+<NeiRecipeLink id="minecraft:iron_ingot">查看**合成配方**</NeiRecipeLink>
+<NeiRecipeLink mode="usage" id="gregtech:gt.blockmachines:236" handlerId="gt.recipe.cokeoven" title="NEI">查看物品用途</NeiRecipeLink>
+
+&[查看带 SNBT 的书籍配方](nei:recipes?id=minecraft:written_book:0:%7Btitle:%22Guide%2BNEI%22%2Cauthor:GuideNH%7D)
+```
+
+`handler` 必须填写 `handlerId` 且禁止 `id`，打开该处理器的全部配方；`recipes` 必须填写 `id`，查找产出该物品的配方；`usage` 必须填写 `id`，查找用途并包含催化剂行为，不受 Ctrl 状态影响。后两种模式均可通过 `handlerId` 限定处理器。
+
+`<NeiRecipeLink>` 仅接受 `id`、`handlerId`、`mode` 和可选提示 `title`。省略 `mode` 时，有 `id` 则使用 `recipes`，否则使用 `handler`。必须提供可见的行内子内容。富文本使用标签形式；自定义动作的文字按纯文本处理。
+
+处理器按 overlay identifier 或 handler ID 忽略大小写精确匹配。与现有配方卡片的 `handlerId` 筛选不同，此链接不使用类名子串回退。查询包含普通和串行处理器，共享 Java 类的不同配方类别不会被合并。
+
+省略命名空间时使用当前页面命名空间，保留注册名大小写、元数据和 SNBT。通配元数据沿用现有具体物品栈规则，不表示查询所有元数据变体。URI 参数仅按严格 UTF-8 解码一次，字面量 `+` 保持为 `+`。SNBT 及 `&`、`#`、`%`、`?`、`)` 等保留字符应进行百分号编码。
+
+重复或未知参数、错误转义、片段、不支持的模式、冲突属性及缺少目标会产生编写错误。仅带 `&` 的动作及 `<NeiRecipeLink>` 是 NEI 入口；普通链接、引用链接和 HTML 锚点不作为别名，也不支持 `nei://`。
+
+仅在点击时解析物品并查询 NEI。NEI 缺失或没有结果时保留指南并给出本地化提示。Web Editor、导出站点和 IDE 预览显示不可点击文字，提示在 GuideNH 中打开指南。

@@ -194,3 +194,31 @@ configuration wijzigingen iedere pagina; naming Een handler on Een tag wijziging
 ## Live runtime Example
 
 See `wiki/resourcepack/assets/guidenh/guidenh/_en_us/index.md` voor extensive recipe samples, including handler filters en wildcard/NBT item ids.
+
+## NEI-links in lopende tekst
+
+Een aangepaste actielink opent NEI vanuit tekst zonder receptkaart, volgens de bestaande vorm `&[tekst](sound:...)`.
+
+```md
+&[Alle cokesovenrecepten bekijken](nei:handler?handlerId=gt.recipe.cokeoven)
+&[Recepten bekijken](nei:recipes?id=minecraft:iron_ingot)
+&[Toepassingen bekijken](nei:usage?id=gregtech:gt.blockmachines:236&handlerId=gt.recipe.cokeoven)
+
+<NeiRecipeLink handlerId="gt.recipe.cokeoven">NEI openen</NeiRecipeLink>
+<NeiRecipeLink id="minecraft:iron_ingot">**Recepten** bekijken</NeiRecipeLink>
+<NeiRecipeLink mode="usage" id="gregtech:gt.blockmachines:236" handlerId="gt.recipe.cokeoven" title="NEI">Toepassingen bekijken</NeiRecipeLink>
+
+&[Boekrecepten met SNBT](nei:recipes?id=minecraft:written_book:0:%7Btitle:%22Guide%2BNEI%22%2Cauthor:GuideNH%7D)
+```
+
+`handler` vereist `handlerId`, verbiedt `id` en opent alle recepten van de handler. `recipes` vereist `id` voor productierecepten; `usage` vereist `id` voor toepassingen inclusief katalysatoren, ongeacht Ctrl. Deze laatste twee accepteren een optioneel `handlerId`-filter.
+
+`<NeiRecipeLink>` accepteert alleen `id`, `handlerId`, `mode` en tooltip `title`. Zonder `mode` wordt met `id` de modus `recipes` gekozen, anders `handler`. Zichtbare inline-inhoud is verplicht. Actielabels zijn platte tekst; de tag ondersteunt opmaak.
+
+Overlay-ID of handler-ID moet exact overeenkomen, zonder onderscheid tussen hoofdletters. De gedeeltelijke klassenaamfilter van receptkaarten wordt niet gebruikt. Normale en seriële handlers zijn inbegrepen; categorieën met dezelfde Java-klasse blijven apart.
+
+Zonder naamruimte geldt die van de pagina. Hoofdletters, metadata en SNBT blijven behouden; jokers volgen bestaande regels voor concrete stapels. URI-waarden worden eenmaal strikt als UTF-8 gedecodeerd; `+` blijft `+`. Gebruik procentcodering voor SNBT en `&`, `#`, `%`, `?`, `)`.
+
+Dubbele of onbekende parameters, ongeldige escapes, fragmenten, onjuiste modi, tegenstrijdige attributen en ontbrekende doelen geven auteursfouten. Alleen `&`-acties en `<NeiRecipeLink>` werken; gewone links, verwijzingen, HTML-ankers en `nei://` zijn geen aliassen.
+
+Voorwerpen en recepten worden pas bij klikken opgezocht. Zonder NEI of resultaten blijft de gids open met een vertaalde melding. Browser- en IDE-voorbeelden tonen inactieve tekst met het advies de gids in GuideNH te openen.

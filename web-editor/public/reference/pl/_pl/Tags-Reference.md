@@ -29,6 +29,7 @@ Ten strona lists  built-in czas wykonania tagi zarejestrowany by `DefaultExtensi
 | `<Spoiler>` | ukryty inline tekst revealed on najechanie | none |
 | `<Tooltip>` | bogata najechanie podpowiedź z Markdown/tag elementy podrzędne | `label` |
 | `<SoundLink>` | clickable bogata-tekst sound trigger | `sound` lub `src`, `volume`, `pitch`, `cooldown` |
+| `<NeiRecipeLink>` | NEI inline recipe link | `id`, `handlerId`, `mode`, `title` |
 | `<mark>` | inline highlighted tekst; equivalent do `==text==` z opcjonalny kolor control | `color` |
 | `<PlayerName>` | inserts bieżący gracz username | none |
 | `<KeyBind>` | inserts keybinding wyświetlać nazwa | `id` lub `action` |
@@ -884,3 +885,31 @@ Przykład:
 <Amount value="250" unit="fluid" /> L/s
 <Amount value="1200000" format="compact" /> items
 ````
+
+## Odnośniki NEI w tekście
+
+Niestandardowy odnośnik akcji otwiera NEI z tekstu bez renderowania karty receptury. Używa formatu `&[tekst](sound:...)`.
+
+```md
+&[Zobacz wszystkie receptury pieca koksowniczego](nei:handler?handlerId=gt.recipe.cokeoven)
+&[Zobacz receptury](nei:recipes?id=minecraft:iron_ingot)
+&[Zobacz zastosowania](nei:usage?id=gregtech:gt.blockmachines:236&handlerId=gt.recipe.cokeoven)
+
+<NeiRecipeLink handlerId="gt.recipe.cokeoven">Otwórz NEI</NeiRecipeLink>
+<NeiRecipeLink id="minecraft:iron_ingot">Zobacz **receptury**</NeiRecipeLink>
+<NeiRecipeLink mode="usage" id="gregtech:gt.blockmachines:236" handlerId="gt.recipe.cokeoven" title="NEI">Zobacz zastosowania</NeiRecipeLink>
+
+&[Receptury książek z SNBT](nei:recipes?id=minecraft:written_book:0:%7Btitle:%22Guide%2BNEI%22%2Cauthor:GuideNH%7D)
+```
+
+`handler` wymaga `handlerId`, zabrania `id` i otwiera wszystkie receptury obsługi. `recipes` wymaga `id` dla receptur wytwarzania, a `usage` dla zastosowań wraz z katalizatorami, niezależnie od Ctrl. Te dwa tryby pozwalają na opcjonalny filtr `handlerId`.
+
+`<NeiRecipeLink>` przyjmuje wyłącznie `id`, `handlerId`, `mode` i podpowiedź `title`. Bez `mode` obecność `id` wybiera `recipes`, w przeciwnym razie `handler`. Wymagana jest widoczna treść. Etykieta akcji jest zwykłym tekstem; znacznik obsługuje formatowanie.
+
+Identyfikator nakładki lub obsługi musi pasować dokładnie, bez uwzględniania wielkości liter. Nie jest stosowane częściowe dopasowanie nazw klas z kart receptur. Uwzględnia obsługę zwykłą i szeregową; kategorie wspólnej klasy Java pozostają osobne.
+
+Bez przestrzeni nazw używana jest przestrzeń strony. Wielkość liter, metadane i SNBT są zachowane; symbole wieloznaczne stosują istniejące reguły konkretnych stosów. URI dekodowane jest raz, ściśle jako UTF-8; `+` pozostaje `+`. Zakoduj SNBT oraz `&`, `#`, `%`, `?`, `)` procentowo.
+
+Powtórzone lub nieznane parametry, błędne kody, fragmenty, tryby, sprzeczne atrybuty i brak celu powodują błędy autora. Działają tylko akcje `&` i `<NeiRecipeLink>`; zwykłe odnośniki, referencje, kotwice HTML i `nei://` nie są aliasami.
+
+Przedmioty i receptury są wyszukiwane dopiero po kliknięciu. Bez NEI lub wyników przewodnik pozostaje otwarty z przetłumaczonym komunikatem. Podgląd w przeglądarce i IDE pokazuje nieaktywny tekst z poleceniem otwarcia w GuideNH.

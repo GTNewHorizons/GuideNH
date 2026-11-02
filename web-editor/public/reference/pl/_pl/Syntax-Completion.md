@@ -322,3 +322,48 @@ Conventions który matter dla plugin:
   writes, i normalized form drops  commit.
 - plugin który throws is reported z jego przestrzeń nazw i skipped, so failure costs your własny
   contributions rather niż  edytor.
+
+## Rejestracja mechanizmów rozpoznawania akcji
+
+Własne akcje `&` korzystają z `ActionLinkResolver.EXTENSION_POINT` w istniejącej `ExtensionCollection` każdego przewodnika. Wbudowane schematy to `sound`, `sound-src` i `nei`. Są indeksowane raz bez rozróżniania wielkości liter; duplikaty są odrzucane, a nieznane schematy zachowują tekst źródłowy.
+
+```md
+&[Zobacz wszystkie receptury pieca koksowniczego](nei:handler?handlerId=gt.recipe.cokeoven)
+&[Zobacz receptury](nei:recipes?id=minecraft:iron_ingot)
+&[Zobacz zastosowania](nei:usage?id=gregtech:gt.blockmachines:236&handlerId=gt.recipe.cokeoven)
+
+<NeiRecipeLink handlerId="gt.recipe.cokeoven">Otwórz NEI</NeiRecipeLink>
+```
+
+Zarejestruj mechanizm dodatku i odpowiedni kompilator znacznika w kreatorze przewodnika. Mechanizm tworzy znacznik AST w wierszu, a kompilator odpowiada za układ i odroczone działanie. `SyntaxSlot` zapewnia uzupełnianie, zastępowanie i zaznaczanie w edytorze, lecz nie rejestruje akcji wykonawczych. Przedmioty i receptury NEI są wyszukiwane dopiero po kliknięciu.
+
+```java
+import java.util.ArrayList;
+import java.util.Set;
+
+import com.hfstudio.guidenh.guide.Guide;
+import com.hfstudio.guidenh.guide.compiler.ActionLinkResolver;
+import com.hfstudio.guidenh.guide.internal.markdown.MarkdownActionLink;
+import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxTextElement;
+
+public class MyActionResolver implements ActionLinkResolver {
+    @Override
+    public Set<String> getSchemes() {
+        return Set.of("inspect");
+    }
+
+    @Override
+    public MdxJsxTextElement resolve(String label, String destination, String defaultNamespace) {
+        MdxJsxTextElement element = new MdxJsxTextElement("MyActionLink", new ArrayList<>());
+        element.addAttribute("target", destination.substring(destination.indexOf(':') + 1));
+        element.addChild(MarkdownActionLink.plainLabel(label));
+        return element;
+    }
+}
+```
+
+```java
+Guide.builder(id).extension(ActionLinkResolver.EXTENSION_POINT, new MyActionResolver()).build();
+```
+
+Rozszerzenia przewodnika trafiają też do Site Export, podpowiedzi i fragmentów scen. Podgląd w przeglądarce pokazuje nieaktywny tekst NEI z przetłumaczonym opisem. Web Editor lokalnie obsługuje wspierane schematy i nie uruchamia mechanizmów dodatków Java.

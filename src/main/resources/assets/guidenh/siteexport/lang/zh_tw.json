@@ -1,4 +1,7 @@
 {
+  "nei": {
+    "inGame": "請在 GuideNH 中開啟本指南以查看 NEI 配方。"
+  },
   "scene": {
     "hideAnnotations": "隱藏註解",
     "showAnnotations": "顯示註解",

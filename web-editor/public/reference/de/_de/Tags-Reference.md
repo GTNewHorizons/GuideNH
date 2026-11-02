@@ -29,6 +29,7 @@ dies Seite lists Die built-in Laufzeit Tags registriert by `DefaultExtensions`.
 | `<Spoiler>` | verborgen inline Text revealed auf Hover | none |
 | `<Tooltip>` | rich Hover Tooltip mit markdown/Tag untergeordnete Elemente | `label` |
 | `<SoundLink>` | clickable rich-Text sound trigger | `sound` oder `src`, `volume`, `pitch`, `cooldown` |
+| `<NeiRecipeLink>` | NEI inline recipe link | `id`, `handlerId`, `mode`, `title` |
 | `<mark>` | inline highlighted Text; equivalent zu `==text==` mit optional Farbe control | `color` |
 | `<PlayerName>` | inserts aktuell player username | none |
 | `<KeyBind>` | inserts keybinding anzeigen Name | `id` oder `action` |
@@ -884,3 +885,31 @@ Beispiel:
 <Amount value="250" unit="fluid" /> L/s
 <Amount value="1200000" format="compact" /> items
 ````
+
+## NEI-Rezeptlinks im Fließtext
+
+Ein benutzerdefinierter Aktionslink öffnet NEI direkt aus dem Text, ohne eine Rezeptkarte darzustellen. Die Syntax entspricht `&[Text](sound:...)`.
+
+```md
+&[Alle Koksofenrezepte ansehen](nei:handler?handlerId=gt.recipe.cokeoven)
+&[Rezepte ansehen](nei:recipes?id=minecraft:iron_ingot)
+&[Verwendungen ansehen](nei:usage?id=gregtech:gt.blockmachines:236&handlerId=gt.recipe.cokeoven)
+
+<NeiRecipeLink handlerId="gt.recipe.cokeoven">NEI öffnen</NeiRecipeLink>
+<NeiRecipeLink id="minecraft:iron_ingot">**Rezepte** ansehen</NeiRecipeLink>
+<NeiRecipeLink mode="usage" id="gregtech:gt.blockmachines:236" handlerId="gt.recipe.cokeoven" title="NEI">Verwendungen ansehen</NeiRecipeLink>
+
+&[Buchrezepte mit SNBT](nei:recipes?id=minecraft:written_book:0:%7Btitle:%22Guide%2BNEI%22%2Cauthor:GuideNH%7D)
+```
+
+`handler` benötigt `handlerId`, verbietet `id` und öffnet alle Rezepte des Handlers. `recipes` benötigt `id` für Herstellungsrezepte, `usage` für Verwendungen einschließlich Katalysatoren, unabhängig von Strg. Beide erlauben einen optionalen `handlerId`-Filter.
+
+`<NeiRecipeLink>` akzeptiert nur `id`, `handlerId`, `mode` und den Tooltip `title`. Ohne `mode` gilt mit `id` der Modus `recipes`, sonst `handler`. Sichtbarer Inline-Inhalt ist erforderlich. Aktionsbeschriftungen sind Klartext; das Tag erlaubt formatierten Inhalt.
+
+Overlay-ID oder Handler-ID werden exakt und ohne Beachtung der Großschreibung verglichen. Anders als bei Rezeptkarten gibt es keinen Teilvergleich mit Java-Klassennamen. Normale und serielle Handler werden berücksichtigt; Kategorien derselben Klasse bleiben getrennt.
+
+Ohne Namensraum gilt der Namensraum der Seite. Schreibweise, Metadaten und SNBT bleiben erhalten; Wildcard-Metadaten folgen den bisherigen Regeln für konkrete Stacks. URI-Werte werden einmal streng als UTF-8 dekodiert; `+` bleibt `+`. SNBT und `&`, `#`, `%`, `?`, `)` müssen prozentkodiert werden.
+
+Doppelte oder unbekannte Parameter, ungültige Kodierung, Fragmente, falsche Modi, widersprüchliche Attribute und fehlende Ziele erzeugen Autorenfehler. Nur `&`-Aktionen und `<NeiRecipeLink>` werden unterstützt; gewöhnliche Links, Referenzlinks, HTML-Anker und `nei://` sind keine Aliase.
+
+Items und Rezepte werden erst beim Klicken geladen. Ohne NEI oder Treffer bleibt der Guide mit einer lokalisierten Meldung geöffnet. Browser und IDE-Vorschauen zeigen inaktiven Text mit dem Hinweis, den Guide in GuideNH zu öffnen.

@@ -1,4 +1,7 @@
 {
+  "nei": {
+    "inGame": "NEI 조합법을 보려면 GuideNH에서 이 가이드를 여세요."
+  },
   "scene": {
     "hideAnnotations": "주석 숨기기",
     "showAnnotations": "주석 표시",

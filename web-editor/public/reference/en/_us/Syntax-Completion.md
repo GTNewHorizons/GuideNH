@@ -320,3 +320,47 @@ Conventions that matter for a plugin:
 - A plugin that throws is reported with its namespace and skipped, so a failure costs your own
   contributions rather than the editor.
 
+## Runtime action resolver registration
+
+Custom ampersand actions use `ActionLinkResolver.EXTENSION_POINT` in the existing per-guide `ExtensionCollection`. Built-in schemes are `sound`, `sound-src`, and `nei`. Schemes are indexed once, case-insensitively; duplicate registrations are rejected and unknown schemes remain literal source.
+
+```md
+&[Check all Coke Oven recipes](nei:handler?handlerId=gt.recipe.cokeoven)
+&[Check recipes](nei:recipes?id=minecraft:iron_ingot)
+&[Check usages](nei:usage?id=gregtech:gt.blockmachines:236&handlerId=gt.recipe.cokeoven)
+
+<NeiRecipeLink handlerId="gt.recipe.cokeoven">Check NEI</NeiRecipeLink>
+```
+
+Register an addon resolver and its matching tag compiler on the guide builder. The resolver expands to an inline AST tag; the tag compiler supplies layout and deferred behavior. `SyntaxSlot` supplies editor completion, replacement, and selection; it does not register runtime actions. Item lookups and NEI queries run only after a click.
+
+```java
+import java.util.ArrayList;
+import java.util.Set;
+
+import com.hfstudio.guidenh.guide.Guide;
+import com.hfstudio.guidenh.guide.compiler.ActionLinkResolver;
+import com.hfstudio.guidenh.guide.internal.markdown.MarkdownActionLink;
+import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxTextElement;
+
+public class MyActionResolver implements ActionLinkResolver {
+    @Override
+    public Set<String> getSchemes() {
+        return Set.of("inspect");
+    }
+
+    @Override
+    public MdxJsxTextElement resolve(String label, String destination, String defaultNamespace) {
+        MdxJsxTextElement element = new MdxJsxTextElement("MyActionLink", new ArrayList<>());
+        element.addAttribute("target", destination.substring(destination.indexOf(':') + 1));
+        element.addChild(MarkdownActionLink.plainLabel(label));
+        return element;
+    }
+}
+```
+
+```java
+Guide.builder(id).extension(ActionLinkResolver.EXTENSION_POINT, new MyActionResolver()).build();
+```
+
+The owning guide extensions also reach direct Site Export, tooltips, and scene fragments. Browser previews show inactive NEI text with a localized explanation. The Web Editor handles its supported schemes locally and does not execute Java addon resolvers.

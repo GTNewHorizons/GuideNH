@@ -322,3 +322,48 @@ Conventions que matter pour Un plugin:
   writes, et Un normalized form drops Le commit.
 - Un plugin que throws est reported avec son namespace et skipped, so Un failure costs votre propre
   contributions rather que Le éditeur.
+
+## Enregistrement des résolveurs d’actions
+
+Les actions `&` personnalisées utilisent `ActionLinkResolver.EXTENSION_POINT` dans l’`ExtensionCollection` de chaque guide. Les schémas intégrés sont `sound`, `sound-src` et `nei`. Ils sont indexés une fois sans distinction de casse ; les doublons sont refusés et les schémas inconnus conservent le texte source.
+
+```md
+&[Voir toutes les recettes du four à coke](nei:handler?handlerId=gt.recipe.cokeoven)
+&[Voir les recettes](nei:recipes?id=minecraft:iron_ingot)
+&[Voir les utilisations](nei:usage?id=gregtech:gt.blockmachines:236&handlerId=gt.recipe.cokeoven)
+
+<NeiRecipeLink handlerId="gt.recipe.cokeoven">Ouvrir NEI</NeiRecipeLink>
+```
+
+Enregistrez le résolveur du module et son compilateur de balises dans le constructeur du guide. Le résolveur produit une balise AST en ligne ; le compilateur fournit la mise en page et le comportement différé. `SyntaxSlot` gère la complétion, le remplacement et la sélection dans l’éditeur, sans enregistrer les actions d’exécution. Les objets et les recettes NEI sont recherchés uniquement au clic.
+
+```java
+import java.util.ArrayList;
+import java.util.Set;
+
+import com.hfstudio.guidenh.guide.Guide;
+import com.hfstudio.guidenh.guide.compiler.ActionLinkResolver;
+import com.hfstudio.guidenh.guide.internal.markdown.MarkdownActionLink;
+import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxTextElement;
+
+public class MyActionResolver implements ActionLinkResolver {
+    @Override
+    public Set<String> getSchemes() {
+        return Set.of("inspect");
+    }
+
+    @Override
+    public MdxJsxTextElement resolve(String label, String destination, String defaultNamespace) {
+        MdxJsxTextElement element = new MdxJsxTextElement("MyActionLink", new ArrayList<>());
+        element.addAttribute("target", destination.substring(destination.indexOf(':') + 1));
+        element.addChild(MarkdownActionLink.plainLabel(label));
+        return element;
+    }
+}
+```
+
+```java
+Guide.builder(id).extension(ActionLinkResolver.EXTENSION_POINT, new MyActionResolver()).build();
+```
+
+Les extensions du guide sont aussi transmises à Site Export, aux infobulles et aux fragments de scène. Les aperçus affichent du texte NEI inactif avec une explication traduite. Web Editor traite localement les schémas pris en charge et n’exécute pas les résolveurs Java des modules.
