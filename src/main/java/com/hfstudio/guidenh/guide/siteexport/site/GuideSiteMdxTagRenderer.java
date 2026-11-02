@@ -277,6 +277,13 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         if ("SoundLink".equals(name)) {
             return renderSoundLink(element, defaultNamespace, currentPageId, templates, sceneResolver, compiler);
         }
+        if ("NeiRecipeLink".equals(name)) {
+            return GuideSiteNeiLinkRenderer.render(
+                element,
+                defaultNamespace,
+                compiler
+                    .compileFragment(element.children(), templates, defaultNamespace, sceneResolver, currentPageId));
+        }
         if ("div".equals(name)) {
             return "<div>"
                 + compiler

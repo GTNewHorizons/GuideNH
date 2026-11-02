@@ -12,6 +12,10 @@ import net.minecraft.item.ItemStack;
 
 import org.jetbrains.annotations.Nullable;
 
+import com.hfstudio.guidenh.guide.compiler.IdUtils;
+import com.hfstudio.guidenh.guide.nei.NeiLinkTarget;
+import com.hfstudio.guidenh.integration.nei.GuideScreenNeiBridge.EditorAccess;
+
 import codechicken.nei.NEIClientConfig;
 import codechicken.nei.PositionedStack;
 import codechicken.nei.recipe.GuiCraftingRecipe;
@@ -35,6 +39,25 @@ public class NeiGuideNavigation {
     private static final Map<Class<?>, @Nullable String> HANDLER_NAME_CACHE = new HashMap<>();
 
     protected NeiGuideNavigation() {}
+
+    public static boolean openLink(@Nullable EditorAccess editorAccess, NeiLinkTarget target) {
+        ItemStack stack = target.itemId() == null ? null : IdUtils.resolveItemStack(target.itemId(), "minecraft");
+        if (target.itemId() != null && stack == null) return false;
+        GuiRecipe<?> gui;
+        if ("usage".equals(target.action())) {
+            List<IUsageHandler> handlers = NeiLinkHandlerQuery.usageHandlers(target, stack);
+            gui = handlers.isEmpty() ? null : newGuiUsageRecipe(new ArrayList<>(handlers));
+        } else {
+            List<ICraftingHandler> handlers = NeiLinkHandlerQuery.craftingHandlers(target, stack);
+            gui = handlers.isEmpty() ? null : newGuiCraftingRecipe(new ArrayList<>(handlers));
+        }
+        if (gui == null) return false;
+        return withTemporaryScreenChange(editorAccess, () -> {
+            Minecraft.getMinecraft()
+                .displayGuiScreen(gui);
+            return true;
+        });
+    }
 
     public static boolean handleHoveredStackShortcut(@Nullable GuideScreenNeiBridge.EditorAccess editorAccess,
         @Nullable ItemStack stack) {

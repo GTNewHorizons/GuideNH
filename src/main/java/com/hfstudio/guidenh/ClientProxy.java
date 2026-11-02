@@ -37,6 +37,7 @@ import com.hfstudio.guidenh.guide.internal.host.scripts.ItemImageScript;
 import com.hfstudio.guidenh.guide.internal.host.scripts.ItemLinkScript;
 import com.hfstudio.guidenh.guide.internal.host.scripts.KeyBindScript;
 import com.hfstudio.guidenh.guide.internal.host.scripts.MermaidScript;
+import com.hfstudio.guidenh.guide.internal.host.scripts.NeiLinkScript;
 import com.hfstudio.guidenh.guide.internal.host.scripts.PlayerNameScript;
 import com.hfstudio.guidenh.guide.internal.host.scripts.QuestCardScript;
 import com.hfstudio.guidenh.guide.internal.host.scripts.QuestLinkScript;
@@ -149,6 +150,7 @@ public class ClientProxy extends CommonProxy {
         lytHost.registerScript("PlayerName", new PlayerNameScript());
         lytHost.registerScript("KeyBind", new KeyBindScript());
         lytHost.registerScript("SoundLink", new SoundLinkScript());
+        lytHost.registerScript("NeiRecipeLink", new NeiLinkScript());
         lytHost.registerScript("Structure", new StructureScript());
         lytHost.registerScript("SubPages", new SubPagesScript());
         lytHost.registerScript("Tooltip", new TooltipScript());

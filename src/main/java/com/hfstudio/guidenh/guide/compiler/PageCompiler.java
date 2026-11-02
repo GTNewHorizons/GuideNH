@@ -72,7 +72,6 @@ import com.hfstudio.guidenh.guide.mediawiki.template.MediaWikiTemplateEditorPrev
 import com.hfstudio.guidenh.guide.mediawiki.template.MediaWikiTemplateName;
 import com.hfstudio.guidenh.guide.mediawiki.template.MediaWikiTemplatePageIds;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
-import com.hfstudio.guidenh.guide.sound.GuideSoundParsers;
 import com.hfstudio.guidenh.guide.style.TextAlignment;
 import com.hfstudio.guidenh.guide.style.WhiteSpaceMode;
 import com.hfstudio.guidenh.libs.mdast.MdAst;
@@ -131,6 +130,7 @@ public class PageCompiler {
     private final Map<String, MdAstDefinition> definitions = new HashMap<>();
 
     private final Map<String, TagCompiler> tagCompilers = new HashMap<>();
+    private final Map<String, ActionLinkResolver> actionLinkResolvers;
 
     // Data associated with the current page being compiled, this is used by
     // compilers to communicate with each other within the current page.
@@ -168,6 +168,7 @@ public class PageCompiler {
         this.language = language;
         this.pageId = pageId;
         this.pageContent = pageContent;
+        this.actionLinkResolvers = MarkdownActionLink.indexResolvers(extensions);
 
         // Index available tag-compilers
         for (var tagCompiler : extensions.get(TagCompiler.EXTENSION_POINT)) {
@@ -896,7 +897,11 @@ public class PageCompiler {
         LytFlowContent layoutChild;
 
         if (content instanceof MdAstText astText) {
-            if (compileActionLinks(layoutParent, astText.value)) {
+            if (MarkdownActionLink.isPlainLabel(astText)) {
+                var text = new LytFlowText();
+                text.setText(astText.value);
+                layoutChild = text;
+            } else if (compileActionLinks(layoutParent, astText)) {
                 layoutChild = null;
             } else if (compileLiteralAutolinks(layoutParent, astText.value)) {
                 layoutChild = null;
@@ -940,42 +945,33 @@ public class PageCompiler {
         }
     }
 
-    private boolean compileActionLinks(LytFlowParent layoutParent, String text) {
-        if (!MarkdownActionLink.mayContain(text)) {
+    private boolean compileActionLinks(LytFlowParent layoutParent, MdAstText source) {
+        if (!MarkdownActionLink.mayContain(source.value)) {
             return false;
         }
-
-        List<MarkdownActionLink.Segment> segments = MarkdownActionLink.split(text);
-        ArrayList<LytFlowContent> rendered = new ArrayList<>(segments.size());
-        boolean foundSoundLink = false;
-        for (var segment : segments) {
+        List<MarkdownActionLink.Segment> segments = MarkdownActionLink.split(source.value);
+        if (segments.stream()
+            .noneMatch(MarkdownActionLink.Segment::isLink)) return false;
+        for (MarkdownActionLink.Segment segment : segments) {
             if (!segment.isLink()) {
-                if (!segment.text()
-                    .isEmpty()) {
-                    rendered.add(LytFlowText.of(segment.text()));
+                MdAstText text = new MdAstText();
+                text.value = segment.text();
+                text.position = source.position;
+                compileFlowContent(layoutParent, text);
+                continue;
+            }
+            try {
+                MdxJsxTextElement expanded = MarkdownActionLink
+                    .expand(segment.text(), segment.href(), pageId.getResourceDomain(), actionLinkResolvers);
+                if (expanded == null) {
+                    layoutParent.appendText(segment.source());
+                } else {
+                    expanded.position = source.position;
+                    compileFlowContent(layoutParent, expanded);
                 }
-                continue;
+            } catch (IllegalArgumentException exception) {
+                layoutParent.appendError(this, exception.getMessage(), source);
             }
-
-            var sound = GuideSoundParsers.parseActionUri(this, segment.href());
-            if (sound == null) {
-                rendered.add(LytFlowText.of("&[" + segment.text() + "](" + segment.href() + ")"));
-                continue;
-            }
-
-            var link = new LytFlowLink();
-            link.setClickSoundSpec(sound);
-            link.setClickCallback(uiHost -> {});
-            link.appendText(segment.text());
-            rendered.add(link);
-            foundSoundLink = true;
-        }
-        if (!foundSoundLink) {
-            return false;
-        }
-
-        for (var content : rendered) {
-            layoutParent.append(content);
         }
         return true;
     }

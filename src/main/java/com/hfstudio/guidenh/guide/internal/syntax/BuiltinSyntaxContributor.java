@@ -127,6 +127,12 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
             AttributeSyntax.of("close", SyntaxValueKind.BOOLEAN),
             AttributeSyntax.of("title", SyntaxValueKind.STRING));
         sink.attributes(
+            "NeiRecipeLink",
+            AttributeSyntax.of("id", SyntaxValueKind.ITEM_ID),
+            AttributeSyntax.of("handlerId", SyntaxValueKind.STRING),
+            AttributeSyntax.of("mode", SyntaxValueKind.ENUM, "handler", "recipes", "usage"),
+            AttributeSyntax.of("title", SyntaxValueKind.STRING));
+        sink.attributes(
             "Recipe",
             AttributeSyntax.of("id", SyntaxValueKind.ITEM_ID),
             AttributeSyntax.of("fallbackText", SyntaxValueKind.STRING),
@@ -1286,6 +1292,7 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
             "Color",
             "CommandLink",
             "SoundLink",
+            "NeiRecipeLink",
             "kbd",
             "Latex",
             "mark",
@@ -1556,6 +1563,10 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
 
     private static void contributeInsertTemplates(SyntaxSink sink) {
         sink.insertTemplates(
+            InsertTemplate.caretAfter(
+                "NeiRecipeLink",
+                "<NeiRecipeLink handlerId=\"gt.recipe.cokeoven\">Check NEI</NeiRecipeLink>",
+                "handlerId=\""),
             InsertTemplate
                 .caretAfter("InputAnnotation", "<InputAnnotation pos=\"0.5 1.5 0.5\" inputType=\"lmb\" />", "pos=\""),
             InsertTemplate.caretAfter("BlockStat", "<BlockStat item=\"\" count=\"1\" />", "item=\""),
@@ -1699,6 +1710,14 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
             MarkdownSnippet.inline("::", "Dotted underline", "::::", 2),
             MarkdownSnippet.inline("`", "Inline code", "``", 1),
             MarkdownSnippet.inline("[", "Link", "[]()", 1),
+            MarkdownSnippet
+                .inline("&[", "NEI handler link", "&[Check NEI](nei:handler?handlerId=gt.recipe.cokeoven)", 2),
+            MarkdownSnippet.inline("&[", "NEI recipe link", "&[Check recipes](nei:recipes?id=minecraft:iron_ingot)", 2),
+            MarkdownSnippet.inline(
+                "&[",
+                "NEI usage link",
+                "&[Check usages](nei:usage?id=gregtech:gt.blockmachines:236&handlerId=gt.recipe.cokeoven)",
+                2),
             MarkdownSnippet.inline("![", "Image", "![]()", 2));
     }
 

@@ -693,3 +693,6 @@ guidenh.debug.info.parent_element=父元素:
 guidenh.debug.info.class_name=类: %s
 guidenh.debug.info.size=尺寸: %s x %s
 guidenh.debug.info.position=位置: %s, %s
+
+guidenh.nei.link.unavailable=NEI 不可用，指南保持打开。
+guidenh.nei.link.no_recipes=没有找到此链接对应的 NEI 配方。

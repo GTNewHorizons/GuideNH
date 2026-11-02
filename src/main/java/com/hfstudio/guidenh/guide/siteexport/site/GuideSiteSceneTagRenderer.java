@@ -13,7 +13,10 @@ import org.jetbrains.annotations.Nullable;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.hfstudio.guidenh.guide.compiler.ActionLinkResolver;
 import com.hfstudio.guidenh.guide.compiler.tags.MdxAttrs;
+import com.hfstudio.guidenh.guide.extensions.ExtensionCollection;
+import com.hfstudio.guidenh.guide.internal.extensions.DefaultExtensions;
 import com.hfstudio.guidenh.guide.internal.localization.GuideLanguageIndex;
 import com.hfstudio.guidenh.guide.internal.util.LangUtil;
 import com.hfstudio.guidenh.guide.scene.StructureLibSceneCondition;
@@ -83,15 +86,38 @@ public class GuideSiteSceneTagRenderer implements GuideSiteHtmlCompiler.SceneTag
         GuideSiteHtmlCompiler.ImageResolver imageResolver, GuideSiteHtmlCompiler.MdxTagRenderer mdxTagRenderer,
         GuideSiteLatexExporter latexExporter, @Nullable GuideSitePageAssetExporter assetExporter,
         GuideSiteItemIconResolver itemIconResolver) {
+        this(
+            recipeTagRenderer,
+            imageResolver,
+            mdxTagRenderer,
+            latexExporter,
+            assetExporter,
+            itemIconResolver,
+            defaultActionExtensions());
+    }
+
+    public GuideSiteSceneTagRenderer(GuideSiteHtmlCompiler.RecipeTagRenderer recipeTagRenderer,
+        GuideSiteHtmlCompiler.ImageResolver imageResolver, GuideSiteHtmlCompiler.MdxTagRenderer mdxTagRenderer,
+        GuideSiteLatexExporter latexExporter, @Nullable GuideSitePageAssetExporter assetExporter,
+        GuideSiteItemIconResolver itemIconResolver, ExtensionCollection extensions) {
         this.fragmentCompiler = new GuideSiteHtmlCompiler(
             recipeTagRenderer,
             (element, defaultNamespace, currentPageId, templates, exportedScene) -> "",
             imageResolver,
             mdxTagRenderer != null ? mdxTagRenderer : noopMdxTagRenderer(),
             latexExporter,
-            assetExporter);
+            assetExporter,
+            extensions);
         this.assetExporter = assetExporter;
         this.itemIconResolver = itemIconResolver != null ? itemIconResolver : GuideSiteItemIconResolver.NONE;
+    }
+
+    private static ExtensionCollection defaultActionExtensions() {
+        var builder = ExtensionCollection.builder();
+        for (var resolver : DefaultExtensions.actionLinkResolvers()) {
+            builder.add(ActionLinkResolver.EXTENSION_POINT, resolver);
+        }
+        return builder.build();
     }
 
     @Override
