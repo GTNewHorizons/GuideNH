@@ -17,6 +17,7 @@ import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxFlowElement;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxTextElement;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstAnyContent;
+import com.hfstudio.guidenh.libs.mdast.model.MdAstCode;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstFlowContent;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstHTML;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstNode;
@@ -25,6 +26,7 @@ import com.hfstudio.guidenh.libs.mdast.model.MdAstParent;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstPhrasingContent;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstRoot;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstText;
+import com.hfstudio.guidenh.libs.micromark.HtmlTagName;
 
 public class MarkdownHtmlRuntimeNormalizer {
 
@@ -39,6 +41,41 @@ public class MarkdownHtmlRuntimeNormalizer {
         .of("table", "caption", "colgroup", "col", "thead", "tbody", "tfoot", "tr", "th", "td");
     private static final Set<String> HTML_VOID_ELEMENTS = Set
         .of("area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "source", "track", "wbr");
+    private static final Set<String> HTML_INLINE_ELEMENTS = Set.of(
+        "a",
+        "abbr",
+        "b",
+        "bdi",
+        "bdo",
+        "big",
+        "cite",
+        "code",
+        "data",
+        "del",
+        "dfn",
+        "em",
+        "font",
+        "i",
+        "ins",
+        "kbd",
+        "mark",
+        "nobr",
+        "q",
+        "rp",
+        "rt",
+        "ruby",
+        "s",
+        "samp",
+        "small",
+        "span",
+        "strike",
+        "strong",
+        "sub",
+        "sup",
+        "time",
+        "tt",
+        "u",
+        "var");
 
     private MarkdownHtmlRuntimeNormalizer() {}
 
@@ -190,10 +227,18 @@ public class MarkdownHtmlRuntimeNormalizer {
 
     private static void normalizeEmbeddedHtmlTable(MdxJsxFlowElement table) {
         List<MdAstAnyContent> children = castAnyChildren(table.children());
-        if (children.size() != 1 || !(children.getFirst() instanceof MdAstHTML html)) {
+        if (children.size() != 1) {
             return;
         }
-        String body = html.value.replaceFirst("(?is)</\\s*table\\s*>\\s*$", "");
+        String source;
+        if (children.getFirst() instanceof MdAstHTML html) {
+            source = html.value;
+        } else if (children.getFirst() instanceof MdAstCode code && code.lang == null && code.meta == null) {
+            source = code.value;
+        } else {
+            return;
+        }
+        String body = source.replaceFirst("(?is)</\\s*table\\s*>\\s*$", "");
         MdxJsxFlowElement parsed = parseHtmlTable("<table>" + body + "</table>");
         if (parsed == null) {
             return;
@@ -204,12 +249,13 @@ public class MarkdownHtmlRuntimeNormalizer {
 
     private static MdxJsxElementFields createHtmlTableElement(TagInfo info) {
         List<MdxJsxAttributeNode> attributes = new ArrayList<>();
+        boolean htmlElement = isHtmlElement(info.name());
         for (Map.Entry<String, String> entry : info.attributes()
             .entrySet()) {
             attributes.add(
                 new MdxJsxAttribute(
-                    entry.getKey()
-                        .toLowerCase(Locale.ROOT),
+                    htmlElement ? entry.getKey()
+                        .toLowerCase(Locale.ROOT) : entry.getKey(),
                     entry.getValue()));
         }
         if (TABLE_FLOW_TAGS.contains(info.name())) {
@@ -241,6 +287,12 @@ public class MarkdownHtmlRuntimeNormalizer {
 
     private static boolean isHtmlVoidElement(String name) {
         return HTML_VOID_ELEMENTS.contains(name);
+    }
+
+    private static boolean isHtmlElement(String name) {
+        return HtmlTagName.htmlBlockNames.contains(name) || HtmlTagName.htmlRawNames.contains(name)
+            || HTML_VOID_ELEMENTS.contains(name)
+            || HTML_INLINE_ELEMENTS.contains(name);
     }
 
     private static int findHtmlTagEnd(String source, int start) {
@@ -453,7 +505,8 @@ public class MarkdownHtmlRuntimeNormalizer {
         boolean selfClosing = !closing && rest.trim()
             .endsWith("/");
         String normalizedName = rawName.toLowerCase(Locale.ROOT);
-        return new TagInfo(normalizedName, closing, selfClosing, parseAttributes(rest));
+        String name = isHtmlElement(normalizedName) ? normalizedName : rawName;
+        return new TagInfo(name, closing, selfClosing, parseAttributes(rest));
     }
 
     private static Map<String, String> parseAttributes(String raw) {
