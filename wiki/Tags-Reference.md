@@ -377,7 +377,6 @@ Shows an inline item icon.
 Notes:
 
 - `ore` takes precedence over `id` when both are provided
-- if GregTech is installed, the selected ore match is passed through `GTOreDictUnificator.setStack(...)`
 - `label` requires at least one of `showIcon` or `label` to produce visible output; setting both `showIcon="false"` and omitting `label` renders nothing
 - `format` only applies when `label` is set; if `format` has no `%s`, the literal format text is used as the label
 - inline SNBT in `id` remains supported; when both forms are present, the standalone `nbt` attribute is merged last and overrides conflicting keys

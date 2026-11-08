@@ -322,7 +322,7 @@ GuideNH 当前注册了以下场景子标签：
 
 说明：
 
-- 同时提供 `ore` 和 `id` 时，优先使用 `ore`；若安装了 GregTech，选中的结果还会先经过 `GTOreDictUnificator.setStack(...)` 统一化
+- 同时提供 `ore` 和 `id` 时，优先使用 `ore`
 - 若省略 `meta`，且 `ore` 解析出的物品携带具体且非通配符的 damage，则会先使用该值，再回退到 `facing`
 - 若省略 `meta`，部分方块会根据 `facing` 推导合理默认值
 - 若 `nbt` 能成功创建 TileEntity，预览中会使用该实体

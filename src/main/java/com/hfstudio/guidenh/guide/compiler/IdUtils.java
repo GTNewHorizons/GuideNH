@@ -6,6 +6,8 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import net.minecraft.block.Block;
+import net.minecraft.init.Blocks;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.JsonToNBT;
@@ -19,8 +21,16 @@ import org.jetbrains.annotations.Nullable;
 import com.gtnewhorizon.gtnhlib.util.data.ItemId;
 import com.hfstudio.guidenh.guide.internal.structure.GuideTextNbtCodec;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
+import com.hfstudio.guidenh.integration.Mods;
+import com.hfstudio.guidenh.integration.materiallib.MaterialLibItemRefs;
 
 public class IdUtils {
+
+    /**
+     * Prefix of a MaterialLib reference, {@code ml:<MaterialName>:<shapeToken>}; see
+     * {@link MaterialLibItemRefs}.
+     */
+    private static final String MATERIAL_LIB_PREFIX = "ml:";
 
     // Bounded LRU cache for parsed item references that carry no SNBT tail. Refs containing NBT
     // are intentionally NOT cached: callers like ItemId.createNoCopy share the NBT reference,
@@ -75,14 +85,20 @@ public class IdUtils {
      * present, is delimited by its leading {@code '{'} so colons inside the compound are preserved.
      * Returns {@code null} only when the input is blank; other malformed forms surface as an
      * {@link IllegalArgumentException} from {@link ResourceLocation}'s constructor.
+     *
+     * <p>
+     * A {@code ml:<MaterialName>:<shapeToken>} reference is resolved through MaterialLib instead, and yields
+     * the registry key and damage of the stack registered for that material and shape. When MaterialLib is
+     * absent or has nothing under those names, parsing continues on the ordinary path.
      */
     @Nullable
     public static ParsedItemRef parseItemRef(String idText, String defaultNamespace) {
         if (idText == null || idText.isEmpty()) return null;
         // Cache the common no-NBT case keyed on (namespace + ":" + idText). When the input
         // contains an SNBT tail (detected by '{') we skip the cache to avoid sharing mutable
-        // NBT references across callers.
-        boolean cacheable = idText.indexOf('{') < 0;
+        // NBT references across callers. MaterialLib refs are skipped too: a lookup made before
+        // MaterialLib registers its shapes must not pin the failure.
+        boolean cacheable = idText.indexOf('{') < 0 && !idText.startsWith(MATERIAL_LIB_PREFIX);
         String cacheKey = null;
         if (cacheable) {
             cacheKey = defaultNamespace + ":" + idText;
@@ -115,6 +131,11 @@ public class IdUtils {
             head = idText;
         }
 
+        if (head.startsWith(MATERIAL_LIB_PREFIX)) {
+            ParsedItemRef materialRef = parseMaterialLibRef(head, nbt);
+            if (materialRef != null) return materialRef;
+        }
+
         ResourceLocation id;
         String rawKey;
         int meta = 0;
@@ -142,6 +163,50 @@ public class IdUtils {
             PARSE_CACHE.put(cacheKey, result);
         }
         return result;
+    }
+
+    /**
+     * Resolves a {@code ml:<MaterialName>:<shapeToken>} head against MaterialLib's current registrations. Returns
+     * {@code null} when MaterialLib is absent, when the head does not split into exactly those three parts, or
+     * when nothing is registered under them.
+     */
+    @Nullable
+    private static ParsedItemRef parseMaterialLibRef(String head, @Nullable NBTTagCompound nbt) {
+        ItemStack stack = resolveMaterialLibStack(head);
+        if (stack == null) return null;
+        Object registryName = Item.itemRegistry.getNameForObject(stack.getItem());
+        if (registryName == null) return null;
+
+        String rawKey = registryName.toString();
+        return new ParsedItemRef(new ResourceLocation(rawKey), stack.getItemDamage(), true, nbt, rawKey);
+    }
+
+    /// Whether `ref` is an `ml:<MaterialName>:<shapeToken>` reference.
+    public static boolean isMaterialLibRef(String ref) {
+        return ref.startsWith(MATERIAL_LIB_PREFIX);
+    }
+
+    /// The stack an `ml:<MaterialName>:<shapeToken>` reference names, or null when MaterialLib is absent, the
+    /// reference is malformed, or it names nothing.
+    @Nullable
+    public static ItemStack resolveMaterialLibStack(String ref) {
+        if (!Mods.MaterialLib.isModLoaded() || !isMaterialLibRef(ref)) return null;
+
+        int nameStart = MATERIAL_LIB_PREFIX.length();
+        int shapeSeparator = ref.indexOf(':', nameStart);
+        if (shapeSeparator < 0) return null;
+        String materialName = ref.substring(nameStart, shapeSeparator);
+        String shapeToken = ref.substring(shapeSeparator + 1);
+        if (materialName.isEmpty() || shapeToken.isEmpty() || shapeToken.indexOf(':') >= 0) return null;
+        return MaterialLibItemRefs.getStack(materialName, shapeToken);
+    }
+
+    /// The block stack an `ml:<MaterialName>:<shapeToken>` structure palette reference names, or null when it names
+    /// nothing or an item that is not a block.
+    @Nullable
+    public static ItemStack resolveMaterialLibBlockStack(String ref) {
+        ItemStack stack = resolveMaterialLibStack(ref);
+        return stack != null && Block.getBlockFromItem(stack.getItem()) != Blocks.air ? stack : null;
     }
 
     public static int parseMeta(String metaStr) {

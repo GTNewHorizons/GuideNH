@@ -347,7 +347,7 @@ Places a block into the preview world.
 
 Notes:
 
-- `ore` takes precedence over `id`; if GregTech is installed, the chosen stack is unified through `GTOreDictUnificator.setStack(...)`
+- `ore` takes precedence over `id`
 - if `meta` is omitted and an `ore` match carries concrete non-wildcard item damage, that damage is used before the `facing` fallback
 - if `meta` is omitted, some blocks derive a sensible default from `facing`
 - if `nbt` creates a TileEntity successfully, the preview uses it
