@@ -21,15 +21,21 @@ public class FlowchartLayoutResult {
         }
     }
 
+    public record LabelSize(int width, int height) {}
+
     private final Map<String, NodePosition> nodePositions;
+    private final Map<String, NodePosition> subgraphPositions;
+    private final Map<FlowchartEdge, NodePosition> edgeLabelPositions;
     private final List<EdgePath> edgePaths;
     private final int width;
     private final int height;
 
-    public FlowchartLayoutResult(Map<String, NodePosition> nodePositions, List<EdgePath> edgePaths, int width,
-        int height) {
+    public FlowchartLayoutResult(Map<String, NodePosition> nodePositions, Map<String, NodePosition> subgraphPositions,
+        Map<FlowchartEdge, NodePosition> edgeLabelPositions, List<EdgePath> edgePaths, int width, int height) {
         this.nodePositions = nodePositions != null ? Collections.unmodifiableMap(new LinkedHashMap<>(nodePositions))
             : Map.of();
+        this.subgraphPositions = Collections.unmodifiableMap(new LinkedHashMap<>(subgraphPositions));
+        this.edgeLabelPositions = Collections.unmodifiableMap(new LinkedHashMap<>(edgeLabelPositions));
         this.edgePaths = edgePaths != null ? List.copyOf(new ArrayList<>(edgePaths)) : List.of();
         this.width = Math.max(0, width);
         this.height = Math.max(0, height);

@@ -7,7 +7,9 @@ public interface FlowchartLayoutStrategy {
     String getName();
 
     FlowchartLayoutResult layout(FlowchartDocument document,
-        Map<String, FlowchartLayoutResult.NodeMinSize> nodeMinSizes);
+        Map<String, FlowchartLayoutResult.NodeMinSize> nodeMinSizes,
+        Map<FlowchartEdge, FlowchartLayoutResult.LabelSize> edgeLabelSizes,
+        Map<String, FlowchartLayoutResult.LabelSize> subgraphLabelSizes);
 
     static FlowchartLayoutStrategy forMode(FlowchartLayoutMode mode) {
         if (mode == null) mode = FlowchartLayoutMode.BUILTIN;

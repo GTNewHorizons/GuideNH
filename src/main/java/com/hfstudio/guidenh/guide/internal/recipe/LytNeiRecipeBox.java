@@ -368,7 +368,7 @@ public class LytNeiRecipeBox extends LytBlock implements InteractiveElement, Doc
             try {
                 GL11.glTranslatef(x, y, 0f);
                 GL11.glScalef(scale, scale, 1f);
-                context.renderItem(stack, 0, 0);
+                NeiHandlerRenderer.drawItemIcon(stack, 0, 0);
             } finally {
                 GL11.glPopMatrix();
             }

@@ -319,8 +319,17 @@ public class GuideSiteGraphRenderer {
             }
             minSizes.put(node.getId(), new FlowchartLayoutResult.NodeMinSize(minW, minH));
         }
+        Map<FlowchartEdge, FlowchartLayoutResult.LabelSize> edgeLabelSizes = new LinkedHashMap<>();
+        for (FlowchartEdge edge : doc.getEdges()) {
+            String label = edge.getLabel();
+            if (label != null && !label.isEmpty() && edge.getStyle() != MermaidEdgeStyle.INVISIBLE) {
+                edgeLabelSizes.put(edge, new FlowchartLayoutResult.LabelSize(estimateTextWidth(label) + 10, 18));
+            }
+        }
+        Map<String, FlowchartLayoutResult.LabelSize> subgraphLabelSizes = new LinkedHashMap<>();
+        measureSubgraphLabels(doc.getSubgraphs(), subgraphLabelSizes);
         FlowchartLayoutStrategy strategy = FlowchartLayoutStrategy.forMode(doc.getLayoutMode());
-        FlowchartLayoutResult layout = strategy.layout(doc, minSizes);
+        FlowchartLayoutResult layout = strategy.layout(doc, minSizes, edgeLabelSizes, subgraphLabelSizes);
         int w = layout.getWidth() + 40;
         int h = layout.getHeight() + 40;
         int padding = 20;
@@ -342,8 +351,9 @@ public class GuideSiteGraphRenderer {
         html.append("<defs>\n");
         appendArrowheadMarkers(html);
         html.append("</defs>\n");
-        renderFlowchartEdges(html, doc, layout, padding);
         renderFlowchartSubgraphs(html, doc, layout, padding);
+        renderFlowchartEdges(html, doc, layout, padding);
+        renderFlowchartEdgeLabels(html, edgeLabelSizes, layout, padding);
         renderFlowchartNodes(
             html,
             doc,
@@ -355,6 +365,17 @@ public class GuideSiteGraphRenderer {
         html.append("</div>\n");
         html.append("</div>\n");
         return html.toString();
+    }
+
+    private static void measureSubgraphLabels(List<FlowchartSubgraph> subgraphs,
+        Map<String, FlowchartLayoutResult.LabelSize> sizes) {
+        for (FlowchartSubgraph subgraph : subgraphs) {
+            String label = subgraph.getLabel();
+            if (label != null && !label.isEmpty()) {
+                sizes.put(subgraph.getId(), new FlowchartLayoutResult.LabelSize(estimateTextWidth(label) + 12, 18));
+            }
+            measureSubgraphLabels(subgraph.getChildren(), sizes);
+        }
     }
 
     private static int estimateTextWidth(CharSequence text) {
@@ -420,13 +441,14 @@ public class GuideSiteGraphRenderer {
 
     private static void renderSubgraphRecursive(StringBuilder sb, FlowchartSubgraph sg, FlowchartLayoutResult layout,
         int padding, int depth) {
-        LytRect bounds = computeSgBounds(sg, layout.getNodePositions());
-        if (bounds == null) return;
+        FlowchartLayoutResult.NodePosition position = layout.getSubgraphPositions()
+            .get(sg.getId());
+        if (position == null) return;
 
-        int x = bounds.x() - SUBGRAPH_PADDING + padding;
-        int y = bounds.y() - SUBGRAPH_PADDING + padding;
-        int w = bounds.width() + SUBGRAPH_PADDING * 2;
-        int h = bounds.height() + SUBGRAPH_PADDING * 2;
+        int x = position.getX() + padding;
+        int y = position.getY() + padding;
+        int w = position.getWidth();
+        int h = position.getHeight();
 
         String bg = SUBGRAPH_BG[depth % SUBGRAPH_BG.length];
         String border = SUBGRAPH_BORDER[depth % SUBGRAPH_BORDER.length];
@@ -463,35 +485,6 @@ public class GuideSiteGraphRenderer {
         for (FlowchartSubgraph child : sg.getChildren()) {
             renderSubgraphRecursive(sb, child, layout, padding, depth + 1);
         }
-    }
-
-    private static LytRect computeSgBounds(FlowchartSubgraph sg,
-        Map<String, FlowchartLayoutResult.NodePosition> positions) {
-        LytRect result = null;
-        for (String nodeId : sg.getNodeIds()) {
-            FlowchartLayoutResult.NodePosition pos = positions.get(nodeId);
-            if (pos != null) {
-                LytRect nodeRect = new LytRect(pos.getX(), pos.getY(), pos.getWidth(), pos.getHeight());
-                result = result != null ? LytRect.union(result, nodeRect) : nodeRect;
-            }
-        }
-        for (FlowchartSubgraph child : sg.getChildren()) {
-            LytRect childBounds = computeSgBounds(child, positions);
-            if (childBounds != null) {
-                result = result != null ? LytRect.union(result, childBounds) : childBounds;
-            }
-        }
-        if (result != null) {
-            String label = sg.getLabel();
-            if (label != null && !label.isEmpty()) {
-                result = new LytRect(
-                    result.x(),
-                    result.y() - SUBGRAPH_LABEL_HEIGHT,
-                    result.width(),
-                    result.height() + SUBGRAPH_LABEL_HEIGHT);
-            }
-        }
-        return result;
     }
 
     private static void renderFlowchartEdges(StringBuilder sb, FlowchartDocument doc, FlowchartLayoutResult layout,
@@ -604,91 +597,48 @@ public class GuideSiteGraphRenderer {
             }
             sb.append("/>\n");
 
-            String edgeLabel = flowEdge != null ? flowEdge.getLabel() : null;
-            if (edgeLabel != null && !edgeLabel.isEmpty()) {
-                int mx, my;
-                if (points.size() >= 2) {
-                    double totalLen = 0;
-                    double[] segLens = new double[points.size() - 1];
-                    for (int i = 1; i < points.size(); i++) {
-                        double dx = points.get(i)
-                            .getX()
-                            - points.get(i - 1)
-                                .getX();
-                        double dy = points.get(i)
-                            .getY()
-                            - points.get(i - 1)
-                                .getY();
-                        segLens[i - 1] = Math.sqrt(dx * dx + dy * dy);
-                        totalLen += segLens[i - 1];
-                    }
-                    double halfLen = totalLen * 0.5;
-                    double accumulated = 0;
-                    float fx = points.get(0)
-                        .getX();
-                    float fy = points.get(0)
-                        .getY();
-                    for (int i = 0; i < segLens.length; i++) {
-                        if (accumulated + segLens[i] >= halfLen) {
-                            double frac = (halfLen - accumulated) / Math.max(segLens[i], 0.0001);
-                            fx = points.get(i)
-                                .getX()
-                                + (float) ((points.get(i + 1)
-                                    .getX()
-                                    - points.get(i)
-                                        .getX())
-                                    * frac);
-                            fy = points.get(i)
-                                .getY()
-                                + (float) ((points.get(i + 1)
-                                    .getY()
-                                    - points.get(i)
-                                        .getY())
-                                    * frac);
-                            break;
-                        }
-                        accumulated += segLens[i];
-                    }
-                    mx = Math.round(fx) + padding;
-                    my = Math.round(fy) + padding;
-                } else {
-                    mx = points.get(0)
-                        .getX() + padding;
-                    my = points.get(0)
-                        .getY() + padding;
-                }
+        }
+    }
 
-                int labelW = estimateTextWidth(edgeLabel) + 10;
-                int labelH = 18;
-                sb.append("<rect x=\"")
-                    .append(mx - labelW / 2)
-                    .append("\" y=\"")
-                    .append(my - labelH / 2)
-                    .append("\" width=\"")
-                    .append(labelW)
-                    .append("\" height=\"")
-                    .append(labelH)
-                    .append("\" rx=\"0\"")
-                    .append(" fill=\"")
-                    .append(argbToRgba(ColorUtils.ARGB_CC0C1117.getColor()))
-                    .append("\" stroke=\"rgba(180,180,200,0.3)\"")
-                    .append(" stroke-width=\"1\"/>\n");
-                sb.append("<text x=\"")
-                    .append(mx)
-                    .append("\" y=\"")
-                    .append(my + 4)
-                    .append("\" font-size=\"11\" fill=\"rgba(200,200,220,0.9)\"")
-                    .append(" text-anchor=\"middle\">")
-                    .append(esc(edgeLabel))
-                    .append("</text>\n");
-            }
+    private static void renderFlowchartEdgeLabels(StringBuilder sb,
+        Map<FlowchartEdge, FlowchartLayoutResult.LabelSize> edgeLabelSizes, FlowchartLayoutResult layout, int padding) {
+        for (FlowchartEdge edge : edgeLabelSizes.keySet()) {
+            FlowchartLayoutResult.NodePosition position = layout.getEdgeLabelPositions()
+                .get(edge);
+            if (position == null) continue;
+
+            int x = position.getX() + padding;
+            int y = position.getY() + padding;
+            int w = position.getWidth();
+            int h = position.getHeight();
+            int cx = x + w / 2;
+            int cy = y + h / 2;
+            sb.append("<rect x=\"")
+                .append(x)
+                .append("\" y=\"")
+                .append(y)
+                .append("\" width=\"")
+                .append(w)
+                .append("\" height=\"")
+                .append(h)
+                .append("\" rx=\"0\"")
+                .append(" fill=\"")
+                .append(argbToRgba(ColorUtils.ARGB_CC0C1117.getColor()))
+                .append("\" stroke=\"rgba(180,180,200,0.3)\"")
+                .append(" stroke-width=\"1\"/>\n");
+            sb.append("<text x=\"")
+                .append(cx)
+                .append("\" y=\"")
+                .append(cy + 4)
+                .append("\" font-size=\"11\" fill=\"rgba(200,200,220,0.9)\"")
+                .append(" text-anchor=\"middle\">")
+                .append(esc(edge.getLabel()))
+                .append("</text>\n");
         }
     }
 
     private static final int NODE_EDGE_MARGIN = 12;
     private static final String DEFAULT_EDGE_COLOR = "#5D6C7C";
-    private static final int SUBGRAPH_PADDING = 8;
-    private static final int SUBGRAPH_LABEL_HEIGHT = 14;
     private static final String[] SUBGRAPH_BG = { argbToRgba(ColorUtils.MERMAID_SUBGRAPH_BACKGROUND_PURPLE.getColor()),
         argbToRgba(ColorUtils.MERMAID_SUBGRAPH_BACKGROUND_VIOLET.getColor()),
         argbToRgba(ColorUtils.MERMAID_SUBGRAPH_BACKGROUND_DARK.getColor()),
