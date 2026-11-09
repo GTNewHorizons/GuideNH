@@ -294,19 +294,18 @@ public class GuideSiteGraphRenderer {
                 + "<p class=\"guide-diagram-empty\">No Mermaid nodes were found.</p>"
                 + "</div></div>";
         }
+        if (nodeHtmlById == null) nodeHtmlById = Map.of();
         String rootNodeId = doc.getNodeOrder()
             .isEmpty() ? null
                 : doc.getNodeOrder()
                     .get(0);
         Map<String, FlowchartLayoutResult.NodeMinSize> minSizes = new LinkedHashMap<>();
-        Map<String, PlainLabel> plainLabels = new LinkedHashMap<>();
         for (FlowchartNode node : doc.getNodes()
             .values()) {
-            String htmlContent = nodeHtmlById != null ? nodeHtmlById.get(node.getId()) : null;
+            String htmlContent = nodeHtmlById.get(node.getId());
             boolean hasHtmlContent = htmlContent != null && !htmlContent.trim()
                 .isEmpty();
             PlainLabel plainLabel = hasHtmlContent ? null : measurePlainLabel(node.getLabel());
-            if (plainLabel != null) plainLabels.put(node.getId(), plainLabel);
             int[] textExtent = hasHtmlContent ? estimateTextExtent(htmlContent) : plainContentExtent(node, plainLabel);
             int textWidth = textExtent[0];
             int textHeight = textExtent[1];
@@ -324,17 +323,9 @@ public class GuideSiteGraphRenderer {
             }
             minSizes.put(node.getId(), new FlowchartLayoutResult.NodeMinSize(minW, minH));
         }
-        Map<FlowchartEdge, FlowchartLayoutResult.LabelSize> edgeLabelSizes = new LinkedHashMap<>();
-        for (FlowchartEdge edge : doc.getEdges()) {
-            String label = edge.getLabel();
-            if (label != null && !label.isEmpty() && edge.getStyle() != MermaidEdgeStyle.INVISIBLE) {
-                edgeLabelSizes.put(edge, new FlowchartLayoutResult.LabelSize(estimateTextWidth(label) + 10, 18));
-            }
-        }
-        Map<String, FlowchartLayoutResult.LabelSize> subgraphLabelSizes = new LinkedHashMap<>();
-        measureSubgraphLabels(doc.getSubgraphs(), subgraphLabelSizes);
         FlowchartLayoutStrategy strategy = FlowchartLayoutStrategy.forMode(doc.getLayoutMode());
-        FlowchartLayoutResult layout = strategy.layout(doc, minSizes, edgeLabelSizes, subgraphLabelSizes);
+        FlowchartLayoutResult layout = strategy
+            .layout(doc, minSizes, label -> new FlowchartLayoutResult.LabelSize(estimateTextWidth(label), 14));
         int w = layout.getWidth() + 40;
         int h = layout.getHeight() + 40;
         int padding = 20;
@@ -358,15 +349,8 @@ public class GuideSiteGraphRenderer {
         html.append("</defs>\n");
         renderFlowchartSubgraphs(html, doc, layout, padding);
         renderFlowchartEdges(html, doc, layout, padding);
-        renderFlowchartEdgeLabels(html, edgeLabelSizes, layout, padding);
-        renderFlowchartNodes(
-            html,
-            doc,
-            layout,
-            nodeHtmlById != null ? nodeHtmlById : new LinkedHashMap<>(),
-            plainLabels,
-            padding,
-            rootNodeId);
+        renderFlowchartEdgeLabels(html, layout, padding);
+        renderFlowchartNodes(html, doc, layout, nodeHtmlById, padding, rootNodeId);
         renderFlowchartSubgraphLabels(html, doc, layout, padding);
         html.append("</svg>\n");
         html.append("</div>\n");
@@ -374,26 +358,11 @@ public class GuideSiteGraphRenderer {
         return html.toString();
     }
 
-    private static void measureSubgraphLabels(List<FlowchartSubgraph> subgraphs,
-        Map<String, FlowchartLayoutResult.LabelSize> sizes) {
-        for (FlowchartSubgraph subgraph : subgraphs) {
-            String label = subgraph.getLabel();
-            if (label != null && !label.isEmpty()) {
-                sizes.put(subgraph.getId(), new FlowchartLayoutResult.LabelSize(estimateTextWidth(label), 18));
-            }
-            measureSubgraphLabels(subgraph.getChildren(), sizes);
-        }
-    }
-
     private static int estimateTextWidth(CharSequence text) {
         if (text == null || text.isEmpty()) return 0;
         int w = 0;
         for (int i = 0; i < text.length(); i++) {
-            char c = text.charAt(i);
-            if ("iIl!|;,.:'\\\"".indexOf(c) >= 0) w += 4;
-            else if ("mwMW".indexOf(c) >= 0) w += 9;
-            else if (" \t".indexOf(c) >= 0) w += 4;
-            else w += 7;
+            w += estimatedCharWidth(text.charAt(i));
         }
         return Math.max(w + 8, 28);
     }
@@ -696,12 +665,11 @@ public class GuideSiteGraphRenderer {
         }
     }
 
-    private static void renderFlowchartEdgeLabels(StringBuilder sb,
-        Map<FlowchartEdge, FlowchartLayoutResult.LabelSize> edgeLabelSizes, FlowchartLayoutResult layout, int padding) {
-        for (FlowchartEdge edge : edgeLabelSizes.keySet()) {
-            FlowchartLayoutResult.NodePosition position = layout.getEdgeLabelPositions()
-                .get(edge);
-            if (position == null) continue;
+    private static void renderFlowchartEdgeLabels(StringBuilder sb, FlowchartLayoutResult layout, int padding) {
+        for (var entry : layout.getEdgeLabelPositions()
+            .entrySet()) {
+            FlowchartEdge edge = entry.getKey();
+            FlowchartLayoutResult.NodePosition position = entry.getValue();
 
             int x = position.getX() + padding;
             int y = position.getY() + padding;
@@ -825,8 +793,7 @@ public class GuideSiteGraphRenderer {
     }
 
     private static void renderFlowchartNodes(StringBuilder sb, FlowchartDocument doc, FlowchartLayoutResult layout,
-        Map<String, String> nodeHtmlById, Map<String, PlainLabel> plainLabels, int padding,
-        @Nullable String rootNodeId) {
+        Map<String, String> nodeHtmlById, int padding, @Nullable String rootNodeId) {
 
         for (var entry : layout.getNodePositions()
             .entrySet()) {
@@ -893,8 +860,9 @@ public class GuideSiteGraphRenderer {
             String htmlContent = nodeHtmlById.get(nodeId);
             boolean hasHtmlContent = htmlContent != null && !htmlContent.trim()
                 .isEmpty();
+            PlainLabel plainLabel = hasHtmlContent ? null : measurePlainLabel(node.getLabel());
             int[] requestedContent = hasHtmlContent ? new int[] { contentW, contentH }
-                : plainContentExtent(node, plainLabels.get(nodeId));
+                : plainContentExtent(node, plainLabel);
             LytRect contentArea = FlowchartShapes.contentBounds(
                 new LytRect(rectX, rectY, rectW, rectH),
                 shape,
@@ -942,8 +910,7 @@ public class GuideSiteGraphRenderer {
 
             int visibleWidth = contentArea.width();
             int visibleHeight = contentArea.height();
-            if (htmlContent != null && !htmlContent.trim()
-                .isEmpty()) {
+            if (hasHtmlContent) {
                 sb.append("<foreignObject x=\"")
                     .append(contentArea.x())
                     .append("\" y=\"")
@@ -992,10 +959,7 @@ public class GuideSiteGraphRenderer {
                         .append("text-align:center;white-space:nowrap;overflow-wrap:normal;")
                         .append("word-break:normal;\">")
                         .append("<span>")
-                        .append(
-                            escapedLines(
-                                plainLabels.get(nodeId)
-                                    .lines()))
+                        .append(escapedLines(plainLabel.lines()))
                         .append("</span>")
                         .append("</div>")
                         .append("</foreignObject>\n");

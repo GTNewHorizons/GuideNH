@@ -30,10 +30,8 @@ import com.hfstudio.guidenh.guide.internal.host.ScriptType;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidDiagramType;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidParser;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidSourceExtractor;
-import com.hfstudio.guidenh.guide.internal.mermaid.flowchart.FlowchartDocument;
 import com.hfstudio.guidenh.guide.internal.mermaid.flowchart.FlowchartNode;
 import com.hfstudio.guidenh.guide.internal.mermaid.flowchart.FlowchartParser;
-import com.hfstudio.guidenh.guide.internal.mermaid.mindmap.MindmapDocument;
 import com.hfstudio.guidenh.guide.internal.mermaid.mindmap.MindmapNode;
 import com.hfstudio.guidenh.guide.internal.mermaid.mindmap.MindmapParser;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
@@ -92,43 +90,59 @@ public class MermaidScript implements LytScript {
             diagramType = MermaidDiagramType.detect(sourceText);
         }
 
-        switch (diagramType) {
-            case MINDMAP -> renderMindmap(ctx, ph, sourceText);
-            case FLOWCHART -> renderFlowchart(ctx, sourceText, ph);
-            case UNKNOWN -> renderUnknown(ctx, sourceText, ph);
+        try {
+            switch (diagramType) {
+                case MINDMAP -> renderMindmap(ctx, ph, sourceText);
+                case FLOWCHART -> renderFlowchart(ctx, ph, sourceText);
+                case UNKNOWN -> renderUnknown(ctx, sourceText, ph);
+            }
+        } catch (IllegalArgumentException e) {
+            String message = diagramType == MermaidDiagramType.FLOWCHART ? "Failed to parse flowchart"
+                : "Failed to parse";
+            GuideDebugLog.error("[GuideNH] [MermaidScript] {}: {}", message, sourceText, e);
+            replaceWithError(ctx, message + ": " + e.getMessage());
         }
     }
 
     private void renderMindmap(ScriptContext ctx, MermaidPlaceholder ph, String sourceText) {
-        try {
-            var document = MindmapParser.parse(sourceText);
-            Map<String, LytBlock> nodeContentBlocks = compileRichMindmapLabels(ctx, ph, document);
-            LytMermaidMindmap block = new LytMermaidMindmap(document, sourceText, nodeContentBlocks);
-            if (ph.width > 0 || ph.height > 0) {
-                block.setPreferredSize(ph.width, ph.height);
-            }
-            dispatchNodeContent(ctx, nodeContentBlocks);
-            ctx.replace(block);
-        } catch (IllegalArgumentException e) {
-            GuideDebugLog.error("[GuideNH] [MermaidScript] Failed to parse Mermaid source: {}", sourceText, e);
-            replaceWithError(ctx, "Failed to parse: " + e.getMessage());
+        var document = MindmapParser.parse(sourceText);
+        Map<String, LytBlock> nodeContentBlocks = new LinkedHashMap<>(
+            ph.nodeContentBlocks != null ? ph.nodeContentBlocks : Collections.emptyMap());
+        PageCompiler compiler = createRuntimeCompiler(ctx, ph);
+        if (compiler != null) {
+            collectRichMindmapLabels(compiler, document.getRoot(), nodeContentBlocks);
         }
+        LytMermaidMindmap block = new LytMermaidMindmap(document, sourceText, nodeContentBlocks);
+        if (ph.width > 0 || ph.height > 0) {
+            block.setPreferredSize(ph.width, ph.height);
+        }
+        dispatchNodeContent(ctx, nodeContentBlocks);
+        ctx.replace(block);
     }
 
-    private void renderFlowchart(ScriptContext ctx, String sourceText, MermaidPlaceholder ph) {
-        try {
-            var document = FlowchartParser.parse(sourceText);
-            Map<String, LytBlock> nodeContentBlocks = compileRichFlowchartLabels(ctx, ph, document);
-            LytMermaidFlowchart block = new LytMermaidFlowchart(document, sourceText, nodeContentBlocks);
-            if (ph.width > 0 || ph.height > 0) {
-                block.setPreferredSize(ph.width, ph.height);
+    private void renderFlowchart(ScriptContext ctx, MermaidPlaceholder ph, String sourceText) {
+        var document = FlowchartParser.parse(sourceText);
+        Map<String, LytBlock> nodeContentBlocks = new LinkedHashMap<>(
+            ph.nodeContentBlocks != null ? ph.nodeContentBlocks : Collections.emptyMap());
+        PageCompiler compiler = createRuntimeCompiler(ctx, ph);
+        if (compiler != null) {
+            for (FlowchartNode node : document.getNodes()
+                .values()) {
+                if (nodeContentBlocks.containsKey(node.getId())) continue;
+                String label = node.isMarkdownLabel() ? node.getLabel()
+                    : MermaidParser.normalizeMarkdownLabel(node.getLabel());
+                LytBlock content = compileRichLabel(compiler, label);
+                if (content != null) {
+                    nodeContentBlocks.put(node.getId(), content);
+                }
             }
-            dispatchNodeContent(ctx, nodeContentBlocks);
-            ctx.replace(block);
-        } catch (IllegalArgumentException e) {
-            GuideDebugLog.error("[GuideNH] [MermaidScript] Failed to parse flowchart source: {}", sourceText, e);
-            replaceWithError(ctx, "Failed to parse flowchart: " + e.getMessage());
         }
+        LytMermaidFlowchart block = new LytMermaidFlowchart(document, sourceText, nodeContentBlocks);
+        if (ph.width > 0 || ph.height > 0) {
+            block.setPreferredSize(ph.width, ph.height);
+        }
+        dispatchNodeContent(ctx, nodeContentBlocks);
+        ctx.replace(block);
     }
 
     private void renderUnknown(ScriptContext ctx, String sourceText, MermaidPlaceholder ph) {
@@ -148,34 +162,6 @@ public class MermaidScript implements LytScript {
         ctx.replace(LytParagraph.error("[Mermaid] " + message));
     }
 
-    private Map<String, LytBlock> compileRichFlowchartLabels(ScriptContext ctx, MermaidPlaceholder ph,
-        FlowchartDocument document) {
-        Map<String, LytBlock> result = explicitNodeContent(ph);
-        PageCompiler compiler = createRuntimeCompiler(ctx, ph);
-        if (compiler == null) return result;
-
-        for (FlowchartNode node : document.getNodes()
-            .values()) {
-            if (result.containsKey(node.getId())) continue;
-            String label = node.isMarkdownLabel() ? node.getLabel()
-                : MermaidParser.normalizeMarkdownLabel(node.getLabel());
-            LytBlock content = compileRichLabel(compiler, label);
-            if (content != null) {
-                result.put(node.getId(), content);
-            }
-        }
-        return result;
-    }
-
-    private Map<String, LytBlock> compileRichMindmapLabels(ScriptContext ctx, MermaidPlaceholder ph,
-        MindmapDocument document) {
-        Map<String, LytBlock> result = explicitNodeContent(ph);
-        PageCompiler compiler = createRuntimeCompiler(ctx, ph);
-        if (compiler == null) return result;
-        collectRichMindmapLabels(compiler, document.getRoot(), result);
-        return result;
-    }
-
     private void collectRichMindmapLabels(PageCompiler compiler, MindmapNode node, Map<String, LytBlock> result) {
         if (!result.containsKey(node.getId())) {
             LytBlock content = compileRichLabel(compiler, MermaidParser.normalizeMarkdownLabel(node.getLabelSource()));
@@ -186,10 +172,6 @@ public class MermaidScript implements LytScript {
         for (MindmapNode child : node.getChildren()) {
             collectRichMindmapLabels(compiler, child, result);
         }
-    }
-
-    private Map<String, LytBlock> explicitNodeContent(MermaidPlaceholder ph) {
-        return new LinkedHashMap<>(ph.nodeContentBlocks != null ? ph.nodeContentBlocks : Collections.emptyMap());
     }
 
     private PageCompiler createRuntimeCompiler(ScriptContext ctx, MermaidPlaceholder ph) {
@@ -210,24 +192,20 @@ public class MermaidScript implements LytScript {
                 .alignment(TextAlignment.CENTER)
                 .build());
         compiler.compileInlineMarkdown(normalized, paragraph);
-        if (paragraph.isEmpty() || isPlainLabel(paragraph, normalized)) return null;
-        return paragraph;
-    }
+        if (paragraph.isEmpty()) return null;
 
-    private boolean isPlainLabel(LytParagraph paragraph, String source) {
         StringBuilder rendered = new StringBuilder();
         for (LytFlowContent content : paragraph.getContent()) {
-            if (!(content instanceof LytFlowText text)) return false;
+            if (!(content instanceof LytFlowText text)) return paragraph;
             rendered.append(text.getText());
         }
         return rendered.toString()
-            .equals(source);
+            .equals(normalized) ? null : paragraph;
     }
 
     private void dispatchNodeContent(ScriptContext ctx, Map<String, LytBlock> nodeContentBlocks) {
         GuideDebugLog.debug("[MermaidDebug] Dispatching into {} NodeContent blocks", nodeContentBlocks.size());
-        for (var entry : nodeContentBlocks.entrySet()) {
-            var contentBlock = entry.getValue();
+        for (LytBlock contentBlock : nodeContentBlocks.values()) {
             if (contentBlock instanceof LytNode root) {
                 ctx.dispatchSubtree(root);
             }

@@ -1,12 +1,14 @@
 package com.hfstudio.guidenh.guide.internal.mermaid.flowchart;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 
 import org.eclipse.elk.core.RecursiveGraphLayoutEngine;
 import org.eclipse.elk.core.math.ElkPadding;
@@ -26,11 +28,14 @@ import org.eclipse.elk.graph.ElkPort;
 import org.eclipse.elk.graph.util.ElkGraphUtil;
 import org.jetbrains.annotations.Nullable;
 
+import com.hfstudio.guidenh.guide.internal.mermaid.MermaidEdgeStyle;
+
 public class ElkLayoutStrategy implements FlowchartLayoutStrategy {
 
     private static final int NODE_WIDTH = 80;
     private static final int NODE_HEIGHT = 30;
     private static final int SUBGRAPH_PADDING = 8;
+    private static final int LABEL_PADDING = 2;
 
     private static volatile boolean warmedUp;
 
@@ -69,19 +74,13 @@ public class ElkLayoutStrategy implements FlowchartLayoutStrategy {
     @Override
     public FlowchartLayoutResult layout(FlowchartDocument document,
         Map<String, FlowchartLayoutResult.NodeMinSize> nodeMinSizes,
-        Map<FlowchartEdge, FlowchartLayoutResult.LabelSize> edgeLabelSizes,
-        Map<String, FlowchartLayoutResult.LabelSize> subgraphLabelSizes) {
+        Function<String, FlowchartLayoutResult.LabelSize> measureLabel) {
         Map<String, FlowchartNode> nodes = document.getNodes();
         if (nodes.isEmpty()) {
             return new FlowchartLayoutResult(Map.of(), Map.of(), Map.of(), Map.of(), List.of(), 0, 0);
         }
 
-        Map<String, FlowchartSubgraph> nodeToSubgraph = buildNodeToSubgraphMap(document.getSubgraphs());
-        Map<String, FlowchartSubgraph> subgraphById = buildSubgraphByIdMap(document.getSubgraphs());
-        Map<String, String> parentSgMap = buildParentSubgraphMap(document.getSubgraphs());
         var cfg = document.getConfig();
-
-        Set<String> compoundSgIds = subgraphById.keySet();
 
         ElkNode root = ElkGraphUtil.createGraph();
         root.setProperty(CoreOptions.ALGORITHM, "org.eclipse.elk.layered");
@@ -92,21 +91,16 @@ public class ElkLayoutStrategy implements FlowchartLayoutStrategy {
 
         // Create compound nodes
         Map<String, ElkNode> compoundMap = new LinkedHashMap<>();
+        Map<String, ElkNode> nodeParents = new LinkedHashMap<>();
+        Map<String, FlowchartLayoutResult.LabelSize> subgraphLabelSizes = new LinkedHashMap<>();
         for (FlowchartSubgraph sg : document.getSubgraphs()) {
-            createCompounds(sg, root, compoundMap, document.getDirection(), cfg, subgraphLabelSizes);
+            createCompounds(sg, root, compoundMap, nodeParents, cfg, measureLabel, subgraphLabelSizes);
         }
 
         // Create leaf nodes inside their parents
         Map<String, ElkNode> elkNodeMap = new LinkedHashMap<>();
         for (FlowchartNode node : nodes.values()) {
-            ElkNode parent = nodeParent(
-                node.getId(),
-                nodeToSubgraph,
-                compoundSgIds,
-                parentSgMap,
-                root,
-                compoundMap,
-                subgraphById);
+            ElkNode parent = nodeParents.getOrDefault(node.getId(), root);
             ElkNode elkNode = ElkGraphUtil.createNode(parent);
             elkNode.setIdentifier(node.getId());
             FlowchartLayoutResult.NodeMinSize minSize = nodeMinSizes != null ? nodeMinSizes.get(node.getId()) : null;
@@ -119,35 +113,23 @@ public class ElkLayoutStrategy implements FlowchartLayoutStrategy {
         // through every compound ancestor so ELK can route each segment within
         // a single layout run. The chain is later stitched back into one path.
         List<SplitChain> splitChains = new ArrayList<>();
-        Set<String> dummyNodeIds = new LinkedHashSet<>();
         List<DummyChain> dummyChains = new ArrayList<>();
         Map<ElkEdge, String> simpleEdgeToId = new LinkedHashMap<>();
         Map<FlowchartEdge, ElkLabel> edgeLabels = new LinkedHashMap<>();
-        int[] dummyCounter = { 0 };
+        int dummyCounter = 0;
 
         for (FlowchartEdge edge : document.getEdges()) {
             ElkNode source = elkNodeMap.get(edge.getFrom());
             ElkNode target = elkNodeMap.get(edge.getTo());
             if (source == null || target == null) continue;
 
-            List<String> srcChain = compoundChain(
-                edge.getFrom(),
-                nodeToSubgraph,
-                compoundSgIds,
-                parentSgMap,
-                subgraphById);
-            List<String> tgtChain = compoundChain(
-                edge.getTo(),
-                nodeToSubgraph,
-                compoundSgIds,
-                parentSgMap,
-                subgraphById);
+            List<ElkNode> srcChain = compoundChain(source, root);
+            List<ElkNode> tgtChain = compoundChain(target, root);
 
             // Find the deepest common container
             int commonLen = 0;
             while (commonLen < srcChain.size() && commonLen < tgtChain.size()
-                && srcChain.get(commonLen)
-                    .equals(tgtChain.get(commonLen))) {
+                && srcChain.get(commonLen) == tgtChain.get(commonLen)) {
                 commonLen++;
             }
 
@@ -155,17 +137,23 @@ public class ElkLayoutStrategy implements FlowchartLayoutStrategy {
                 // Both nodes share the same deepest compound → simple edge
                 int edgeLength = edge.getLength();
                 int dummyCount = Math.max(0, edgeLength - 3);
+                // ELK ignores inline labels on native self-loops; route labeled loops through a dummy instead.
+                if (source == target && edge.getLabel() != null
+                    && !edge.getLabel()
+                        .isEmpty()
+                    && edge.getStyle() != MermaidEdgeStyle.INVISIBLE) {
+                    dummyCount = Math.max(1, dummyCount);
+                }
                 if (dummyCount > 0) {
                     ElkNode parent = source.getParent();
                     List<ElkNode> dummies = new ArrayList<>();
                     List<ElkEdge> chainEdges = new ArrayList<>();
                     for (int i = 0; i < dummyCount; i++) {
                         ElkNode dummy = ElkGraphUtil.createNode(parent);
-                        String dummyId = "__dummy_" + (dummyCounter[0]++);
+                        String dummyId = "__dummy_" + (dummyCounter++);
                         dummy.setIdentifier(dummyId);
                         dummy.setWidth(1);
                         dummy.setHeight(1);
-                        dummyNodeIds.add(dummyId);
                         dummies.add(dummy);
                     }
                     ElkConnectableShape prev = source;
@@ -174,11 +162,11 @@ public class ElkLayoutStrategy implements FlowchartLayoutStrategy {
                         prev = dummy;
                     }
                     chainEdges.add(ElkGraphUtil.createSimpleEdge(prev, target));
-                    addEdgeLabel(edge, chainEdges.get(chainEdges.size() / 2), edgeLabelSizes, edgeLabels);
+                    addEdgeLabel(edge, chainEdges.get(chainEdges.size() / 2), measureLabel, edgeLabels);
                     dummyChains.add(new DummyChain(edge.getFrom(), edge.getTo(), edge.getEdgeId(), chainEdges));
                 } else {
                     ElkEdge elkEdge = ElkGraphUtil.createSimpleEdge(source, target);
-                    addEdgeLabel(edge, elkEdge, edgeLabelSizes, edgeLabels);
+                    addEdgeLabel(edge, elkEdge, measureLabel, edgeLabels);
                     String eid = edge.getEdgeId();
                     if (eid != null) {
                         simpleEdgeToId.put(elkEdge, eid);
@@ -197,7 +185,7 @@ public class ElkLayoutStrategy implements FlowchartLayoutStrategy {
 
             ElkConnectableShape prevSrc = source;
             for (int i = srcChain.size() - 1; i >= commonLen; i--) {
-                ElkNode compound = compoundMap.get(srcChain.get(i));
+                ElkNode compound = srcChain.get(i);
                 ElkPort port = ElkGraphUtil.createPort(compound);
                 srcEdges.add(ElkGraphUtil.createSimpleEdge(prevSrc, port));
                 srcPorts.add(port);
@@ -206,7 +194,7 @@ public class ElkLayoutStrategy implements FlowchartLayoutStrategy {
 
             ElkConnectableShape prevTgt = target;
             for (int i = tgtChain.size() - 1; i >= commonLen; i--) {
-                ElkNode compound = compoundMap.get(tgtChain.get(i));
+                ElkNode compound = tgtChain.get(i);
                 ElkPort port = ElkGraphUtil.createPort(compound);
                 tgtEdges.add(ElkGraphUtil.createSimpleEdge(port, prevTgt));
                 tgtPorts.add(port);
@@ -217,7 +205,7 @@ public class ElkLayoutStrategy implements FlowchartLayoutStrategy {
             ElkConnectableShape extSrc = !srcPorts.isEmpty() ? srcPorts.get(srcPorts.size() - 1) : source;
             ElkConnectableShape extTgt = !tgtPorts.isEmpty() ? tgtPorts.get(tgtPorts.size() - 1) : target;
             ElkEdge externalEdge = ElkGraphUtil.createSimpleEdge(extSrc, extTgt);
-            addEdgeLabel(edge, externalEdge, edgeLabelSizes, edgeLabels);
+            addEdgeLabel(edge, externalEdge, measureLabel, edgeLabels);
 
             splitChains.add(
                 new SplitChain(
@@ -347,9 +335,9 @@ public class ElkLayoutStrategy implements FlowchartLayoutStrategy {
                     entry.getKey(),
                     new FlowchartLayoutResult.NodePosition(
                         cfg.canvasPadding() + (int) Math.round(offset[0] + (compound.getWidth() - label.width()) / 2),
-                        cfg.canvasPadding() + (int) Math.round(offset[1]) + 2,
+                        cfg.canvasPadding() + (int) Math.round(offset[1]) + LABEL_PADDING,
                         label.width(),
-                        Math.max(1, label.height() - 4)));
+                        label.height()));
             }
         }
         Map<FlowchartEdge, FlowchartLayoutResult.NodePosition> labelPositions = new LinkedHashMap<>();
@@ -376,13 +364,16 @@ public class ElkLayoutStrategy implements FlowchartLayoutStrategy {
     }
 
     private static void addEdgeLabel(FlowchartEdge edge, ElkEdge elkEdge,
-        Map<FlowchartEdge, FlowchartLayoutResult.LabelSize> sizes, Map<FlowchartEdge, ElkLabel> labels) {
-        FlowchartLayoutResult.LabelSize size = sizes.get(edge);
+        Function<String, FlowchartLayoutResult.LabelSize> measureLabel, Map<FlowchartEdge, ElkLabel> labels) {
+        String text = edge.getLabel();
+        if (text == null || text.isEmpty() || edge.getStyle() == MermaidEdgeStyle.INVISIBLE) return;
+        FlowchartLayoutResult.LabelSize size = measureLabel.apply(text);
         if (size == null) return;
         ElkLabel label = ElkGraphUtil.createLabel(elkEdge);
-        label.setText(edge.getLabel());
-        label.setDimensions(size.width(), size.height());
+        label.setText(text);
+        label.setDimensions(size.width() + LABEL_PADDING * 2, size.height() + LABEL_PADDING * 2);
         label.setProperty(CoreOptions.EDGE_LABELS_PLACEMENT, EdgeLabelPlacement.CENTER);
+        label.setProperty(CoreOptions.EDGE_LABELS_INLINE, true);
         labels.put(edge, label);
     }
 
@@ -463,96 +454,56 @@ public class ElkLayoutStrategy implements FlowchartLayoutStrategy {
         }
     }
 
-    private static List<String> compoundChain(String nodeId, Map<String, FlowchartSubgraph> nodeToSubgraph,
-        Set<String> compoundSgIds, Map<String, String> parentSgMap, Map<String, FlowchartSubgraph> subgraphById) {
-        List<String> reverse = new ArrayList<>();
-        FlowchartSubgraph sg = nodeToSubgraph.get(nodeId);
-        while (sg != null) {
-            if (compoundSgIds.contains(sg.getId())) {
-                reverse.add(sg.getId());
-            }
-            String parentId = parentSgMap.get(sg.getId());
-            sg = parentId != null ? subgraphById.get(parentId) : null;
-        }
-        List<String> chain = new ArrayList<>();
-        for (int i = reverse.size() - 1; i >= 0; i--) {
-            chain.add(reverse.get(i));
-        }
-        return chain;
-    }
-
-    private static Map<String, String> buildParentSubgraphMap(List<FlowchartSubgraph> subgraphs) {
-        Map<String, String> result = new LinkedHashMap<>();
-        buildParentSubgraphMapRec(subgraphs, null, result);
-        return result;
-    }
-
-    private static void buildParentSubgraphMapRec(List<FlowchartSubgraph> subgraphs, String parentId,
-        Map<String, String> result) {
-        for (FlowchartSubgraph sg : subgraphs) {
-            result.put(sg.getId(), parentId);
-            buildParentSubgraphMapRec(sg.getChildren(), sg.getId(), result);
-        }
-    }
-
-    private static Map<String, FlowchartSubgraph> buildSubgraphByIdMap(List<FlowchartSubgraph> subgraphs) {
-        Map<String, FlowchartSubgraph> result = new LinkedHashMap<>();
-        buildSubgraphByIdMapRec(subgraphs, result);
-        return result;
-    }
-
-    private static void buildSubgraphByIdMapRec(List<FlowchartSubgraph> subgraphs,
-        Map<String, FlowchartSubgraph> result) {
-        for (FlowchartSubgraph sg : subgraphs) {
-            result.put(sg.getId(), sg);
-            buildSubgraphByIdMapRec(sg.getChildren(), result);
-        }
-    }
-
     private static void createCompounds(FlowchartSubgraph sg, ElkNode parent, Map<String, ElkNode> compoundMap,
-        FlowchartDirection parentDirection, FlowchartDocument.FlowchartConfig cfg,
+        Map<String, ElkNode> nodeParents, FlowchartDocument.FlowchartConfig cfg,
+        Function<String, FlowchartLayoutResult.LabelSize> measureLabel,
         Map<String, FlowchartLayoutResult.LabelSize> labelSizes) {
-        FlowchartDirection direction = sg.getDirection() != null ? sg.getDirection() : parentDirection;
+        Direction direction = sg.getDirection() != null ? toElkDirection(sg.getDirection())
+            : parent.getProperty(CoreOptions.DIRECTION);
         ElkNode compound = ElkGraphUtil.createNode(parent);
         compound.setIdentifier("__sg_" + sg.getId());
         compound.setProperty(CoreOptions.ALGORITHM, "org.eclipse.elk.layered");
         compound.setProperty(CoreOptions.HIERARCHY_HANDLING, HierarchyHandling.SEPARATE_CHILDREN);
-        compound.setProperty(CoreOptions.DIRECTION, toElkDirection(direction));
+        compound.setProperty(CoreOptions.DIRECTION, direction);
         compound.setProperty(CoreOptions.SPACING_NODE_NODE, (double) cfg.nodeSpacing());
         compound.setProperty(CoreOptions.SPACING_EDGE_NODE, (double) cfg.nodeSpacing());
-        FlowchartLayoutResult.LabelSize label = labelSizes.get(sg.getId());
+        String text = sg.getLabel();
+        FlowchartLayoutResult.LabelSize label = text != null && !text.isEmpty() ? measureLabel.apply(text) : null;
         int labelHeight = label != null ? label.height() : 0;
         int labelWidth = label != null ? label.width() : 0;
         // The title backdrop masks crossing edges, so only reserve space above the child nodes.
         compound.setProperty(
             CoreOptions.PADDING,
             new ElkPadding(
-                Math.max(SUBGRAPH_PADDING, labelHeight),
+                Math.max(SUBGRAPH_PADDING, labelHeight + LABEL_PADDING * 2),
                 SUBGRAPH_PADDING,
                 SUBGRAPH_PADDING,
                 SUBGRAPH_PADDING));
         compound.setProperty(CoreOptions.NODE_SIZE_CONSTRAINTS, EnumSet.of(SizeConstraint.MINIMUM_SIZE));
         compound.setProperty(CoreOptions.NODE_SIZE_MINIMUM, new KVector(labelWidth + 8, 0));
         compoundMap.put(sg.getId(), compound);
+        if (label != null) {
+            labelSizes.put(sg.getId(), label);
+        }
 
         for (FlowchartSubgraph child : sg.getChildren()) {
-            createCompounds(child, compound, compoundMap, direction, cfg, labelSizes);
+            createCompounds(child, compound, compoundMap, nodeParents, cfg, measureLabel, labelSizes);
+        }
+
+        for (String nodeId : sg.getNodeIds()) {
+            nodeParents.putIfAbsent(nodeId, compound);
         }
     }
 
-    private static ElkNode nodeParent(String nodeId, Map<String, FlowchartSubgraph> nodeToSubgraph,
-        Set<String> compoundSgIds, Map<String, String> parentSgMap, ElkNode root, Map<String, ElkNode> compoundMap,
-        Map<String, FlowchartSubgraph> subgraphById) {
-        FlowchartSubgraph sg = nodeToSubgraph.get(nodeId);
-        while (sg != null) {
-            if (compoundSgIds.contains(sg.getId())) {
-                ElkNode compound = compoundMap.get(sg.getId());
-                if (compound != null) return compound;
-            }
-            String parentId = parentSgMap.get(sg.getId());
-            sg = parentId != null ? subgraphById.get(parentId) : null;
+    private static List<ElkNode> compoundChain(ElkNode leaf, ElkNode root) {
+        List<ElkNode> chain = new ArrayList<>();
+        ElkNode parent = leaf.getParent();
+        while (parent != null && parent != root) {
+            chain.add(parent);
+            parent = parent.getParent();
         }
-        return root;
+        Collections.reverse(chain);
+        return chain;
     }
 
     private static void collectPositions(ElkNode node, double offsetX, double offsetY, int padding,
@@ -574,22 +525,6 @@ public class ElkLayoutStrategy implements FlowchartLayoutStrategy {
 
         for (ElkNode child : node.getChildren()) {
             collectPositions(child, absX, absY, padding, positions, elkNodeMap);
-        }
-    }
-
-    private static Map<String, FlowchartSubgraph> buildNodeToSubgraphMap(List<FlowchartSubgraph> subgraphs) {
-        Map<String, FlowchartSubgraph> result = new LinkedHashMap<>();
-        buildNodeToSubgraphMapRec(subgraphs, result);
-        return result;
-    }
-
-    private static void buildNodeToSubgraphMapRec(List<FlowchartSubgraph> subgraphs,
-        Map<String, FlowchartSubgraph> result) {
-        for (FlowchartSubgraph sg : subgraphs) {
-            buildNodeToSubgraphMapRec(sg.getChildren(), result);
-            for (String nodeId : sg.getNodeIds()) {
-                result.putIfAbsent(nodeId, sg);
-            }
         }
     }
 
