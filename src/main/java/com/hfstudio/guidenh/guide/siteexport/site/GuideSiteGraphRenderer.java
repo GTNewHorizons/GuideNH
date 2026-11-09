@@ -121,6 +121,7 @@ public class GuideSiteGraphRenderer {
     private static final int CORNER_LEGEND_ROW_H = GRAPH_TEXT_SIZE + 3;
     private static final int CORNER_LEGEND_MARKER_W = 10;
     private static final int CORNER_LEGEND_MARKER_H = 6;
+    private static final int SUBGRAPH_LABEL_BASELINE = 12;
 
     private GuideSiteGraphRenderer() {}
 
@@ -366,6 +367,7 @@ public class GuideSiteGraphRenderer {
             plainLabels,
             padding,
             rootNodeId);
+        renderFlowchartSubgraphLabels(html, doc, layout, padding);
         html.append("</svg>\n");
         html.append("</div>\n");
         html.append("</div>\n");
@@ -377,7 +379,7 @@ public class GuideSiteGraphRenderer {
         for (FlowchartSubgraph subgraph : subgraphs) {
             String label = subgraph.getLabel();
             if (label != null && !label.isEmpty()) {
-                sizes.put(subgraph.getId(), new FlowchartLayoutResult.LabelSize(estimateTextWidth(label) + 12, 18));
+                sizes.put(subgraph.getId(), new FlowchartLayoutResult.LabelSize(estimateTextWidth(label), 18));
             }
             measureSubgraphLabels(subgraph.getChildren(), sizes);
         }
@@ -534,20 +536,50 @@ public class GuideSiteGraphRenderer {
             .append("\"")
             .append(" stroke-width=\"1.5\"/>\n");
 
+        for (FlowchartSubgraph child : sg.getChildren()) {
+            renderSubgraphRecursive(sb, child, layout, padding, depth + 1);
+        }
+    }
+
+    private static void renderFlowchartSubgraphLabels(StringBuilder sb, FlowchartDocument doc,
+        FlowchartLayoutResult layout, int padding) {
+        for (FlowchartSubgraph sg : doc.getSubgraphs()) {
+            renderSubgraphLabelRecursive(sb, sg, layout, padding, 0);
+        }
+    }
+
+    private static void renderSubgraphLabelRecursive(StringBuilder sb, FlowchartSubgraph sg,
+        FlowchartLayoutResult layout, int padding, int depth) {
         String label = sg.getLabel();
-        if (label != null && !label.isEmpty()) {
-            sb.append("<text x=\"")
-                .append(x + 6)
+        FlowchartLayoutResult.NodePosition position = layout.getSubgraphLabelPositions()
+            .get(sg.getId());
+        if (label != null && !label.isEmpty() && position != null) {
+            int x = position.getX() + padding;
+            int y = position.getY() + padding;
+            int backgroundPadding = 2;
+            String background = SUBGRAPH_BG_OPAQUE[depth % SUBGRAPH_BG_OPAQUE.length];
+            sb.append("<rect class=\"guide-flowchart-subgraph-label-background\" x=\"")
+                .append(x - backgroundPadding)
                 .append("\" y=\"")
-                .append(y + 14)
+                .append(y - backgroundPadding)
+                .append("\" width=\"")
+                .append(position.getWidth() + backgroundPadding * 2)
+                .append("\" height=\"")
+                .append(position.getHeight() + backgroundPadding * 2)
+                .append("\" fill=\"")
+                .append(background)
+                .append("\" stroke=\"none\"/>\n");
+            sb.append("<text x=\"")
+                .append(x)
+                .append("\" y=\"")
+                .append(y + SUBGRAPH_LABEL_BASELINE)
                 .append("\" font-size=\"11\" font-weight=\"bold\" fill=\"#C8CDD6\"")
                 .append(" font-family=\"inherit\">")
                 .append(esc(label))
                 .append("</text>\n");
         }
-
         for (FlowchartSubgraph child : sg.getChildren()) {
-            renderSubgraphRecursive(sb, child, layout, padding, depth + 1);
+            renderSubgraphLabelRecursive(sb, child, layout, padding, depth + 1);
         }
     }
 
@@ -707,6 +739,11 @@ public class GuideSiteGraphRenderer {
         argbToRgba(ColorUtils.MERMAID_SUBGRAPH_BACKGROUND_VIOLET.getColor()),
         argbToRgba(ColorUtils.MERMAID_SUBGRAPH_BACKGROUND_DARK.getColor()),
         argbToRgba(ColorUtils.MERMAID_SUBGRAPH_BACKGROUND_GOLD.getColor()), };
+    private static final String[] SUBGRAPH_BG_OPAQUE = {
+        argbToRgba(ColorUtils.MERMAID_SUBGRAPH_BACKGROUND_PURPLE.getColor() | 0xFF000000),
+        argbToRgba(ColorUtils.MERMAID_SUBGRAPH_BACKGROUND_VIOLET.getColor() | 0xFF000000),
+        argbToRgba(ColorUtils.MERMAID_SUBGRAPH_BACKGROUND_DARK.getColor() | 0xFF000000),
+        argbToRgba(ColorUtils.MERMAID_SUBGRAPH_BACKGROUND_GOLD.getColor() | 0xFF000000), };
     private static final String[] SUBGRAPH_BORDER = { argbToRgba(ColorUtils.MERMAID_SUBGRAPH_BORDER_BLUE.getColor()),
         argbToRgba(ColorUtils.MERMAID_SUBGRAPH_BORDER_GREEN.getColor()),
         argbToRgba(ColorUtils.MERMAID_SUBGRAPH_BORDER_OLIVE.getColor()),

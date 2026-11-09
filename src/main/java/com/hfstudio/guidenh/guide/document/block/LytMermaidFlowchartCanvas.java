@@ -152,9 +152,10 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
 
     @Override
     protected void renderDiagram(RenderContext context, int baseX, int baseY, float activeZoom) {
-        renderSubgraphs(context, baseX, baseY, activeZoom);
+        renderSubgraphs(context, baseX, baseY, activeZoom, false);
         renderEdges(context, baseX, baseY, activeZoom);
         renderNodes(context, baseX, baseY, activeZoom);
+        renderSubgraphs(context, baseX, baseY, activeZoom, true);
     }
 
     @Override
@@ -891,15 +892,15 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
         return contextLineHeight(badgeStyle) + badgePaddingY * 2 + iconGapY;
     }
 
-    private void renderSubgraphs(RenderContext context, int baseX, int baseY, float activeZoom) {
+    private void renderSubgraphs(RenderContext context, int baseX, int baseY, float activeZoom, boolean labels) {
         if (layout == null) return;
         for (var subgraph : document.getSubgraphs()) {
-            renderSubgraphRecursive(context, subgraph, baseX, baseY, activeZoom, 0);
+            renderSubgraphRecursive(context, subgraph, baseX, baseY, activeZoom, 0, labels);
         }
     }
 
     private void renderSubgraphRecursive(RenderContext context, FlowchartSubgraph subgraph, int baseX, int baseY,
-        float activeZoom, int depth) {
+        float activeZoom, int depth, boolean labels) {
         NodePosition position = layout.getSubgraphPositions()
             .get(subgraph.getId());
         if (position == null) return;
@@ -912,24 +913,31 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
 
         int bg = context.resolveColor(SUBGRAPH_BG[depth % SUBGRAPH_BG.length]);
         int border = context.resolveColor(SUBGRAPH_BORDER[depth % SUBGRAPH_BORDER.length]);
-        context.fillRect(sgRect, bg);
-        context.drawBorder(sgRect, border, Math.max(1, Math.round(1.5f * activeZoom)));
+        if (!labels) {
+            context.fillRect(sgRect, bg);
+            context.drawBorder(sgRect, border, Math.max(1, Math.round(1.5f * activeZoom)));
+        }
 
         String label = subgraph.getLabel();
-        if (label != null && !label.isEmpty()) {
-            int labelPadX = Math.max(2, Math.round(4 * activeZoom));
-            int labelPadY = Math.max(1, Math.round(2 * activeZoom));
+        if (labels && label != null && !label.isEmpty()) {
+            NodePosition labelPosition = layout.getSubgraphLabelPositions()
+                .get(subgraph.getId());
             ResolvedTextStyle labelStyle = getOrScaleStyle(NODE_TEXT_STYLE, activeZoom);
-            LytRect labelRect = new LytRect(
-                sgRect.x() + labelPadX,
-                sgRect.y() + labelPadY,
-                context.getStringWidth(label, labelStyle),
-                context.getLineHeight(labelStyle));
-            context.drawText(label, labelRect.x(), labelRect.y(), labelStyle);
+            int labelX = scaled(baseX, labelPosition.getX(), activeZoom);
+            int labelY = scaled(baseY, labelPosition.getY(), activeZoom);
+            int padding = Math.max(1, Math.round(2 * activeZoom));
+            context.fillRect(
+                new LytRect(
+                    labelX - padding,
+                    labelY - padding,
+                    context.getStringWidth(label, labelStyle) + padding * 2,
+                    context.getLineHeight(labelStyle) + padding * 2),
+                bg | 0xFF000000);
+            context.drawText(label, labelX, labelY, labelStyle);
         }
 
         for (var child : subgraph.getChildren()) {
-            renderSubgraphRecursive(context, child, baseX, baseY, activeZoom, depth + 1);
+            renderSubgraphRecursive(context, child, baseX, baseY, activeZoom, depth + 1, labels);
         }
     }
 

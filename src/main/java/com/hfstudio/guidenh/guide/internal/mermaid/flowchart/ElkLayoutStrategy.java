@@ -73,7 +73,7 @@ public class ElkLayoutStrategy implements FlowchartLayoutStrategy {
         Map<String, FlowchartLayoutResult.LabelSize> subgraphLabelSizes) {
         Map<String, FlowchartNode> nodes = document.getNodes();
         if (nodes.isEmpty()) {
-            return new FlowchartLayoutResult(Map.of(), Map.of(), Map.of(), List.of(), 0, 0);
+            return new FlowchartLayoutResult(Map.of(), Map.of(), Map.of(), Map.of(), List.of(), 0, 0);
         }
 
         Map<String, FlowchartSubgraph> nodeToSubgraph = buildNodeToSubgraphMap(document.getSubgraphs());
@@ -330,6 +330,7 @@ public class ElkLayoutStrategy implements FlowchartLayoutStrategy {
         collectRemainingEdges(root, 0, 0, cfg.canvasPadding(), edgePaths, splitEdges, simpleEdgeToId);
 
         Map<String, FlowchartLayoutResult.NodePosition> subgraphPositions = new LinkedHashMap<>();
+        Map<String, FlowchartLayoutResult.NodePosition> subgraphLabelPositions = new LinkedHashMap<>();
         for (var entry : compoundMap.entrySet()) {
             ElkNode compound = entry.getValue();
             double[] offset = nodeOffsetExact(compound, root);
@@ -340,6 +341,16 @@ public class ElkLayoutStrategy implements FlowchartLayoutStrategy {
                     cfg.canvasPadding() + (int) Math.round(offset[1]),
                     (int) Math.ceil(compound.getWidth()),
                     (int) Math.ceil(compound.getHeight())));
+            FlowchartLayoutResult.LabelSize label = subgraphLabelSizes.get(entry.getKey());
+            if (label != null && label.height() > 0) {
+                subgraphLabelPositions.put(
+                    entry.getKey(),
+                    new FlowchartLayoutResult.NodePosition(
+                        cfg.canvasPadding() + (int) Math.round(offset[0] + (compound.getWidth() - label.width()) / 2),
+                        cfg.canvasPadding() + (int) Math.round(offset[1]) + 2,
+                        label.width(),
+                        Math.max(1, label.height() - 4)));
+            }
         }
         Map<FlowchartEdge, FlowchartLayoutResult.NodePosition> labelPositions = new LinkedHashMap<>();
         for (var entry : edgeLabels.entrySet()) {
@@ -357,6 +368,7 @@ public class ElkLayoutStrategy implements FlowchartLayoutStrategy {
         return new FlowchartLayoutResult(
             positions,
             subgraphPositions,
+            subgraphLabelPositions,
             labelPositions,
             edgePaths,
             (int) Math.ceil(root.getWidth()) + cfg.canvasPadding() * 2,
@@ -511,11 +523,16 @@ public class ElkLayoutStrategy implements FlowchartLayoutStrategy {
         FlowchartLayoutResult.LabelSize label = labelSizes.get(sg.getId());
         int labelHeight = label != null ? label.height() : 0;
         int labelWidth = label != null ? label.width() : 0;
+        // The title backdrop masks crossing edges, so only reserve space above the child nodes.
         compound.setProperty(
             CoreOptions.PADDING,
-            new ElkPadding(SUBGRAPH_PADDING + labelHeight, SUBGRAPH_PADDING, SUBGRAPH_PADDING, SUBGRAPH_PADDING));
+            new ElkPadding(
+                Math.max(SUBGRAPH_PADDING, labelHeight),
+                SUBGRAPH_PADDING,
+                SUBGRAPH_PADDING,
+                SUBGRAPH_PADDING));
         compound.setProperty(CoreOptions.NODE_SIZE_CONSTRAINTS, EnumSet.of(SizeConstraint.MINIMUM_SIZE));
-        compound.setProperty(CoreOptions.NODE_SIZE_MINIMUM, new KVector(labelWidth + SUBGRAPH_PADDING * 2, 0));
+        compound.setProperty(CoreOptions.NODE_SIZE_MINIMUM, new KVector(labelWidth + 8, 0));
         compoundMap.put(sg.getId(), compound);
 
         for (FlowchartSubgraph child : sg.getChildren()) {
