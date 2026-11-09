@@ -562,8 +562,12 @@ public class LytMermaidMindmapCanvas extends LytMermaidCanvas<LytMermaidMindmapC
             if (contentScreenRect == null || !contentScreenRect.contains(documentX, documentY)) {
                 continue;
             }
-            int localX = unscaleCoordinate(documentX - contentScreenRect.x(), activeZoom);
-            int localY = unscaleCoordinate(documentY - contentScreenRect.y(), activeZoom);
+            int localX = unscaleCoordinate(documentX - contentScreenRect.x(), activeZoom)
+                + node.contentLayout.visualBounds()
+                    .x();
+            int localY = unscaleCoordinate(documentY - contentScreenRect.y(), activeZoom)
+                + node.contentLayout.visualBounds()
+                    .y();
             DocumentInteractionSnapshot hit = LytDocument.pick(node.contentLayout.block(), localX, localY);
             if (hit != null) {
                 return new NodeHit(hit.node(), hit.flowPath(), localX, localY);

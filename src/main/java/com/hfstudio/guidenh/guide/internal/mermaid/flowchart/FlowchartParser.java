@@ -499,9 +499,6 @@ public class FlowchartParser {
                 if (!inner.isEmpty()) {
                     label = inner;
                     markdownLabel = true;
-                    LOGGER.warn(
-                        "Node '{}' has markdownLabel=true — markdown text rendering is not implemented; falling back to plain text",
-                        id);
                 }
             }
         }

@@ -452,6 +452,20 @@ public abstract class LytMermaidCanvas<T extends LytMermaidCanvas<T>> extends Ly
     }
 
     protected static LytRect resolveBlockVisualBounds(LytBlock block) {
+        if (block instanceof LytParagraph paragraph) {
+            LytRect[] result = { LytRect.empty() };
+            paragraph.visit(new LytVisitor() {
+
+                @Override
+                public LytVisitor.Result beforeFlowContent(LytFlowContent content) {
+                    paragraph.enumerateContentBounds(content)
+                        .forEach(bounds -> result[0] = LytRect.union(result[0], bounds));
+                    return LytVisitor.Result.CONTINUE;
+                }
+            });
+            return result[0].isEmpty() ? resolveSelfVisualBounds(block) : result[0];
+        }
+
         LytRect[] result = { LytRect.empty() };
         block.visit(new LytVisitor() {
 
@@ -667,14 +681,16 @@ public abstract class LytMermaidCanvas<T extends LytMermaidCanvas<T>> extends Ly
         public NodeContentRenderContext(RenderContext delegate, LytRect viewport, int originX, int originY,
             float scale) {
             this.delegate = delegate;
+            this.scale = Math.max(0.0001f, scale);
+            int left = (int) Math.floor((viewport.x() - originX) / this.scale);
+            int top = (int) Math.floor((viewport.y() - originY) / this.scale);
             this.viewport = new LytRect(
-                0,
-                0,
-                Math.max(1, Math.round(viewport.width() / scale)),
-                Math.max(1, Math.round(viewport.height() / scale)));
+                left,
+                top,
+                Math.max(1, (int) Math.ceil((viewport.right() - originX) / this.scale) - left),
+                Math.max(1, (int) Math.ceil((viewport.bottom() - originY) / this.scale) - top));
             this.originX = originX;
             this.originY = originY;
-            this.scale = Math.max(0.0001f, scale);
         }
 
         @Override
@@ -694,12 +710,7 @@ public abstract class LytMermaidCanvas<T extends LytMermaidCanvas<T>> extends Ly
 
         @Override
         public LytRect toScreenRect(LytRect rect) {
-            LytRect s = scaleRect(rect);
-            return new LytRect(
-                s.x() + delegate.getDocumentOriginX(),
-                s.y() + delegate.getDocumentOriginY() - delegate.getScrollOffsetY(),
-                s.width(),
-                s.height());
+            return delegate.toScreenRect(scaleRect(rect));
         }
 
         @Override

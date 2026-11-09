@@ -1925,7 +1925,7 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             }
             String labelSource = node.getLabelSource();
             if (labelSource == null) continue;
-            String normalized = MermaidParser.normalizeLabel(labelSource);
+            String normalized = MermaidParser.normalizeMarkdownLabel(labelSource);
             String plain = MermaidParser.toPlainText(normalized);
             if (normalized.equals(plain)) continue;
             ParsedGuidePage parsed = PageCompiler

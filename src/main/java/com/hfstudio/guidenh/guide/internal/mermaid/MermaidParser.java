@@ -37,6 +37,14 @@ public class MermaidParser {
         return stripWrappingQuotes(normalized.trim());
     }
 
+    public static String normalizeMarkdownLabel(@Nullable String source) {
+        String label = normalizeLabel(source);
+        if (label.length() >= 2 && label.startsWith("`") && label.endsWith("`")) {
+            label = label.substring(1, label.length() - 1);
+        }
+        return stripWrappingQuotes(label);
+    }
+
     public static String stripWrappingQuotes(@Nullable String text) {
         if (text == null || text.length() < 2) return text != null ? text : "";
         if ((text.startsWith("\"") && text.endsWith("\"")) || (text.startsWith("'") && text.endsWith("'"))) {

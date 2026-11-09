@@ -82,6 +82,10 @@ public class MermaidCompiler extends BlockTagCompiler {
             sourceText,
             width,
             height,
+            compiler.getSourcePack(),
+            compiler.getLanguage(),
+            compiler.getPageId()
+                .toString(),
             nodeContentBlocks);
         placeholder.appendText("[Mermaid]");
         parent.append(placeholder);
@@ -153,15 +157,21 @@ public class MermaidCompiler extends BlockTagCompiler {
         public final String sourceText;
         public final int width;
         public final int height;
+        public final String sourcePack;
+        public final String language;
+        public final String pageId;
         public final Map<String, LytBlock> nodeContentBlocks;
 
         public MermaidPlaceholder(MermaidDiagramType diagramType, String src, String sourceText, int width, int height,
-            Map<String, LytBlock> nodeContentBlocks) {
+            String sourcePack, String language, String pageId, Map<String, LytBlock> nodeContentBlocks) {
             this.diagramType = diagramType != null ? diagramType : MermaidDiagramType.UNKNOWN;
             this.src = src;
             this.sourceText = sourceText;
             this.width = width;
             this.height = height;
+            this.sourcePack = sourcePack;
+            this.language = language;
+            this.pageId = pageId;
             this.nodeContentBlocks = nodeContentBlocks;
             setStyleClass("Mermaid");
             setStyle(LytParagraph.PLACEHOLDER_STYLE);
