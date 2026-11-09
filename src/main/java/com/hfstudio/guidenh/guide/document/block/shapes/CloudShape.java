@@ -134,21 +134,22 @@ public class CloudShape implements ShapeRenderer {
 
     @Override
     public LytRect contentBounds(LytRect nodeRect, int cw, int ch, int padX, int padY) {
-        int cx = nodeRect.x() + nodeRect.width() / 2;
-        int cy = nodeRect.y() + nodeRect.height() / 2;
         int r = Math.min(nodeRect.width(), nodeRect.height()) / 3;
-        int insSide = (int) (r * Math.sqrt(2));
-        int availW = Math.max(insSide - 2 * padX, 1);
-        int availH = Math.max(insSide - 2 * padY, 1);
-        int contentW = Math.min(availW, cw);
-        int contentH = Math.min(availH, ch);
-        return new LytRect(cx - contentW / 2, cy - contentH / 2, contentW, contentH);
+        int insSide = 2 * (int) (r / Math.sqrt(2));
+        return ShapeUtils.centeredContent(
+            nodeRect.x() + (nodeRect.width() - insSide) / 2 + padX,
+            nodeRect.y() + (nodeRect.height() - insSide) / 2 + padY,
+            insSide - 2 * padX,
+            insSide - 2 * padY,
+            cw,
+            ch);
     }
 
     @Override
     public LytRect minNodeRect(int cw, int ch, int padX, int padY) {
         int maxPadded = Math.max(cw + 2 * padX, ch + 2 * padY);
-        int dim = (int) Math.ceil(3 * maxPadded / Math.sqrt(2));
+        int radius = (int) Math.ceil(((maxPadded + 1) / 2.0) * Math.sqrt(2));
+        int dim = radius * 3;
         return new LytRect(0, 0, dim, dim);
     }
 }

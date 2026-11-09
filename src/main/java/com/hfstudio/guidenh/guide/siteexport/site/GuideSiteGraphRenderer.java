@@ -298,11 +298,15 @@ public class GuideSiteGraphRenderer {
                 : doc.getNodeOrder()
                     .get(0);
         Map<String, FlowchartLayoutResult.NodeMinSize> minSizes = new LinkedHashMap<>();
+        Map<String, PlainLabel> plainLabels = new LinkedHashMap<>();
         for (FlowchartNode node : doc.getNodes()
             .values()) {
-            String content = nodeHtmlById != null ? nodeHtmlById.getOrDefault(node.getId(), node.getLabel())
-                : node.getLabel();
-            int[] textExtent = estimateTextExtent(content);
+            String htmlContent = nodeHtmlById != null ? nodeHtmlById.get(node.getId()) : null;
+            boolean hasHtmlContent = htmlContent != null && !htmlContent.trim()
+                .isEmpty();
+            PlainLabel plainLabel = hasHtmlContent ? null : measurePlainLabel(node.getLabel());
+            if (plainLabel != null) plainLabels.put(node.getId(), plainLabel);
+            int[] textExtent = hasHtmlContent ? estimateTextExtent(htmlContent) : plainContentExtent(node, plainLabel);
             int textWidth = textExtent[0];
             int textHeight = textExtent[1];
             MermaidNodeShape shape = node.getShape() != null ? node.getShape() : MermaidNodeShape.SQUARE;
@@ -359,6 +363,7 @@ public class GuideSiteGraphRenderer {
             doc,
             layout,
             nodeHtmlById != null ? nodeHtmlById : new LinkedHashMap<>(),
+            plainLabels,
             padding,
             rootNodeId);
         html.append("</svg>\n");
@@ -413,6 +418,65 @@ public class GuideSiteGraphRenderer {
         }
         int height = Math.max(14, totalLines * 14);
         return new int[] { maxWidth, height };
+    }
+
+    private record PlainLabel(List<String> lines, int width, int height) {}
+
+    private static PlainLabel measurePlainLabel(String text) {
+        if (text == null || text.isEmpty()) return new PlainLabel(List.of(), 20, 14);
+
+        List<String> lines = new ArrayList<>();
+        for (String sourceLine : text.split("\n", -1)) {
+            if (sourceLine.isEmpty()) {
+                lines.add("");
+                continue;
+            }
+            StringBuilder line = new StringBuilder();
+            int lineWidth = 8;
+            for (int i = 0; i < sourceLine.length(); i++) {
+                char c = sourceLine.charAt(i);
+                int charWidth = estimatedCharWidth(c);
+                if (line.length() > 0 && lineWidth + charWidth > MAX_TEXT_WRAP_WIDTH) {
+                    lines.add(line.toString());
+                    line.setLength(0);
+                    lineWidth = 8;
+                }
+                line.append(c);
+                lineWidth += charWidth;
+            }
+            lines.add(line.toString());
+        }
+
+        int width = 0;
+        for (String line : lines) width = Math.max(width, estimateTextWidth(line));
+        return new PlainLabel(lines, Math.max(width, 20), Math.max(14, lines.size() * 14));
+    }
+
+    private static int estimatedCharWidth(char c) {
+        if ("iIl!|;,.:'\\\"".indexOf(c) >= 0) return 4;
+        if ("mwMW".indexOf(c) >= 0) return 9;
+        if (" \t".indexOf(c) >= 0) return 4;
+        return 7;
+    }
+
+    private static int[] plainContentExtent(FlowchartNode node, PlainLabel label) {
+        int width = label != null ? label.width() : 20;
+        int height = label != null ? label.height() : 14;
+        String badgeText = node.getIcon() != null ? MermaidNodeRenderer.simplifyIcon(node.getIcon()) : null;
+        if (badgeText != null) {
+            width = Math.max(width, Math.max(badgeText.length() * 7 + 8, 20));
+            height += 18 + 4;
+        }
+        return new int[] { width, height };
+    }
+
+    private static String escapedLines(List<String> lines) {
+        StringBuilder result = new StringBuilder();
+        for (int i = 0; i < lines.size(); i++) {
+            if (i > 0) result.append("<br/>");
+            result.append(esc(lines.get(i)));
+        }
+        return result.toString();
     }
 
     private static void appendArrowheadMarkers(StringBuilder sb) {
@@ -724,7 +788,8 @@ public class GuideSiteGraphRenderer {
     }
 
     private static void renderFlowchartNodes(StringBuilder sb, FlowchartDocument doc, FlowchartLayoutResult layout,
-        Map<String, String> nodeHtmlById, int padding, @Nullable String rootNodeId) {
+        Map<String, String> nodeHtmlById, Map<String, PlainLabel> plainLabels, int padding,
+        @Nullable String rootNodeId) {
 
         for (var entry : layout.getNodePositions()
             .entrySet()) {
@@ -788,8 +853,18 @@ public class GuideSiteGraphRenderer {
             int padY = isRoot ? 9 : 6;
             int contentW = rectW - padX * 2;
             int contentH = rectH - padY * 2;
-            LytRect contentArea = FlowchartShapes
-                .contentBounds(new LytRect(rectX, rectY, rectW, rectH), shape, contentW, contentH, padX, padY);
+            String htmlContent = nodeHtmlById.get(nodeId);
+            boolean hasHtmlContent = htmlContent != null && !htmlContent.trim()
+                .isEmpty();
+            int[] requestedContent = hasHtmlContent ? new int[] { contentW, contentH }
+                : plainContentExtent(node, plainLabels.get(nodeId));
+            LytRect contentArea = FlowchartShapes.contentBounds(
+                new LytRect(rectX, rectY, rectW, rectH),
+                shape,
+                requestedContent[0],
+                requestedContent[1],
+                padX,
+                padY);
             int textY = contentArea.y();
 
             String textColor = isRoot ? "#F1F6FB" : "#D7DEE7";
@@ -828,7 +903,6 @@ public class GuideSiteGraphRenderer {
                 }
             }
 
-            String htmlContent = nodeHtmlById.get(nodeId);
             int visibleWidth = contentArea.width();
             int visibleHeight = contentArea.height();
             if (htmlContent != null && !htmlContent.trim()
@@ -878,10 +952,13 @@ public class GuideSiteGraphRenderer {
                         .append("color:")
                         .append(textColor)
                         .append(";")
-                        .append("text-align:center;white-space:normal;overflow-wrap:break-word;")
-                        .append("word-break:break-word;\">")
+                        .append("text-align:center;white-space:nowrap;overflow-wrap:normal;")
+                        .append("word-break:normal;\">")
                         .append("<span>")
-                        .append(esc(label))
+                        .append(
+                            escapedLines(
+                                plainLabels.get(nodeId)
+                                    .lines()))
                         .append("</span>")
                         .append("</div>")
                         .append("</foreignObject>\n");

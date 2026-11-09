@@ -55,11 +55,15 @@ public class DiamondShape implements ShapeRenderer {
 
     @Override
     public LytRect contentBounds(LytRect nodeRect, int cw, int ch, int padX, int padY) {
-        int cx = nodeRect.x() + nodeRect.width() / 2;
-        int cy = nodeRect.y() + nodeRect.height() / 2;
         int insW = nodeRect.width() / 2;
         int insH = nodeRect.height() / 2;
-        return new LytRect(cx - insW / 2, cy - insH / 2, insW, insH);
+        return ShapeUtils.centeredContent(
+            nodeRect.x() + (nodeRect.width() - insW) / 2 + padX,
+            nodeRect.y() + (nodeRect.height() - insH) / 2 + padY,
+            insW - 2 * padX,
+            insH - 2 * padY,
+            cw,
+            ch);
     }
 
     @Override

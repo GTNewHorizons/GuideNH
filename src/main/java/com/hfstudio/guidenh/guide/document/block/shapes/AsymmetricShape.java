@@ -76,26 +76,22 @@ public class AsymmetricShape implements ShapeRenderer {
     public LytRect contentBounds(LytRect nodeRect, int cw, int ch, int padX, int padY) {
         int w = nodeRect.width();
         int h = nodeRect.height();
-        int cx = nodeRect.x() + w / 2;
-        int cy = nodeRect.y() + h / 2;
         int inset = Math.max(2, h / 4);
-        // Asymmetric is right-heavy: full width at right, inset from left edge at top/bottom.
-        // The inscribed rectangle: left = x + inset, right = w, top = y, bottom = h.
-        int availW = Math.max(w - inset - 2 * padX, 1);
-        int availH = Math.max(h - 2 * padY, 1);
-        int contentW = Math.min(availW, cw);
-        int contentH = Math.min(availH, ch);
-        return new LytRect(cx - contentW / 2, cy - contentH / 2, contentW, contentH);
+        return ShapeUtils.centeredContent(
+            nodeRect.x() + inset + padX,
+            nodeRect.y() + padY,
+            w - inset - 2 * padX,
+            h - 2 * padY,
+            cw,
+            ch);
     }
 
     @Override
     public LytRect minNodeRect(int cw, int ch, int padX, int padY) {
         int pw = cw + 2 * padX;
         int ph = ch + 2 * padY;
-        // The inscribed area is roughly (w - inset) × h, where inset = h/4.
-        // For content: w - h/4 >= pw and h >= ph.
-        // w >= pw + h/4 >= pw + ph/4
-        int w = pw + Math.max(ph / 4, 1);
+        int inset = Math.max(2, ph / 4);
+        int w = pw + inset;
         return new LytRect(0, 0, w, ph);
     }
 }

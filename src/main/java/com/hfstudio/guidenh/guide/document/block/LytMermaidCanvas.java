@@ -734,6 +734,16 @@ public abstract class LytMermaidCanvas<T extends LytMermaidCanvas<T>> extends Ly
         }
 
         @Override
+        public void fillRoundedRect(LytRect rect, int argbColor, int radius) {
+            delegate.fillRoundedRect(scaleRect(rect), argbColor, scaleLength(radius));
+        }
+
+        @Override
+        public void drawRoundedBorder(LytRect rect, int argbColor, int thickness, int radius) {
+            delegate.drawRoundedBorder(scaleRect(rect), argbColor, scaleLength(thickness), scaleLength(radius));
+        }
+
+        @Override
         public void drawText(String text, int x, int y, ResolvedTextStyle style) {
             delegate.drawText(text, scaleX(x), scaleY(y), scaleStyle(style));
         }
