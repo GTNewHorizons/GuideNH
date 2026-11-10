@@ -38,11 +38,19 @@ public class StadiumShape implements ShapeRenderer {
 
     @Override
     public LytRect contentBounds(LytRect nodeRect, int cw, int ch, int padX, int padY) {
-        return nodeRect.shrink(padX, padY, padX, padY);
+        int radius = nodeRect.height() / 2;
+        return ShapeUtils.centeredContent(
+            nodeRect.x() + radius + padX,
+            nodeRect.y() + padY,
+            nodeRect.width() - 2 * radius - 2 * padX,
+            nodeRect.height() - 2 * padY,
+            cw,
+            ch);
     }
 
     @Override
     public LytRect minNodeRect(int cw, int ch, int padX, int padY) {
-        return new LytRect(0, 0, cw + 2 * padX, ch + 2 * padY);
+        int height = Math.max(30, ch + 2 * padY);
+        return new LytRect(0, 0, cw + 2 * padX + height, height);
     }
 }

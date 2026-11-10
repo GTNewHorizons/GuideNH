@@ -1869,8 +1869,11 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             if (nodeHtml.containsKey(node.getId()) || !shouldCompileMermaidRichLabel(node)) {
                 continue;
             }
-            ParsedGuidePage parsed = PageCompiler
-                .parse(resolveSourcePack(currentPageId), "en_us", currentPageId, node.getLabelSource());
+            ParsedGuidePage parsed = PageCompiler.parse(
+                resolveSourcePack(currentPageId),
+                "en_us",
+                currentPageId,
+                MermaidParser.normalizeMarkdownSource(node.getLabelSource()));
             nodeHtml.put(
                 node.getId(),
                 compiler.compileInlineFragment(
@@ -1925,7 +1928,7 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             }
             String labelSource = node.getLabelSource();
             if (labelSource == null) continue;
-            String normalized = MermaidParser.normalizeLabel(labelSource);
+            String normalized = MermaidParser.normalizeMarkdownSource(labelSource);
             String plain = MermaidParser.toPlainText(normalized);
             if (normalized.equals(plain)) continue;
             ParsedGuidePage parsed = PageCompiler
@@ -1953,7 +1956,9 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
     private boolean shouldCompileMermaidRichLabel(MindmapNode node) {
         String labelSource = node.getLabelSource();
         return labelSource != null && !labelSource.trim()
-            .isEmpty() && !labelSource.equals(node.getText());
+            .isEmpty()
+            && !MermaidParser.normalizeMarkdownSource(labelSource)
+                .equals(node.getText());
     }
 
     private String renderCsvTable(MdxJsxElementFields element, @Nullable ResourceLocation currentPageId) {

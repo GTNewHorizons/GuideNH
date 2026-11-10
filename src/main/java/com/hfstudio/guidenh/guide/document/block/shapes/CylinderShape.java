@@ -80,7 +80,7 @@ public class CylinderShape implements ShapeRenderer {
         int extraV = Math.max(2, ry / 3);
         int top = nodeRect.y() + 2 * ry + padY + extraV;
         int bodyH = nodeRect.height() - 3 * ry - 2 * padY - 2 * extraV;
-        return new LytRect(nodeRect.x() + padX, top, nodeRect.width() - 2 * padX, bodyH);
+        return ShapeUtils.centeredContent(nodeRect.x() + padX, top, nodeRect.width() - 2 * padX, bodyH, cw, ch);
     }
 
     @Override
