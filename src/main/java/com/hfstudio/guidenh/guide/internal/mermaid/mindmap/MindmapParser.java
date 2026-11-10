@@ -168,8 +168,8 @@ public class MindmapParser {
         String label = parsedShape != null ? parsedShape.label() : working;
         MermaidNodeShape shape = parsedShape != null ? parsedShape.shape() : MermaidNodeShape.DEFAULT;
 
-        String labelSource = MermaidParser.normalizeLabel(label);
-        String plainText = MermaidParser.toPlainText(labelSource);
+        String labelSource = label;
+        String plainText = MermaidParser.toPlainText(MermaidParser.normalizeMarkdownSource(labelSource));
         if (plainText.isEmpty() && icon != null && !icon.isEmpty()) {
             labelSource = formatIconLabel(icon);
             plainText = labelSource;
