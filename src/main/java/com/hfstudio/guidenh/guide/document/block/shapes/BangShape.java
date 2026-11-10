@@ -134,20 +134,20 @@ public class BangShape implements ShapeRenderer {
     public LytRect contentBounds(LytRect nodeRect, int cw, int ch, int padX, int padY) {
         int w = nodeRect.width();
         int h = nodeRect.height();
-        int cx = nodeRect.x() + w / 2;
-        int cy = nodeRect.y() + h / 2;
         int n = Math.max(2, Math.min(w, h) / 6);
-        int availW = Math.max(w - 2 * n - 2 * padX, 1);
-        int availH = Math.max(h - 2 * n - 2 * padY, 1);
-        int contentW = Math.min(availW, cw);
-        int contentH = Math.min(availH, ch);
-        return new LytRect(cx - contentW / 2, cy - contentH / 2, contentW, contentH);
+        return ShapeUtils.centeredContent(
+            nodeRect.x() + n + padX,
+            nodeRect.y() + n + padY,
+            w - 2 * n - 2 * padX,
+            h - 2 * n - 2 * padY,
+            cw,
+            ch);
     }
 
     @Override
     public LytRect minNodeRect(int cw, int ch, int padX, int padY) {
         int maxPadded = Math.max(cw + 2 * padX, ch + 2 * padY);
-        int dim = (int) Math.ceil(maxPadded * 1.5);
+        int dim = Math.max(maxPadded + 4, (int) Math.ceil(maxPadded * 1.5));
         return new LytRect(0, 0, dim, dim);
     }
 }

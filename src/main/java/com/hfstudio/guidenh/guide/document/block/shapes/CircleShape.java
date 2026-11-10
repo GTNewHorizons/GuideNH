@@ -42,17 +42,22 @@ public class CircleShape implements ShapeRenderer {
 
     @Override
     public LytRect contentBounds(LytRect nodeRect, int cw, int ch, int padX, int padY) {
-        int cx = nodeRect.x() + nodeRect.width() / 2;
-        int cy = nodeRect.y() + nodeRect.height() / 2;
         int r = Math.min(nodeRect.width(), nodeRect.height()) / 2;
-        int insSide = (int) (r * Math.sqrt(2));
-        return new LytRect(cx - insSide / 2, cy - insSide / 2, insSide, insSide);
+        int insSide = 2 * (int) (r / Math.sqrt(2));
+        return ShapeUtils.centeredContent(
+            nodeRect.x() + (nodeRect.width() - insSide) / 2 + padX,
+            nodeRect.y() + (nodeRect.height() - insSide) / 2 + padY,
+            insSide - 2 * padX,
+            insSide - 2 * padY,
+            cw,
+            ch);
     }
 
     @Override
     public LytRect minNodeRect(int cw, int ch, int padX, int padY) {
         int maxContent = Math.max(cw + 2 * padX, ch + 2 * padY);
-        int side = (int) Math.ceil(maxContent * Math.sqrt(2));
+        int radius = (int) Math.ceil(((maxContent + 1) / 2.0) * Math.sqrt(2));
+        int side = radius * 2;
         return new LytRect(0, 0, side, side);
     }
 }
