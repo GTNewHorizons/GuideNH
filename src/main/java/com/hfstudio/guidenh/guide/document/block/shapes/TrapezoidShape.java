@@ -71,20 +71,14 @@ public class TrapezoidShape implements ShapeRenderer {
     public LytRect contentBounds(LytRect nodeRect, int cw, int ch, int padX, int padY) {
         int w = nodeRect.width();
         int h = nodeRect.height();
-        int cx = nodeRect.x() + w / 2;
-        int cy = nodeRect.y() + h / 2;
         int inset = Math.max(1, h / 4);
-        // Trapezoid is wider at bottom, narrower at top.
-        // Top width = w - 2*inset, bottom width = w.
-        // The inscribed rectangle has full height h, width constrained by the narrower top.
-        int hh = Math.min(ch / 2 + padY, h / 2);
-        // Width at this half-height from center:
-        float t = (float) hh / (h / 2f);
-        int availW = Math.max(w - 2 * (int) (inset * t) - 2 * padX, 1);
-        int availH = Math.max(h - 2 * padY, 1);
-        int contentW = Math.min(availW, cw);
-        int contentH = Math.min(availH, ch);
-        return new LytRect(cx - contentW / 2, cy - contentH / 2, contentW, contentH);
+        return ShapeUtils.centeredContent(
+            nodeRect.x() + inset + padX,
+            nodeRect.y() + padY,
+            w - 2 * inset - 2 * padX,
+            h - 2 * padY,
+            cw,
+            ch);
     }
 
     @Override

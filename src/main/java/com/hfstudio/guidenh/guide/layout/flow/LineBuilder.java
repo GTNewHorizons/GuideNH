@@ -356,6 +356,8 @@ public class LineBuilder implements Consumer<LytFlowContent> {
                     lineBuffer.setLength(0);
                     lineBufferPrefixWidths[0] = 0f;
                     wordBreakOffset = -1;
+                    curLineWidth = 0;
+                    visibleGlyphSeen = false;
                     lastCharWasWhitespace = true;
                     remainingLineWidth = getAvailableHorizontalSpace();
                     continue;

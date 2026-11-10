@@ -79,15 +79,15 @@ public class HexagonShape implements ShapeRenderer {
     public LytRect contentBounds(LytRect nodeRect, int cw, int ch, int padX, int padY) {
         int w = nodeRect.width();
         int h = nodeRect.height();
-        int cx = nodeRect.x() + w / 2;
-        int cy = nodeRect.y() + h / 2;
         int inset = Math.max(1, h / 4);
-        int hh = Math.min(ch / 2 + padY, h / 2);
-        int availW = Math.max(w - 4 * hh * inset / h, 1);
-        int availH = Math.max(2 * hh, 1);
-        int contentW = Math.min(availW, cw + 2 * padX);
-        int contentH = Math.min(availH, ch + 2 * padY);
-        return new LytRect(cx - contentW / 2, cy - contentH / 2, contentW, contentH);
+        int sideInset = inset * Math.max(0, h - 2 * padY) / h;
+        return ShapeUtils.centeredContent(
+            nodeRect.x() + sideInset + padX,
+            nodeRect.y() + padY,
+            w - 2 * sideInset - 2 * padX,
+            h - 2 * padY,
+            cw,
+            ch);
     }
 
     @Override

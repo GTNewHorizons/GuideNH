@@ -693,3 +693,6 @@ guidenh.debug.info.parent_element=父元素:
 guidenh.debug.info.class_name=类: %s
 guidenh.debug.info.size=尺寸: %s x %s
 guidenh.debug.info.position=位置: %s, %s
+
+# ServerUtilities Sidebar button
+sidebar_button.guidenh.guide=指南

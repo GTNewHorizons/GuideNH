@@ -30,6 +30,7 @@ dependencies {
     // devOnlyNonPublishable("com.github.GTNewHorizons:Angelica:2.2.32:dev")
     devOnlyNonPublishable("com.github.GTNewHorizons:TX-Loader:1.9.1:dev")
     devOnlyNonPublishable("curse.maven:cofh-core-69162:2388751")
+    devOnlyNonPublishable("com.github.GTNewHorizons:ServerUtilities:2.4.21:dev")
 
     runtimeOnlyNonPublishable("com.github.GTNewHorizons:Baubles-Expanded:2.2.25-GTNH:dev")
     runtimeOnlyNonPublishable("com.github.GTNewHorizons:Botania:1.13.39-GTNH:dev")
@@ -37,7 +38,6 @@ dependencies {
     compileOnlyApi("com.github.GTNewHorizons:BlockRenderer6343:1.4.24:dev") { transitive = false }
     runtimeOnlyNonPublishable("com.github.GTNewHorizons:BlockRenderer6343:1.4.24:dev") { transitive = false }
     runtimeOnlyNonPublishable("com.github.GTNewHorizons:EnderCore:0.5.15:dev") { transitive = false }
-    runtimeOnlyNonPublishable("com.github.GTNewHorizons:ServerUtilities:2.4.21:dev")
     runtimeOnlyNonPublishable("it.unimi.dsi:fastutil:8.5.18")
     runtimeOnlyNonPublishable(rfg.deobf("curse.maven:spark-361579:4271867"))
 

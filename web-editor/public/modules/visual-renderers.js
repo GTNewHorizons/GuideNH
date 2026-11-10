@@ -12,13 +12,29 @@ function stripMermaidFrontmatter(source) {
   return text;
 }
 
+function unquoteMermaidValue(value) {
+  const text = String(value || "").trim();
+  return text.length >= 2 && (text[0] === '"' || text[0] === "'") && text.at(-1) === text[0] ? text.slice(1, -1).trim() : text;
+}
+
+function mermaidLabelBody(value) {
+  const text = unquoteMermaidValue(value);
+  return text.length >= 2 && text.startsWith("`") && text.endsWith("`") ? text.slice(1, -1) : text;
+}
+
 function mermaidLabelHtml(value) {
-  let html = escapeHtml(value);
+  // Code spans keep their literal source; elsewhere the browser decodes entities once.
+  let html = escapeHtml(value).replace(/`[^`]+`|&lt;br\s*\/?\s*&gt;|&amp;((?:[a-z][a-z\d]*|#\d+|#x[\da-f]+));/gi,
+    (match, entity) => match.startsWith("`") ? match : entity ? `&${entity};` : "<br>");
   html = html.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
   html = html.replace(/\*([^*]+)\*/g, "<em>$1</em>");
   html = html.replace(/`([^`]+)`/g, "<code>$1</code>");
   html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
   return html;
+}
+
+function mermaidLabelLineCount(value) {
+  return 1 + (mermaidLabelHtml(value).match(/<br>/g) || []).length;
 }
 
 function mermaidNodeLine(line, index) {
@@ -37,7 +53,7 @@ function mermaidNodeLine(line, index) {
     label = shapeMatch[2].trim();
     shape = ({ "((": "circle", "{{": "hexagon", "[[": "subprocess", "([": "stadium", "[(": "stadium", "{|": "cylinder", "|}": "cylinder", "(": "rounded", "[": "square", "{": "diamond" })[shapeMatch[1]] || "square";
   }
-  label = label.replace(/^["']|["']$/g, "").trim();
+  label = mermaidLabelBody(label);
   if (!id) id = label.replace(/[^\w]+/g, "-").replace(/^-|-$/g, "").toLowerCase() || "node-" + index;
   return { id, label: label || "Mermaid", shape, icon, classes, position: positionMatch ? { x: Number(positionMatch[1]), y: Number(positionMatch[2]) } : null, children: [], parent: null };
 }
@@ -64,7 +80,10 @@ function renderMindmap(source, options = {}) {
   const tidy = options.layoutTidy === true || /\blayout\s*:\s*tidy-tree\b/i.test(source);
   const size = new Map(nodes.map((node) => {
     const rich = Boolean(content.get(node.id));
-    return [node.id, { width: rich ? Math.max(320, Math.min(380, [...node.label].length * 7 + 34)) : Math.max(140, Math.min(300, [...node.label].length * 7 + 34)), height: rich ? 210 : 52 }];
+    const lines = mermaidLabelLineCount(node.label);
+    // Include the 10px frame inset, CSS margin/border/label padding (15px), and rounding room.
+    const height = rich ? 210 + Math.ceil((lines - 1) * 16.2) : Math.max(52, Math.ceil(lines * 16.2) + 26);
+    return [node.id, { width: rich ? Math.max(320, Math.min(380, [...node.label].length * 7 + 34)) : Math.max(140, Math.min(300, [...node.label].length * 7 + 34)), height }];
   }));
   const positions = layoutMindmap(nodes, byId, root, size, tidy);
   for (const node of nodes) {
@@ -180,16 +199,16 @@ function flowNode(text) {
   const special = source.match(/^([A-Za-z_][\w-]*)\s*@\{\s*([^}]*)\}/);
   if (special) {
     const fields = {};
-    for (const part of special[2].split(",")) { const item = part.match(/^\s*([\w-]+)\s*:\s*["']?([\s\S]*?)["']?\s*$/); if (item) fields[item[1]] = item[2].replace(/^["']|["']$/g, ""); }
+    for (const part of special[2].split(",")) { const item = part.match(/^\s*([\w-]+)\s*:\s*([\s\S]*?)\s*$/); if (item) fields[item[1]] = item[2]; }
     const className = (source.match(/:::([\w-]+)/) || [null, ""])[1];
-    return { id: special[1], label: fields.label || special[1], shape: fields.shape || "rect", icon: fields.icon || "", classes: className ? [className] : [] };
+    return { id: special[1], label: mermaidLabelBody(fields.label) || special[1], shape: unquoteMermaidValue(fields.shape) || "rect", icon: unquoteMermaidValue(fields.icon), classes: className ? [className] : [] };
   }
   const classes = (String(text || "").match(/:::([\w-]+)/) || [null, ""])[1];
   const clean = String(text || "").replace(/:::([\w-]+)/, "").trim();
   const idMatch = clean.match(/^([A-Za-z_][\w-]*)/); if (!idMatch) return null;
   const id = idMatch[1]; const rest = clean.slice(id.length).trim();
   const pair = rest.match(/^(\(\(|\{\{|\[\[|\(\[|\[\(|\{|\[|\()([\s\S]*?)(\)\)|\}\}|\]\]|\)\]|\]\)|\}|\]|\))$/);
-  const open = pair ? pair[1] : ""; const label = (pair ? pair[2] : id).replace(/^["']|["']$/g, "").trim();
+  const open = pair ? pair[1] : ""; const label = mermaidLabelBody(pair ? pair[2] : id);
   return { id, label: label || id, shape: ({ "((": "circle", "{{": "hexagon", "[[": "subprocess", "([": "stadium", "[(": "stadium", "{": "diamond", "[": "rect", "(": "rounded" })[open] || "rect", icon: "", classes: classes ? [classes] : [] };
 }
 
@@ -205,8 +224,38 @@ function flowShape(shape, x, y, w, h, fill, stroke) {
   return '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" rx="' + (s === "stadium" ? h / 2 : s === "rounded" ? 8 : 3) + '" fill="' + fill + '" stroke="' + stroke + '" class="guide-flowchart-shape"/>';
 }
 
+function splitMermaidStatements(source) {
+  const statements = [];
+  let start = 0; let depth = 0; let quote = ""; let markdown = false; let edgeLabel = false; let previous = "";
+  for (let index = 0; index < source.length; index += 1) {
+    const character = source[index];
+    if (edgeLabel) { if (character === "|") edgeLabel = false; continue; }
+    if (!quote && depth === 0 && character === "|") { edgeLabel = true; continue; }
+    if (!quote && depth === 0 && source.startsWith("%%", index)) {
+      const newline = source.indexOf("\n", index);
+      if (newline < 0) break;
+      index = newline - 1;
+      continue;
+    }
+    if (quote) {
+      if (character === "\\") { index += 1; continue; }
+      if (markdown && character === "`" && source[index + 1] === quote) { quote = ""; markdown = false; index += 1; }
+      else if (!markdown && character === quote) quote = "";
+    } else if ((character === '"' || character === "'") && /[\[({:,]/.test(previous)) {
+      quote = character;
+      markdown = source[index + 1] === "`";
+      if (markdown) index += 1;
+    } else if (/[\[({]/.test(character)) depth += 1;
+    else if (/[\])}]/.test(character)) depth = Math.max(0, depth - 1);
+    else if ((character === "\n" || character === ";") && depth === 0) { statements.push(source.slice(start, index)); start = index + 1; }
+    if (!/\s/.test(character)) previous = character;
+  }
+  statements.push(source.slice(start));
+  return statements;
+}
+
 function renderFlowchart(source, options = {}) {
-  const lines = String(source || "").split(/\n|;/).map((line) => line.replace(/%%.*$/, "").trim()).filter(Boolean);
+  const lines = splitMermaidStatements(String(source || "")).map((line) => line.replace(/%%.*$/, "").trim()).filter(Boolean);
   const declaration = lines.find((line) => /^(?:flowchart|graph)\b/i.test(line)) || "";
   const direction = (declaration.match(/^(?:flowchart|graph)\s+(TB|BT|LR|RL)\b/i) || [null, "TB"])[1].toUpperCase();
   const nodes = new Map(); const edges = []; const defs = new Map(); const assigned = new Map();
@@ -240,16 +289,19 @@ function renderFlowchart(source, options = {}) {
   const height = Math.max(170, ...[...positions.values()].map((position) => position.y + position.height + 32));
   const defsSvg = '<defs><marker id="guide-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M 0 0 L 8 4 L 0 8 z" fill="var(--preview-diagram-connector)"/></marker></defs>';
   const connectors = edges.map((edge) => { const a = positions.get(edge.from); const b = positions.get(edge.to); if (!a || !b) return ""; const x1 = horizontal ? (direction === "RL" ? a.x : a.x + a.width) : a.x + a.width / 2; const y1 = horizontal ? a.y + a.height / 2 : (direction === "BT" ? a.y : a.y + a.height); const x2 = horizontal ? (direction === "RL" ? b.x + b.width : b.x) : b.x + b.width / 2; const y2 = horizontal ? b.y + b.height / 2 : (direction === "BT" ? b.y + b.height : b.y); const mid = horizontal ? (x1 + x2) / 2 : (y1 + y2) / 2; const path = horizontal ? `M ${x1} ${y1} H ${mid} V ${y2} H ${x2}` : `M ${x1} ${y1} V ${mid} H ${x2} V ${y2}`; return '<path class="guide-flowchart-connector" d="' + path + '" marker-end="url(#guide-arrow)"/>'; }).join("");
-  const boxes = [...nodes.values()].map((node) => { const p = positions.get(node.id); const style = defs.get(node.classes[0]) || {}; const fill = style.fill || "var(--preview-diagram-node)"; const stroke = style.stroke || "var(--preview-diagram-accent)"; const color = style.color || "var(--preview-diagram-text)"; const body = content.get(node.id) || ""; const rich = body ? '<div class="guide-flowchart-rich">' + body + "</div>" : ""; const title = '<div class="guide-flowchart-node-title">' + (node.icon ? '<span class="guide-flowchart-icon">' + escapeHtml(node.icon) + "</span>" : "") + mermaidLabelHtml(node.label) + "</div>"; const label = '<div xmlns="http://www.w3.org/1999/xhtml" class="guide-flowchart-label' + (body ? " has-rich-content" : "") + '" style="color:' + escapeHtml(color) + '">' + title + rich + "</div>"; return '<g class="guide-flowchart-node-group" data-node-id="' + escapeHtml(node.id) + '">' + flowShape(node.shape, p.x, p.y, p.width, p.height, escapeHtml(fill), escapeHtml(stroke)) + '<foreignObject x="' + (p.x + 10) + '" y="' + (p.y + 8) + '" width="' + (p.width - 20) + '" height="' + (p.height - 16) + '">' + label + "</foreignObject></g>"; }).join("");
+  const boxes = [...nodes.values()].map((node) => { const p = positions.get(node.id); const style = defs.get(node.classes[0]) || {}; const fill = style.fill || "var(--preview-diagram-node)"; const stroke = style.stroke || "var(--preview-diagram-accent)"; const color = style.color || "var(--preview-diagram-text)"; const body = content.get(node.id) || ""; const rich = body ? '<div class="guide-flowchart-rich">' + body + "</div>" : ""; const title = '<div class="guide-flowchart-node-title">' + (node.icon ? '<span class="guide-flowchart-icon">' + escapeHtml(node.icon) + "</span>" : "") + "<span>" + mermaidLabelHtml(node.label) + "</span></div>"; const label = '<div xmlns="http://www.w3.org/1999/xhtml" class="guide-flowchart-label' + (body ? " has-rich-content" : "") + '" style="color:' + escapeHtml(color) + '">' + title + rich + "</div>"; return '<g class="guide-flowchart-node-group" data-node-id="' + escapeHtml(node.id) + '">' + flowShape(node.shape, p.x, p.y, p.width, p.height, escapeHtml(fill), escapeHtml(stroke)) + '<foreignObject x="' + (p.x + 10) + '" y="' + (p.y + 8) + '" width="' + (p.width - 20) + '" height="' + (p.height - 16) + '">' + label + "</foreignObject></g>"; }).join("");
   const viewportWidth = Number(options.width) > 0 ? Number(options.width) : width; const viewportHeight = Number(options.height) > 0 ? Number(options.height) : Math.min(540, height);
   return '<div class="guide-mermaid-diagram guide-mermaid-flowchart" data-guide-diagram-width="' + width + '" data-guide-diagram-height="' + height + '" data-guide-diagram-zoom="1" style="width:' + viewportWidth + 'px;max-width:100%;height:' + viewportHeight + 'px"><div class="guide-mermaid-label">MERMAID · flowchart</div><svg viewBox="0 0 ' + width + " " + height + '" role="img" aria-label="Mermaid flowchart">' + defsSvg + connectors + boxes + "</svg></div>";
 }
 
 function layoutFlowchart(groups, content, horizontal, direction) {
   const nodeSize = (node) => {
-    if (content.get(node.id)) return { width: 320, height: 210 };
-    if (["circle", "double-circle"].includes(node.shape)) { const diameter = Math.max(82, Math.min(130, [...node.label].length * 10 + 32)); return { width: diameter, height: diameter }; }
-    return { width: Math.max(140, Math.min(240, [...node.label].length * 8 + 36)), height: 60 };
+    const lines = mermaidLabelLineCount(node.label);
+    // Include the 16px frame inset and room for glyphs extending beyond the 15px line box.
+    const labelHeight = lines * 15 + 18;
+    if (content.get(node.id)) return { width: 320, height: 210 + (lines - 1) * 15 };
+    if (["circle", "double-circle"].includes(node.shape)) { const diameter = Math.max(82, labelHeight, Math.min(130, [...node.label].length * 10 + 32)); return { width: diameter, height: diameter }; }
+    return { width: Math.max(140, Math.min(240, [...node.label].length * 8 + 36)), height: Math.max(60, labelHeight) };
   };
   const sizes = new Map([...groups.values()].flat().map((node) => [node.id, nodeSize(node)]));
   const levels = [...groups.keys()].sort((left, right) => left - right);
