@@ -34,6 +34,7 @@ import com.hfstudio.guidenh.integration.nei.NeiRecipeHandlerRenderProvider;
 import com.hfstudio.guidenh.integration.nei.NeiRecipeHandlerSlotProvider;
 import com.hfstudio.guidenh.integration.nei.NeiRecipeItemTooltipProvider;
 import com.hfstudio.guidenh.integration.railcraft.RailcraftPreviewPrepareContributor;
+import com.hfstudio.guidenh.integration.serverutilities.ServerUtilitiesSidebarButton;
 import com.hfstudio.guidenh.integration.simpleskinbackport.SimpleSkinBackportPreviewPlayerModelProvider;
 import com.hfstudio.guidenh.integration.simpleskinbackport.SimpleSkinBackportSlimArmProvider;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibControllerIntegrationRegistry;
@@ -75,6 +76,10 @@ public class GuideNhClientIntegrationBootstrap {
 
         if (Mods.BetterQuesting.isModLoaded()) {
             BqCompat.registerBetterQuestCompact();
+        }
+
+        if (Mods.ServerUtilities.isModLoaded()) {
+            ServerUtilitiesSidebarButton.registerClickEvent();
         }
     }
 
