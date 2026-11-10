@@ -7,16 +7,13 @@ public class MermaidParser {
     protected MermaidParser() {}
 
     public static String normalizeLabel(@Nullable String text) {
-        return decodeEntities(normalizeLineBreaks(text));
+        return decodeEntities(replaceLineBreaks(stripWrappingQuotes(text != null ? text.trim() : "")));
     }
 
-    private static String normalizeLineBreaks(@Nullable String text) {
-        if (text == null) return "";
-        return stripWrappingQuotes(
-            text.replace("<br/>", "\n")
-                .replace("<br />", "\n")
-                .replace("<br>", "\n")
-                .trim());
+    private static String replaceLineBreaks(String text) {
+        return text.replace("<br/>", "\n")
+            .replace("<br />", "\n")
+            .replace("<br>", "\n");
     }
 
     public static String decodeEntities(@Nullable String text) {
@@ -30,7 +27,7 @@ public class MermaidParser {
         if (text == null || text.isEmpty()) {
             return "";
         }
-        String normalized = text;
+        String normalized = replaceLineBreaks(text);
         normalized = normalized.replace("![", "[");
         normalized = normalized.replaceAll("\\[([^\\]]+)]\\(([^)]+)\\)", "$1");
         normalized = normalized.replaceAll("\\[([^\\]]+)]\\[([^\\]]+)]", "$1");
@@ -42,24 +39,23 @@ public class MermaidParser {
             .replace("::", "")
             .replace("`", "");
         normalized = normalized.replaceAll("</?[a-zA-Z]+[^>]*>", "");
-        return stripWrappingQuotes(normalized.trim());
+        return decodeEntities(normalized.trim());
     }
 
     public static String normalizeMarkdownLabel(@Nullable String source) {
-        return decodeEntities(normalizeMarkdownSource(source));
+        return decodeEntities(replaceLineBreaks(normalizeMarkdownSource(source)));
     }
 
     /**
-     * Like {@link #normalizeMarkdownLabel(String)} but keeps HTML entities intact, so escaped markup
-     * (e.g. {@code &lt;b&gt;}) is decoded by the markdown compiler as literal text instead of being
-     * reinterpreted as tags.
+     * Removes Mermaid delimiters while keeping entities and explicit break tags intact for the
+     * markdown compiler. Quotes inside the markdown body are literal content, not delimiters.
      */
     public static String normalizeMarkdownSource(@Nullable String source) {
-        String label = normalizeLineBreaks(source);
+        String label = stripWrappingQuotes(source != null ? source.trim() : "");
         if (label.length() >= 2 && label.startsWith("`") && label.endsWith("`")) {
             label = label.substring(1, label.length() - 1);
         }
-        return stripWrappingQuotes(label);
+        return label;
     }
 
     public static String stripWrappingQuotes(@Nullable String text) {
