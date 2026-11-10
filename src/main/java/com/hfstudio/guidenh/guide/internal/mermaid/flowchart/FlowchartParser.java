@@ -477,6 +477,7 @@ public class FlowchartParser {
             if (icon != null) {
                 label = stripIconFromLabel(label);
                 if (label.isEmpty()) label = id;
+                labelSource = stripIconFromLabel(stripWrappingQuotes(labelSource.trim()));
                 LOGGER.warn(
                     "Node '{}' uses icon '{}' — TrueType font icon rendering is not implemented; rendering as text badge",
                     id,
@@ -519,6 +520,8 @@ public class FlowchartParser {
         MermaidNodeShape shape = MermaidNodeShape.DEFAULT;
         String label = id;
         @Nullable
+        String labelSource = null;
+        @Nullable
         String icon = null;
         @Nullable
         Map<String, String> extra = null;
@@ -538,7 +541,10 @@ public class FlowchartParser {
                     MermaidNodeShape s = parseShapeName(value);
                     if (s != null) shape = s;
                 }
-                case "label" -> label = value.isEmpty() ? id : value;
+                case "label" -> {
+                    label = value.isEmpty() ? id : value;
+                    labelSource = value.isEmpty() ? null : value;
+                }
                 case "icon" -> {
                     icon = value.isEmpty() ? null : value;
                     if (icon != null) {
@@ -565,7 +571,7 @@ public class FlowchartParser {
             }
         }
 
-        return new NodeSpec(id, label, shape, classes, icon, false, extra, null);
+        return new NodeSpec(id, label, shape, classes, icon, false, extra, labelSource);
     }
 
     @Nullable

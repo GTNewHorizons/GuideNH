@@ -361,8 +361,10 @@ public class GuideSiteGraphRenderer {
     private static int estimateTextWidth(CharSequence text) {
         if (text == null || text.isEmpty()) return 0;
         int w = 0;
-        for (int i = 0; i < text.length(); i++) {
-            w += estimatedCharWidth(text.charAt(i));
+        for (int i = 0; i < text.length();) {
+            int codePoint = Character.codePointAt(text, i);
+            w += estimatedCharWidth(codePoint);
+            i += Character.charCount(codePoint);
         }
         return Math.max(w + 8, 28);
     }
@@ -404,15 +406,17 @@ public class GuideSiteGraphRenderer {
             }
             StringBuilder line = new StringBuilder();
             int lineWidth = 8;
-            for (int i = 0; i < sourceLine.length(); i++) {
-                char c = sourceLine.charAt(i);
-                int charWidth = estimatedCharWidth(c);
+            // Iterate by code point so supplementary characters (e.g. emoji) are never split.
+            for (int i = 0; i < sourceLine.length();) {
+                int codePoint = sourceLine.codePointAt(i);
+                i += Character.charCount(codePoint);
+                int charWidth = estimatedCharWidth(codePoint);
                 if (line.length() > 0 && lineWidth + charWidth > MAX_TEXT_WRAP_WIDTH) {
                     lines.add(line.toString());
                     line.setLength(0);
                     lineWidth = 8;
                 }
-                line.append(c);
+                line.appendCodePoint(codePoint);
                 lineWidth += charWidth;
             }
             lines.add(line.toString());
@@ -423,7 +427,7 @@ public class GuideSiteGraphRenderer {
         return new PlainLabel(lines, Math.max(width, 20), Math.max(14, lines.size() * 14));
     }
 
-    private static int estimatedCharWidth(char c) {
+    private static int estimatedCharWidth(int c) {
         if ("iIl!|;,.:'\\\"".indexOf(c) >= 0) return 4;
         if ("mwMW".indexOf(c) >= 0) return 9;
         if (" \t".indexOf(c) >= 0) return 4;

@@ -7,15 +7,23 @@ public class MermaidParser {
     protected MermaidParser() {}
 
     public static String normalizeLabel(@Nullable String text) {
+        return decodeEntities(normalizeLineBreaks(text));
+    }
+
+    private static String normalizeLineBreaks(@Nullable String text) {
         if (text == null) return "";
         return stripWrappingQuotes(
             text.replace("<br/>", "\n")
                 .replace("<br />", "\n")
                 .replace("<br>", "\n")
-                .replace("&lt;", "<")
-                .replace("&gt;", ">")
-                .replace("&amp;", "&")
                 .trim());
+    }
+
+    public static String decodeEntities(@Nullable String text) {
+        if (text == null) return "";
+        return text.replace("&lt;", "<")
+            .replace("&gt;", ">")
+            .replace("&amp;", "&");
     }
 
     public static String toPlainText(@Nullable String text) {
@@ -38,7 +46,16 @@ public class MermaidParser {
     }
 
     public static String normalizeMarkdownLabel(@Nullable String source) {
-        String label = normalizeLabel(source);
+        return decodeEntities(normalizeMarkdownSource(source));
+    }
+
+    /**
+     * Like {@link #normalizeMarkdownLabel(String)} but keeps HTML entities intact, so escaped markup
+     * (e.g. {@code &lt;b&gt;}) is decoded by the markdown compiler as literal text instead of being
+     * reinterpreted as tags.
+     */
+    public static String normalizeMarkdownSource(@Nullable String source) {
+        String label = normalizeLineBreaks(source);
         if (label.length() >= 2 && label.startsWith("`") && label.endsWith("`")) {
             label = label.substring(1, label.length() - 1);
         }

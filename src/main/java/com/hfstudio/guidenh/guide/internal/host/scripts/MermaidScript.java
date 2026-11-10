@@ -37,6 +37,7 @@ import com.hfstudio.guidenh.guide.internal.mermaid.mindmap.MindmapParser;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.guide.style.TextAlignment;
 import com.hfstudio.guidenh.guide.style.TextStyle;
+import com.hfstudio.guidenh.guide.style.WhiteSpaceMode;
 
 public class MermaidScript implements LytScript {
 
@@ -129,8 +130,9 @@ public class MermaidScript implements LytScript {
             for (FlowchartNode node : document.getNodes()
                 .values()) {
                 if (nodeContentBlocks.containsKey(node.getId())) continue;
-                String label = node.isMarkdownLabel() ? node.getLabel()
-                    : MermaidParser.normalizeMarkdownLabel(node.getLabel());
+                String label = node.getLabelSource() != null
+                    ? MermaidParser.normalizeMarkdownSource(node.getLabelSource())
+                    : node.getLabel();
                 LytBlock content = compileRichLabel(compiler, label);
                 if (content != null) {
                     nodeContentBlocks.put(node.getId(), content);
@@ -164,7 +166,7 @@ public class MermaidScript implements LytScript {
 
     private void collectRichMindmapLabels(PageCompiler compiler, MindmapNode node, Map<String, LytBlock> result) {
         if (!result.containsKey(node.getId())) {
-            LytBlock content = compileRichLabel(compiler, MermaidParser.normalizeMarkdownLabel(node.getLabelSource()));
+            LytBlock content = compileRichLabel(compiler, MermaidParser.normalizeMarkdownSource(node.getLabelSource()));
             if (content != null) {
                 result.put(node.getId(), content);
             }
@@ -190,6 +192,7 @@ public class MermaidScript implements LytScript {
             TextStyle.builder()
                 .color(new ConstantColor(ColorUtils.ARGB_FFD7DEE7.getColor()))
                 .alignment(TextAlignment.CENTER)
+                .whiteSpace(WhiteSpaceMode.PRE_LINE)
                 .build());
         compiler.compileInlineMarkdown(normalized, paragraph);
         if (paragraph.isEmpty()) return null;
@@ -200,7 +203,7 @@ public class MermaidScript implements LytScript {
             rendered.append(text.getText());
         }
         return rendered.toString()
-            .equals(normalized) ? null : paragraph;
+            .equals(MermaidParser.decodeEntities(normalized)) ? null : paragraph;
     }
 
     private void dispatchNodeContent(ScriptContext ctx, Map<String, LytBlock> nodeContentBlocks) {

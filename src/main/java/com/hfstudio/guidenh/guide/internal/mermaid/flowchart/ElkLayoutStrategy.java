@@ -204,8 +204,21 @@ public class ElkLayoutStrategy implements FlowchartLayoutStrategy {
             // External edge: connects the outermost source and target (ports or nodes)
             ElkConnectableShape extSrc = !srcPorts.isEmpty() ? srcPorts.get(srcPorts.size() - 1) : source;
             ElkConnectableShape extTgt = !tgtPorts.isEmpty() ? tgtPorts.get(tgtPorts.size() - 1) : target;
-            ElkEdge externalEdge = ElkGraphUtil.createSimpleEdge(extSrc, extTgt);
-            addEdgeLabel(edge, externalEdge, measureLabel, edgeLabels);
+
+            ElkNode commonParent = commonLen > 0 ? srcChain.get(commonLen - 1) : root;
+            int externalDummyCount = Math.max(0, edge.getLength() - 3);
+            List<ElkEdge> externalEdges = new ArrayList<>();
+            ElkConnectableShape prevExt = extSrc;
+            for (int i = 0; i < externalDummyCount; i++) {
+                ElkNode dummy = ElkGraphUtil.createNode(commonParent);
+                dummy.setIdentifier("__dummy_" + (dummyCounter++));
+                dummy.setWidth(1);
+                dummy.setHeight(1);
+                externalEdges.add(ElkGraphUtil.createSimpleEdge(prevExt, dummy));
+                prevExt = dummy;
+            }
+            externalEdges.add(ElkGraphUtil.createSimpleEdge(prevExt, extTgt));
+            addEdgeLabel(edge, externalEdges.get(externalEdges.size() / 2), measureLabel, edgeLabels);
 
             splitChains.add(
                 new SplitChain(
@@ -214,7 +227,7 @@ public class ElkLayoutStrategy implements FlowchartLayoutStrategy {
                     edge.getEdgeId(),
                     srcPorts,
                     tgtPorts,
-                    externalEdge,
+                    externalEdges,
                     srcEdges,
                     tgtEdges));
         }
@@ -236,12 +249,17 @@ public class ElkLayoutStrategy implements FlowchartLayoutStrategy {
         for (SplitChain sc : splitChains) {
 
             List<ElkEdge> chainEdges = new ArrayList<>(sc.srcEdges);
-            chainEdges.add(sc.externalEdge);
+            chainEdges.addAll(sc.externalEdges);
             chainEdges.addAll(sc.tgtEdges);
             splitEdges.addAll(chainEdges);
 
-            // External edge (already root-relative)
-            List<FlowchartLayoutResult.Point> extPts = edgePoints(sc.externalEdge, root, cfg.canvasPadding());
+            // External edges (already root-relative), joined through any length dummies
+            List<FlowchartLayoutResult.Point> extPts = new ArrayList<>();
+            for (ElkEdge externalEdge : sc.externalEdges) {
+                List<FlowchartLayoutResult.Point> pts = edgePoints(externalEdge, root, cfg.canvasPadding());
+                if (pts.isEmpty()) continue;
+                extPts.addAll(extPts.isEmpty() ? pts : pts.subList(1, pts.size()));
+            }
             if (extPts.isEmpty()) continue;
             List<FlowchartLayoutResult.Point> merged = new ArrayList<>(extPts);
 
@@ -539,7 +557,7 @@ public class ElkLayoutStrategy implements FlowchartLayoutStrategy {
     }
 
     private record SplitChain(String sourceId, String targetId, @Nullable String edgeId, List<ElkPort> srcPorts,
-        List<ElkPort> tgtPorts, ElkEdge externalEdge, List<ElkEdge> srcEdges, List<ElkEdge> tgtEdges) {}
+        List<ElkPort> tgtPorts, List<ElkEdge> externalEdges, List<ElkEdge> srcEdges, List<ElkEdge> tgtEdges) {}
 
     private record DummyChain(String sourceId, String targetId, @Nullable String edgeId, List<ElkEdge> chainEdges) {}
 }
