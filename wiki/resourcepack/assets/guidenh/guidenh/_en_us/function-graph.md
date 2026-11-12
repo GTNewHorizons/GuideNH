@@ -10,84 +10,104 @@ categories:
 
 # Function Graphs
 
-Desmos-style interactive function graphs. Three variants: `funcgraph` fenced block, `<FunctionGraph>` MDX container, and `<Function>` shorthand for a single curve.
+Interactive function graphs support panning, zooming, and scrubbing values along a curve. The `funcgraph` fence, `<FunctionGraph>` container, and `<Function>` shorthand share the same attribute rules.
 
-All variants share the same panel: configurable size, X/Y range, optional grid/axes, automatic quadrant expansion, and per-curve domain limits. Hold the mouse on a curve and drag to scrub a labelled point along it; the tooltip stays anchored above the point and flips below when there is no room.
+## Panel Attributes
 
-Any curve given a `label` is also listed in a legend rendered just below the panel. Add `cornerLegend="topRight"` to show a compact semi-transparent legend inside the plot area instead.
+| Attribute | Default | Meaning |
+| --- | --- | --- |
+| `title` | — | Panel title |
+| `xLabel`, `yLabel` | — | Axis titles |
+| `width`, `height` | 320, 220 | Preferred panel dimensions in pixels |
+| `xRange`, `yRange` | auto | Axis bounds as `a..b`; take precedence over individual bounds |
+| `xMin`, `xMax`, `yMin`, `yMax` | auto | Individual axis bounds; numeric literals or constants such as `pi` |
+| `domain` | — | Container-only compatibility alias for X bounds when no X range or bounds are set |
+| `xStep`, `yStep` | auto | Tick/grid spacing |
+| `quadrants` | auto | `1,2,3,4` or `all`; default behavior is described below |
+| `background`, `border` | theme | Panel fill and border colors |
+| `axisColor`, `gridColor` | theme | Axis and grid colors |
+| `showGrid`, `showAxes` | true | Grid and axis visibility |
+| `cornerLegend` | none | `none`, `topLeft`, `topRight`, `bottomLeft`, or `bottomRight`; lists labelled curves inside the plot |
+| `cornerLegendWidth`, `cornerLegendHeight` | 120, 64 | Maximum inset legend dimensions in pixels |
+| `cornerLegendBackground` | #AA111922 | Inset legend background color |
 
-## Fenced Block
+Without explicit ranges or `quadrants`, the panel starts in quadrant 1. If sampling finds negative Y values and Y bounds are not explicit, it expands to quadrants 3 and 4. Labelled curves appear in a legend below the panel; `cornerLegend` controls an inset legend.
 
-The first line of a `funcgraph` fence sets panel-wide attributes (`width`, `height`, `xRange=a..b` / `xMin` / `xMax` / `xStep`, `yRange` / `yMin` / `yMax` / `yStep`, `xLabel`, `yLabel`, `quadrants=1,2,3,4` or `all`, `title`, `background`, `border`, `axisColor`, `gridColor`, `showGrid`, `showAxes`). Each subsequent non-blank line is either an expression with optional pipe-delimited attributes, an explicit point `:x,y`, or a plot-anchored point `@plot=N atX=v` / `@plot=N atY=v`. Comments start with `#`.
+## Curve Attributes
+
+Used by `<Plot>` / `<Function>` children and expression lines inside a fence.
+
+| Attribute | Default | Meaning |
+| --- | --- | --- |
+| `expr` | required | Function expression |
+| `inverse` | false | Plot `x = f(y)` instead of `y = f(x)` |
+| `domain` | — | Curve domain, such as `-pi..pi` or `x>=0,x<5` |
+| `color` | palette | Curve color |
+| `label` | — | Name in the legend and tooltip |
+| `tooltip` | — | Extra plain text in the tooltip |
+| `showFunction`, `showValues` | true | Show the expression and current coordinates in the tooltip |
+| `pointEveryX`, `pointEveryY` | off | Positive sampling intervals along X or Y; generate marked points on this curve |
+| `autoPointLabel` | none | `none`, `x`, `y`, or `xy` |
+| `autoPointColor` | curve color | Generated point color; omitted values inherit the curve color |
+
+Tooltip order is label, expression, live coordinates, `tooltip` text, then child rich content. Omitted or disabled entries are skipped. Curves with `expr` can contain Markdown and GuideNH tags as rich tooltip content, which Site Export preserves.
+
+## Point Attributes
+
+| Attribute | Default | Meaning |
+| --- | --- | --- |
+| `x`, `y` | — | Explicit point coordinates; supply both |
+| `plot` | — | Zero-based curve index for an anchored point |
+| `atX`, `atY` | — | With `plot`, provide one coordinate to evaluate the other on the curve |
+| `color` | auto | White for explicit points; curve color for anchored points |
+| `label` | — | Point label |
+
+## Fenced Blocks
+
+The first line sets panel attributes. Subsequent non-blank lines are expressions, explicit points (`:x,y`), or anchored points (`@plot=N atX=v` / `@plot=N atY=v`). A `|` separates curve attributes from an expression. Comments start with `#`.
 
 ```funcgraph
 width=360 height=220 xRange=-pi..pi yRange=-2..2 quadrants=all cornerLegend=topRight
-sin(x)        | color=#ff5566 label="sin" pointEveryX=1 autoPointLabel=x
-cos(x)        | color=#3399ff label="cos" pointEveryY=1
-x/2           | color=#88cc77 domain=-pi..pi
+sin(x) | color=#ff5566 label="sin" pointEveryX=1 autoPointLabel=x
+cos(x) | color=#3399ff label="cos" pointEveryY=1
 :0,0
 @plot=0 atX=1.5708
 ```
 
 ## `<FunctionGraph>` Container
 
-The container accepts the same panel attributes as the fence header. Children are `<Plot expr="..." />` (or `<Function expr="..." />`) for curves and `<Point ... />` for marked points. `label` is the curve name, and is shown in the legend and at the top of the default tooltip. `showFunction` and `showValues` control the computed tooltip lines. Tooltip content is ordered as label, function, values, `tooltip` text, then child Markdown. Point attributes: explicit `x` + `y`, or `plot="N"` plus either `atX="v"` or `atY="v"` to anchor on a curve.
-
 ```mdx
-<FunctionGraph width="360" height="220" xRange="-6..6" yRange="-3..3" xLabel="Input" yLabel="Output" quadrants="all" cornerLegend="topRight">
-  <Plot expr="sin(x)" color="#ff5566" label="sin x" pointEveryX="1" autoPointLabel="x"/>
-  <Plot expr="x^2 / 4" color="#3399ff" domain="-4..4" label="x² / 4"/>
-  <Plot expr="|x| - 1" color="#88cc77" label="|x| - 1" pointEveryY="1"/>
-  <Point x="0" y="0"/>
-  <Point plot="0" atX="1.5708"/>
+<FunctionGraph width="360" height="220" xRange="-4..4" yRange="-2..6" quadrants="all" cornerLegend="topRight">
+  <Plot expr="x^2" color="#4488ff" label="x²" pointEveryX="1" autoPointLabel="xy">
+    **Fuel efficiency example:** <ItemLink id="minecraft:coal" />
+  </Plot>
+  <Function expr="x - 1" color="#ff6644" label="x - 1" showFunction={false} />
+  <Point x="0" y="0" label="O" />
+  <Point plot="0" atX="1" />
 </FunctionGraph>
 ```
 
-```mdx
-<FunctionGraph xRange="-4..4" yRange="-2..6" cornerLegend="topRight">
-  <Plot expr="x^2" label="Quadratic fuel curve" tooltip="The sampled value follows the current cursor." showFunction={true} showValues={true}>
-    **Fuel efficiency** is evaluated live. See <ItemLink id="minecraft:coal" /> for a sample input.
+<FunctionGraph width="360" height="220" xRange="-4..4" yRange="-2..6" quadrants="all" cornerLegend="topRight">
+  <Plot expr="x^2" color="#4488ff" label="x²" pointEveryX="1" autoPointLabel="xy">
+    **Fuel efficiency example:** <ItemLink id="minecraft:coal" />
   </Plot>
-  <Plot expr="x - 1" label="Linear reference" showFunction={false} />
-</FunctionGraph>
-```
-
-<FunctionGraph xRange="-4..4" yRange="-2..6" cornerLegend="topRight">
-  <Plot expr="x^2" label="Quadratic fuel curve" tooltip="The sampled value follows the current cursor." showFunction={true} showValues={true}>
-    **Fuel efficiency** is evaluated live. See <ItemLink id="minecraft:coal" /> for a sample input.
-  </Plot>
-  <Plot expr="x - 1" label="Linear reference" showFunction={false} />
-</FunctionGraph>
-
-<FunctionGraph width="360" height="220" xRange="-6..6" yRange="-3..3" quadrants="all" cornerLegend="topRight">
-  <Plot expr="sin(x)" color="#ff5566" label="sin x" pointEveryX="1" autoPointLabel="x"/>
-  <Plot expr="x^2 / 4" color="#3399ff" domain="-4..4" label="x² / 4"/>
-  <Plot expr="|x| - 1" color="#88cc77" label="|x| - 1" pointEveryY="1"/>
-  <Point x="0" y="0"/>
-  <Point plot="0" atX="1.5708"/>
+  <Function expr="x - 1" color="#ff6644" label="x - 1" showFunction={false} />
+  <Point x="0" y="0" label="O" />
+  <Point plot="0" atX="1" />
 </FunctionGraph>
 
 ## `<Function>` Shorthand
 
-When you only need a single curve, `<Function>` skips the wrapper:
+A standalone `<Function>` creates a single-curve panel and accepts both panel and curve attributes.
 
-```mdx
-<Function expr="x^2 - 2x + 1" xRange="-2..4" yRange="-1..5" color="#3399ff"/>
-```
-
-<Function expr="x^2 - 2x + 1" xRange="-2..4" yRange="-1..5" color="#3399ff"/>
+<Function expr="x^2 - 2x + 1" xRange="-2..4" yRange="-1..5" color="#3399ff" />
 
 ## Expression Syntax
 
-* Operators: `+ - * / %` plus `^` (right-associative) and unary minus.
-* Postfix `!` is factorial, extended to real numbers via the gamma function (negative integers return NaN).
-* `|expr|` is absolute value; `√`/`sqrt` and `∛`/`cbrt` are roots.
-* Implicit multiplication: `2x`, `2pi`, `(x+1)(x-1)`.
-* Built-in functions: `sin cos tan asin acos atan sinh cosh tanh exp ln log log2 log10 sqrt cbrt abs sign floor ceil round`, plus two-arg `atan2 min max pow hypot mod`.
-* Constants: `pi`, `tau`, `e`, `phi`.
-* Domain clauses (`domain="..."`): `min..max` shorthand for x bounds; clauses like `x>=0`, `x<5` separated by commas; constants accepted on either side.
-* Set `inverse={true}` (MDX) or `inverse=true` (fence attrs) to plot `x = f(y)` — the same expression is evaluated against `y` and the curve is rotated.
-
-## Default Quadrants
-
-If you omit `xRange` / `yRange` and `quadrants`, the panel starts in quadrant 1 (`x>=0`, `y>=0`). When sampling reveals negative `y` values and the y-bounds were not set explicitly, the panel automatically expands to include quadrants 3 and 4 so the curves stay visible.
+- Operators: `+ - * / %`, right-associative `^`, and unary minus. Precedence: `^`, unary minus, `* / %`, then `+ -`.
+- Implicit multiplication: `2x`, `2pi`, `(x+1)(x-1)`; `|expr|` is absolute value.
+- Unary functions: `sin cos tan asin acos atan sinh cosh tanh exp ln log log2 log10 sqrt cbrt abs sign floor ceil round deg rad gamma`. Trigonometric functions use radians. `log` means `log10`; `round` uses ties-to-even rounding.
+- Binary functions: `atan2(y,x)`, `min(a,b)`, `max(a,b)`, `pow(a,b)`, `hypot(a,b)`, `mod(a,b)`. Write `ln(x)/ln(b)` for a logarithm in base `b`.
+- Postfix `!` is factorial, extended to real numbers via the gamma function; negative integers return NaN.
+- Constants: `pi`, `tau`, `e`, `phi`; `√` / `sqrt` and `∛` / `cbrt` are roots.
+- `domain` accepts `min..max` or comma-separated conditions such as `x>=0,x<5`. `inverse={true}` plots the expression as `x = f(y)`.

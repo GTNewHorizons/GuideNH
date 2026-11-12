@@ -17,6 +17,7 @@ GuideNH 内置五种交互式图表标签：`<ColumnChart>`（竖柱）、`<BarC
 - `categories`：逗号分隔的类目标签（字符串），对应横轴（ColumnChart/LineChart/BarChart）或图例（PieChart）。
 - `xAxisLabel` / `yAxisLabel`：轴标签，不填则使用 `xAxisUnit` / `yAxisUnit`。
 - `xAxisUnit` / `yAxisUnit`：轴单位，追加在自动生成标签后。
+- `cornerLegend`：折线图与散点图的图内图例位置，`none`、`topRight`、`topLeft`、`bottomRight` 或 `bottomLeft`。
 - `width` / `height`：画布尺寸（像素），默认为图表类型的合理默认值。
 
 ## ColumnChart
@@ -31,20 +32,6 @@ GuideNH 内置五种交互式图表标签：`<ColumnChart>`（竖柱）、`<BarC
   <Series name="金" color="#FFAA00" data="30,50,90,70" />
 </ColumnChart>
 
-## 新增：图内图例
-
-`LineChart` 和 `ScatterChart` 可以使用 `cornerLegend` 在绘图区内部放置半透明图例框：
-
-<LineChart title="图内图例示例" categories="A,B,C,D" cornerLegend="topRight">
-  <Series name="系列 A" color="#4488ff" data="1,3,2,4" />
-  <Series name="系列 B" color="#ff6644" data="2,2,4,3" />
-</LineChart>
-
-<ScatterChart title="散点图内图例" cornerLegend="bottomRight">
-  <Series name="样本 A" color="#4488ff" points="1:1,2:3,3:2,4:4" />
-  <Series name="样本 B" color="#ff6644" points="1:2,2:2,3:4,4:3" />
-</ScatterChart>
-
 ## BarChart
 
 <BarChart
@@ -57,6 +44,11 @@ GuideNH 内置五种交互式图表标签：`<ColumnChart>`（竖柱）、`<BarC
 </BarChart>
 
 ## LineChart
+
+<LineChart title="图内图例示例" categories="A,B,C,D" cornerLegend="topRight">
+  <Series name="系列 A" color="#4488ff" data="1,3,2,4" />
+  <Series name="系列 B" color="#ff6644" data="2,2,4,3" />
+</LineChart>
 
 **类目 X 轴：**
 
@@ -106,6 +98,11 @@ GuideNH 内置五种交互式图表标签：`<ColumnChart>`（竖柱）、`<BarC
 </PieChart>
 
 ## ScatterChart
+
+<ScatterChart title="散点图内图例" cornerLegend="bottomRight">
+  <Series name="样本 A" color="#4488ff" points="1:1,2:3,3:2,4:4" />
+  <Series name="样本 B" color="#ff6644" points="1:2,2:2,3:4,4:3" />
+</ScatterChart>
 
 <ScatterChart
   title="身高-体重"

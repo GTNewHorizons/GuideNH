@@ -38,17 +38,18 @@ other mods directly.
 | Атрибут | Обов’язково | Значення |
 | --- | --- | --- |
 | `src` | yes | зображення шлях |
-| `x` | yes | crop початок X in source-зображення пікселі |
-| `y` | yes | crop початок Y in source-зображення пікселі |
-| `width` / `w` | yes | crop ширина in source-зображення пікселі; exactly один spelling має be використовується |
-| `height` / `h` | yes | crop висота in source-зображення пікселі; exactly один spelling має be використовується |
+| `x` | під час обрізання | crop початок X in source-зображення пікселі |
+| `y` | під час обрізання | crop початок Y in source-зображення пікселі |
+| `width` / `w` | під час обрізання | crop ширина in source-зображення пікселі; exactly один spelling має be використовується |
+| `height` / `h` | під час обрізання | crop висота in source-зображення пікселі; exactly один spelling має be використовується |
 | `scaleX` | no | horizontal відображати multiplier, Типове `1.0` |
 | `scaleY` | no | vertical відображати multiplier, Типове `1.0` |
 | `displayWidth` | no | кінцевий відображати ширина in пікселі; preserves  crop aspect ratio коли використовується alone |
 | `displayHeight` | no | кінцевий відображати висота in пікселі; preserves  crop aspect ratio коли використовується alone |
-| `wrap` | no | `inline` для true inline placement, otherwise використовувати  normal wrapping modes |
+| `wrap` | no | `inline` розміщує зображення в рядку; інакше `align` вибирає бік обтікання |
 | `align` | no | `left` або `right` для floating placement; ignored коли `wrap="inline"` |
 | `title` | no | підказка/заголовок текст |
+| `alt` | no | Альтернативний текст |
 | `sound` | no | sound event played by  whole зображення |
 | `soundSrc` | no | sound шлях до файлу для  whole зображення |
 | `trigger` | no | `click` by Типове, або `hover` для наведення playback |
@@ -57,14 +58,13 @@ other mods directly.
 
 - `x`, `y`, `width` / `w`, і `height` / `h` є усі Обов’язково together коли cropping
 - коли  crop атрибути є усі пропущений, `displayWidth` або `displayHeight` displays  full source зображення
-- `width` і `height` now describe  crop rectangle, не  кінцевий відображати розмір
+- `width` і `height` задають розмір обрізання джерела. Для розміру показу використовуйте `displayWidth` / `displayHeight` або масштаб.
 - `scaleX` і `scaleY` обчислювати  кінцевий відображати розмір as `cropWidth * scaleX` by `cropHeight * scaleY`
 - `displayWidth` або `displayHeight` sets  кінцевий відображати розмір in пікселі; коли лише один is present,  other dimension is обчислений з  crop aspect ratio
 - providing both `displayWidth` і `displayHeight` дозволяє intentional non-proportional stretching
 - `displayWidth` / `displayHeight` не може be combined з `scaleX` / `scaleY`
 - один-вісь stretching is Підтримувані by setting лише один scale differently
 - `width` з `w`, або `height` з `h`, is недійсний і renders a видимий помилка
-- old `FloatingImage width/height as display size` вміст is intentionally breaking і має be migrated вручну
 - `src` може be відносний, rooted, або явний `modid:path` texture id наприклад `minecraft:textures/gui/options_background.png`
 
 ### Приклад
@@ -119,7 +119,7 @@ an необов’язковий colored межа) до rectangular region of  �
 Whole-зображення анотація:
 
 ````md
-<FloatingImage src="test1.png" align="left" x="0" y="0" width="128" height="128">
+<FloatingImage displayWidth="128" displayHeight="128" src="test1.png" align="left" x="0" y="0" width="32" height="32">
   <ImageAnnotation>
     Наведіть курсор на зображення, щоб побачити цю підказку.
   </ImageAnnotation>
@@ -129,8 +129,8 @@ Whole-зображення анотація:
 Region анотація з a видимий межа:
 
 ````md
-<FloatingImage src="test1.png" align="left" x="0" y="0" width="128" height="128">
-  <ImageAnnotation x="10" y="10" w="60" h="40" border borderColor="#FFFF4444" borderThickness="2">
+<FloatingImage displayWidth="128" displayHeight="128" src="test1.png" align="left" x="0" y="0" width="32" height="32">
+  <ImageAnnotation x="2" y="2" w="15" h="10" border borderColor="#FFFF4444" borderThickness="2">
     Це підказка для **підсвіченої області**.
   </ImageAnnotation>
 </FloatingImage>
@@ -139,11 +139,11 @@ Region анотація з a видимий межа:
 кілька regions on один зображення:
 
 ````md
-<FloatingImage src="test1.png" align="left" x="0" y="0" width="128" height="128">
-  <ImageAnnotation x="0" y="0" w="64" h="64" border borderColor="#FF44FF44">
+<FloatingImage displayWidth="128" displayHeight="128" src="test1.png" align="left" x="0" y="0" width="32" height="32">
+  <ImageAnnotation x="0" y="0" w="16" h="32" border borderColor="#FF44FF44">
     Left half
   </ImageAnnotation>
-  <ImageAnnotation x="64" y="0" w="64" h="64" border borderColor="#FF4444FF">
+  <ImageAnnotation x="16" y="0" w="16" h="32" border borderColor="#FF4444FF">
     Right half
   </ImageAnnotation>
 </FloatingImage>
@@ -154,17 +154,17 @@ directly on `<ImageAnnotation>` коли  той самий region також м
 
 ````md
 <FloatingImage
-  src="test1.png"
+  displayWidth="128" displayHeight="128" src="test1.png"
   align="left"
   x="0"
   y="0"
-  width="128"
-  height="128"
-  sound="guidenh:image.click"
+  width="32"
+  height="32"
+  sound="guidenh:guide.sample_click"
 >
-  <SoundArea x="0" y="0" w="64" h="64" sound="guidenh:image.left" />
-  <SoundArea x="64" y="0" w="64" h="64" sound="guidenh:image.right" trigger="hover" />
-  <ImageAnnotation x="10" y="10" w="40" h="40" border sound="guidenh:image.note">
+  <SoundArea x="0" y="0" w="16" h="32" sound="guidenh:guide.sample_left" />
+  <SoundArea x="16" y="0" w="16" h="32" sound="guidenh:guide.sample_hover" trigger="hover" />
+  <ImageAnnotation x="2" y="2" w="10" h="10" border sound="guidenh:guide.sample_click">
     Ця область має текст підказки та звук натискання.
   </ImageAnnotation>
 </FloatingImage>
@@ -175,88 +175,25 @@ directly on `<ImageAnnotation>` коли  той самий region також м
 
 ## Вбудовування вмісту та перенесення тексту
 
-усі блок-level теги — `<FloatingImage>`, `<Recipe>`, `<GameScene>`, `<ItemImage>`, `<BlockImage>`,
-і any other тег backed by `BlockTagCompiler` — підтримка два необов’язковий структура атрибути який
-надавати Word-style вміст embedding.
+Блокові теги на основі `BlockTagCompiler`, зокрема `<Recipe>`, `<GameScene>` та `<BlockImage>`, приймають `wrap` і `align`.
 
-| Атрибут | значення | Типове | Значення |
-| --- | --- | --- | --- |
-| `wrap` | `inline` · `square` · `tight` · `through` · `top-bottom` · `behind` · `front` | `inline` | текст-wrapping режим |
-| `align` | `left` · `center` · `right` | `left` | Horizontal alignment |
+`<FloatingImage>` має власні правила: `wrap="inline"` розміщує зображення в рядку; інакше `align="left"` або `"right"` вибирає бік обтікання. `<ItemImage>` — вбудована піктограма; для вирівнювання використовуйте `<Column>` або `<Row>`.
 
-### Режими перенесення
+| Атрибут | Типово | Значення |
+| --- | --- | --- |
+| `wrap` | `inline` | `inline`: звичайне розміщення. `square`, `tight`, `through`: обтікання ліворуч або праворуч. `top-bottom`, `behind`, `front`: наразі звичайне вирівняне розміщення без окремих шарів тексту. |
+| `align` | `left` | `left`, `center` або `right` у блоковому контексті. При обтіканні `right` вибирає правий бік, інші значення — лівий. Центрування: `wrap="inline" align="center"`. |
+| `float` | — | Застарілі `left` / `right` у тексті за відсутності `wrap` та `align`. Рекомендовано явні атрибути. |
 
-| режим | Word equivalent | блок-context behaviour | Flow-context behaviour |
-| --- | --- | --- | --- |
-| `inline` | In рядок з текст | Типове стос (嵌入型) | Sits on  текст рядок |
-| `square` | Square | Document-level число з плаваючою комою; текст wraps around (方形环绕) | `FLOAT_LEFT` / `FLOAT_RIGHT` |
-| `tight` | Tight | той самий as `square` (紧密型) | той самий as `square` |
-| `through` | Through | той самий as `square` (穿越型) | той самий as `square` |
-| `top-bottom` | угорі і унизу | Full-ширина slot; `align` repositions horizontally (上下型) | рядок-inline з breaks |
-| `behind` | Behind текст | Aligned inline slot; renders behind текст (衬于文字下方) | Sits on  рядок |
-| `front` | In спереду of текст | Aligned inline slot; renders in спереду of текст (浮于文字上方) | Sits on  рядок |
+```mdx
+<BlockImage id="minecraft:stone" wrap="square" align="right" />
 
-### Alignment з floating перенесення
+<BlockImage id="minecraft:diamond_block" wrap="inline" align="center" />
 
-для `wrap=square/tight/through`:
-- `align=left` (Типове) — блок floats до  **ліворуч**; текст fills  праворуч бік.
-- `align=right` — блок floats до  **праворуч**; текст fills  ліворуч бік.
-- `align=center` — блок is centred без floating (no текст wrapping).
-
-### Приклади
-
-ліворуч-floating зображення використовуючи  новий `wrap` Атрибут:
-
-````md
-<FloatingImage
-  src="test1.png"
-  wrap="square"
-  align="left"
-  x="0"
-  y="0"
-  width="128"
-  height="128"
-  scaleX="0.5"
-  scaleY="0.5"
-/>
-
-Текст абзацу, що обтікає зображення праворуч…
-````
-
-праворуч-floating recipe:
-
-````md
-<Recipe id="minecraft:stone" wrap="square" align="right" />
-
-Текст, що обтікає ліворуч від вікна рецепта…
-````
-
-Centred предмет зображення (no текст wrapping):
-
-````md
-<ItemImage id="minecraft:diamond" align="center" />
-````
-
-праворуч-aligned предмет зображення:
-
-````md
-<ItemImage id="minecraft:diamond" align="right" />
-````
-
-предмет NBT може be supplied separately з  предмет id. Inline SNBT in `id` is досі Підтримувані;
-коли both forms є present,  standalone `nbt` Атрибут is merged останній.
-
-````md
-<ItemImage id="minecraft:diamond" nbt='{display:{Name:"Custom Diamond"}}' />
-<ItemImage
-  id="minecraft:chest"
-  scale="2"
-  nbt='{id:"Chest",Items:[{Slot:0b,id:"minecraft:diamond",Count:1b,Damage:0s}]}'
-/>
-````
-
-> **Примітка** — `wrap="inline"` now gives `<FloatingImage>` true inline placement усередині flow текст.
-> In inline режим, `align` is ignored замість цього of producing помилка.
+<Column align="center">
+  <ItemImage id="minecraft:diamond" nbt='{display:{Name:"Custom Diamond"}}' />
+</Column>
+```
 
 ## Навігація Texture Icons
 
@@ -289,9 +226,7 @@ GuideNH сторінки може також reference non-зображення 
 
 ## `BlockImage`
 
-`<BlockImage>` використовує  той самий блок-level embedding Правила as `<FloatingImage>`, but  visual
-вміст is прозорий 3D один-блок перегляд замість цього of bitmap. It is best suited для
-showing how розміщений блок looks in-світ поки досі fitting inline з normal посібник prose.
+`<BlockImage>` показує розміщений блок як прозорий 3D-перегляд і підтримує наведені вище атрибути вирівнювання та обтікання.
 
 ключ поведінка:
 

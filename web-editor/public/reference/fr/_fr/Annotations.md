@@ -12,6 +12,7 @@ GuideNH scène annotations sont enfant balises dans `<GameScene>` / `<Scene>`. E
 - annotations peut être masquées avec Le scène UI toggle
 - `alwaysOnTop` dessine au-dessus de scène géométrie lorsque Pris en charge by Le annotation type
 - tous scène annotations aussi acceptent facultatif `showWhenStructure`, `showWhenTier`, et `showWhenChannels` conditions lorsque Le scène utilise `<ImportStructureLib>`
+- Le jeu et Site Export utilisent le même dégradé arc-en-ciel et la même durée du cycle.
 
 ## Pris en charge annotation balises
 
@@ -68,8 +69,11 @@ Met en surbrillance un volume de bloc 1x1x1 unique.
 | --- | --- | --- |
 | `pos` | oui | `x y z` vector |
 | `color` | non | `#RRGGBB`, `#AARRGGBB`, ou `transparent` |
+| `colorMode` | non | `solid` (par défaut) ou `rainbow` ; l’arc-en-ciel tourne à 360° autour du centre projeté, remplace RGB et conserve l’alpha de `color` |
+| `colorPeriod` | non | période positive et finie de l’arc-en-ciel en secondes ; défaut `2.4` ; une valeur invalide produit une erreur de page |
 | `thickness` | non | ligne thickness flottant |
 | `alwaysOnTop` | non | booléen expression |
+
 
 Exemple:
 
@@ -77,6 +81,7 @@ Exemple:
 <BlockAnnotation pos="2 0 2" color="#33DDEE" alwaysOnTop={true}>
   Met le bloc contrôleur en surbrillance.
 </BlockAnnotation>
+<BlockAnnotation pos="4 0 2" color="#80FFFFFF" colorMode="rainbow" colorPeriod="4.8" />
 ````
 
 ## `<BoxAnnotation>`
@@ -88,8 +93,11 @@ Met en surbrillance une boîte arbitraire alignée sur les axes.
 | `min` | oui | `x y z` minimum vector |
 | `max` | oui | `x y z` maximum vector |
 | `color` | non | annotation couleur |
+| `colorMode` | non | `solid` (par défaut) ou `rainbow` ; l’arc-en-ciel tourne à 360° autour du centre projeté, remplace RGB et conserve l’alpha de `color` |
+| `colorPeriod` | non | période positive et finie de l’arc-en-ciel en secondes ; défaut `2.4` ; une valeur invalide produit une erreur de page |
 | `thickness` | non | ligne thickness flottant |
 | `alwaysOnTop` | non | booléen expression |
+
 
 GuideNH automatiquement swaps min/max coordonnées per axis lorsque Elles sont fourni dans reverse ordre.
 
@@ -99,6 +107,7 @@ Exemple:
 <BoxAnnotation min="0 1 0" max="1 1.6 0.6" color="#EE3333" thickness="0.04">
   Surlignage sur une demi-hauteur.
 </BoxAnnotation>
+<BoxAnnotation min="2 0 0" max="4 1.5 0.5" color="#80FFFFFF" colorMode="rainbow" colorPeriod="2.4" />
 ````
 
 ## `<LineAnnotation>`
@@ -176,10 +185,13 @@ Dessine un contour de silhouette lumineux autour des blocs et des entités, comm
 | `target` | non | `blocks` (par défaut), `entities` ou `all` : ce qui est entouré dans la région ; `entities` sans région entoure toutes les entités |
 | `mode` | non | `auto` (par défaut), `geometry`, `cutout` ou `bounds` |
 | `color` | non | couleur du contour ; blanc si omis, ou la couleur d'équipe du tableau des scores pour les entités |
+| `colorMode` | non | `solid` (par défaut) ou `rainbow` ; l’arc-en-ciel tourne à 360° autour du centre projeté, remplace RGB et conserve l’alpha de `color` |
+| `colorPeriod` | non | période positive et finie de l’arc-en-ciel en secondes ; défaut `2.4` ; une valeur invalide produit une erreur de page |
 | `thickness` | non | largeur du contour en pixels d'interface, de `0.25` à `8`, `1` par défaut |
 | `alwaysOnTop` | non | expression booléenne ; les parties masquées gardent leur pleine luminosité au lieu d'être assombries |
 | `pulse` | non | expression booléenne ; fait respirer le contour |
 | `pulsePeriod` | non | période de respiration en secondes, `2` par défaut |
+
 
 Modes de silhouette :
 
@@ -209,7 +221,7 @@ Exemple :
   <OutlineAnnotation pos="0 0 0" color="#55FFFF">
     Le verre est entouré comme un cube complet.
   </OutlineAnnotation>
-  <OutlineAnnotation pos="2 0 0" color="#FFFF55" thickness="1.5" />
+  <OutlineAnnotation pos="2 0 0" color="#80FFFFFF" colorMode="rainbow" colorPeriod="2.4" thickness="1.5" />
   <OutlineAnnotation entity="sheep" color="#FFAA00" alwaysOnTop={true} pulse={true} />
 </GameScene>
 ````

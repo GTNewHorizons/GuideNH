@@ -38,17 +38,18 @@ other mods directly.
 | Attribuut | Vereist | Betekenis |
 | --- | --- | --- |
 | `src` | yes | afbeelding pad |
-| `x` | yes | crop begin X in source-afbeelding pixels |
-| `y` | yes | crop begin Y in source-afbeelding pixels |
-| `width` / `w` | yes | crop breedte in source-afbeelding pixels; exactly one spelling moet be gebruikt |
-| `height` / `h` | yes | crop hoogte in source-afbeelding pixels; exactly one spelling moet be gebruikt |
+| `x` | bij uitsnijden | crop begin X in source-afbeelding pixels |
+| `y` | bij uitsnijden | crop begin Y in source-afbeelding pixels |
+| `width` / `w` | bij uitsnijden | crop breedte in source-afbeelding pixels; exactly one spelling moet be gebruikt |
+| `height` / `h` | bij uitsnijden | crop hoogte in source-afbeelding pixels; exactly one spelling moet be gebruikt |
 | `scaleX` | no | horizontal weergeven multiplier, Standaard `1.0` |
 | `scaleY` | no | vertical weergeven multiplier, Standaard `1.0` |
 | `displayWidth` | no | final weergeven breedte in pixels; preserves De crop aspect ratio wanneer gebruikt alone |
 | `displayHeight` | no | final weergeven hoogte in pixels; preserves De crop aspect ratio wanneer gebruikt alone |
-| `wrap` | no | `inline` voor true inline placement, otherwise gebruiken De normal wrapping modes |
+| `wrap` | no | `inline` plaatst de afbeelding in de tekstregel; anders kiest `align` de zwevende zijde |
 | `align` | no | `left` of `right` voor floating placement; ignored wanneer `wrap="inline"` |
 | `title` | no | tooltip/title tekst |
+| `alt` | no | Alternatieve tekst |
 | `sound` | no | sound event played by De whole afbeelding |
 | `soundSrc` | no | sound bestandspad voor De whole afbeelding |
 | `trigger` | no | `click` by Standaard, of `hover` voor zweven playback |
@@ -57,14 +58,13 @@ other mods directly.
 
 - `x`, `y`, `width` / `w`, en `height` / `h` are alle Vereist together wanneer cropping
 - wanneer De crop attributen are alle omitted, `displayWidth` of `displayHeight` displays De full source afbeelding
-- `width` en `height` now describe De crop rectangle, niet De final weergeven grootte
+- `width` en `height` bepalen de bronuitsnede. Gebruik `displayWidth` / `displayHeight` of schaalfactoren voor de weergavegrootte.
 - `scaleX` en `scaleY` calculate De final weergeven grootte as `cropWidth * scaleX` by `cropHeight * scaleY`
 - `displayWidth` of `displayHeight` sets De final weergeven grootte in pixels; wanneer alleen one is present, De other dimension is calculated van De crop aspect ratio
 - providing both `displayWidth` en `displayHeight` staat toe intentional non-proportional stretching
 - `displayWidth` / `displayHeight` kan niet be combined met `scaleX` / `scaleY`
 - enkele-axis stretching is supported by setting alleen one scale differently
 - `width` met `w`, of `height` met `h`, is invalid en renders Een zichtbaar error
-- old `FloatingImage width/height as display size` inhoud is intentionally breaking en moet be migrated manually
 - `src` kan be relative, rooted, of Een explicit `modid:path` texture id such as `minecraft:textures/gui/options_background.png`
 
 ### Example
@@ -119,7 +119,7 @@ of stretched.
 Whole-afbeelding annotatie:
 
 ````md
-<FloatingImage src="test1.png" align="left" x="0" y="0" width="128" height="128">
+<FloatingImage displayWidth="128" displayHeight="128" src="test1.png" align="left" x="0" y="0" width="32" height="32">
   <ImageAnnotation>
     Beweeg over de afbeelding om deze tooltip te zien.
   </ImageAnnotation>
@@ -129,8 +129,8 @@ Whole-afbeelding annotatie:
 Region annotatie met Een zichtbaar rand:
 
 ````md
-<FloatingImage src="test1.png" align="left" x="0" y="0" width="128" height="128">
-  <ImageAnnotation x="10" y="10" w="60" h="40" border borderColor="#FFFF4444" borderThickness="2">
+<FloatingImage displayWidth="128" displayHeight="128" src="test1.png" align="left" x="0" y="0" width="32" height="32">
+  <ImageAnnotation x="2" y="2" w="15" h="10" border borderColor="#FFFF4444" borderThickness="2">
     Dit is de tooltip voor het **gemarkeerde gebied**.
   </ImageAnnotation>
 </FloatingImage>
@@ -139,11 +139,11 @@ Region annotatie met Een zichtbaar rand:
 meerdere regions on one afbeelding:
 
 ````md
-<FloatingImage src="test1.png" align="left" x="0" y="0" width="128" height="128">
-  <ImageAnnotation x="0" y="0" w="64" h="64" border borderColor="#FF44FF44">
+<FloatingImage displayWidth="128" displayHeight="128" src="test1.png" align="left" x="0" y="0" width="32" height="32">
+  <ImageAnnotation x="0" y="0" w="16" h="32" border borderColor="#FF44FF44">
     Left half
   </ImageAnnotation>
-  <ImageAnnotation x="64" y="0" w="64" h="64" border borderColor="#FF4444FF">
+  <ImageAnnotation x="16" y="0" w="16" h="32" border borderColor="#FF4444FF">
     Right half
   </ImageAnnotation>
 </FloatingImage>
@@ -154,17 +154,17 @@ directly on `<ImageAnnotation>` wanneer De zelfde region ook has Een tooltip of 
 
 ````md
 <FloatingImage
-  src="test1.png"
+  displayWidth="128" displayHeight="128" src="test1.png"
   align="left"
   x="0"
   y="0"
-  width="128"
-  height="128"
-  sound="guidenh:image.click"
+  width="32"
+  height="32"
+  sound="guidenh:guide.sample_click"
 >
-  <SoundArea x="0" y="0" w="64" h="64" sound="guidenh:image.left" />
-  <SoundArea x="64" y="0" w="64" h="64" sound="guidenh:image.right" trigger="hover" />
-  <ImageAnnotation x="10" y="10" w="40" h="40" border sound="guidenh:image.note">
+  <SoundArea x="0" y="0" w="16" h="32" sound="guidenh:guide.sample_left" />
+  <SoundArea x="16" y="0" w="16" h="32" sound="guidenh:guide.sample_hover" trigger="hover" />
+  <ImageAnnotation x="2" y="2" w="10" h="10" border sound="guidenh:guide.sample_click">
     Dit gebied bevat tooltipinhoud en een klikgeluid.
   </ImageAnnotation>
 </FloatingImage>
@@ -175,88 +175,25 @@ en obey De zelfde overlap priority as tooltips: later regions win.
 
 ## Inhoud insluiten en tekstterugloop
 
-alle blok-level tags — `<FloatingImage>`, `<Recipe>`, `<GameScene>`, `<ItemImage>`, `<BlockImage>`,
-en any other tag backed by `BlockTagCompiler` — ondersteuning two optioneel layout attributen that
-bieden Word-style inhoud embedding.
+Bloktags op basis van `BlockTagCompiler`, zoals `<Recipe>`, `<GameScene>` en `<BlockImage>`, accepteren `wrap` en `align`.
 
-| Attribuut | waarden | Standaard | Betekenis |
-| --- | --- | --- | --- |
-| `wrap` | `inline` · `square` · `tight` · `through` · `top-bottom` · `behind` · `front` | `inline` | tekst-wrapping modus |
-| `align` | `left` · `center` · `right` | `left` | Horizontal alignment |
+`<FloatingImage>` heeft eigen regels: `wrap="inline"` plaatst de afbeelding in de tekstregel; anders kiest `align="left"` of `"right"` de zwevende zijde. `<ItemImage>` is een inline pictogram; gebruik `<Column>` of `<Row>` voor de uitlijning.
 
-### Terugloopmodi
+| Attribuut | Standaard | Betekenis |
+| --- | --- | --- |
+| `wrap` | `inline` | `inline`: normale plaatsing. `square`, `tight`, `through`: links of rechts zwevend. `top-bottom`, `behind`, `front`: momenteel normale uitgelijnde plaatsing, zonder aparte tekstlagen. |
+| `align` | `left` | `left`, `center` of `right` in blokcontext. Bij zwevende plaatsing kiest `right` rechts en de rest links. Centreren: `wrap="inline" align="center"`. |
+| `float` | — | Ouder `left` / `right` in lopende tekst als `wrap` en `align` ontbreken. Gebruik bij voorkeur die expliciete attributen. |
 
-| modus | Word equivalent | blok-context behaviour | Flow-context behaviour |
-| --- | --- | --- | --- |
-| `inline` | In regel met tekst | Standaard stack (嵌入型) | Sits on De tekst regel |
-| `square` | Square | Document-level kommagetal; tekst wraps around (方形环绕) | `FLOAT_LEFT` / `FLOAT_RIGHT` |
-| `tight` | Tight | zelfde as `square` (紧密型) | zelfde as `square` |
-| `through` | Through | zelfde as `square` (穿越型) | zelfde as `square` |
-| `top-bottom` | Top en Bottom | Full-breedte slot; `align` repositions horizontally (上下型) | regel-inline met breaks |
-| `behind` | Behind tekst | Aligned inline slot; renders behind tekst (衬于文字下方) | Sits on De regel |
-| `front` | In front of tekst | Aligned inline slot; renders in front of tekst (浮于文字上方) | Sits on De regel |
+```mdx
+<BlockImage id="minecraft:stone" wrap="square" align="right" />
 
-### Alignment met floating wrap
+<BlockImage id="minecraft:diamond_block" wrap="inline" align="center" />
 
-voor `wrap=square/tight/through`:
-- `align=left` (Standaard) — blok floats naar De **left**; tekst fills De right side.
-- `align=right` — blok floats naar De **right**; tekst fills De left side.
-- `align=center` — blok is centred zonder floating (no tekst wrapping).
-
-### Voorbeelden
-
-Left-floating afbeelding using De new `wrap` Attribuut:
-
-````md
-<FloatingImage
-  src="test1.png"
-  wrap="square"
-  align="left"
-  x="0"
-  y="0"
-  width="128"
-  height="128"
-  scaleX="0.5"
-  scaleY="0.5"
-/>
-
-Paragraaftekst die rechts van de afbeelding loopt…
-````
-
-Right-floating recipe:
-
-````md
-<Recipe id="minecraft:stone" wrap="square" align="right" />
-
-Tekst die links van het receptvak loopt…
-````
-
-Centred item afbeelding (no tekst wrapping):
-
-````md
-<ItemImage id="minecraft:diamond" align="center" />
-````
-
-Right-aligned item afbeelding:
-
-````md
-<ItemImage id="minecraft:diamond" align="right" />
-````
-
-item NBT kan be supplied separately van De item id. Inline SNBT in `id` is still supported;
-wanneer both forms are present, De standalone `nbt` Attribuut is merged last.
-
-````md
-<ItemImage id="minecraft:diamond" nbt='{display:{Name:"Custom Diamond"}}' />
-<ItemImage
-  id="minecraft:chest"
-  scale="2"
-  nbt='{id:"Chest",Items:[{Slot:0b,id:"minecraft:diamond",Count:1b,Damage:0s}]}'
-/>
-````
-
-> **Opmerking** — `wrap="inline"` now gives `<FloatingImage>` true inline placement binnen flow tekst.
-> In inline modus, `align` is ignored instead of producing Een error.
+<Column align="center">
+  <ItemImage id="minecraft:diamond" nbt='{display:{Name:"Custom Diamond"}}' />
+</Column>
+```
 
 ## Navigatie Texture Icons
 
@@ -289,9 +226,7 @@ Deze assets are loaded through De zelfde gids asset pipeline but are consumed by
 
 ## `BlockImage`
 
-`<BlockImage>` uses De zelfde blok-level embedding Regels as `<FloatingImage>`, but De visual
-inhoud is Een transparent 3D enkele-blok voorbeeldweergave instead of Een bitmap. It is best suited voor
-showing how Een placed blok looks in-wereld terwijl still fitting inline met normal gids prose.
+`<BlockImage>` toont een geplaatst blok als transparant 3D-voorbeeld en ondersteunt bovenstaande blokattributen voor uitlijning en tekstomloop.
 
 Key behavior:
 

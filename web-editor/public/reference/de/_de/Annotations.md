@@ -12,6 +12,7 @@ GuideNH Szene Annotationen sind untergeordnetes Element Tags innerhalb `<GameSce
 - Annotationen kann sein verborgen mit Die Szene UI toggle
 - `alwaysOnTop` zeichnet über Szene Geometrie wenn unterstützt by Die Annotation Typ
 - alle Szene Annotationen auch accept optional `showWhenStructure`, `showWhenTier`, und `showWhenChannels` gates wenn Die Szene verwendet `<ImportStructureLib>`
+- Spiel und Site Export verwenden denselben Regenbogenverlauf und dieselbe Zyklusdauer.
 
 ## Unterstützte Annotation-Tags
 
@@ -68,8 +69,11 @@ Hebt ein einzelnes 1x1x1-Blockvolumen hervor.
 | --- | --- | --- |
 | `pos` | ja | `x y z` Vektor |
 | `color` | nein | `#RRGGBB`, `#AARRGGBB`, oder `transparent` |
+| `colorMode` | nein | `solid` (Standard) oder `rainbow`; der Regenbogen dreht sich um 360° um das projizierte Zentrum, ersetzt RGB und behält den Alphawert von `color` bei |
+| `colorPeriod` | nein | positive, endliche Regenbogenperiode in Sekunden; Standard `2.4`; ungültige Werte erzeugen einen Seitenfehler |
 | `thickness` | nein | Linie thickness Gleitkommazahl |
 | `alwaysOnTop` | nein | Boolesch Ausdruck |
+
 
 Beispiel:
 
@@ -77,6 +81,7 @@ Beispiel:
 <BlockAnnotation pos="2 0 2" color="#33DDEE" alwaysOnTop={true}>
   Hebt den Controller-Block hervor.
 </BlockAnnotation>
+<BlockAnnotation pos="4 0 2" color="#80FFFFFF" colorMode="rainbow" colorPeriod="4.8" />
 ````
 
 ## `<BoxAnnotation>`
@@ -88,8 +93,11 @@ Hebt eine beliebige achsenparallele Box hervor.
 | `min` | ja | `x y z` minimum Vektor |
 | `max` | ja | `x y z` maximum Vektor |
 | `color` | nein | Annotation Farbe |
+| `colorMode` | nein | `solid` (Standard) oder `rainbow`; der Regenbogen dreht sich um 360° um das projizierte Zentrum, ersetzt RGB und behält den Alphawert von `color` bei |
+| `colorPeriod` | nein | positive, endliche Regenbogenperiode in Sekunden; Standard `2.4`; ungültige Werte erzeugen einen Seitenfehler |
 | `thickness` | nein | Linie thickness Gleitkommazahl |
 | `alwaysOnTop` | nein | Boolesch Ausdruck |
+
 
 GuideNH automatisch swaps min/max Koordinaten per axis wenn Sie sind bereitgestellt in reverse Reihenfolge.
 
@@ -99,6 +107,7 @@ Beispiel:
 <BoxAnnotation min="0 1 0" max="1 1.6 0.6" color="#EE3333" thickness="0.04">
   Hervorhebung über halbe Höhe.
 </BoxAnnotation>
+<BoxAnnotation min="2 0 0" max="4 1.5 0.5" color="#80FFFFFF" colorMode="rainbow" colorPeriod="2.4" />
 ````
 
 ## `<LineAnnotation>`
@@ -176,10 +185,13 @@ Zeichnet eine leuchtende Silhouettenkontur um Blöcke und Entitäten, ähnlich d
 | `target` | nein | `blocks` (Standard), `entities` oder `all`: was im Bereich umrandet wird; `entities` ohne Bereich umrandet alle Entitäten |
 | `mode` | nein | `auto` (Standard), `geometry`, `cutout` oder `bounds` |
 | `color` | nein | Konturfarbe; ohne Angabe weiß, bei Entitäten die Farbe ihres Scoreboard-Teams |
+| `colorMode` | nein | `solid` (Standard) oder `rainbow`; der Regenbogen dreht sich um 360° um das projizierte Zentrum, ersetzt RGB und behält den Alphawert von `color` bei |
+| `colorPeriod` | nein | positive, endliche Regenbogenperiode in Sekunden; Standard `2.4`; ungültige Werte erzeugen einen Seitenfehler |
 | `thickness` | nein | Konturbreite in GUI-Pixeln, `0.25` bis `8`, Standard `1` |
 | `alwaysOnTop` | nein | boolescher Ausdruck; verdeckte Teile behalten die volle Helligkeit statt abgedunkelt zu werden |
 | `pulse` | nein | boolescher Ausdruck; lässt die Kontur pulsieren |
 | `pulsePeriod` | nein | Pulsdauer in Sekunden, Standard `2` |
+
 
 Silhouettenmodi:
 
@@ -209,7 +221,7 @@ Beispiel:
   <OutlineAnnotation pos="0 0 0" color="#55FFFF">
     Glas wird als ganzer Würfel umrandet.
   </OutlineAnnotation>
-  <OutlineAnnotation pos="2 0 0" color="#FFFF55" thickness="1.5" />
+  <OutlineAnnotation pos="2 0 0" color="#80FFFFFF" colorMode="rainbow" colorPeriod="2.4" thickness="1.5" />
   <OutlineAnnotation entity="sheep" color="#FFAA00" alwaysOnTop={true} pulse={true} />
 </GameScene>
 ````

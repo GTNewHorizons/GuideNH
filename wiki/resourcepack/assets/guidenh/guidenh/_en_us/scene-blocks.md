@@ -101,7 +101,7 @@ Use `formed={false}` when a placed controller should stay visibly unformed in pr
 for single-block placement as well as multi-block placement tags such as `<PlaceBlock>`,
 `<ReplaceBlock>`, `<ImportStructure>`, and `<ImportStructureLib>`.
 
-`formed` now defaults to `false`, so controller previews stay unformed unless a scene explicitly
+`formed` defaults to `false`, so controller previews stay unformed unless a scene explicitly
 asks to auto-form them. GregTech controllers are the primary built-in example today.
 
 ```mdx
@@ -380,4 +380,3 @@ column rules as the Ponder weather runtime.
 - `x` and `z` accept either one value or endpoint arrays.
 - Weather ignores `y`; the runtime derives vertical range from scene bounds and precipitation blockers.
 - The same `x/z` column never stacks multiple weather effects at the same time.
-

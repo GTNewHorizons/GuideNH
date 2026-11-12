@@ -12,6 +12,7 @@ GuideNH scène Annotaties are kind tags binnen `<GameScene>` / `<Scene>`. They r
 - Annotaties kan be verborgen met De scène UI toggle
 - `alwaysOnTop` draws above scène geometry wanneer supported by De annotatie Type
 - alle scène Annotaties ook accept optioneel `showWhenStructure`, `showWhenTier`, en `showWhenChannels` gates wanneer De scène uses `<ImportStructureLib>`
+- Het spel en Site Export gebruiken hetzelfde regenboogverloop en dezelfde cyclusduur.
 
 ## Ondersteunde annotatietags
 
@@ -68,8 +69,11 @@ Markeert één blokvolume van 1x1x1.
 | --- | --- | --- |
 | `pos` | yes | `x y z` vector |
 | `color` | no | `#RRGGBB`, `#AARRGGBB`, of `transparent` |
+| `colorMode` | no | `solid` (standaard) of `rainbow`; de regenboog draait 360° rond het geprojecteerde middelpunt, vervangt RGB en behoudt de alfa van `color` |
+| `colorPeriod` | no | positieve, eindige regenboogperiode in seconden; standaard `2.4`; ongeldige waarden geven een paginafout |
 | `thickness` | no | lijndikte kommagetal |
 | `alwaysOnTop` | no | boolean expressie |
+
 
 Example:
 
@@ -77,6 +81,7 @@ Example:
 <BlockAnnotation pos="2 0 2" color="#33DDEE" alwaysOnTop={true}>
   Markeert het controllerblok.
 </BlockAnnotation>
+<BlockAnnotation pos="4 0 2" color="#80FFFFFF" colorMode="rainbow" colorPeriod="4.8" />
 ````
 
 ## `<BoxAnnotation>`
@@ -88,8 +93,11 @@ Markeert een willekeurige assenparallelle doos.
 | `min` | yes | `x y z` minimum vector |
 | `max` | yes | `x y z` maximum vector |
 | `color` | no | annotatie kleur |
+| `colorMode` | no | `solid` (standaard) of `rainbow`; de regenboog draait 360° rond het geprojecteerde middelpunt, vervangt RGB en behoudt de alfa van `color` |
+| `colorPeriod` | no | positieve, eindige regenboogperiode in seconden; standaard `2.4`; ongeldige waarden geven een paginafout |
 | `thickness` | no | lijndikte kommagetal |
 | `alwaysOnTop` | no | boolean expressie |
+
 
 GuideNH verwisselt automatisch min/max coördinaten per axis wanneer they are provided in reverse order.
 
@@ -99,6 +107,7 @@ Example:
 <BoxAnnotation min="0 1 0" max="1 1.6 0.6" color="#EE3333" thickness="0.04">
   Markering over halve hoogte.
 </BoxAnnotation>
+<BoxAnnotation min="2 0 0" max="4 1.5 0.5" color="#80FFFFFF" colorMode="rainbow" colorPeriod="2.4" />
 ````
 
 ## `<LineAnnotation>`
@@ -176,10 +185,13 @@ Tekent een gloeiende silhouetomlijning rond blokken en entiteiten, zoals het Glo
 | `target` | nee | `blocks` (standaard), `entities` of `all`: wat binnen het gebied wordt omlijnd; `entities` zonder gebied omlijnt alle entiteiten |
 | `mode` | nee | `auto` (standaard), `geometry`, `cutout` of `bounds` |
 | `color` | nee | omlijningskleur; weggelaten is wit, of de scorebordteamkleur voor entiteiten |
+| `colorMode` | nee | `solid` (standaard) of `rainbow`; de regenboog draait 360° rond het geprojecteerde middelpunt, vervangt RGB en behoudt de alfa van `color` |
+| `colorPeriod` | nee | positieve, eindige regenboogperiode in seconden; standaard `2.4`; ongeldige waarden geven een paginafout |
 | `thickness` | nee | omlijningsbreedte in GUI-pixels, `0.25` tot `8`, standaard `1` |
 | `alwaysOnTop` | nee | booleaanse expressie; verborgen delen behouden volle helderheid in plaats van te worden gedimd |
 | `pulse` | nee | booleaanse expressie; laat de omlijning ademen |
 | `pulsePeriod` | nee | ademperiode in seconden, standaard `2` |
+
 
 Silhouetmodi:
 
@@ -209,7 +221,7 @@ Voorbeeld:
   <OutlineAnnotation pos="0 0 0" color="#55FFFF">
     Glas wordt als volledige kubus omlijnd.
   </OutlineAnnotation>
-  <OutlineAnnotation pos="2 0 0" color="#FFFF55" thickness="1.5" />
+  <OutlineAnnotation pos="2 0 0" color="#80FFFFFF" colorMode="rainbow" colorPeriod="2.4" thickness="1.5" />
   <OutlineAnnotation entity="sheep" color="#FFAA00" alwaysOnTop={true} pulse={true} />
 </GameScene>
 ````

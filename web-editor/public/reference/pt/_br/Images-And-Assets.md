@@ -38,17 +38,18 @@ outro mods directly.
 | Atributo | Obrigatório | Significado |
 | --- | --- | --- |
 | `src` | sim | imagem caminho |
-| `x` | sim | crop emício X em origem-imagem pixels |
-| `y` | sim | crop emício Y em origem-imagem pixels |
-| `width` / `w` | sim | crop largura em origem-imagem pixels; exatamente um forma deve ser usado |
-| `height` / `h` | sim | crop altura em origem-imagem pixels; exatamente um forma deve ser usado |
+| `x` | ao recortar | crop emício X em origem-imagem pixels |
+| `y` | ao recortar | crop emício Y em origem-imagem pixels |
+| `width` / `w` | ao recortar | crop largura em origem-imagem pixels; exatamente um forma deve ser usado |
+| `height` / `h` | ao recortar | crop altura em origem-imagem pixels; exatamente um forma deve ser usado |
 | `scaleX` | não | horizontal exibir multiplier, Padrão `1.0` |
 | `scaleY` | não | vertical exibir multiplier, Padrão `1.0` |
 | `displayWidth` | não | final exibir largura em pixels; preserves O crop aspect ratio quando usado alone |
 | `displayHeight` | não | final exibir altura em pixels; preserves O crop aspect ratio quando usado alone |
-| `wrap` | não | `inline` para true inline placement, otherwise usar O normal wrapping modes |
+| `wrap` | não | `inline` coloca a imagem na linha; caso contrário, `align` escolhe o lado flutuante |
 | `align` | não | `left` ou `right` para floating placement; ignored quando `wrap="inline"` |
 | `title` | não | dica/título texto |
+| `alt` | não | Texto alternativo |
 | `sound` | não | sound event played by O whole imagem |
 | `soundSrc` | não | sound caminho do arquivo para O whole imagem |
 | `trigger` | não | `click` by Padrão, ou `hover` para passar o mouse playback |
@@ -57,14 +58,13 @@ outro mods directly.
 
 - `x`, `y`, `width` / `w`, e `height` / `h` são todos Obrigatório together quando cropping
 - quando O crop atributos são todos omitted, `displayWidth` ou `displayHeight` exibe O completo origem imagem
-- `width` e `height` now describe O crop rectangle, não O final exibir tamanho
+- `width` e `height` indicam o recorte da origem. Use `displayWidth` / `displayHeight` ou fatores de escala para o tamanho exibido.
 - `scaleX` e `scaleY` calcular O final exibir tamanho as `cropWidth * scaleX` by `cropHeight * scaleY`
 - `displayWidth` ou `displayHeight` sets O final exibir tamanho em pixels; quando somente um é present, O outro dimension é calculado de O crop aspect ratio
 - providing ambos `displayWidth` e `displayHeight` permite intentional non-proportional stretching
 - `displayWidth` / `displayHeight` não pode ser combined com `scaleX` / `scaleY`
 - único-axis stretching é Compatível by setting somente um scale differently
 - `width` com `w`, ou `height` com `h`, é inválido e renders Uma visível erro
-- old `FloatingImage width/height as display size` conteúdo é intentionally breaking e deve ser migrated manualmente
 - `src` pode ser relativo, rooted, ou Um explícito `modid:path` texture id como `minecraft:textures/gui/options_background.png`
 
 ### Exemplo
@@ -119,7 +119,7 @@ ou stretched.
 Whole-imagem anotação:
 
 ````md
-<FloatingImage src="test1.png" align="left" x="0" y="0" width="128" height="128">
+<FloatingImage displayWidth="128" displayHeight="128" src="test1.png" align="left" x="0" y="0" width="32" height="32">
   <ImageAnnotation>
     Passe o cursor sobre a imagem para ver esta dica.
   </ImageAnnotation>
@@ -129,8 +129,8 @@ Whole-imagem anotação:
 Region anotação com Uma visível borda:
 
 ````md
-<FloatingImage src="test1.png" align="left" x="0" y="0" width="128" height="128">
-  <ImageAnnotation x="10" y="10" w="60" h="40" border borderColor="#FFFF4444" borderThickness="2">
+<FloatingImage displayWidth="128" displayHeight="128" src="test1.png" align="left" x="0" y="0" width="32" height="32">
+  <ImageAnnotation x="2" y="2" w="15" h="10" border borderColor="#FFFF4444" borderThickness="2">
     Esta é a dica da **região destacada**.
   </ImageAnnotation>
 </FloatingImage>
@@ -139,11 +139,11 @@ Region anotação com Uma visível borda:
 vários regions on um imagem:
 
 ````md
-<FloatingImage src="test1.png" align="left" x="0" y="0" width="128" height="128">
-  <ImageAnnotation x="0" y="0" w="64" h="64" border borderColor="#FF44FF44">
+<FloatingImage displayWidth="128" displayHeight="128" src="test1.png" align="left" x="0" y="0" width="32" height="32">
+  <ImageAnnotation x="0" y="0" w="16" h="32" border borderColor="#FF44FF44">
     Left half
   </ImageAnnotation>
-  <ImageAnnotation x="64" y="0" w="64" h="64" border borderColor="#FF4444FF">
+  <ImageAnnotation x="16" y="0" w="16" h="32" border borderColor="#FF4444FF">
     Right half
   </ImageAnnotation>
 </FloatingImage>
@@ -154,17 +154,17 @@ directly on `<ImageAnnotation>` quando O mesmo region também tem Uma dica ou bo
 
 ````md
 <FloatingImage
-  src="test1.png"
+  displayWidth="128" displayHeight="128" src="test1.png"
   align="left"
   x="0"
   y="0"
-  width="128"
-  height="128"
-  sound="guidenh:image.click"
+  width="32"
+  height="32"
+  sound="guidenh:guide.sample_click"
 >
-  <SoundArea x="0" y="0" w="64" h="64" sound="guidenh:image.left" />
-  <SoundArea x="64" y="0" w="64" h="64" sound="guidenh:image.right" trigger="hover" />
-  <ImageAnnotation x="10" y="10" w="40" h="40" border sound="guidenh:image.note">
+  <SoundArea x="0" y="0" w="16" h="32" sound="guidenh:guide.sample_left" />
+  <SoundArea x="16" y="0" w="16" h="32" sound="guidenh:guide.sample_hover" trigger="hover" />
+  <ImageAnnotation x="2" y="2" w="10" h="10" border sound="guidenh:guide.sample_click">
     Esta região contém o texto da dica e um som de clique.
   </ImageAnnotation>
 </FloatingImage>
@@ -175,88 +175,25 @@ e obey O mesmo overlap priority as tooltips: later regions win.
 
 ## Incorporação de conteúdo e quebra de texto
 
-todos bloco-level tags — `<FloatingImage>`, `<Recipe>`, `<GameScene>`, `<ItemImage>`, `<BlockImage>`,
-e qualquer outro tag backed by `BlockTagCompiler` — suporte dois opcional layout atributos que
-fornecer Word-style conteúdo embedding.
+Tags baseadas em `BlockTagCompiler`, como `<Recipe>`, `<GameScene>` e `<BlockImage>`, aceitam `wrap` e `align`.
 
-| Atributo | valores | Padrão | Significado |
-| --- | --- | --- | --- |
-| `wrap` | `inline` · `square` · `tight` · `through` · `top-bottom` · `behind` · `front` | `inline` | texto-wrapping modo |
-| `align` | `left` · `center` · `right` | `left` | Horizontal alignment |
+`<FloatingImage>` tem regras próprias: `wrap="inline"` coloca a imagem na linha; caso contrário, `align="left"` ou `"right"` escolhe o lado flutuante. `<ItemImage>` é um ícone em linha; use `<Column>` ou `<Row>` para alinhá-lo.
 
-### Modos de quebra
+| Atributo | Padrão | Significado |
+| --- | --- | --- |
+| `wrap` | `inline` | `inline`: posição normal. `square`, `tight`, `through`: flutuar à esquerda ou à direita. `top-bottom`, `behind`, `front`: atualmente posição normal alinhada, sem camadas separadas de texto. |
+| `align` | `left` | `left`, `center` ou `right` no contexto de bloco. Ao flutuar, `right` escolhe a direita e os demais valores a esquerda. Para centralizar: `wrap="inline" align="center"`. |
+| `float` | — | `left` / `right` legado no texto quando faltam `wrap` e `align`. Prefira esses atributos explícitos. |
 
-| modo | Word equivalent | bloco-context behaviour | Flow-context behaviour |
-| --- | --- | --- | --- |
-| `inline` | em linha com texto | Padrão stack (嵌入型) | Sits on O texto linha |
-| `square` | Square | Document-level decimal; texto wraps around (方形环绕) | `FLOAT_LEFT` / `FLOAT_RIGHT` |
-| `tight` | Tight | mesmo as `square` (紧密型) | mesmo as `square` |
-| `through` | por | mesmo as `square` (穿越型) | mesmo as `square` |
-| `top-bottom` | topo e baixo | completo-largura slot; `align` repositions horizontally (上下型) | linha-inline com breaks |
-| `behind` | Behind texto | Aligned inline slot; renders behind texto (衬于文字下方) | Sits on O linha |
-| `front` | em front of texto | Aligned inline slot; renders em front of texto (浮于文字上方) | Sits on O linha |
+```mdx
+<BlockImage id="minecraft:stone" wrap="square" align="right" />
 
-### Alignment com floating wrap
+<BlockImage id="minecraft:diamond_block" wrap="inline" align="center" />
 
-para `wrap=square/tight/through`:
-- `align=left` (Padrão) — bloco floats para O **esquerda**; texto fills O direita lado.
-- `align=right` — bloco floats para O **direita**; texto fills O esquerda lado.
-- `align=center` — bloco é centred sem floating (não texto wrapping).
-
-### Exemplos
-
-esquerda-floating imagem using O new `wrap` Atributo:
-
-````md
-<FloatingImage
-  src="test1.png"
-  wrap="square"
-  align="left"
-  x="0"
-  y="0"
-  width="128"
-  height="128"
-  scaleX="0.5"
-  scaleY="0.5"
-/>
-
-Texto do parágrafo que flui à direita da imagem…
-````
-
-direita-floating recipe:
-
-````md
-<Recipe id="minecraft:stone" wrap="square" align="right" />
-
-Texto que flui à esquerda da caixa de receita…
-````
-
-Centred item imagem (não texto wrapping):
-
-````md
-<ItemImage id="minecraft:diamond" align="center" />
-````
-
-direita-aligned item imagem:
-
-````md
-<ItemImage id="minecraft:diamond" align="right" />
-````
-
-item NBT pode ser supplied separately de O item id. Inline SNBT em `id` é ainda Compatível;
-quando ambos forms são present, O standalone `nbt` Atributo é merged último.
-
-````md
-<ItemImage id="minecraft:diamond" nbt='{display:{Name:"Custom Diamond"}}' />
-<ItemImage
-  id="minecraft:chest"
-  scale="2"
-  nbt='{id:"Chest",Items:[{Slot:0b,id:"minecraft:diamond",Count:1b,Damage:0s}]}'
-/>
-````
-
-> **Observação** — `wrap="inline"` now gives `<FloatingImage>` true inline placement dentro de flow texto.
-> em inline modo, `align` é ignored em vez disso of producing Um erro.
+<Column align="center">
+  <ItemImage id="minecraft:diamond" nbt='{display:{Name:"Custom Diamond"}}' />
+</Column>
+```
 
 ## Navegação Texture Icons
 
@@ -289,9 +226,7 @@ Estes assets são carregado por O mesmo guia recurso pipeline but são consumed 
 
 ## `BlockImage`
 
-`<BlockImage>` usa O mesmo bloco-level embedding Regras as `<FloatingImage>`, but O visual
-conteúdo é Uma transparent 3D único-bloco visualização em vez disso of Uma bitmap. It é best suited para
-showing how Uma placed bloco looks em-mundo enquanto ainda fitting inline com normal guia prose.
+`<BlockImage>` mostra um bloco colocado como prévia 3D transparente e aceita os atributos de alinhamento e fluxo de texto acima.
 
 chave behavior:
 

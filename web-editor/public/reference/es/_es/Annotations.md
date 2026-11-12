@@ -12,6 +12,7 @@ GuideNH escena anotaciones son hijo etiquetas dentro de `<GameScene>` / `<Scene>
 - anotaciones puede ser ocultas con El escena UI toggle
 - `alwaysOnTop` dibuja encima de escena geometría cuando Compatible by El anotación tipo
 - todos escena anotaciones también aceptan opcional `showWhenStructure`, `showWhenTier`, y `showWhenChannels` condiciones cuando El escena usa `<ImportStructureLib>`
+- El juego y Site Export usan el mismo degradado de arcoíris y la misma duración del ciclo.
 
 ## Compatible anotación etiquetas
 
@@ -68,8 +69,11 @@ Resalta un volumen de bloque 1x1x1 único.
 | --- | --- | --- |
 | `pos` | sí | `x y z` vector |
 | `color` | no | `#RRGGBB`, `#AARRGGBB`, o `transparent` |
+| `colorMode` | no | `solid` (predeterminado) o `rainbow`; el arcoíris gira 360° alrededor del centro proyectado, sustituye RGB y conserva el alfa de `color` |
+| `colorPeriod` | no | período positivo y finito del arcoíris en segundos; predeterminado `2.4`; los valores inválidos generan un error de página |
 | `thickness` | no | línea thickness decimal |
 | `alwaysOnTop` | no | booleano expresión |
+
 
 Ejemplo:
 
@@ -77,6 +81,7 @@ Ejemplo:
 <BlockAnnotation pos="2 0 2" color="#33DDEE" alwaysOnTop={true}>
   Resalta el bloque controlador.
 </BlockAnnotation>
+<BlockAnnotation pos="4 0 2" color="#80FFFFFF" colorMode="rainbow" colorPeriod="4.8" />
 ````
 
 ## `<BoxAnnotation>`
@@ -88,8 +93,11 @@ Resalta una caja arbitraria alineada con los ejes.
 | `min` | sí | `x y z` minimum vector |
 | `max` | sí | `x y z` maximum vector |
 | `color` | no | anotación color |
+| `colorMode` | no | `solid` (predeterminado) o `rainbow`; el arcoíris gira 360° alrededor del centro proyectado, sustituye RGB y conserva el alfa de `color` |
+| `colorPeriod` | no | período positivo y finito del arcoíris en segundos; predeterminado `2.4`; los valores inválidos generan un error de página |
 | `thickness` | no | línea thickness decimal |
 | `alwaysOnTop` | no | booleano expresión |
+
 
 GuideNH automáticamente swaps min/max coordenadas per eje cuando Estas son proporcionado en reverse orden.
 
@@ -99,6 +107,7 @@ Ejemplo:
 <BoxAnnotation min="0 1 0" max="1 1.6 0.6" color="#EE3333" thickness="0.04">
   Resaltado de media altura.
 </BoxAnnotation>
+<BoxAnnotation min="2 0 0" max="4 1.5 0.5" color="#80FFFFFF" colorMode="rainbow" colorPeriod="2.4" />
 ````
 
 ## `<LineAnnotation>`
@@ -176,10 +185,13 @@ Dibuja un contorno de silueta brillante alrededor de bloques y entidades, como e
 | `target` | no | `blocks` (por defecto), `entities` o `all`: qué se contornea dentro de la región; `entities` sin región contornea todas las entidades |
 | `mode` | no | `auto` (por defecto), `geometry`, `cutout` o `bounds` |
 | `color` | no | color del contorno; si se omite, blanco, o el color del equipo del marcador para entidades |
+| `colorMode` | no | `solid` (predeterminado) o `rainbow`; el arcoíris gira 360° alrededor del centro proyectado, sustituye RGB y conserva el alfa de `color` |
+| `colorPeriod` | no | período positivo y finito del arcoíris en segundos; predeterminado `2.4`; los valores inválidos generan un error de página |
 | `thickness` | no | ancho del contorno en píxeles de GUI, de `0.25` a `8`, por defecto `1` |
 | `alwaysOnTop` | no | expresión booleana; las partes ocultas conservan el brillo completo en lugar de oscurecerse |
 | `pulse` | no | expresión booleana; hace que el contorno respire |
 | `pulsePeriod` | no | periodo de respiración en segundos, por defecto `2` |
+
 
 Modos de silueta:
 
@@ -209,7 +221,7 @@ Ejemplo:
   <OutlineAnnotation pos="0 0 0" color="#55FFFF">
     El vidrio se contornea como un cubo completo.
   </OutlineAnnotation>
-  <OutlineAnnotation pos="2 0 0" color="#FFFF55" thickness="1.5" />
+  <OutlineAnnotation pos="2 0 0" color="#80FFFFFF" colorMode="rainbow" colorPeriod="2.4" thickness="1.5" />
   <OutlineAnnotation entity="sheep" color="#FFAA00" alwaysOnTop={true} pulse={true} />
 </GameScene>
 ````

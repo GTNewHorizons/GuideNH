@@ -26,13 +26,14 @@ GuideNH の構文と実行時機能を説明します。コード、タグ、パ
 | `<sub>` | smaller inline subscript-style テキスト | none |
 | `<sup>` | smaller inline superscript-style テキスト | none |
 | `<Color>` | colored inline テキスト | `id` または `color` |
+| `<Amount>` | 数値と単位を整形 | `value`, `unit`, `format`, `decimals` |
 | `<Spoiler>` | 非表示 inline テキスト revealed on ホバー | none |
 | `<Tooltip>` | リッチ ホバー ツールチップ とともに Markdown/タグ 子要素 | `label` |
 | `<SoundLink>` | clickable リッチ-テキスト sound trigger | `sound` または `src`, `volume`, `pitch`, `cooldown` |
 | `<mark>` | inline highlighted テキスト; equivalent へ `==text==` とともに 任意の 色 control | `color` |
 | `<PlayerName>` | inserts 現在の player username | none |
 | `<KeyBind>` | inserts keybinding 表示 名前 | `id` または `action` |
-| `<ItemImage>` | inline アイテム icon | `id` または `ore`, `scale`, `noTooltip`, `showTooltip`, `showIcon`, `label`, `format`, `yOffset`, `labelYOffset` |
+| `<ItemImage>` | inline アイテム icon | `id`, `ore`, `nbt`, `scale`, `noTooltip`, `showTooltip`, `showIcon`, `label`, `format`, `yOffset`, `labelYOffset` |
 | `<ItemLink>` | アイテム ツールチップ + 任意の ナビゲーション リンク | `id` または `ore`, `linksTo`, `showTooltip`, `noTooltip`, `showIcon` |
 | `<CommandLink>` | clickable chat command リンク | `command`, `title`, `close` |
 | `<Latex>` | LaTeX math 数式; inline で flow context, centered 表示 ブロック で ブロック context | `formula`, `color`, `scale`, `sourceScale`, `tooltip`, `showTooltip` |
@@ -58,7 +59,7 @@ Inline Markdown も 対応します action リンク 用 sound playback:
 | `<Column>` | vertical flex レイアウト | `gap`, `alignItems`, `fullWidth`, `width` |
 | `<FootnoteList>` | 幅-constrained footnote container 使用されます by 実行時 Markdown footnotes | `width` |
 | `<ItemGrid>` | compact grid of アイテム icons | 子要素 必要があります なる `<ItemIcon id="..."/>` または `<ItemIcon ore="..."/>` |
-| `<BlockImage>` | non-インタラクティブ 3D 単一の-ブロック プレビュー | `id` または `ore`, 任意の `scale` (defaults へ `4`), `float`, `perspective`, `nbt` |
+| `<BlockImage>` | non-インタラクティブ 3D 単一の-ブロック プレビュー | `id`, `ore`, `meta`, `nbt`, `scale`, `width`, `height`, `perspective`, `wrap`, `align` |
 | `<FloatingImage>` | cropped 画像 ブロック とともに 浮動小数点数 または true inline placement | `src`, `x`, `y`, `width` / `w`, `height` / `h`, `scaleX`, `scaleY`, `displayWidth`, `displayHeight`, `wrap`, `align`, `title` |
 | `<SubPages>` | ナビゲーション 子 listing | `id`, `alphabetical` |
 | `<Category>` | 一覧 pages から category | `name`, `rows` |
@@ -314,6 +315,25 @@ Sound 属性:
 - `cooldown` です milliseconds 間 repeated plays, 既定値 `250`
 - `radius` と `minVolume` control 画面空間 attenuation 場合 使用されます で シーン
 
+### `<Amount>`
+
+`<Amount>` は数値の数量を整形します。`unit` を省略するか `unit="none"` にすると数値だけを表示します。`unit="item"` も接尾辞を付けません。`unit="fluid"` は GTNHLib の流体設定に従い、`mB` または `L` を表示します。`format` は `default`、`plain`、`compact`、`scientific`、`decimals` は小数桁の最大値です。`L/s` などの速度単位はタグの外に書きます。
+
+| 属性 | 意味 |
+| --- | --- |
+| `value` | 必須の有限小数値 |
+| `unit` | 任意の `none`、`item`、`fluid`。既定値は `none` |
+| `format` | 任意の数値形式。既定値は `default` |
+| `decimals` | 任意の0以上の最大小数桁数 |
+
+例：
+
+````md
+<Amount value="250" />
+<Amount value="250" unit="fluid" />/s
+<Amount value="1200000" format="compact" /> items
+````
+
 ### `<PlayerName>`
 
 Inserts  現在の Minecraft session username:
@@ -364,8 +384,8 @@ Shows inline アイテム icon.
 
 | 属性 | 意味 |
 | --- | --- |
-| `ore` | ore dictionary 名前;  最初の 一致 wins |
-| `id` | アイテム reference 使用されます 場合 `ore` です absent |
+| `ore` | 任意の鉱石辞書セレクター。`id` も指定 |
+| `id` | 必須のアイテム参照。`ore` 使用時も指定 |
 | `nbt` | 任意の SNBT アイテム データ; merged onto 任意の inline SNBT で `id` |
 | `scale` | 浮動小数点数, 既定値 `1` |
 | `noTooltip` | truthy 文字列 または 空 属性 suppresses ツールチップ (legacy; prefer `showTooltip`) |
@@ -373,8 +393,8 @@ Shows inline アイテム icon.
 | `showIcon` | 真偽値, 既定値 `true`; `false` hides  アイテム icon graphic |
 | `label` | `left` または `right` — shows  アイテム 表示 名前 as テキスト on  specified 側 of  icon; omit 用 いいえ ラベル |
 | `format` | format pattern 用  ラベル テキスト; 対応します Markdown-style wrappers (`**bold**`, `*italic*`, `~~strike~~`, `__underline__`, `^^wavy^^`, `::dotted::`) とともに 任意の `%s` placeholder 用  アイテム 名前; 既定値 (いいえ 属性) 描画  名前 で italic |
-| `yOffset` | 整数 pixel offset 上書き 用  **icon** at scale `1`; しません affect  ラベル テキスト |
-| `labelYOffset` | 整数 pixel offset 上書き 用  **ラベル テキスト** at scale `1`; しません affect  icon |
+| `yOffset` | `scale=1` での行内全体の垂直オフセット。既定は `0`。正の値は下方向 |
+| `labelYOffset` | `scale=1` でのラベル文字だけの垂直オフセット。既定は `0` |
 
 注記:
 
@@ -388,7 +408,7 @@ Shows inline アイテム icon.
 
 ````md
 <ItemImage id="minecraft:diamond" scale="2" />
-<ItemImage ore="ingotIron" />
+<ItemImage id="minecraft:iron_ingot" ore="ingotIron" />
 <ItemImage id="minecraft:diamond_sword" noTooltip="true" />
 <ItemImage id="minecraft:diamond" label="right" />
 <ItemImage id="minecraft:iron_ingot" label="left" format="**%s**" />
@@ -398,7 +418,7 @@ Shows inline アイテム icon.
 <ItemImage
   id="minecraft:chest"
   scale="2"
-  nbt='{id:"Chest",Items:[{Slot:0b,id:"minecraft:diamond",Count:1b,Damage:0s}]}'
+  nbt='{display:{Name:"Storage Chest"}}'
 />
 ````
 
@@ -507,6 +527,10 @@ buttons, いいえ layer controls, と いいえ 注釈 features, but ホバー�
 | `id` | ブロック id; 対応します  通常 `modid:block[:meta][:{snbt}]` spelling |
 | `ore` | ore dictionary lookup;  最初の 一致する ブロック アイテム wins |
 | `scale` | カメラ ズーム multiplier, 既定値 `4` |
+| `meta` | ブロックのメタデータ。`id` の値を上書き |
+| `width` / `height` | プレビューのピクセル寸法。幅と高さはそれぞれ既定 `128` |
+| `wrap` | テキストの回り込み。既定は `inline` |
+| `align` | 水平方向の配置：`left`（既定）、`center`、`right` |
 | `float` | legacy flow 浮動小数点数 対応: `left` または `right` |
 | `perspective` | `isometric-north-east` (既定値), `isometric-north-west`, または `up` |
 | `nbt` | 任意の SNBT tile-entity データ merged onto 任意の inline SNBT から `id` |
@@ -534,15 +558,11 @@ buttons, いいえ layer controls, と いいえ 注釈 features, but ホバー�
 
 参照 [Images And Assets](Images-And-Assets) 用  完全な behavior.
 
-簡単 規則:
+```mdx
+<FloatingImage src="test1.png" displayWidth="128" wrap="inline" />
 
-- `src` 対応します 相対 paths, rooted paths, と 明示的な `modid:path` texture ids
-- `x`, `y`, `width` / `w`, と `height` / `h` define  crop rectangle on  original 画像 と 必要があります すべての なる present
-- `scaleX` と `scaleY` resize  cropped 結果 と 対応 independent horizontal / vertical stretching
-- `displayWidth` と `displayHeight` 設定します 最終 dimensions で pixels; 1 つ 値 preserves  crop aspect ratio, 中 2 つ 値 許可 stretching
-- `displayWidth` / `displayHeight` できません なる combined とともに `scaleX` / `scaleY`
-- `wrap="inline"` places  画像 truly inline 内部 テキスト flow; で that モード `align` です ignored
-- old コンテンツ that 使用されます `width` / `height` as 最終 表示 サイズ 必要があります なる migrated 手動で
+<FloatingImage src="test1.png" x="8" y="8" width="16" height="16" displayWidth="128" wrap="inline" />
+```
 
 ### `<SubPages>`, `<Category>`, と `<Special>`
 
@@ -698,7 +718,12 @@ $$\begin{pmatrix} a & b \\ c & d \end{pmatrix}$$
 | `<ImportStructure>` | import 外部 SNBT/NBT structure アセット | `src`, `x`, `y`, `z`, `offsetX`, `offsetY`, `offsetZ`, `formed` |
 | `<ImportStructureLib>` | import StructureLib multiblock by controller id | `controller`, `name`, `piece`, `facing`, `rotation`, `flip`, `tier`, `channel`, `channelName`, `value`, `locked`, `offsetX`, `offsetY`, `offsetZ`, `formed` |
 | `<RemoveBlocks>` | 削除 すでに-placed ブロック that 一致 a ブロック matcher | `id` |
+| `<BlockAnnotation>` | 単一のブロックを強調 | `pos`, `color`, `colorMode`, `colorPeriod`, `thickness`, `alwaysOnTop` |
+| `<BoxAnnotation>` | 軸に揃った任意のボックスを強調 | `min`, `max`, `color`, `colorMode`, `colorPeriod`, `thickness`, `alwaysOnTop` |
+| `<OutlineAnnotation>` | ブロックやエンティティの描画されたシルエットに輪郭を描画 | `pos`, `min`, `max`, `entity`, `target`, `mode`, `color`, `colorMode`, `colorPeriod`, `thickness`, `alwaysOnTop`, `pulse`, `pulsePeriod` |
 | `<BlockAnnotationTemplate>` | stamp  同じ 子 注釈 onto すべての 一致する placed ブロック | `id` |
+
+`colorMode`: `solid`（既定）または `rainbow`。虹色は投影中心の周囲を 360° 回転し、RGB を置き換えて `color` のアルファを保持します. `colorPeriod`: 虹色の周期（秒）。正の有限値で、既定値は `2.4`。不正な値はページエラーになります. ゲームと Site Export は同じ虹色のグラデーションと周期を使用します。
 
 参照 [GameScene](GameScene) 用 シーン import/removal behavior と [Annotations](Annotations) 用 注釈 template 規則.
 
@@ -864,23 +889,4 @@ See <QuestLink id="AAAAAAAAAAAAAAAAAAAMug==" text="Compact quest id example" /> 
 <QuestCard id="01234567-89ab-cdef-0123-456789abcdef" show_desc="false" />
 <QuestCard id="01234567-89ab-cdef-0123-456789abcdef" show_tooltip="false" />
 <QuestCard id="AAAAAAAAAAAAAAAAAAAMug==" />
-````
-
-### `<Amount>`
-
-`<Amount>` は数値の数量を整形します。`unit` を省略するか `unit="none"` にすると数値だけを表示します。`unit="item"` も接尾辞を付けません。`unit="fluid"` は GTNHLib の流体設定に従い、`mB` または `L` を表示します。`format` は `default`、`plain`、`compact`、`scientific`、`decimals` は小数桁の最大値です。`L/s` などの速度単位はタグの外に書きます。
-
-| 属性 | 意味 |
-| --- | --- |
-| `value` | 必須の有限小数値 |
-| `unit` | 任意の `none`、`item`、`fluid`。既定値は `none` |
-| `format` | 任意の数値形式。既定値は `default` |
-| `decimals` | 任意の0以上の最大小数桁数 |
-
-例：
-
-````md
-<Amount value="250" />
-<Amount value="250" unit="fluid" /> L/s
-<Amount value="1200000" format="compact" /> items
 ````

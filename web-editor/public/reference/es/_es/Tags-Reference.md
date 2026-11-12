@@ -26,13 +26,14 @@ esto página lists El built-en ejecución etiquetas registrado by `DefaultExtens
 | `<sub>` | smaller inline subscript-style texto | none |
 | `<sup>` | smaller inline superscript-style texto | none |
 | `<Color>` | colored inline texto | `id` o `color` |
+| `<Amount>` | formatear una cantidad numérica | `value`, `unit`, `format`, `decimals` |
 | `<Spoiler>` | ocultas inline texto revealed on pasar el cursor | none |
 | `<Tooltip>` | enriquecido pasar el cursor tooltip con markdown/etiqueta hijos | `label` |
 | `<SoundLink>` | clickable enriquecido-texto sound trigger | `sound` o `src`, `volume`, `pitch`, `cooldown` |
 | `<mark>` | inline highlighted texto; equivalent a `==text==` con opcional color control | `color` |
 | `<PlayerName>` | inserts actual jugador username | none |
 | `<KeyBind>` | inserts keybinding mostrar nombre | `id` o `action` |
-| `<ItemImage>` | inline elemento icon | `id` o `ore`, `scale`, `noTooltip`, `showTooltip`, `showIcon`, `label`, `format`, `yOffset`, `labelYOffset` |
+| `<ItemImage>` | inline elemento icon | `id`, `ore`, `nbt`, `scale`, `noTooltip`, `showTooltip`, `showIcon`, `label`, `format`, `yOffset`, `labelYOffset` |
 | `<ItemLink>` | elemento tooltip + opcional navigation enlace | `id` o `ore`, `linksTo`, `showTooltip`, `noTooltip`, `showIcon` |
 | `<CommandLink>` | clickable chat command enlace | `command`, `title`, `close` |
 | `<Latex>` | LaTeX math fórmula; inline en flow context, centered mostrar bloque en bloque context | `formula`, `color`, `scale`, `sourceScale`, `tooltip`, `showTooltip` |
@@ -58,7 +59,7 @@ Inline markdown también admite action enlaces para sound playback:
 | `<Column>` | vertical flex diseño | `gap`, `alignItems`, `fullWidth`, `width` |
 | `<FootnoteList>` | ancho-constrained footnote container usado by ejecución markdown footnotes | `width` |
 | `<ItemGrid>` | compact grid of elemento icons | hijos debe ser `<ItemIcon id="..."/>` o `<ItemIcon ore="..."/>` |
-| `<BlockImage>` | non-interactivo 3D único-bloque vista previa | `id` o `ore`, opcional `scale` (predeterminados a `4`), `float`, `perspective`, `nbt` |
+| `<BlockImage>` | non-interactivo 3D único-bloque vista previa | `id`, `ore`, `meta`, `nbt`, `scale`, `width`, `height`, `perspective`, `wrap`, `align` |
 | `<FloatingImage>` | cropped imagen bloque con decimal o true inline placement | `src`, `x`, `y`, `width` / `w`, `height` / `h`, `scaleX`, `scaleY`, `displayWidth`, `displayHeight`, `wrap`, `align`, `title` |
 | `<SubPages>` | navigation hijo listing | `id`, `alphabetical` |
 | `<Category>` | lista páginas de Un category | `name`, `rows` |
@@ -314,6 +315,25 @@ Sound atributos:
 - `cooldown` es milliseconds entre repeated plays, predeterminado `250`
 - `radius` y `minVolume` control pantalla-espacio attenuation cuando usado en escenas
 
+### `<Amount>`
+
+`<Amount>` formatea una cantidad numérica. Si se omite `unit` (o se usa `unit="none"`) solo se muestra el número. `unit="item"` tampoco añade sufijo. `unit="fluid"` sigue la preferencia de fluidos de GTNHLib y muestra `mB` o `L`. `format` puede ser `default`, `plain`, `compact` o `scientific`; `decimals` limita los decimales. Escribe las tasas como `L/s` fuera de la etiqueta.
+
+| Atributo | Significado |
+| --- | --- |
+| `value` | valor decimal finito obligatorio |
+| `unit` | opcional: `none`, `item` o `fluid`; por defecto `none` |
+| `format` | formato numérico opcional; por defecto `default` |
+| `decimals` | máximo opcional de decimales no negativos |
+
+Ejemplo:
+
+````md
+<Amount value="250" />
+<Amount value="250" unit="fluid" />/s
+<Amount value="1200000" format="compact" /> items
+````
+
 ### `<PlayerName>`
 
 Inserts El actual Minecraft session username:
@@ -364,8 +384,8 @@ muestra Un inline elemento icon.
 
 | atributo | significado |
 | --- | --- |
-| `ore` | ore dictionary nombre; El primero coincidir wins |
-| `id` | elemento reference usado cuando `ore` es absent |
+| `ore` | selector opcional del diccionario de minerales; proporciona también `id` |
+| `id` | referencia de objeto obligatoria, también al usar `ore` |
 | `nbt` | opcional SNBT elemento datos; merged onto cualquier inline SNBT en `id` |
 | `scale` | decimal, predeterminado `1` |
 | `noTooltip` | truthy cadena o vacío atributo suppresses tooltip (legacy; prefer `showTooltip`) |
@@ -373,8 +393,8 @@ muestra Un inline elemento icon.
 | `showIcon` | booleano, predeterminado `true`; `false` oculta El elemento icon graphic |
 | `label` | `left` o `right` — muestra El elemento mostrar nombre as texto on El specified lado of El icon; omit para no etiqueta |
 | `format` | format pattern para El etiqueta texto; admite Markdown-style wrappers (`**bold**`, `*italic*`, `~~strike~~`, `__underline__`, `^^wavy^^`, `::dotted::`) con opcional `%s` placeholder para El elemento nombre; predeterminado (no atributo) renderiza El nombre en italic |
-| `yOffset` | entero píxel offset anular para El **icon** at scale `1`; hace no affect El etiqueta texto |
-| `labelYOffset` | entero píxel offset anular para El **etiqueta texto** at scale `1`; hace no affect El icon |
+| `yOffset` | desplazamiento vertical en línea a `scale=1`; predeterminado `0`; positivo hacia abajo |
+| `labelYOffset` | desplazamiento vertical solo de la etiqueta a `scale=1`; predeterminado `0` |
 
 Notas:
 
@@ -388,7 +408,7 @@ Ejemplo:
 
 ````md
 <ItemImage id="minecraft:diamond" scale="2" />
-<ItemImage ore="ingotIron" />
+<ItemImage id="minecraft:iron_ingot" ore="ingotIron" />
 <ItemImage id="minecraft:diamond_sword" noTooltip="true" />
 <ItemImage id="minecraft:diamond" label="right" />
 <ItemImage id="minecraft:iron_ingot" label="left" format="**%s**" />
@@ -398,7 +418,7 @@ Ejemplo:
 <ItemImage
   id="minecraft:chest"
   scale="2"
-  nbt='{id:"Chest",Items:[{Slot:0b,id:"minecraft:diamond",Count:1b,Damage:0s}]}'
+  nbt='{display:{Name:"Storage Chest"}}'
 />
 ````
 
@@ -507,6 +527,10 @@ selección outline y tooltip. `ore` debe resolver Un Un bloque elemento pila.
 | `id` | bloque id; admite El normal `modid:block[:meta][:{snbt}]` forma |
 | `ore` | ore dictionary lookup; El primero coincidente bloque elemento wins |
 | `scale` | cámara zoom multiplier, predeterminado `4` |
+| `meta` | metadatos del bloque; reemplaza los de `id` |
+| `width` / `height` | tamaño de la vista en píxeles; `128` por dimensión de forma predeterminada |
+| `wrap` | ajuste del texto; predeterminado `inline` |
+| `align` | alineación horizontal: `left` (predeterminado), `center` o `right` |
 | `float` | legacy flow decimal compatibilidad: `left` o `right` |
 | `perspective` | `isometric-north-east` (predeterminado), `isometric-north-west`, o `up` |
 | `nbt` | opcional SNBT bloque-entidad datos merged onto cualquier inline SNBT de `id` |
@@ -534,15 +558,11 @@ Notas:
 
 Consulta [Images And Assets](Images-And-Assets) para El completo comportamiento.
 
-Reglas rápidas:
+```mdx
+<FloatingImage src="test1.png" displayWidth="128" wrap="inline" />
 
-- `src` admite relativo paths, rooted paths, y explícito `modid:path` texture ids
-- `x`, `y`, `width` / `w`, y `height` / `h` define El crop rectangle on El original imagen y debe todos ser present
-- `scaleX` y `scaleY` resize El cropped resultado y compatibilidad independent horizontal / vertical stretching
-- `displayWidth` y `displayHeight` Establezca final dimensions en píxeles; uno valor preserves El crop aspect ratio, mientras dos valores permitir stretching
-- `displayWidth` / `displayHeight` no puede ser combined con `scaleX` / `scaleY`
-- `wrap="inline"` places El imagen truly inline dentro de texto flow; en que modo `align` es ignored
-- old contenido que usado `width` / `height` as final mostrar tamaño debe ser migrated manualmente
+<FloatingImage src="test1.png" x="8" y="8" width="16" height="16" displayWidth="128" wrap="inline" />
+```
 
 ### `<SubPages>`, `<Category>`, y `<Special>`
 
@@ -698,7 +718,12 @@ These etiquetas solo funcionan dentro de `<GameScene>` / `<Scene>`:
 | `<ImportStructure>` | import Un externo SNBT/NBT estructura recurso | `src`, `x`, `y`, `z`, `offsetX`, `offsetY`, `offsetZ`, `formed` |
 | `<ImportStructureLib>` | import Un StructureLib multiblock by controller id | `controller`, `name`, `piece`, `facing`, `rotation`, `flip`, `tier`, `channel`, `channelName`, `value`, `locked`, `offsetX`, `offsetY`, `offsetZ`, `formed` |
 | `<RemoveBlocks>` | eliminar ya-colocado bloques que coincidir Un bloque matcher | `id` |
+| `<BlockAnnotation>` | resaltar un bloque | `pos`, `color`, `colorMode`, `colorPeriod`, `thickness`, `alwaysOnTop` |
+| `<BoxAnnotation>` | resaltar una caja alineada con los ejes | `min`, `max`, `color`, `colorMode`, `colorPeriod`, `thickness`, `alwaysOnTop` |
+| `<OutlineAnnotation>` | delinear la silueta renderizada de bloques o entidades | `pos`, `min`, `max`, `entity`, `target`, `mode`, `color`, `colorMode`, `colorPeriod`, `thickness`, `alwaysOnTop`, `pulse`, `pulsePeriod` |
 | `<BlockAnnotationTemplate>` | stamp El mismo hijo anotaciones onto cada coincidente colocado bloque | `id` |
+
+`colorMode`: `solid` (predeterminado) o `rainbow`; el arcoíris gira 360° alrededor del centro proyectado, sustituye RGB y conserva el alfa de `color`. `colorPeriod`: período positivo y finito del arcoíris en segundos; predeterminado `2.4`; los valores inválidos generan un error de página. El juego y Site Export usan el mismo degradado de arcoíris y la misma duración del ciclo.
 
 Consulta [GameScene](GameScene) para escena import/removal comportamiento y [Annotations](Annotations) para anotación template Reglas.
 
@@ -864,23 +889,4 @@ Ejemplo:
 <QuestCard id="01234567-89ab-cdef-0123-456789abcdef" show_desc="false" />
 <QuestCard id="01234567-89ab-cdef-0123-456789abcdef" show_tooltip="false" />
 <QuestCard id="AAAAAAAAAAAAAAAAAAAMug==" />
-````
-
-### `<Amount>`
-
-`<Amount>` formatea una cantidad numérica. Si se omite `unit` (o se usa `unit="none"`) solo se muestra el número. `unit="item"` tampoco añade sufijo. `unit="fluid"` sigue la preferencia de fluidos de GTNHLib y muestra `mB` o `L`. `format` puede ser `default`, `plain`, `compact` o `scientific`; `decimals` limita los decimales. Escribe las tasas como `L/s` fuera de la etiqueta.
-
-| Atributo | Significado |
-| --- | --- |
-| `value` | valor decimal finito obligatorio |
-| `unit` | opcional: `none`, `item` o `fluid`; por defecto `none` |
-| `format` | formato numérico opcional; por defecto `default` |
-| `decimals` | máximo opcional de decimales no negativos |
-
-Ejemplo:
-
-````md
-<Amount value="250" />
-<Amount value="250" unit="fluid" /> L/s
-<Amount value="1200000" format="compact" /> items
 ````

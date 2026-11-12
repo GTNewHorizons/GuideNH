@@ -42,9 +42,9 @@ categories:
 
 ## 镜头预设
 
-`<GameScene>` / `<Scene>` 新增属性：
+`<GameScene>` / `<Scene>` 的相机属性：
 
-* `perspective="isometric_north_east"` / `"isometric_north_west"` / `"up"` — 选择预设视角（yaw/pitch/roll）；
+* `perspective="isometric-north-east"` / `"isometric-north-west"` / `"up"` — 选择预设视角（yaw/pitch/roll）；
 * `rotateX` / `rotateY` / `rotateZ` — 在预设之上显式覆盖单个轴的旋转；
 * `offsetX` / `offsetY` — 屏幕空间平移（单位：方块）；
 * `centerX` / `centerY` / `centerZ` — 显式指定旋转中心（覆盖自动居中）。
@@ -52,12 +52,12 @@ categories:
 NE 与 NW 预设对比：
 
 <Row>
-  <GameScene width="160" height="128" zoom={5} perspective="isometric_north_east" interactive={true}>
+  <GameScene width="160" height="128" zoom={5} perspective="isometric-north-east" interactive={true}>
     <Block id="minecraft:furnace" facing="south" />
     <Block id="minecraft:cobblestone" x="1" />
     <Block id="minecraft:planks" z="1" />
   </GameScene>
-  <GameScene width="160" height="128" zoom={5} perspective="isometric_north_west" interactive={true}>
+  <GameScene width="160" height="128" zoom={5} perspective="isometric-north-west" interactive={true}>
     <Block id="minecraft:furnace" facing="south" />
     <Block id="minecraft:cobblestone" x="1" />
     <Block id="minecraft:planks" z="1" />
@@ -112,51 +112,49 @@ NE 与 NW 预设对比：
 * `pitch` — 垂直倾斜（度，–90 至 90；正值向下看）。
 * `roll` — 画面内旋转（度，–180 至 180）。
 
-NE 预设 vs 显式 yaw 45° pitch 30°（效果应完全相同）：
+NE 预设 vs 显式 yaw 225° pitch 30°（效果应完全相同）：
 
 <Row>
-  <GameScene width="160" height="128" zoom={5} perspective="isometric_north_east" interactive={true}>
+  <GameScene width="160" height="128" zoom={5} perspective="isometric-north-east" interactive={true}>
     <Block id="minecraft:furnace" facing="south" />
     <Block id="minecraft:cobblestone" x="1" />
     <Block id="minecraft:planks" z="1" />
-    <IsometricCamera />
   </GameScene>
   <GameScene width="160" height="128" zoom={5} interactive={true}>
     <Block id="minecraft:furnace" facing="south" />
     <Block id="minecraft:cobblestone" x="1" />
     <Block id="minecraft:planks" z="1" />
-    <IsometricCamera yaw="45" pitch="30" roll="0" />
+    <IsometricCamera yaw="225" pitch="30" roll="0" />
   </GameScene>
 </Row>
 
-俯视 yaw 90°（相比默认 `up` 预设顺时针旋转 90°）：
+`up` 预设与等价的显式 yaw 120°、pitch 0°、roll 45° 对比：
 
 <Row>
   <GameScene width="160" height="128" zoom={5} perspective="up" interactive={true}>
     <Block id="minecraft:iron_block" />
     <Block id="minecraft:gold_block" x="1" />
     <Block id="minecraft:diamond_block" z="1" />
-    <IsometricCamera />
   </GameScene>
   <GameScene width="160" height="128" zoom={5} interactive={true}>
     <Block id="minecraft:iron_block" />
     <Block id="minecraft:gold_block" x="1" />
     <Block id="minecraft:diamond_block" z="1" />
-    <IsometricCamera yaw="90" pitch="90" roll="0" />
+    <IsometricCamera yaw="120" pitch="0" roll="45" />
   </GameScene>
 </Row>
 
 Roll 测试——左：roll 0°，右：roll 15°：
 
 <Row>
-  <GameScene width="160" height="128" zoom={5} perspective="isometric_north_east" interactive={true}>
+  <GameScene width="160" height="128" zoom={5} perspective="isometric-north-east" interactive={true}>
     <Block id="minecraft:stone" />
     <Block id="minecraft:stone" x="1" />
-    <IsometricCamera roll="0" />
+    <IsometricCamera yaw="225" pitch="30" roll="0" />
   </GameScene>
-  <GameScene width="160" height="128" zoom={5} perspective="isometric_north_east" interactive={true}>
+  <GameScene width="160" height="128" zoom={5} perspective="isometric-north-east" interactive={true}>
     <Block id="minecraft:stone" />
     <Block id="minecraft:stone" x="1" />
-    <IsometricCamera roll="15" />
+    <IsometricCamera yaw="225" pitch="30" roll="15" />
   </GameScene>
 </Row>

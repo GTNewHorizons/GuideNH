@@ -116,6 +116,16 @@ navigation:
 <RecipesFor id="minecraft:redstone_torch" input="minecraft:stick&minecraft:redstone" limit="1" />
 ````
 
+### Formatowanie ilości
+
+Używaj `<Amount>` dla ilości. Jednostka jest opcjonalna i domyślnie wyświetlana jest sama liczba; `fluid` korzysta z preferencji `mB`/`L` GTNHLib.
+
+````md
+<Amount value="250" />
+<Amount value="250" unit="fluid" />/s
+<Amount value="1200000" format="compact" /> items
+````
+
 ## gdy do używać który Przykład
 
 - początek z `markdown.md` Jeśli you są validating parser basics
@@ -131,13 +141,3 @@ navigation:
 4. [GameScene](GameScene)
 5. [Annotations](Annotations)
 6. [Recipes](Recipes)
-
-### Formatowanie ilości
-
-Używaj `<Amount>` dla ilości. Jednostka jest opcjonalna i domyślnie wyświetlana jest sama liczba; `fluid` korzysta z preferencji `mB`/`L` GTNHLib.
-
-````md
-<Amount value="250" />
-<Amount value="250" unit="fluid" /> L/s
-<Amount value="1200000" format="compact" /> items
-````
