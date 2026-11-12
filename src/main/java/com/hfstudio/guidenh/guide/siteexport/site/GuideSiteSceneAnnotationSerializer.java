@@ -102,6 +102,7 @@ import com.hfstudio.guidenh.guide.internal.tooltip.GuideItemTooltipLines;
 import com.hfstudio.guidenh.guide.scene.GuidebookSceneLayerSelection;
 import com.hfstudio.guidenh.guide.scene.LytGuidebookScene;
 import com.hfstudio.guidenh.guide.scene.StructureLibSceneCondition;
+import com.hfstudio.guidenh.guide.scene.annotation.AnnotationColorStyle;
 import com.hfstudio.guidenh.guide.scene.annotation.DiamondAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.InWorldAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.InWorldBlockFaceOverlayAnnotation;
@@ -280,6 +281,7 @@ public class GuideSiteSceneAnnotationSerializer {
         appendStructureLibCondition(data, box);
         data.put("minCorner", toVector(box.min()));
         data.put("maxCorner", toVector(box.max()));
+        appendColorStyle(data, box.colorStyle());
         return data;
     }
 
@@ -383,6 +385,19 @@ public class GuideSiteSceneAnnotationSerializer {
             itemIconResolver);
         // Outline widths are screen pixels, unlike the world-space thickness of boxes and lines.
         data.put("thickness", first.getThickness());
+        appendColorStyle(data, first.getColorStyle());
+        if (first.getColorStyle()
+            .isRainbow()) {
+            OutlineFrame frame = new OutlineFrame();
+            OutlineTargetResolver.collect(scene.getLevel(), first, layerSelection, 0L, frame);
+            if (frame.batchCount() > 0) {
+                data.put(
+                    "colorCenter",
+                    toVector(
+                        frame.batch(0)
+                            .getColorCenter()));
+            }
+        }
         appendStructureLibCondition(data, first);
         if (first.isPulse()) {
             data.put("pulse", true);
@@ -399,6 +414,14 @@ public class GuideSiteSceneAnnotationSerializer {
             data.put("pickBoxes", collectOutlinePickBoxes(scene, group, layerSelection));
         }
         return data;
+    }
+
+    private static void appendColorStyle(Map<String, Object> data, AnnotationColorStyle colorStyle) {
+        data.put(
+            "colorMode",
+            colorStyle.mode()
+                .serializedName());
+        data.put("colorPeriod", colorStyle.period());
     }
 
     private static GuideSiteOutlineMeshExporter.Meshes exportOutlineMeshes(GuideSiteOutlineMeshExporter exporter,
@@ -452,7 +475,8 @@ public class GuideSiteSceneAnnotationSerializer {
     }
 
     private record OutlineGroupKey(@Nullable Integer color, float thickness, boolean alwaysOnTop, boolean pulse,
-        float pulsePeriod, @Nullable GuideTooltip tooltip, @Nullable StructureLibSceneCondition condition) {
+        float pulsePeriod, AnnotationColorStyle colorStyle, @Nullable GuideTooltip tooltip,
+        @Nullable StructureLibSceneCondition condition, @Nullable InWorldOutlineAnnotation colorOrigin) {
 
         static OutlineGroupKey of(InWorldOutlineAnnotation outline) {
             return new OutlineGroupKey(
@@ -462,8 +486,11 @@ public class GuideSiteSceneAnnotationSerializer {
                 outline.isAlwaysOnTop(),
                 outline.isPulse(),
                 outline.getPulsePeriod(),
+                outline.getColorStyle(),
                 outline.getTooltip(),
-                outline.getStructureLibCondition());
+                outline.getStructureLibCondition(),
+                outline.getColorStyle()
+                    .isRainbow() ? outline : null);
         }
     }
 

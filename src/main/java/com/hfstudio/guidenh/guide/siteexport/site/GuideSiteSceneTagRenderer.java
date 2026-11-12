@@ -17,6 +17,7 @@ import com.hfstudio.guidenh.guide.compiler.tags.MdxAttrs;
 import com.hfstudio.guidenh.guide.internal.localization.GuideLanguageIndex;
 import com.hfstudio.guidenh.guide.internal.util.LangUtil;
 import com.hfstudio.guidenh.guide.scene.StructureLibSceneCondition;
+import com.hfstudio.guidenh.guide.scene.annotation.AnnotationColorStyle;
 import com.hfstudio.guidenh.guide.scene.annotation.InWorldBoxAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.InWorldLineAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.PonderInputAnnotation;
@@ -465,6 +466,7 @@ public class GuideSiteSceneTagRenderer implements GuideSiteHtmlCompiler.SceneTag
                         createTemplateId(flowElement, defaultNamespace, currentPageId, templates),
                         readBooleanValue(flowElement, "alwaysOnTop", false),
                         parseStructureLibCondition(flowElement)));
+                appendColorStyle(inWorld.getLast(), flowElement);
                 continue;
             }
 
@@ -484,6 +486,7 @@ public class GuideSiteSceneTagRenderer implements GuideSiteHtmlCompiler.SceneTag
                         createTemplateId(flowElement, defaultNamespace, currentPageId, templates),
                         readBooleanValue(flowElement, "alwaysOnTop", false),
                         parseStructureLibCondition(flowElement)));
+                appendColorStyle(inWorld.getLast(), flowElement);
                 continue;
             }
 
@@ -565,6 +568,17 @@ public class GuideSiteSceneTagRenderer implements GuideSiteHtmlCompiler.SceneTag
         }
 
         return new AnnotationPayload(GSON.toJson(inWorld), GSON.toJson(overlay));
+    }
+
+    private static void appendColorStyle(Map<String, Object> annotation, MdxJsxFlowElement element) {
+        AnnotationColorStyle style = AnnotationColorStyle.parse(
+            MdxAttrs.getString(element, "colorMode", "solid"),
+            MdxAttrs.getFloat(element, "colorPeriod", AnnotationColorStyle.DEFAULT_PERIOD));
+        annotation.put(
+            "colorMode",
+            style.mode()
+                .serializedName());
+        annotation.put("colorPeriod", style.period());
     }
 
     private Map<String, Object> buildTextAnnotationData(MdxJsxElementFields flowElement, String defaultNamespace,
