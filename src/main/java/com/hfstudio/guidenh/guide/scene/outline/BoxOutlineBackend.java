@@ -9,6 +9,7 @@ import org.joml.Matrix4fc;
 import org.joml.Vector3f;
 import org.lwjgl.opengl.GL11;
 
+import com.hfstudio.guidenh.guide.scene.annotation.AnnotationColorStyle;
 import com.hfstudio.guidenh.guide.scene.annotation.InWorldAnnotationRenderer;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockBoundsResolver;
@@ -17,7 +18,7 @@ import com.hfstudio.guidenh.guide.scene.support.GuideBlockBoundsResolver;
  * Fallback for contexts without framebuffer or GLSL support: draws the targets' bounding boxes with the
  * same visible/occluded convention as box annotations.
  */
-final class BoxOutlineBackend implements OutlineRenderBackend {
+public class BoxOutlineBackend implements OutlineRenderBackend {
 
     private final Vector3f min = new Vector3f();
     private final Vector3f max = new Vector3f();
@@ -52,16 +53,32 @@ final class BoxOutlineBackend implements OutlineRenderBackend {
         for (int i = 0; i < frame.batchCount(); i++) {
             OutlineBatch batch = frame.batch(i);
             int argb = occluded ? batch.getOccludedArgb() : batch.getVisibleArgb();
-            drawTargets(level, batch.getSolid(), argb, batch.getThickness());
-            drawTargets(level, batch.getCutout(), argb, batch.getThickness());
+            float dim = occluded ? batch.getOccludedColorOffset() - batch.getVisibleColorOffset() : 0f;
+            drawTargets(
+                level,
+                batch.getSolid(),
+                argb,
+                batch.getThickness(),
+                batch.getColorStyle(),
+                batch.getVisibleColorOffset(),
+                dim);
+            drawTargets(
+                level,
+                batch.getCutout(),
+                argb,
+                batch.getThickness(),
+                batch.getColorStyle(),
+                batch.getVisibleColorOffset(),
+                dim);
         }
     }
 
-    private void drawTargets(GuidebookLevel level, OutlineTargetSet targets, int argb, float thickness) {
-        drawBlocks(level, targets.blocks(), argb, thickness);
+    private void drawTargets(GuidebookLevel level, OutlineTargetSet targets, int argb, float thickness,
+        AnnotationColorStyle style, float highlight, float dim) {
+        drawBlocks(level, targets.blocks(), argb, thickness, style, highlight, dim);
         for (Entity entity : targets.entities()) {
             if (entity.boundingBox != null) {
-                drawBox(entity.boundingBox, argb, thickness);
+                drawBox(entity.boundingBox, argb, thickness, style, highlight, dim);
             }
         }
         float[] boxes = targets.boxes();
@@ -69,23 +86,25 @@ final class BoxOutlineBackend implements OutlineRenderBackend {
             int o = i * 6;
             min.set(boxes[o], boxes[o + 1], boxes[o + 2]);
             max.set(boxes[o + 3], boxes[o + 4], boxes[o + 5]);
-            InWorldAnnotationRenderer.drawBoxEdges(min, max, argb, thickness);
+            InWorldAnnotationRenderer.drawBoxEdges(min, max, argb, thickness, style, highlight, dim);
         }
     }
 
-    private void drawBlocks(GuidebookLevel level, List<int[]> blocks, int argb, float thickness) {
+    private void drawBlocks(GuidebookLevel level, List<int[]> blocks, int argb, float thickness,
+        AnnotationColorStyle style, float highlight, float dim) {
         for (int[] position : blocks) {
             AxisAlignedBB bounds = GuideBlockBoundsResolver
                 .resolveSelectedBounds(level, position[0], position[1], position[2]);
             if (bounds != null) {
-                drawBox(bounds, argb, thickness);
+                drawBox(bounds, argb, thickness, style, highlight, dim);
             }
         }
     }
 
-    private void drawBox(AxisAlignedBB box, int argb, float thickness) {
+    private void drawBox(AxisAlignedBB box, int argb, float thickness, AnnotationColorStyle style, float highlight,
+        float dim) {
         min.set((float) box.minX, (float) box.minY, (float) box.minZ);
         max.set((float) box.maxX, (float) box.maxY, (float) box.maxZ);
-        InWorldAnnotationRenderer.drawBoxEdges(min, max, argb, thickness);
+        InWorldAnnotationRenderer.drawBoxEdges(min, max, argb, thickness, style, highlight, dim);
     }
 }

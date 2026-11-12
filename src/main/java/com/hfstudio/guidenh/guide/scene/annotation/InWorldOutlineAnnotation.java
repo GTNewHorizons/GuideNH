@@ -29,10 +29,17 @@ public class InWorldOutlineAnnotation extends InWorldAnnotation {
     private final OutlineMode mode;
     private final boolean pulse;
     private final float pulsePeriod;
+    private final AnnotationColorStyle colorStyle;
 
     public InWorldOutlineAnnotation(@Nullable OutlineRegion region, @Nullable String sceneEntityId,
         OutlineTargetScope scope, @Nullable ColorValue color, float thickness, OutlineMode mode, boolean pulse,
         float pulsePeriod) {
+        this(region, sceneEntityId, scope, color, thickness, mode, pulse, pulsePeriod, AnnotationColorStyle.SOLID);
+    }
+
+    public InWorldOutlineAnnotation(@Nullable OutlineRegion region, @Nullable String sceneEntityId,
+        OutlineTargetScope scope, @Nullable ColorValue color, float thickness, OutlineMode mode, boolean pulse,
+        float pulsePeriod, AnnotationColorStyle colorStyle) {
         this.region = region;
         this.sceneEntityId = sceneEntityId;
         this.scope = scope;
@@ -41,6 +48,7 @@ public class InWorldOutlineAnnotation extends InWorldAnnotation {
         this.mode = mode;
         this.pulse = pulse;
         this.pulsePeriod = pulsePeriod > 0f ? pulsePeriod : DEFAULT_PULSE_PERIOD;
+        this.colorStyle = colorStyle;
     }
 
     public InWorldOutlineAnnotation translate(int dx, int dy, int dz) {
@@ -52,7 +60,8 @@ public class InWorldOutlineAnnotation extends InWorldAnnotation {
             thickness,
             mode,
             pulse,
-            pulsePeriod);
+            pulsePeriod,
+            colorStyle);
     }
 
     public float pulseIntensity(long timeMillis) {

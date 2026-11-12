@@ -1,5 +1,7 @@
 package com.hfstudio.guidenh.guide.internal.syntax;
 
+import java.util.List;
+
 import com.hfstudio.guidenh.guide.compiler.tags.PreCompiler;
 import com.hfstudio.guidenh.guide.document.block.AlignItems;
 import com.hfstudio.guidenh.guide.document.block.chart.ChartLabelPosition;
@@ -813,6 +815,12 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
             AttributeSyntax.of("pos", SyntaxValueKind.VECTOR3));
 
         sink.attributes("BlockAnnotationTemplate", AttributeSyntax.of("id", SyntaxValueKind.STRING));
+        for (String tag : List.of("BlockAnnotation", "BoxAnnotation", "OutlineAnnotation")) {
+            sink.attributes(
+                tag,
+                AttributeSyntax.of("colorMode", SyntaxValueKind.ENUM, "solid", "rainbow"),
+                AttributeSyntax.of("colorPeriod", SyntaxValueKind.FLOAT));
+        }
 
         sink.attributes(
             "PlaySound",

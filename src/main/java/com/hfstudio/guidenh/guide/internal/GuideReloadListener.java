@@ -3,6 +3,8 @@ package com.hfstudio.guidenh.guide.internal;
 import net.minecraft.client.resources.IResourceManager;
 import net.minecraft.client.resources.IResourceManagerReloadListener;
 
+import com.hfstudio.guidenh.guide.scene.annotation.InWorldAnnotationRenderer;
+
 public class GuideReloadListener implements IResourceManagerReloadListener {
 
     /**
@@ -20,6 +22,7 @@ public class GuideReloadListener implements IResourceManagerReloadListener {
         if (!bootComplete) {
             return;
         }
+        InWorldAnnotationRenderer.release();
         GuideLightweightReloadService.reloadGuides(resourceManager);
     }
 }
