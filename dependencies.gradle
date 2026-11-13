@@ -17,44 +17,58 @@ dependencies {
     shadowImplementation("org.eclipse.elk:org.eclipse.elk.alg.layered:0.11.0")
     shadowImplementation("org.eclipse.xtext:org.eclipse.xtext.xbase.lib:2.36.0")
 
-    devOnlyNonPublishable("com.github.GTNewHorizons:StructureLib:1.4.45:dev")
-    devOnlyNonPublishable("com.github.GTNewHorizons:GT5-Unofficial:5.09.54.224:dev")
-    devOnlyNonPublishable("com.github.GTNewHorizons:NotEnoughItems:2.8.160-GTNH:dev")
-    devOnlyNonPublishable("com.github.GTNewHorizons:Applied-Energistics-2-Unofficial:rv3-beta-999-GTNH:dev")
-    devOnlyNonPublishable("com.github.GTNewHorizons:CarpentersBlocks:3.7.3-GTNH:dev")
-    devOnlyNonPublishable("com.github.GTNewHorizons:ForgeMultipart:1.7.17:dev")
-    devOnlyNonPublishable("com.github.GTNewHorizons:WirelessRedstone-CBE:1.7.12:dev")
-    devOnlyNonPublishable("com.github.GTNewHorizons:Railcraft:9.17.34:dev")
-    devOnlyNonPublishable("com.github.GTNewHorizons:EnhancedLootBags:1.3.5:dev")
-    devOnlyNonPublishable("com.github.GTNewHorizons:BetterQuesting:3.8.92-GTNH:dev")
-    // devOnlyNonPublishable("com.github.GTNewHorizons:Angelica:2.2.32:dev")
-    devOnlyNonPublishable("com.github.GTNewHorizons:TX-Loader:1.9.1:dev")
-    devOnlyNonPublishable("curse.maven:cofh-core-69162:2388751")
-    devOnlyNonPublishable("com.github.GTNewHorizons:ServerUtilities:2.4.21:dev")
-
-    runtimeOnlyNonPublishable("com.github.GTNewHorizons:Baubles-Expanded:2.2.25-GTNH:dev")
-    runtimeOnlyNonPublishable("com.github.GTNewHorizons:Botania:1.13.39-GTNH:dev")
-    runtimeOnlyNonPublishable("com.github.GTNewHorizons:Botanic-horizons:1.12.10-GTNH:dev")
-    compileOnlyApi("com.github.GTNewHorizons:BlockRenderer6343:1.4.24:dev") { transitive = false }
+    compileOnly("com.github.GTNewHorizons:StructureLib:1.4.45:dev") { transitive = false }
+    runtimeOnlyNonPublishable("com.github.GTNewHorizons:StructureLib:1.4.45:dev")
+    compileOnly("com.github.GTNewHorizons:NotEnoughItems:2.8.160-GTNH:dev") { transitive = false }
+    runtimeOnlyNonPublishable("com.github.GTNewHorizons:NotEnoughItems:2.8.160-GTNH:dev")
+    compileOnly("com.github.GTNewHorizons:Applied-Energistics-2-Unofficial:rv3-beta-999-GTNH:dev") { transitive = false }
+    runtimeOnlyNonPublishable("com.github.GTNewHorizons:Applied-Energistics-2-Unofficial:rv3-beta-999-GTNH:dev")
+    compileOnly("com.github.GTNewHorizons:CarpentersBlocks:3.7.3-GTNH:dev") { transitive = false }
+    // runtimeOnlyNonPublishable("com.github.GTNewHorizons:CarpentersBlocks:3.7.3-GTNH:dev")
+    compileOnly("com.github.GTNewHorizons:ForgeMultipart:1.7.17:dev") { transitive = false }
+    runtimeOnlyNonPublishable("com.github.GTNewHorizons:ForgeMultipart:1.7.17:dev")
+    compileOnly("com.github.GTNewHorizons:TX-Loader:1.9.1:dev") { transitive = false }
+    // runtimeOnlyNonPublishable("com.github.GTNewHorizons:TX-Loader:1.9.1:dev")
+    compileOnly("curse.maven:cofh-core-69162:2388751") { transitive = false }
+    runtimeOnlyNonPublishable("curse.maven:cofh-core-69162:2388751")
+    compileOnly("com.github.GTNewHorizons:ServerUtilities:2.4.21:dev") { transitive = false }
+    runtimeOnlyNonPublishable("com.github.GTNewHorizons:ServerUtilities:2.4.21:dev")
+    compileOnly("com.github.GTNewHorizons:GT5-Unofficial:5.09.54.224:dev")
+    // runtimeOnlyNonPublishable("com.github.GTNewHorizons:GT5-Unofficial:5.09.54.224:dev")
+    compileOnly("com.github.GTNewHorizons:WirelessRedstone-CBE:1.7.12:dev") { transitive = false }
+    // runtimeOnlyNonPublishable("com.github.GTNewHorizons:WirelessRedstone-CBE:1.7.12:dev")
+    compileOnly("com.github.GTNewHorizons:Railcraft:9.17.34:dev") { transitive = false }
+    // runtimeOnlyNonPublishable("com.github.GTNewHorizons:Railcraft:9.17.34:dev")
+    compileOnly("com.github.GTNewHorizons:EnhancedLootBags:1.3.5:dev") { transitive = false }
+    // runtimeOnlyNonPublishable("com.github.GTNewHorizons:EnhancedLootBags:1.3.5:dev")
+    compileOnly("com.github.GTNewHorizons:BetterQuesting:3.8.92-GTNH:dev") { transitive = false }
+    // runtimeOnlyNonPublishable("com.github.GTNewHorizons:BetterQuesting:3.8.92-GTNH:dev")
+    compileOnly("com.github.GTNewHorizons:Angelica:2.2.32:dev") { transitive = false }
+    // runtimeOnlyNonPublishable("com.github.GTNewHorizons:Angelica:2.2.32:dev")
+    compileOnly("com.github.GTNewHorizons:BlockRenderer6343:1.4.24:dev") { transitive = false }
     runtimeOnlyNonPublishable("com.github.GTNewHorizons:BlockRenderer6343:1.4.24:dev") { transitive = false }
     compileOnly("com.github.GTNewHorizons:Offscreen:0.0.4:dev") { transitive = false }
     runtimeOnlyNonPublishable("com.github.GTNewHorizons:Offscreen:0.0.4:dev") { transitive = false }
-    compileOnly("com.github.GTNewHorizons:lwjgl3ify:3.0.33:dev") { transitive = false }
+
+    runtimeOnlyNonPublishable("com.github.GTNewHorizons:Baubles-Expanded:2.2.25-GTNH:dev")
+    // runtimeOnlyNonPublishable("com.github.GTNewHorizons:Botania:1.13.39-GTNH:dev")
+    // runtimeOnlyNonPublishable("com.github.GTNewHorizons:Botanic-horizons:1.12.10-GTNH:dev")
     runtimeOnlyNonPublishable("com.github.GTNewHorizons:EnderCore:0.5.15:dev") { transitive = false }
     runtimeOnlyNonPublishable("it.unimi.dsi:fastutil:8.5.18")
     runtimeOnlyNonPublishable(rfg.deobf("curse.maven:spark-361579:4271867"))
 
-    compileOnlyApi("com.github.GTNewHorizons:nei-custom-diagram:1.8.36:dev") { transitive = false }
-    compileOnlyApi("com.github.GTNewHorizons:TinkersConstruct:1.14.119-GTNH:dev") { transitive = false }
-    compileOnlyApi("com.github.GTNewHorizons:Mantle:0.5.4:dev") { transitive = false }
-    compileOnlyApi("com.github.GTNewHorizons:Mobs-Info:0.6.0-GTNH:dev") { transitive = false }
-    compileOnlyApi("com.github.GTNewHorizons:LogisticsPipes:1.5.36-GTNH:dev") { transitive = false }
-    compileOnlyApi("com.github.GTNewHorizons:BuildCraft:7.1.64:dev") { transitive = false }
-    compileOnlyApi("com.github.GTNewHorizons:Translocators:1.4.5:dev") { transitive = false }
-    compileOnlyApi("com.github.GTNewHorizons:SimpleSkinBackport:1.0.3-GTNH:dev") { transitive = false }
-    compileOnlyApi("com.github.GTNewHorizons:OpenComputers:1.12.64-GTNH:dev") { transitive = false }
-    compileOnlyApi("com.github.slprime:ChromaticTooltips:1.0.28-GTNH:dev") { transitive = false }
-    compileOnlyApi("ganymedes01.etfuturum:Et-Futurum-Requiem:2.6.60-GTNH") { transitive = false }
+    compileOnly("com.github.GTNewHorizons:lwjgl3ify:3.0.33:dev") { transitive = false }
+    compileOnly("com.github.GTNewHorizons:nei-custom-diagram:1.8.36:dev") { transitive = false }
+    compileOnly("com.github.GTNewHorizons:TinkersConstruct:1.14.119-GTNH:dev") { transitive = false }
+    compileOnly("com.github.GTNewHorizons:Mantle:0.5.4:dev") { transitive = false }
+    compileOnly("com.github.GTNewHorizons:Mobs-Info:0.6.0-GTNH:dev") { transitive = false }
+    compileOnly("com.github.GTNewHorizons:LogisticsPipes:1.5.36-GTNH:dev") { transitive = false }
+    compileOnly("com.github.GTNewHorizons:BuildCraft:7.1.64:dev") { transitive = false }
+    compileOnly("com.github.GTNewHorizons:Translocators:1.4.5:dev") { transitive = false }
+    compileOnly("com.github.GTNewHorizons:SimpleSkinBackport:1.0.3-GTNH:dev") { transitive = false }
+    compileOnly("com.github.GTNewHorizons:OpenComputers:1.12.64-GTNH:dev") { transitive = false }
+    compileOnly("com.github.slprime:ChromaticTooltips:1.0.28-GTNH:dev") { transitive = false }
+    compileOnly("ganymedes01.etfuturum:Et-Futurum-Requiem:2.6.60-GTNH") { transitive = false }
 
     // jvmDowngrader
     compileOnly("javax.xml.bind:jaxb-api:2.3.1")
