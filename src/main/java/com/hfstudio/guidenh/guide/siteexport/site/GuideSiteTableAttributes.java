@@ -2,6 +2,7 @@ package com.hfstudio.guidenh.guide.siteexport.site;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.regex.Pattern;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -9,6 +10,10 @@ import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxFlowElement;
 
 public class GuideSiteTableAttributes {
+
+    private static final Pattern STYLE_WHITESPACE = Pattern.compile("[\\u0000-\\u0020]+");
+    private static final Pattern NUMERIC_ATTRIBUTE = Pattern.compile("\\d+(?:px)?");
+    private static final Pattern TABLE_LENGTH = Pattern.compile("\\d+(?:\\.\\d+)?(?:px|%|em|rem|vw|vh|pt)?");
 
     private GuideSiteTableAttributes() {}
 
@@ -41,7 +46,8 @@ public class GuideSiteTableAttributes {
         }
         String normalized = value.trim();
         String lower = normalized.toLowerCase(Locale.ROOT);
-        String compact = lower.replaceAll("[\\u0000-\\u0020]+", "");
+        String compact = STYLE_WHITESPACE.matcher(lower)
+            .replaceAll("");
         if (compact.contains("javascript:") || compact.contains("vbscript:")
             || compact.contains("data:")
             || compact.contains("expression(")
@@ -62,8 +68,8 @@ public class GuideSiteTableAttributes {
             return null;
         }
         String normalized = value.trim();
-        String compact = normalized.toLowerCase(Locale.ROOT)
-            .replaceAll("[\\u0000-\\u0020]+", "");
+        String compact = STYLE_WHITESPACE.matcher(normalized.toLowerCase(Locale.ROOT))
+            .replaceAll("");
         if (normalized.contains("<") || normalized.contains(">")
             || normalized.indexOf('\\') >= 0
             || normalized.contains(";")
@@ -80,14 +86,18 @@ public class GuideSiteTableAttributes {
     }
 
     public static void appendTableNumericAttribute(StringBuilder html, String name, @Nullable String value) {
-        if (value == null || !value.trim()
-            .matches("\\d+(?:px)?")) {
+        if (value == null) {
+            return;
+        }
+        String normalized = value.trim();
+        if (!NUMERIC_ATTRIBUTE.matcher(normalized)
+            .matches()) {
             return;
         }
         html.append(' ')
             .append(name)
             .append("=\"")
-            .append(escapeTableAttribute(value.trim()))
+            .append(escapeTableAttribute(normalized))
             .append('"');
     }
 
@@ -108,7 +118,8 @@ public class GuideSiteTableAttributes {
             return null;
         }
         String normalized = value.trim();
-        if (!normalized.matches("\\d+(?:\\.\\d+)?(?:px|%|em|rem|vw|vh|pt)?")) {
+        if (!TABLE_LENGTH.matcher(normalized)
+            .matches()) {
             return null;
         }
         return normalized;

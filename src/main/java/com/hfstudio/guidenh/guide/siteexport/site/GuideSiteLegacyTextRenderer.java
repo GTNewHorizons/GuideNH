@@ -2,6 +2,7 @@ package com.hfstudio.guidenh.guide.siteexport.site;
 
 import static com.hfstudio.guidenh.guide.siteexport.site.GuideSiteHtml.appendEscapedHtml;
 import static com.hfstudio.guidenh.guide.siteexport.site.GuideSiteHtml.escapeAttribute;
+import static com.hfstudio.guidenh.guide.siteexport.site.GuideSiteHtml.escapeHtml;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -17,6 +18,9 @@ public class GuideSiteLegacyTextRenderer {
             return "";
         }
         String normalized = text.indexOf('\\') >= 0 ? text.replace("\\n", "\n") : text;
+        if (normalized.indexOf('\n') < 0) {
+            return renderLegacyFormattedText(normalized);
+        }
         String[] lines = normalized.split("\\n", -1);
         StringBuilder html = new StringBuilder();
         for (String line : lines) {
@@ -33,6 +37,9 @@ public class GuideSiteLegacyTextRenderer {
             return "";
         }
         String normalized = text.indexOf('\\') >= 0 ? text.replace("\\n", "\n") : text;
+        if (normalized.indexOf('\n') < 0) {
+            return "<p>" + renderLegacyFormattedText(normalized) + "</p>";
+        }
         String[] lines = normalized.split("\\n", -1);
         StringBuilder html = new StringBuilder();
         for (String line : lines) {
@@ -46,6 +53,9 @@ public class GuideSiteLegacyTextRenderer {
     public static String renderLegacyFormattedText(@Nullable String text) {
         if (text == null || text.isEmpty()) {
             return "";
+        }
+        if (text.indexOf('§') < 0) {
+            return escapeHtml(text);
         }
 
         LegacyStyle style = new LegacyStyle();
