@@ -164,9 +164,6 @@ import com.hfstudio.guidenh.guide.ui.GuideUiHost;
 import com.hfstudio.guidenh.integration.nei.GuideScreenNeiBridge;
 import com.hfstudio.guidenh.libs.unist.UnistPoint;
 
-import cpw.mods.fml.common.FMLContainerHolder;
-import cpw.mods.fml.common.Loader;
-
 public class GuideScreen extends GuiContainer
     implements GuideUiHost, GuiYesNoCallback, GuideScreenNeiBridge.EditorAccess {
 
@@ -1114,9 +1111,7 @@ public class GuideScreen extends GuiContainer
     }
 
     private boolean hasBottomBar() {
-        // Reserve the content route's bottom bar while an asynchronously compiled page is loading.
-        // Depending on currentPage made the viewport grow for one frame, then shrink when the page
-        // mounted, which produced a visible flash under GuideScreen on first open.
+        // Reserve footer space while the page compiles to avoid a viewport resize when it mounts.
         return hasContentRoute() && !isSearchPage() && !isItemLinksPage() && !isGuideEditorActive();
     }
 
@@ -1125,9 +1120,7 @@ public class GuideScreen extends GuiContainer
     }
 
     private boolean hasEditableContentRoute() {
-        // A special page is generated from the guide's own data and has no source file, so there is nothing to
-        // edit: the editor pane stays out of the way rather than offering to change a page that cannot be
-        // written. The same applies to the two built-in synthetic views.
+        // Generated and built-in synthetic pages have no editable source file.
         return hasContentRoute() && !isSearchPage() && !isItemLinksPage() && !isSpecialPage();
     }
 
@@ -1182,9 +1175,7 @@ public class GuideScreen extends GuiContainer
     }
 
     /**
-     * Feeds the navigation bar the template section. Templates are listed only while the guide editor is on,
-     * because the section exists so a template can be opened and edited in game; ordinary reading keeps the
-     * sidebar as the pack's navigation defines it.
+     * Shows the editable template section while the guide editor is active.
      */
     private void refreshNavigationTemplateRows() {
         List<GuideNavProjection.DisplayRow> rows = GuideScreenEditorState.isEnabled() ? buildNavigationTemplateRows()
@@ -2071,21 +2062,12 @@ public class GuideScreen extends GuiContainer
     }
 
     /**
-     * Button id the first contributed editor action gets.
-     *
-     * <p>
-     * The built-in actions take {@code 2000} plus their enum ordinal, so a contributed action sits in its own
-     * range above them: it is a real button without an enum constant, and it can never collide with a
-     * built-in action even if the enum grows.
+     * First contributed action id, above the built-in 2000 + ordinal range.
      */
     private static final int CONTRIBUTED_EDITOR_ACTION_ID_BASE = 8000;
 
     /**
-     * Applies a contributed editor action to the document.
-     *
-     * <p>
-     * A contribution carries text rather than behaviour, so it is applied here: the editor owns the mutation,
-     * which keeps a contributed action on the same undo, dirty-state and completion path as every other edit.
+     * Applies contributed text through the editor mutation path to preserve undo, dirty state, and completion.
      */
     private void runContributedGuideEditorAction(int index) {
         List<GuideEditorActionContribution> actions = GuideScreenEditorActionRegistry.contributedActions(guide);
@@ -2231,8 +2213,7 @@ public class GuideScreen extends GuiContainer
     }
 
     /**
-     * One menu entry per contributed editor action, so an action a mod adds is reachable from the toolbar and
-     * from the context menu alike.
+     * Builds context-menu entries for contributed editor actions.
      */
     private List<GuideScreenEditorContextMenu.Entry> buildGuideEditorContributedEntries() {
         List<GuideEditorActionContribution> actions = GuideScreenEditorActionRegistry.contributedActions(guide);
@@ -2251,8 +2232,7 @@ public class GuideScreen extends GuiContainer
     }
 
     /**
-     * One entry per contributed insert template, so the templates the editor offers while typing are also
-     * reachable from the menu: the model holds the built-in templates and those of any other mod alike.
+     * Builds menu entries from the same built-in and contributed templates used by completion.
      */
     private List<GuideScreenEditorContextMenu.Entry> buildGuideEditorTemplateEntries() {
         Map<String, InsertTemplate> templates = resolveGuideSyntaxModel().insertTemplates();
@@ -2775,8 +2755,7 @@ public class GuideScreen extends GuiContainer
         // when the document content revision has changed.
         registerRuntimeScenes(currentPage);
         for (LytGuidebookScene scene : currentPage.scenes()) {
-            // BlockRenderer6343 publishes its tier data from a scan thread, so a scene built before that
-            // finishes has no sliders. This adds them once the data is there and does nothing afterwards.
+            // Refresh missing scene ranges after BlockRenderer6343 completes its background scan.
             scene.refreshStructureLibControlMetadata();
             scene.ponderTick();
         }
@@ -2804,20 +2783,17 @@ public class GuideScreen extends GuiContainer
             .toString();
         ResourceLocation pageId = currentAnchor.pageId();
 
-        // 1. Check CompileWorker cache first
         CompileWorker worker = ClientProxy.getWorker();
         GuidePage loadedPage = null;
         if (worker != null) {
             loadedPage = worker.getCompiledPage(pageId);
         }
 
-        // 2. Also check MutableGuide internal cache for editor/synthetic pages
         if (loadedPage == null && guide != null) {
             loadedPage = guide.getCachedCompiledPage(pageId);
         }
 
         if (loadedPage != null) {
-            // Cache hit — mount immediately
             loadedPage.prepareForDisplay();
             LytHost lytHost = ClientProxy.getLytHost();
             if (!pageLoadInProgress || requestId != pendingPageLoadRequestId) return;
@@ -2838,17 +2814,14 @@ public class GuideScreen extends GuiContainer
             pageLoadInProgress = false;
             refreshCurrentPageTitle();
             updateToolbarButtonState();
-            // Editor previews use the same host materialization queue as the active page. Build
-            // the first preview only after the page mount has completed; mounting the page above
-            // clears tasks belonging to the previous document and would otherwise discard the
-            // preview's asynchronous GameScene materialization, leaving its yellow placeholder.
+            // Mount the active page before scheduling its editor preview; mounting clears the shared materialization
+            // queue.
             if (isGuideEditorActive() && guideEditorPreviewDirty) {
                 rebuildGuideEditorPreview();
             }
             return;
         }
 
-        // 3. Not yet compiled — prioritize and show loading
         if (worker != null) {
             worker.prioritize(pageId);
         }
@@ -3160,10 +3133,7 @@ public class GuideScreen extends GuiContainer
             drawBottomBar();
         }
 
-        // Scene layout writes the screen-space viewport (lastAbs*/lastW/lastH) while rendering the
-        // document. Recompute the hover ray after that write so tooltip picking uses the current viewport,
-        // rather than the previous frame's geometry. This also prevents a transient miss from clearing the
-        // debug coordinate tooltip whenever scrolling, resizing, or a scene's layout changes.
+        // Recompute tooltip picking after layout publishes the current scene viewport.
         if (!isHomeRoute() && !isGuideEditorActive()) {
             updateSceneHover(contentMouseX, contentMouseY);
         }
@@ -3576,9 +3546,8 @@ public class GuideScreen extends GuiContainer
         @Override
         public List<String> pagePaths() {
             MutableGuide current = GuideScreen.this.guide;
-            // Keyed on the navigation revision, not the page count: a reload can replace every page id while
-            // the count stays the same, which is what a language switch does, and the old ids would then be
-            // suggested for links.
+            // Invalidate by navigation revision: language changes can replace every id without changing the page
+            // count.
             long revision = GuideRegistry.getNavigationRevision();
             if (cachedGuide == current && cachedPagePathsRevision == revision) {
                 return cachedPagePaths;
@@ -3606,9 +3575,8 @@ public class GuideScreen extends GuiContainer
     }
 
     /**
-     * The syntax model of the guide in the editor. Looking it up is cached per extension collection and per
-     * registration revision, so this is called on every tick: a contributor or slot another mod registers
-     * while the editor is open is picked up as soon as its revision changes.
+     * Resolves the editor syntax model each tick. The cache tracks extension identity and registration
+     * revision to pick up new contributions.
      */
     private GuideSyntaxModel resolveGuideSyntaxModel() {
         GuideSyntaxModel model = GuideSyntaxModel.of(guide != null ? guide.getExtensions() : null);
@@ -4540,137 +4508,12 @@ public class GuideScreen extends GuiContainer
     }
 
     private String buildBottomBarText(@Nullable FrontmatterPageMeta meta) {
-        FontRenderer fr = mc.fontRenderer;
-        int maxW = (int) (this.width * 0.8);
-
-        String sourceDisplay = getSourceDisplayName(currentPage.sourcePack(), currentPage.sourceResourcePack());
-        List<String> authors = meta != null ? meta.authors() : List.of();
-        String dateVal = meta != null ? meta.date() : null;
-        String updatedVal = meta != null ? meta.updated() : null;
-        String authorsStr = buildAuthorsString(authors);
-
-        // Width calculations use raw (non-italic) text so getStringWidth() is accurate
-        String rawAuthorPart = authorsStr.isEmpty() ? "" : GuidebookText.PageMetaAuthor.text(authorsStr);
-        String rawDatePart = dateVal != null ? GuidebookText.PageMetaDate.text(dateVal) : "";
-        String rawUpdatedPart = updatedVal != null ? GuidebookText.PageMetaUpdated.text(updatedVal) : "";
-        String rawFull = GuidebookText.PageMetaContentFrom.text(sourceDisplay) + rawAuthorPart
-            + rawDatePart
-            + rawUpdatedPart;
-
-        if (fr.getStringWidth(rawFull) <= maxW) {
-            return formatBottomBar(sourceDisplay, authorsStr, dateVal, updatedVal);
-        }
-
-        int prefixW = fr.getStringWidth(GuidebookText.PageMetaContentFrom.text(""));
-        int ellipsisW = fr.getStringWidth("...");
-        int rawSuffixW = fr.getStringWidth(rawAuthorPart + rawDatePart + rawUpdatedPart);
-        int availableForSource = maxW - prefixW - rawSuffixW - ellipsisW;
-        if (availableForSource > 0) {
-            String truncSrc = truncateStringToWidth(fr, sourceDisplay, availableForSource);
-            String attempt = GuidebookText.PageMetaContentFrom.text(truncSrc + "...") + rawAuthorPart
-                + rawDatePart
-                + rawUpdatedPart;
-            if (fr.getStringWidth(attempt) <= maxW) {
-                return formatBottomBar(truncSrc + "...", authorsStr, dateVal, updatedVal);
-            }
-        }
-
-        if (!authors.isEmpty()) {
-            String firstAuthor = authors.getFirst();
-            int authorPrefixW = fr.getStringWidth(GuidebookText.PageMetaAuthor.text(""));
-            int availableForAuthor = maxW - prefixW
-                - ellipsisW
-                - authorPrefixW
-                - ellipsisW
-                - fr.getStringWidth(rawDatePart + rawUpdatedPart);
-            String truncSrc2 = truncateStringToWidth(
-                fr,
-                sourceDisplay,
-                availableForAuthor > 0 ? availableForAuthor : fr.getStringWidth(sourceDisplay));
-            String rawSingleAuthorPart = GuidebookText.PageMetaAuthor.text(firstAuthor);
-            String attempt2 = GuidebookText.PageMetaContentFrom.text(truncSrc2 + "...") + rawSingleAuthorPart
-                + rawDatePart
-                + rawUpdatedPart;
-            if (fr.getStringWidth(attempt2) <= maxW) {
-                return formatBottomBar(truncSrc2 + "...", firstAuthor, dateVal, updatedVal);
-            }
-        }
-
-        return truncateStringToWidth(fr, rawFull, maxW);
-    }
-
-    /**
-     * Builds the bottom-bar string with §o italic formatting around each placeholder value.
-     * §r resets to white; §7 restores dark gray (#AAAAAA) to match the draw color.
-     */
-    private static String formatBottomBar(String sourceDisplay, String authorsStr, @Nullable String dateVal,
-        @Nullable String updatedVal) {
-        String authorPart = authorsStr.isEmpty() ? "" : GuidebookText.PageMetaAuthor.text("§o" + authorsStr + "§r§7");
-        String datePart = dateVal != null ? GuidebookText.PageMetaDate.text("§o" + dateVal + "§r§7") : "";
-        String updatedPart = updatedVal != null ? GuidebookText.PageMetaUpdated.text("§o" + updatedVal + "§r§7") : "";
-        return GuidebookText.PageMetaContentFrom.text("§o" + sourceDisplay + "§r§7") + authorPart
-            + datePart
-            + updatedPart;
-    }
-
-    private static String buildAuthorsString(List<String> authors) {
-        if (authors.isEmpty()) return "";
-        if (authors.size() == 1) return authors.get(0);
-        if (authors.size() == 2) return authors.get(0) + ", " + authors.get(1);
-        return authors.get(0) + ", " + authors.get(1) + "...";
-    }
-
-    private static String truncateStringToWidth(FontRenderer fr, String text, int maxW) {
-        if (fr.getStringWidth(text) <= maxW) return text;
-        int accWidth = 0;
-        for (int i = 0; i < text.length(); i++) {
-            int cw = fr.getCharWidth(text.charAt(i));
-            if (accWidth + cw > maxW) {
-                return text.substring(0, i);
-            }
-            accWidth += cw;
-        }
-        return text;
-    }
-
-    private static String getSourceDisplayName(String sourcePack, @Nullable IResourcePack sourceResourcePack) {
-        if (sourceResourcePack instanceof FMLContainerHolder holder) {
-            var container = holder.getFMLContainer();
-            if (container != null) {
-                String modName = container.getName();
-                if (modName != null && !modName.isBlank()) {
-                    return modName;
-                }
-                String modId = container.getModId();
-                if (modId != null && !modId.isBlank()) {
-                    return modId;
-                }
-            }
-        }
-        if (sourceResourcePack != null) {
-            return formatResourcePackName(sourceResourcePack.getPackName());
-        }
-
-        int colon = sourcePack.indexOf(':');
-        String namespace = colon >= 0 ? sourcePack.substring(colon + 1) : sourcePack;
-
-        // Pages constructed outside a resource-pack load keep their existing mod-name fallback.
-        try {
-            var mod = Loader.instance()
-                .getIndexedModList()
-                .get(namespace);
-            if (mod != null) {
-                return mod.getName();
-            }
-        } catch (Throwable ignored) {}
-        return namespace;
-    }
-
-    private static String formatResourcePackName(String packName) {
-        if (packName.length() > 4 && packName.regionMatches(true, packName.length() - 4, ".zip", 0, 4)) {
-            return packName.substring(0, packName.length() - 4);
-        }
-        return packName;
+        return GuidePageMetadataFormatter.format(
+            mc.fontRenderer,
+            (int) (this.width * 0.8),
+            currentPage.sourcePack(),
+            currentPage.sourceResourcePack(),
+            meta);
     }
 
     private void drawPageTitle() {
@@ -4795,11 +4638,7 @@ public class GuideScreen extends GuiContainer
                 renderGuideTooltip(blockStatsTooltip, mouseX, mouseY, interaction);
                 return;
             }
-            // Annotation tooltips have absolute priority: when an annotation is hovered we
-            // MUST short-circuit the rest of the scene-tooltip cascade so the underlying block
-            // (whose hover detection uses screen-space AABBs and may overlap an annotation that
-            // sits inside a block) cannot steal the tooltip slot. Even if the annotation has no
-            // tooltip content of its own, we still want to suppress the block tooltip below.
+            // Hovered annotations suppress underlying block tooltips even when the annotation has no tooltip content.
             boolean anyAnnotationHovered = false;
             for (var a : scene.getAnnotations()) {
                 if (a.isHovered()) {
@@ -5169,11 +5008,8 @@ public class GuideScreen extends GuiContainer
         @Nullable DocumentInteractionState interaction) {
         LytRect bounds = resolveTooltipBounds(interaction);
         String coordText = "§6" + pos[0] + ", " + pos[1] + ", " + pos[2];
-        // Coordinate diagnostics are independent of the content tooltip type. StructureLib may return an
-        // ItemTooltip, a rich ContentTooltip, or a plain text tooltip for the same block; tying this overlay
-        // to ItemTooltip made it blink whenever the resolver changed representation between frames.
-        // Anchor it to the current cursor and viewport every frame, so camera movement cannot reuse a stale
-        // tooltip layout.
+        // Position coordinate diagnostics from the current cursor and viewport, independently of the block's
+        // content-tooltip type.
         drawHoveringTextAtAdjustedPosition(List.of(coordText), mouseX, mouseY - 18, mc.fontRenderer, bounds);
     }
 
@@ -7136,7 +6972,6 @@ public class GuideScreen extends GuiContainer
             && mouseY < documentY + documentH;
     }
 
-    // GuideUiHost
     @Override
     public void navigateTo(PageAnchor anchor) {
         if (tryOpenDirectSpecialPage(anchor)) {

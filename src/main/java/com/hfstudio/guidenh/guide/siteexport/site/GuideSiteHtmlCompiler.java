@@ -1,5 +1,18 @@
 package com.hfstudio.guidenh.guide.siteexport.site;
 
+import static com.hfstudio.guidenh.guide.siteexport.site.GuideSiteTableAttributes.appendColumnWidths;
+import static com.hfstudio.guidenh.guide.siteexport.site.GuideSiteTableAttributes.appendTableAlignment;
+import static com.hfstudio.guidenh.guide.siteexport.site.GuideSiteTableAttributes.appendTableAttribute;
+import static com.hfstudio.guidenh.guide.siteexport.site.GuideSiteTableAttributes.appendTableLengthAttribute;
+import static com.hfstudio.guidenh.guide.siteexport.site.GuideSiteTableAttributes.appendTableNumericAttribute;
+import static com.hfstudio.guidenh.guide.siteexport.site.GuideSiteTableAttributes.appendTableSpan;
+import static com.hfstudio.guidenh.guide.siteexport.site.GuideSiteTableAttributes.escapeTableAttribute;
+import static com.hfstudio.guidenh.guide.siteexport.site.GuideSiteTableAttributes.findTableChildAttribute;
+import static com.hfstudio.guidenh.guide.siteexport.site.GuideSiteTableAttributes.normalizeTableLength;
+import static com.hfstudio.guidenh.guide.siteexport.site.GuideSiteTableAttributes.parseTableSpanValue;
+import static com.hfstudio.guidenh.guide.siteexport.site.GuideSiteTableAttributes.sanitizeTableStyle;
+import static com.hfstudio.guidenh.guide.siteexport.site.GuideSiteTableAttributes.sanitizeTableStyleValue;
+
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -598,8 +611,6 @@ public class GuideSiteHtmlCompiler {
             + "</em></span>";
     }
 
-    // Mdx-adapted helper methods
-
     private String compileParagraph(MdxJsxElementFields el, GuideSiteTemplateRegistry templates,
         String defaultNamespace, @Nullable ResourceLocation currentPageId, SceneResolver sceneResolver) {
         String displayFormula = extractSoleDisplayLatexFromElement(el);
@@ -1177,160 +1188,6 @@ public class GuideSiteHtmlCompiler {
             firstRow = false;
         }
         return firstRow;
-    }
-
-    private static void appendColumnWidths(List<String> widths, MdxJsxFlowElement column) {
-        String width = normalizeTableLength(column.getAttributeString("width", ""));
-        int span = parseTableSpanValue(column.getAttributeString("span", null));
-        for (int index = 0; index < span && widths.size() < 1024; index++) {
-            widths.add(width == null ? "" : width);
-        }
-    }
-
-    private static void appendTableAttribute(StringBuilder html, String name, @Nullable String value) {
-        if (value == null || value.isBlank()
-            || value.length() > 4096
-            || value.chars()
-                .anyMatch(character -> character < 0x20 && character != '\t')) {
-            return;
-        }
-        html.append(' ')
-            .append(name)
-            .append("=\"")
-            .append(escapeTableAttribute(value))
-            .append('"');
-    }
-
-    @Nullable
-    private static String sanitizeTableStyle(@Nullable String value) {
-        if (value == null || value.isBlank() || value.length() > 4096) {
-            return null;
-        }
-        String normalized = value.trim();
-        String lower = normalized.toLowerCase(Locale.ROOT);
-        String compact = lower.replaceAll("[\\u0000-\\u0020]+", "");
-        if (compact.contains("javascript:") || compact.contains("vbscript:")
-            || compact.contains("data:")
-            || compact.contains("expression(")
-            || compact.contains("url(")
-            || normalized.indexOf('\\') >= 0
-            || normalized.indexOf('<') >= 0
-            || normalized.indexOf('>') >= 0
-            || normalized.chars()
-                .anyMatch(character -> character < 0x20 && character != '\t')) {
-            return null;
-        }
-        return normalized;
-    }
-
-    @Nullable
-    private static String sanitizeTableStyleValue(@Nullable String value) {
-        if (value == null || value.isBlank() || value.length() > 512) {
-            return null;
-        }
-        String normalized = value.trim();
-        String compact = normalized.toLowerCase(Locale.ROOT)
-            .replaceAll("[\\u0000-\\u0020]+", "");
-        if (normalized.contains("<") || normalized.contains(">")
-            || normalized.indexOf('\\') >= 0
-            || normalized.contains(";")
-            || compact.contains("url(")
-            || compact.contains("expression(")
-            || compact.contains("javascript:")
-            || compact.contains("vbscript:")
-            || compact.contains("data:")
-            || normalized.chars()
-                .anyMatch(character -> character < 0x20 && character != '\t')) {
-            return null;
-        }
-        return normalized;
-    }
-
-    private static void appendTableNumericAttribute(StringBuilder html, String name, @Nullable String value) {
-        if (value == null || !value.trim()
-            .matches("\\d+(?:px)?")) {
-            return;
-        }
-        html.append(' ')
-            .append(name)
-            .append("=\"")
-            .append(escapeTableAttribute(value.trim()))
-            .append('"');
-    }
-
-    private static void appendTableLengthAttribute(StringBuilder html, String name, @Nullable String value) {
-        String normalized = normalizeTableLength(value);
-        if (normalized != null) {
-            html.append(' ')
-                .append(name)
-                .append("=\"")
-                .append(escapeTableAttribute(normalized))
-                .append('"');
-        }
-    }
-
-    @Nullable
-    private static String normalizeTableLength(@Nullable String value) {
-        if (value == null) {
-            return null;
-        }
-        String normalized = value.trim();
-        if (!normalized.matches("\\d+(?:\\.\\d+)?(?:px|%|em|rem|vw|vh|pt)?")) {
-            return null;
-        }
-        return normalized;
-    }
-
-    private static void appendTableAlignment(StringBuilder style, String align) {
-        switch (align) {
-            case "center" -> style.append("width:100%;max-width:100%;margin-left:auto;margin-right:auto;");
-            case "right" -> style.append("width:100%;max-width:100%;margin-left:auto;margin-right:0;");
-            case "left" -> style.append("width:100%;max-width:100%;margin-left:0;margin-right:auto;");
-            default -> {}
-        }
-    }
-
-    @Nullable
-    private static String findTableChildAttribute(MdxJsxElementFields table, String childName, String attribute) {
-        for (Object child : table.children()) {
-            if (child instanceof MdxJsxFlowElement element && childName.equalsIgnoreCase(element.name())) {
-                return element.getAttributeString(attribute, null);
-            }
-        }
-        return null;
-    }
-
-    private static String escapeTableAttribute(String value) {
-        return value.replace("&", "&amp;")
-            .replace("\"", "&quot;")
-            .replace("<", "&lt;")
-            .replace(">", "&gt;");
-    }
-
-    private static void appendTableSpan(StringBuilder html, String attribute, int span) {
-        if (span > 1) {
-            html.append(' ')
-                .append(attribute)
-                .append("=\"")
-                .append(span)
-                .append('"');
-        }
-    }
-
-    private static void appendTableSpan(StringBuilder html, String attribute, @Nullable String rawValue) {
-        appendTableSpan(html, attribute, parseTableSpanValue(rawValue));
-    }
-
-    private static int parseTableSpanValue(@Nullable String rawValue) {
-        if (rawValue == null) {
-            return 1;
-        }
-        try {
-            int span = Integer.parseInt(rawValue);
-            return Math.max(1, Math.min(1024, span));
-        } catch (NumberFormatException ignored) {
-            return 1;
-        }
     }
 
     private List<Integer> parseTableWidths(String content) {
