@@ -11,6 +11,9 @@ import org.jetbrains.annotations.Nullable;
 import org.lwjgl.opengl.GL11;
 
 import com.hfstudio.guidenh.guide.color.ColorUtils;
+import com.hfstudio.guidenh.guide.document.LytRect;
+import com.hfstudio.guidenh.guide.internal.debug.DebugComponent;
+import com.hfstudio.guidenh.guide.internal.debug.ScreenDebugComponents;
 import com.hfstudio.guidenh.guide.internal.editor.gui.SceneEditorMultilineTextArea;
 import com.hfstudio.guidenh.guide.internal.editor.gui.SceneEditorPopupLayout;
 import com.hfstudio.guidenh.guide.internal.screen.GuideIconButton;
@@ -19,7 +22,9 @@ import com.hfstudio.guidenh.guide.internal.util.SmoothFloatState;
 
 import lombok.Getter;
 
-public class GuideScreenEditorContextMenu {
+public class GuideScreenEditorContextMenu implements DebugComponent {
+
+    private final ScreenDebugComponents debugComponents = new ScreenDebugComponents();
 
     public static final int ITEM_HEIGHT = 14;
     private static final int PADDING_X = 6;
@@ -350,11 +355,13 @@ public class GuideScreenEditorContextMenu {
     }
 
     public void draw(FontRenderer fontRenderer, int mouseX, int mouseY) {
+        debugComponents.beginFrame();
         if (!open) {
             return;
         }
         Minecraft minecraft = Minecraft.getMinecraft();
-        for (MenuPane pane : panes) {
+        for (int paneIndex = 0; paneIndex < panes.size(); paneIndex++) {
+            MenuPane pane = panes.get(paneIndex);
             drawMenu(
                 minecraft,
                 fontRenderer,
@@ -364,17 +371,25 @@ public class GuideScreenEditorContextMenu {
                 pane.height,
                 pane.entries,
                 pane.hoveredIndex,
-                pane.visualScrollY.rounded());
+                pane.visualScrollY.rounded(),
+                ScreenDebugComponents.POPUP_LAYER + paneIndex);
         }
     }
 
     private void drawMenu(Minecraft minecraft, FontRenderer fontRenderer, int x, int y, int width, int height,
-        List<Entry> itemEntries, int hoveredIndex, int scrollY) {
+        List<Entry> itemEntries, int hoveredIndex, int scrollY, int debugLayer) {
         Gui.drawRect(x, y, x + width, y + height, BACKGROUND_COLOR);
         Gui.drawRect(x, y, x + width, y + 1, BORDER_COLOR);
         Gui.drawRect(x, y + height - 1, x + width, y + height, BORDER_COLOR);
         Gui.drawRect(x, y, x + 1, y + height, BORDER_COLOR);
         Gui.drawRect(x + width - 1, y, x + width, y + height, BORDER_COLOR);
+        DebugComponent.ComponentEntry pane = null;
+        LytRect clip = null;
+        if (debugComponents.isEnabled()) {
+            pane = debugComponents
+                .add("EditorContextMenuPane", new LytRect(x, y, width, height), null, debugLayer, null);
+            clip = new LytRect(x + 1, y + 1, width - 2, height - 2);
+        }
 
         pushScissor(x + 1, y + 1, width - 2, height - 2);
         int drawY = y + PADDING_Y - scrollY;
@@ -387,6 +402,9 @@ public class GuideScreenEditorContextMenu {
             }
             if (drawY > y + height - 1) {
                 break;
+            }
+            if (debugComponents.isEnabled() && clip != null) {
+                collectEntryDebugComponents(fontRenderer, entry, x, drawY, width, clip, pane, debugLayer);
             }
             if (entry.isSeparator()) {
                 Gui.drawRect(
@@ -414,7 +432,56 @@ public class GuideScreenEditorContextMenu {
             drawY += ITEM_HEIGHT;
         }
         popScissor();
-        drawScrollbar(x, y, width, height, itemEntries, scrollY);
+        drawScrollbar(x, y, width, height, itemEntries, scrollY, pane, debugLayer);
+    }
+
+    @Override
+    public List<DebugComponent.ComponentEntry> getDebugComponents() {
+        return open ? debugComponents.getDebugComponents() : List.of();
+    }
+
+    private void collectEntryDebugComponents(FontRenderer font, Entry entry, int x, int rowY, int width, LytRect clip,
+        @Nullable DebugComponent.ComponentEntry pane, int layer) {
+        var item = debugComponents.addClipped(
+            entry.isSeparator() ? "MenuSeparator" : "EditorMenuItem",
+            new LytRect(x + 1, rowY - 1, width - 2, ITEM_HEIGHT),
+            clip,
+            entry.getLabel(),
+            layer,
+            pane);
+        if (entry.isSeparator()) {
+            return;
+        }
+        int textX = x + PADDING_X + ICON_SIZE + ICON_TEXT_GAP;
+        debugComponents.addClipped(
+            "EditorMenuLabel",
+            new LytRect(textX, rowY + TEXT_Y_OFFSET, font.getStringWidth(entry.getLabel()), font.FONT_HEIGHT),
+            clip,
+            entry.getLabel(),
+            layer,
+            item);
+        if (entry.getAction() != null) {
+            debugComponents.addClipped(
+                "EditorMenuIcon",
+                new LytRect(x + PADDING_X, computeIconYForRow(rowY), ICON_SIZE, ICON_SIZE),
+                clip,
+                null,
+                layer,
+                item);
+        }
+        if (entry.hasChildren()) {
+            debugComponents.addClipped(
+                "SubmenuArrow",
+                new LytRect(
+                    x + width - PADDING_X - font.getStringWidth(">"),
+                    rowY + TEXT_Y_OFFSET,
+                    font.getStringWidth(">"),
+                    font.FONT_HEIGHT),
+                clip,
+                null,
+                layer,
+                item);
+        }
     }
 
     private void drawEntryIcon(Minecraft minecraft, Entry entry, int x, int y) {
@@ -529,7 +596,8 @@ public class GuideScreenEditorContextMenu {
         return (int) ((long) rel * maxScroll / track);
     }
 
-    private void drawScrollbar(int x, int y, int width, int height, List<Entry> itemEntries, int scrollY) {
+    private void drawScrollbar(int x, int y, int width, int height, List<Entry> itemEntries, int scrollY,
+        @Nullable DebugComponent.ComponentEntry pane, int layer) {
         int contentHeight = computeMenuContentHeight(itemEntries);
         if (contentHeight <= height) {
             return;
@@ -539,6 +607,12 @@ public class GuideScreenEditorContextMenu {
         int thumbY = scrollbarThumbY(y, height, contentHeight, scrollY);
         int thumbH = scrollbarThumbHeight(height, contentHeight);
         Gui.drawRect(barX, thumbY, x + width - 1, thumbY + thumbH, SCROLLBAR_THUMB_COLOR);
+        if (debugComponents.isEnabled()) {
+            var track = debugComponents
+                .add("MenuScrollbarTrack", new LytRect(barX, y + 1, SCROLLBAR_W - 1, height - 2), null, layer, pane);
+            debugComponents
+                .add("MenuScrollbarThumb", new LytRect(barX, thumbY, SCROLLBAR_W - 1, thumbH), null, layer, track);
+        }
     }
 
     private int scrollbarThumbY(int y, int height, int contentHeight, int scrollY) {

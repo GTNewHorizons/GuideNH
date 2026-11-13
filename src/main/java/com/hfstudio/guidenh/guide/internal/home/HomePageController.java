@@ -12,12 +12,17 @@ import org.jetbrains.annotations.Nullable;
 import org.lwjgl.opengl.GL11;
 
 import com.hfstudio.guidenh.guide.color.ColorUtils;
+import com.hfstudio.guidenh.guide.document.LytRect;
+import com.hfstudio.guidenh.guide.internal.debug.DebugComponent;
+import com.hfstudio.guidenh.guide.internal.debug.ScreenDebugComponents;
 import com.hfstudio.guidenh.guide.internal.screen.GuideNavBar;
 import com.hfstudio.guidenh.guide.internal.util.DisplayScale;
 import com.hfstudio.guidenh.guide.internal.util.SmoothFloatState;
 import com.hfstudio.guidenh.guide.render.GuideFontCompat;
 
-public class HomePageController {
+public class HomePageController implements DebugComponent {
+
+    private final ScreenDebugComponents debugComponents = new ScreenDebugComponents();
 
     private static final int SECTION_PADDING = 8;
     private static final int TITLE_GAP = 8;
@@ -52,6 +57,7 @@ public class HomePageController {
 
     public void render(Minecraft mc, HomePageDataBuilder.HomePageSections sections, HomePageLayout.LayoutRects layout,
         ResourceLocation logoTexture, int logoSourceWidth, int logoSourceHeight, int mouseX, int mouseY) {
+        debugComponents.beginFrame();
         updateVisualScrollOffsets();
         drawLogo(mc, layout.logo(), logoTexture, logoSourceWidth, logoSourceHeight);
         drawSection(mc, layout.recommended(), sections.recommended(), mouseX, mouseY, layout.recommendedTitleSafeTop());
@@ -172,6 +178,14 @@ public class HomePageController {
         tessellator.addVertexWithUV(rect.x() + drawWidth, drawY, 0, 1f, 0f);
         tessellator.addVertexWithUV(rect.x(), drawY, 0, 0f, 0f);
         tessellator.draw();
+        if (debugComponents.isEnabled()) {
+            debugComponents.add(
+                "HomeLogo",
+                new LytRect(rect.x(), drawY, drawWidth, drawHeight),
+                logoTexture.toString(),
+                ScreenDebugComponents.CONTENT_LAYER,
+                null);
+        }
     }
 
     private void drawSection(Minecraft mc, HomePageLayout.Rect rect, HomePageSection section, int mouseX, int mouseY,
@@ -188,6 +202,21 @@ public class HomePageController {
         int scrollbarX = metrics.scrollbarX();
         int rowWidth = Math.max(30, scrollbarX - SCROLLBAR_GAP - contentX);
         int visibleHeight = metrics.visibleHeight();
+        DebugComponent.ComponentEntry sectionEntry = null;
+        if (debugComponents.isEnabled()) {
+            sectionEntry = debugComponents.add(
+                "HomeSection",
+                new LytRect(rect.x(), rect.y(), rect.width(), rect.height()),
+                section.title(),
+                ScreenDebugComponents.CONTENT_LAYER,
+                null);
+            debugComponents.add(
+                "HomeSectionTitle",
+                new LytRect(rect.x() + SECTION_PADDING, titleY, font.getStringWidth(section.title()), font.FONT_HEIGHT),
+                section.title(),
+                ScreenDebugComponents.CONTENT_LAYER,
+                sectionEntry);
+        }
 
         if (section.entries()
             .isEmpty()) {
@@ -211,6 +240,16 @@ public class HomePageController {
                 continue;
             }
             drawRow(mc, entry, contentX, rowY, rowWidth, mouseX, mouseY);
+            if (debugComponents.isEnabled()) {
+                collectRowDebugComponents(
+                    font,
+                    entry,
+                    contentX,
+                    rowY,
+                    rowWidth,
+                    new LytRect(contentX, contentY, rowWidth, visibleHeight),
+                    sectionEntry);
+            }
         }
         popScissor();
 
@@ -253,6 +292,76 @@ public class HomePageController {
         int thumbY = contentY + (int) ((long) scrollOffset * travel / maxScroll);
         Gui.drawRect(x, contentY, x + SCROLLBAR_WIDTH, contentY + visibleHeight, ColorUtils.ARGB_22262D38.getColor());
         Gui.drawRect(x, thumbY, x + SCROLLBAR_WIDTH, thumbY + thumbHeight, ColorUtils.SCROLLBAR_HOVER.getColor());
+        if (debugComponents.isEnabled()) {
+            var track = debugComponents.add(
+                "HomeScrollbarTrack",
+                new LytRect(x, contentY, SCROLLBAR_WIDTH, visibleHeight),
+                section.title(),
+                ScreenDebugComponents.CONTENT_LAYER + 1,
+                null);
+            debugComponents.add(
+                "HomeScrollbarThumb",
+                new LytRect(x, thumbY, SCROLLBAR_WIDTH, thumbHeight),
+                null,
+                ScreenDebugComponents.CONTENT_LAYER + 1,
+                track);
+        }
+    }
+
+    @Override
+    public List<DebugComponent.ComponentEntry> getDebugComponents() {
+        return debugComponents.getDebugComponents();
+    }
+
+    private void collectRowDebugComponents(FontRenderer font, HomePageEntry entry, int x, int y, int width,
+        LytRect clip, @Nullable DebugComponent.ComponentEntry section) {
+        var row = debugComponents.addClipped(
+            "HomeCard",
+            new LytRect(x, y, width, ROW_HEIGHT),
+            clip,
+            entry.title(),
+            ScreenDebugComponents.CONTENT_LAYER,
+            section);
+        int textX = x + 4;
+        if (entry.icon() != null) {
+            int size = ENTRY_TEXT_BOTTOM - ENTRY_TEXT_TOP;
+            debugComponents.addClipped(
+                "HomeCardIcon",
+                new LytRect(textX, y + (ROW_HEIGHT - size) / 2, size, size),
+                clip,
+                null,
+                ScreenDebugComponents.CONTENT_LAYER,
+                row);
+            textX += size + ICON_GAP;
+        }
+        int textWidth = width - (textX - x) - 4;
+        if (textWidth <= 0) {
+            return;
+        }
+        String title = trimToWidth(font, entry.title(), Math.max(1, Math.round(textWidth / ENTRY_TITLE_SCALE)));
+        String summary = trimToWidth(font, entry.summary(), Math.max(1, Math.round(textWidth / ENTRY_SUMMARY_SCALE)));
+        debugComponents.addClipped(
+            "HomeCardTitle",
+            new LytRect(
+                textX,
+                y + ENTRY_TEXT_TOP,
+                Math.round(font.getStringWidth(title) * ENTRY_TITLE_SCALE),
+                Math.round(font.FONT_HEIGHT * ENTRY_TITLE_SCALE)),
+            clip,
+            entry.title(),
+            ScreenDebugComponents.CONTENT_LAYER,
+            row);
+        debugComponents.addClipped(
+            "HomeCardSummary",
+            new LytRect(
+                textX,
+                y + 18,
+                Math.round(font.getStringWidth(summary) * ENTRY_SUMMARY_SCALE),
+                Math.round(font.FONT_HEIGHT * ENTRY_SUMMARY_SCALE)),
+            clip,
+            entry.summary(),
+            ScreenDebugComponents.CONTENT_LAYER,
+            row);
     }
 
     private int computeContentHeight(HomePageSection section) {
@@ -444,6 +553,14 @@ public class HomePageController {
             int textWidth = font.getStringWidth(line);
             int textX = rect.x() + (rect.width() - textWidth) / 2;
             font.drawString(line, textX, textY, EMPTY_COLOR, false);
+            if (debugComponents.isEnabled()) {
+                debugComponents.add(
+                    "HomeEmptyMessage",
+                    new LytRect(textX, textY, textWidth, font.FONT_HEIGHT),
+                    line,
+                    ScreenDebugComponents.CONTENT_LAYER,
+                    null);
+            }
             textY += lineHeight;
         }
     }

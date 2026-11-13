@@ -13,6 +13,8 @@ import org.lwjgl.opengl.GL11;
 
 import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.document.LytRect;
+import com.hfstudio.guidenh.guide.internal.debug.DebugComponent;
+import com.hfstudio.guidenh.guide.internal.debug.ScreenDebugComponents;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider.AutocompleteCandidate;
 import com.hfstudio.guidenh.guide.internal.editor.gui.SceneEditorPopupLayout;
 import com.hfstudio.guidenh.guide.internal.util.DisplayScale;
@@ -20,7 +22,9 @@ import com.hfstudio.guidenh.guide.internal.util.SmoothFloatState;
 
 import lombok.Getter;
 
-public class AutocompletePopup {
+public class AutocompletePopup implements DebugComponent {
+
+    private final ScreenDebugComponents debugComponents = new ScreenDebugComponents();
 
     public static final int MAX_VISIBLE_ITEMS = 5;
     public static final int PADDING_X = 6;
@@ -31,7 +35,9 @@ public class AutocompletePopup {
     public static final int HOVER_COLOR = ColorUtils.ARGB_CC2A3A46.getColor();
     public static final int SCROLLBAR_TRACK_COLOR = ColorUtils.SCROLLBAR_TRACK.getColor();
     public static final int SCROLLBAR_THUMB_COLOR = ColorUtils.SCROLLBAR_THUMB.getColor();
-    /** Gap between popup and cursor when flipped above (roughly FONT_HEIGHT + cursor gap). */
+    /**
+     * Gap between popup and cursor when flipped above (roughly FONT_HEIGHT + cursor gap).
+     */
     private static final int FLIP_GAP = 22;
 
     @Getter
@@ -126,14 +132,18 @@ public class AutocompletePopup {
         scrollY = clampScroll(scrollY - delta * maxH * 2);
     }
 
-    /** Recompute popup position without changing candidates or selection. */
+    /**
+     * Recompute popup position without changing candidates or selection.
+     */
     public void reposition(int anchorX, int anchorY, int viewportWidth, int viewportHeight, FontRenderer fontRenderer) {
         if (!open) return;
         placePopup(anchorX, anchorY, viewportWidth, viewportHeight);
         this.scrollY = clampScroll(scrollY);
     }
 
-    /** Place popup below the anchor; flip above if it doesn't fit. */
+    /**
+     * Place popup below the anchor; flip above if it doesn't fit.
+     */
     private void placePopup(int anchorX, int anchorY, int viewportWidth, int viewportHeight) {
         // Try below cursor first
         LytRect below = SceneEditorPopupLayout
@@ -143,7 +153,7 @@ public class AutocompletePopup {
             this.y = below.y();
             return;
         }
-        // Not enough room below �?flip above cursor
+        // Not enough room below; flip above the cursor.
         int aboveY = anchorY - height - FLIP_GAP;
         LytRect above = SceneEditorPopupLayout
             .clampToViewport(anchorX, aboveY, width, height, viewportWidth, viewportHeight, 2);
@@ -177,12 +187,22 @@ public class AutocompletePopup {
     }
 
     public void draw(FontRenderer fontRenderer, int mouseX, int mouseY) {
+        debugComponents.beginFrame();
         if (!open) return;
         updateVisualScroll();
         int renderedScrollY = visualScrollY.rounded();
 
         Gui.drawRect(x - 1, y - 1, x + width + 1, y + height + 1, BORDER_COLOR);
         Gui.drawRect(x, y, x + width, y + height, BACKGROUND_COLOR);
+        DebugComponent.ComponentEntry popupEntry = null;
+        if (debugComponents.isEnabled()) {
+            popupEntry = debugComponents.add(
+                "AutocompletePopup",
+                new LytRect(x - 1, y - 1, width + 2, height + 2),
+                null,
+                ScreenDebugComponents.CONTENT_POPUP_LAYER,
+                null);
+        }
 
         pushScissor(x + 1, y + 1, width - 2, height - 2);
 
@@ -191,6 +211,15 @@ public class AutocompletePopup {
         int itemHeight = computeMaxItemHeight();
         for (AutocompleteCandidate candidate : candidates) {
             if (drawY + itemHeight >= y + 1 && drawY <= y + height - 1) {
+                if (debugComponents.isEnabled()) {
+                    debugComponents.addClipped(
+                        "AutocompleteCandidate",
+                        new LytRect(x + 1, drawY - 1, width - SCROLLBAR_W - 2, itemHeight),
+                        new LytRect(x + 1, y + 1, width - 2, height - 2),
+                        candidate.displayText(),
+                        ScreenDebugComponents.CONTENT_POPUP_LAYER,
+                        popupEntry);
+                }
                 if (itemIndex == selectedIndex) {
                     Gui.drawRect(x + 1, drawY - 1, x + width - SCROLLBAR_W - 1, drawY + itemHeight - 1, HOVER_COLOR);
                 }
@@ -207,6 +236,11 @@ public class AutocompletePopup {
 
         popScissor();
         drawScrollbar();
+    }
+
+    @Override
+    public List<DebugComponent.ComponentEntry> getDebugComponents() {
+        return open ? debugComponents.getDebugComponents() : List.of();
     }
 
     private void computeSize(FontRenderer fontRenderer) {
@@ -277,6 +311,20 @@ public class AutocompletePopup {
         int maxScroll = Math.max(0, contentH - height);
         int thumbY = y + (maxScroll > 0 ? (height - thumbH) * visualScrollY.rounded() / maxScroll : 0);
         Gui.drawRect(barX, thumbY, x + width - 1, thumbY + thumbH, SCROLLBAR_THUMB_COLOR);
+        if (debugComponents.isEnabled()) {
+            var track = debugComponents.add(
+                "AutocompleteScrollbarTrack",
+                new LytRect(barX, y + 1, SCROLLBAR_W - 1, height - 2),
+                null,
+                ScreenDebugComponents.CONTENT_POPUP_LAYER,
+                debugComponents.getRoot());
+            debugComponents.add(
+                "AutocompleteScrollbarThumb",
+                new LytRect(barX, thumbY, SCROLLBAR_W - 1, thumbH),
+                null,
+                ScreenDebugComponents.CONTENT_POPUP_LAYER,
+                track);
+        }
     }
 
     private boolean isInsideScrollbar(int mouseX, int mouseY) {

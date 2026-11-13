@@ -93,6 +93,7 @@ import com.hfstudio.guidenh.guide.internal.datadriven.DataDrivenGuideLoader;
 import com.hfstudio.guidenh.guide.internal.datadriven.GuidePageResourceSelector;
 import com.hfstudio.guidenh.guide.internal.debug.DebugComponent;
 import com.hfstudio.guidenh.guide.internal.debug.GuideDebugOverlay;
+import com.hfstudio.guidenh.guide.internal.debug.ScreenDebugComponents;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.AutocompleteCommit;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.GuideEditorAutocompleteController;
 import com.hfstudio.guidenh.guide.internal.editor.gui.SceneEditorMultilineTextArea;
@@ -261,7 +262,9 @@ public class GuideScreen extends GuiContainer
     private static final float NARROW_READING_DISABLED_RATIO = 0.0f;
     private static final String[] LOADING_DOT_SUFFIXES = { "", ".", "..", "..." };
 
-    /** Minimal document shown while waiting for background compilation. */
+    /**
+     * Minimal document shown while waiting for background compilation.
+     */
     private static final LytDocument LOADING_DOCUMENT = buildLoadingDocument();
 
     private static LytDocument buildLoadingDocument() {
@@ -286,6 +289,7 @@ public class GuideScreen extends GuiContainer
     private final MinecraftFontMetrics layoutFontMetrics = new MinecraftFontMetrics();
     private final CodeBlockClipboardService codeBlockClipboardService = new CodeBlockClipboardService();
     private final GuideDebugOverlay debugOverlay = new GuideDebugOverlay();
+    private final ScreenDebugComponents screenDebugComponents = new ScreenDebugComponents();
     private final GuideScreenScrollbarOutline scrollbarOutline = new GuideScreenScrollbarOutline();
     private final GuideScreenEditorFileStore guideEditorFileStore = GuideScreenEditorFileStore.createDefault();
     private final Map<Integer, GuideIconButton> guideEditorActionButtons = new LinkedHashMap<>();
@@ -2634,7 +2638,9 @@ public class GuideScreen extends GuiContainer
         });
     }
 
-    /** Releases preview worlds before replacing the page reference or document tree. */
+    /**
+     * Releases preview worlds before replacing the page reference or document tree.
+     */
     private void releaseCurrentPageRuntime() {
         if (currentPage != null) {
             currentPage.releaseRuntimeScenes();
@@ -2854,7 +2860,9 @@ public class GuideScreen extends GuiContainer
         // pageLoadInProgress stays true — retry next tick
     }
 
-    /** Register scenes created at MOUNT time into GuidePage.scenes() for tick dispatch. */
+    /**
+     * Register scenes created at MOUNT time into GuidePage.scenes() for tick dispatch.
+     */
     private static void registerRuntimeScenes(GuidePage page) {
         int found = page.refreshMaterializedScenes();
         if (found > 0) {
@@ -3104,6 +3112,10 @@ public class GuideScreen extends GuiContainer
         navBar.setBounds(navX, navY, navH);
         NavigationTree navTree = resolveNavigationTree();
         navBar.update(mouseX, mouseY, navTree, bookmarkState, guideEditorTextSelectionDrag);
+        screenDebugComponents.beginFrame();
+        if (screenDebugComponents.isEnabled()) {
+            screenDebugComponents.add("GuideScreen", new LytRect(panelX, panelY, panelW, panelH), null, -1, null);
+        }
         int contentMouseX = mouseX;
         int contentMouseY = mouseY;
         if (navBar.isOpen() && navBar.contains(mouseX, mouseY)) {
@@ -3181,6 +3193,7 @@ public class GuideScreen extends GuiContainer
             guide,
             bookmarkState,
             isNavigationNewPageButtonVisible());
+        screenDebugComponents.include(navBar);
         if (isGuideEditorActive()) {
             drawGuideEditorContextMenu(mouseX, mouseY);
             GuideScreenNeiBridge.drawNativeNei(this, mouseX, mouseY);
@@ -3215,7 +3228,7 @@ public class GuideScreen extends GuiContainer
                 guideEditorPreviewScrollY,
                 1.0f,
                 previewDocument,
-                getGuideEditorDebugComponents(),
+                getScreenDebugComponents(),
                 fontRendererObj);
             return;
         }
@@ -3227,30 +3240,52 @@ public class GuideScreen extends GuiContainer
             mouseY,
             contentX,
             activeDocument != null ? getDocumentRenderY(activeDocument) : getDocumentViewportY(),
-            contentW,
-            getDocumentViewportHeight(),
             Math.round(visualScrollY),
             currentZoom,
             activeDocument,
+            getScreenDebugComponents(),
+            new LytRect(contentX, getDocumentViewportY(), contentW, contentH),
             fontRendererObj);
+    }
+
+    private List<DebugComponent.ComponentEntry> getScreenDebugComponents() {
+        var root = screenDebugComponents.getRoot();
+        var toolbar = screenDebugComponents.add(
+            "TopToolbar",
+            new LytRect(panelX, panelY, panelW, TOOLBAR_H),
+            null,
+            ScreenDebugComponents.CHROME_LAYER,
+            root);
+        for (Object buttonObject : buttonList) {
+            if (buttonObject instanceof GuiButton button && button.visible) {
+                String name = button instanceof GuideIconButton iconButton ? "Button:" + iconButton.getRole()
+                    .name() : "Button:" + button.id;
+                screenDebugComponents.add(
+                    name,
+                    new LytRect(button.xPosition, button.yPosition, button.width, button.height),
+                    "Enabled: " + button.enabled + " | " + button.displayString,
+                    ScreenDebugComponents.CHROME_LAYER,
+                    button.yPosition < panelY + TOOLBAR_H ? toolbar : root);
+            }
+        }
+        if (isGuideEditorActive()) {
+            for (var entry : getGuideEditorDebugComponents()) {
+                screenDebugComponents
+                    .add(entry.getName(), entry.getBounds(), entry.getExtraInfo(), entry.getPriority(), root);
+            }
+        }
+        return screenDebugComponents.getDebugComponents();
     }
 
     private List<DebugComponent.ComponentEntry> getGuideEditorDebugComponents() {
         List<DebugComponent.ComponentEntry> components = new ArrayList<>(buttonList.size() + 4);
-        for (Object buttonObject : buttonList) {
-            if (buttonObject instanceof GuideIconButton button && button.visible) {
-                components.add(
-                    new DebugComponent.SimpleComponentEntry(
-                        "Button:" + button.getRole()
-                            .name(),
-                        new LytRect(button.xPosition, button.yPosition, button.width, button.height),
-                        button.getTooltip(),
-                        100));
-            }
-        }
         if (guideEditorLayoutMode != GuideScreenEditorLayoutMode.PREVIEW_ONLY && guideEditorTextArea != null) {
             components.add(
-                new DebugComponent.SimpleComponentEntry("MarkdownEditor", guideEditorTextArea.getBounds(), null, 100));
+                new DebugComponent.SimpleComponentEntry(
+                    "MarkdownEditor",
+                    guideEditorTextArea.getBounds(),
+                    null,
+                    ScreenDebugComponents.CONTENT_LAYER));
         }
         if (guideEditorLayoutMode != GuideScreenEditorLayoutMode.EDITOR_ONLY) {
             int previewX = getGuideEditorPreviewX();
@@ -3264,16 +3299,6 @@ public class GuideScreen extends GuiContainer
                         new LytRect(previewX, previewY, previewWidth, previewHeight),
                         null,
                         -1));
-                if (guideEditorPreviewPage != null && guideEditorPreviewPage.document() != null
-                    && guideEditorPreviewPage.document()
-                        .getContentHeight() > previewHeight) {
-                    components.add(
-                        new DebugComponent.SimpleComponentEntry(
-                            "PreviewScrollbar",
-                            new LytRect(previewX + previewWidth - SCROLLBAR_W, previewY, SCROLLBAR_W, previewHeight),
-                            null,
-                            100));
-                }
             }
         }
         if (guideEditorLayoutMode == GuideScreenEditorLayoutMode.SPLIT) {
@@ -3281,12 +3306,22 @@ public class GuideScreen extends GuiContainer
                 new DebugComponent.SimpleComponentEntry(
                     "SplitDivider",
                     new LytRect(
+                        getGuideEditorDividerX(),
+                        getGuideEditorContentTop(),
+                        1,
+                        getGuideEditorPreviewPaneHeight()),
+                    null,
+                    ScreenDebugComponents.CONTENT_LAYER + 1));
+            components.add(
+                new DebugComponent.SimpleComponentEntry(
+                    "SplitDividerHitArea",
+                    new LytRect(
                         getGuideEditorDividerX() - 2,
                         getGuideEditorContentTop(),
                         5,
                         getGuideEditorPreviewPaneHeight()),
                     null,
-                    100));
+                    ScreenDebugComponents.CONTENT_LAYER + 1));
         }
         return components;
     }
@@ -3305,6 +3340,14 @@ public class GuideScreen extends GuiContainer
         int barY = panelY + panelH - TOOLBAR_H;
         drawRect(panelX, barY, panelX + panelW, panelY + panelH, BG_COLOR);
         drawRect(panelX, barY, panelX + panelW, barY + 1, ColorUtils.ARGB_FF2A2A2A.getColor());
+        if (screenDebugComponents.isEnabled()) {
+            screenDebugComponents.add(
+                "BottomBar",
+                new LytRect(panelX, barY, panelW, TOOLBAR_H),
+                null,
+                ScreenDebugComponents.CHROME_LAYER,
+                screenDebugComponents.getRoot());
+        }
 
         if (currentPage == null) {
             return;
@@ -3326,6 +3369,30 @@ public class GuideScreen extends GuiContainer
         int textX = textRightX - textW;
         int textY = barY + (TOOLBAR_H - fr.FONT_HEIGHT) / 2 + 1;
         fr.drawString(text, textX, textY, ColorUtils.ARGB_FFAAAAAA.getColor(), false);
+        if (screenDebugComponents.isEnabled()) {
+            var metadata = screenDebugComponents.add(
+                "PageMetadata",
+                new LytRect(textX, textY, textW, fr.FONT_HEIGHT),
+                text,
+                ScreenDebugComponents.CHROME_LAYER,
+                screenDebugComponents.getRoot());
+            int offset = 0;
+            int partIndex = 0;
+            while (offset < text.length()) {
+                int end = text.indexOf("§r§7", offset);
+                end = end < 0 ? text.length() : end + 4;
+                String part = text.substring(offset, end);
+                int partX = textX + fr.getStringWidth(text.substring(0, offset));
+                screenDebugComponents.add(
+                    partIndex == 0 ? "PageSource" : "MetadataDetail",
+                    new LytRect(partX, textY, fr.getStringWidth(part), fr.FONT_HEIGHT),
+                    part,
+                    ScreenDebugComponents.CHROME_LAYER,
+                    metadata);
+                offset = end;
+                partIndex++;
+            }
+        }
     }
 
     private void drawHomeContent(int mouseX, int mouseY) {
@@ -3336,6 +3403,7 @@ public class GuideScreen extends GuiContainer
         var sections = homePageDataBuilder.build(bookmarkState, homeHistory);
         var layout = HomePageLayout.compute(contentX, contentY, contentW, contentH, homeLogoWidth, homeLogoHeight);
         homePageController.render(mc, sections, layout, logoTexture, homeLogoWidth, homeLogoHeight, mouseX, mouseY);
+        screenDebugComponents.include(homePageController);
     }
 
     @Nullable
@@ -3434,6 +3502,7 @@ public class GuideScreen extends GuiContainer
             return;
         }
         autocompleteController.draw(mouseX, mouseY, fontRendererObj);
+        screenDebugComponents.include(autocompleteController);
     }
 
     private boolean isAutocompleteAnchorVisible() {
@@ -3627,6 +3696,7 @@ public class GuideScreen extends GuiContainer
         guideEditorContextMenu.setViewport(this.width, this.height, fontRendererObj);
         guideEditorContextMenu.update(mouseX, mouseY, this.width, this.height, fontRendererObj);
         guideEditorContextMenu.draw(fontRendererObj, mouseX, mouseY);
+        screenDebugComponents.include(guideEditorContextMenu);
     }
 
     private void drawHomePageContextMenu(int mouseX, int mouseY) {
@@ -3636,6 +3706,7 @@ public class GuideScreen extends GuiContainer
         homePageContextMenu.setViewport(this.width, this.height, fontRendererObj);
         homePageContextMenu.update(mouseX, mouseY, this.width, this.height, fontRendererObj);
         homePageContextMenu.draw(fontRendererObj, mouseX, mouseY);
+        screenDebugComponents.include(homePageContextMenu);
     }
 
     private void drawNavBarContextMenu(int mouseX, int mouseY) {
@@ -3645,6 +3716,7 @@ public class GuideScreen extends GuiContainer
         navBarContextMenu.setViewport(this.width, this.height, fontRendererObj);
         navBarContextMenu.update(mouseX, mouseY, this.width, this.height, fontRendererObj);
         navBarContextMenu.draw(fontRendererObj, mouseX, mouseY);
+        screenDebugComponents.include(navBarContextMenu);
     }
 
     private int layoutGuideEditorActionButtons(int startX, int startY, int availableWidth) {
@@ -3772,6 +3844,20 @@ public class GuideScreen extends GuiContainer
         int thumbY = maxScroll > 0 ? barY + (int) ((long) (barH - thumbH) * guideEditorPreviewScrollY / maxScroll)
             : barY;
         drawRect(barX, thumbY, barX + barW, thumbY + thumbH, ColorUtils.SCROLLBAR_THUMB.getColor());
+        if (screenDebugComponents.isEnabled()) {
+            var track = screenDebugComponents.add(
+                "PreviewScrollbarTrack",
+                new LytRect(barX, barY, barW, barH),
+                null,
+                ScreenDebugComponents.CONTENT_LAYER + 1,
+                screenDebugComponents.getRoot());
+            screenDebugComponents.add(
+                "PreviewScrollbarThumb",
+                new LytRect(barX, thumbY, barW, thumbH),
+                null,
+                ScreenDebugComponents.CONTENT_LAYER + 1,
+                track);
+        }
     }
 
     private boolean handleGuideEditorKey(char typedChar, int keyCode) {
@@ -4605,6 +4691,29 @@ public class GuideScreen extends GuiContainer
         int titleH = pageTitle.getBounds()
             .height();
         int titleY = Math.max(0, (TOOLBAR_H - titleH) / 2) + panelY + 2;
+        if (screenDebugComponents.isEnabled()) {
+            LytRect clip = new LytRect(panelX, panelY, availableW + PANEL_PADDING, TOOLBAR_H);
+            var title = screenDebugComponents.addClipped(
+                "PageTitle",
+                pageTitle.getBounds()
+                    .move(titleX, titleY),
+                clip,
+                pageTitle.getTextContent(),
+                ScreenDebugComponents.CHROME_LAYER,
+                screenDebugComponents.getRoot());
+            for (var entry : pageTitle.getAllFlowContent()) {
+                screenDebugComponents.addClipped(
+                    "Title:" + entry.content()
+                        .getClass()
+                        .getSimpleName(),
+                    entry.bounds()
+                        .move(titleX, titleY),
+                    clip,
+                    null,
+                    ScreenDebugComponents.CHROME_LAYER,
+                    title);
+            }
+        }
 
         var ctx = reusableContentTooltipCtx;
         cachedTitleViewport = cachedRect(cachedTitleViewport, 0, 0, availableW, Math.max(titleH, TOOLBAR_H));
@@ -4870,6 +4979,23 @@ public class GuideScreen extends GuiContainer
         drawHoveringText(lines, layout.mouseAnchorX(), layout.mouseAnchorY(), font);
 
         int firstItemY = layout.top() + (labelLine + 1) * 10;
+        if (screenDebugComponents.isEnabled()) {
+            var tooltipEntry = collectTooltipDebugComponents(lines, font, layout);
+            for (int index = 0; index < visibleCount; index++) {
+                if (permutations.get(index) != null) {
+                    screenDebugComponents.add(
+                        "TooltipItemPermutation",
+                        new LytRect(
+                            layout.textX() + (index % columns) * 18 + 1,
+                            firstItemY + (index / columns) * 20 + 1,
+                            16,
+                            16),
+                        "Index: " + index,
+                        ScreenDebugComponents.TOOLTIP_LAYER,
+                        tooltipEntry);
+                }
+            }
+        }
         GL11.glPushAttrib(GL11.GL_ENABLE_BIT | GL11.GL_COLOR_BUFFER_BIT | GL11.GL_LIGHTING_BIT);
         GL11.glEnable(GL12.GL_RESCALE_NORMAL);
         this.zLevel = 300.0F;
@@ -4996,6 +5122,14 @@ public class GuideScreen extends GuiContainer
         drawGradientRect(x - pad, y + h + pad - 1, x + w + pad, y + h + pad, ctBorderBottom, ctBorderBottom);
         drawGradientRect(x - pad, y - pad + 1, x - pad + 1, y + h + pad - 1, ctBorderTop, ctBorderBottom);
         drawGradientRect(x + w + pad - 1, y - pad + 1, x + w + pad, y + h + pad - 1, ctBorderTop, ctBorderBottom);
+        if (screenDebugComponents.isEnabled()) {
+            screenDebugComponents.add(
+                "ContentTooltip",
+                new LytRect(x - pad - 1, y - pad - 1, w + pad * 2 + 2, h + pad * 2 + 2),
+                null,
+                ScreenDebugComponents.TOOLTIP_LAYER,
+                screenDebugComponents.getRoot());
+        }
 
         var ctx = reusableContentTooltipCtx;
         cachedContentTooltipViewport = cachedRect(
@@ -5087,6 +5221,32 @@ public class GuideScreen extends GuiContainer
         }
         TooltipLayout layout = computeHoveringTextLayout(lines, mouseX, mouseY, font, bounds);
         drawHoveringText(lines, layout.mouseAnchorX(), layout.mouseAnchorY(), font);
+        if (screenDebugComponents.isEnabled()) {
+            collectTooltipDebugComponents(lines, font, layout);
+        }
+    }
+
+    @Nullable
+    private DebugComponent.ComponentEntry collectTooltipDebugComponents(List<String> lines, FontRenderer font,
+        TooltipLayout layout) {
+        var tooltip = screenDebugComponents.add(
+            "Tooltip",
+            new LytRect(layout.boxLeft(), layout.boxTop(), layout.width() + 6, layout.height() + 8),
+            null,
+            ScreenDebugComponents.TOOLTIP_LAYER,
+            screenDebugComponents.getRoot());
+        int textY = layout.top();
+        for (int index = 0; index < lines.size(); index++) {
+            String line = lines.get(index);
+            screenDebugComponents.add(
+                "TooltipText",
+                new LytRect(layout.textX(), textY, font.getStringWidth(line), font.FONT_HEIGHT),
+                line,
+                ScreenDebugComponents.TOOLTIP_LAYER,
+                tooltip);
+            textY += index == 0 && lines.size() > 1 ? 12 : 10;
+        }
+        return tooltip;
     }
 
     private void drawTooltipTextAnchored(List<String> lines, FontRenderer font, TooltipLayout anchorLayout,
@@ -5118,6 +5278,12 @@ public class GuideScreen extends GuiContainer
         int textX = boxLeft + 3;
         int textY = boxTop + 4;
         drawHoveringText(lines, textX - 12, textY + 12, font);
+        if (screenDebugComponents.isEnabled()) {
+            collectTooltipDebugComponents(
+                lines,
+                font,
+                new TooltipLayout(textX - 12, textY + 12, textX, textY, tooltipWidth, tooltipHeight, false));
+        }
     }
 
     private TooltipLayout computeHoveringTextLayout(List<String> lines, int mouseX, int mouseY, FontRenderer font,
@@ -5244,6 +5410,14 @@ public class GuideScreen extends GuiContainer
         }
 
         searchField.drawTextBox();
+        if (screenDebugComponents.isEnabled()) {
+            screenDebugComponents.add(
+                "SearchField",
+                new LytRect(searchField.xPosition, searchField.yPosition, searchField.width, searchField.height),
+                searchField.getText(),
+                ScreenDebugComponents.CHROME_LAYER,
+                screenDebugComponents.getRoot());
+        }
         if (shouldDrawSearchPlaceholder()) {
             drawString(
                 fontRendererObj,
@@ -5294,6 +5468,29 @@ public class GuideScreen extends GuiContainer
         specialSearchField.drawTextBox();
         specialSearchField.yPosition = originalY;
         popGuiScissor();
+        if (screenDebugComponents.isEnabled()) {
+            var background = screenDebugComponents.add(
+                "SpecialSearchPanel",
+                specialSearchFieldBounds,
+                null,
+                ScreenDebugComponents.CONTENT_LAYER,
+                screenDebugComponents.getRoot());
+            screenDebugComponents.addClipped(
+                "SpecialSearchField",
+                new LytRect(
+                    specialSearchField.xPosition,
+                    originalY + 2,
+                    specialSearchField.width,
+                    specialSearchField.height),
+                new LytRect(
+                    backgroundLeft + 1,
+                    backgroundTop + 1,
+                    backgroundRight - backgroundLeft - 2,
+                    backgroundBottom - backgroundTop - 2),
+                specialSearchField.getText(),
+                ScreenDebugComponents.CONTENT_LAYER,
+                background);
+        }
         if (shouldDrawSpecialSearchPlaceholder()) {
             drawString(
                 fontRendererObj,
@@ -5341,6 +5538,7 @@ public class GuideScreen extends GuiContainer
         int textX = areaX + Math.max(0, (areaW - textW) / 2);
         int textY = areaY + Math.max(0, (areaH - fontRendererObj.FONT_HEIGHT) / 2);
         fontRendererObj.drawString(message, textX, textY, ColorUtils.BODY_TEXT.resolve(), false);
+        collectDebugText("SearchStateMessage", message, textX, textY, textW);
     }
 
     public static LytRect cachedRect(@Nullable LytRect current, int x, int y, int w, int h) {
@@ -5362,6 +5560,12 @@ public class GuideScreen extends GuiContainer
             panelX + (panelW - tw) / 2,
             panelY + panelH / 2 - fr.FONT_HEIGHT / 2,
             ColorUtils.ARGB_FFFF5555.getColor());
+        collectDebugText(
+            "PageMissingMessage",
+            msg,
+            panelX + (panelW - tw) / 2,
+            panelY + panelH / 2 - fr.FONT_HEIGHT / 2,
+            tw);
     }
 
     private void drawLoadingMessage() {
@@ -5376,6 +5580,23 @@ public class GuideScreen extends GuiContainer
             contentX + (contentW - tw) / 2,
             documentY + documentH / 2 - fr.FONT_HEIGHT / 2,
             ColorUtils.ARGB_FFCCCCCC.getColor());
+        collectDebugText(
+            "LoadingMessage",
+            message,
+            contentX + (contentW - tw) / 2,
+            documentY + documentH / 2 - fr.FONT_HEIGHT / 2,
+            tw);
+    }
+
+    private void collectDebugText(String name, String text, int x, int y, int textWidth) {
+        if (screenDebugComponents.isEnabled()) {
+            screenDebugComponents.add(
+                name,
+                new LytRect(x, y, textWidth, fontRendererObj.FONT_HEIGHT),
+                text,
+                ScreenDebugComponents.CONTENT_LAYER,
+                screenDebugComponents.getRoot());
+        }
     }
 
     private String buildAnimatedLoadingLabel(String baseText) {
@@ -5477,6 +5698,20 @@ public class GuideScreen extends GuiContainer
             : bounds.y();
         int thumbColor = draggingScrollbar ? ColorUtils.WHITE.getColor() : ColorUtils.ARGB_FFCCCCCC.getColor();
         drawRect(bounds.x(), thumbY, bounds.x() + bounds.width(), thumbY + thumbH, thumbColor);
+        if (screenDebugComponents.isEnabled()) {
+            var track = screenDebugComponents.add(
+                "DocumentScrollbarTrack",
+                new LytRect(bounds.x(), bounds.y(), bounds.width(), bounds.height()),
+                null,
+                ScreenDebugComponents.CONTENT_LAYER,
+                screenDebugComponents.getRoot());
+            screenDebugComponents.add(
+                "DocumentScrollbarThumb",
+                new LytRect(bounds.x(), thumbY, bounds.width(), thumbH),
+                null,
+                ScreenDebugComponents.CONTENT_LAYER + 1,
+                track);
+        }
         drawScrollbarOutlineLabel(renderState, mc.fontRenderer);
     }
 
@@ -7777,6 +8012,14 @@ public class GuideScreen extends GuiContainer
                 entry.markerX() + entry.markerWidth(),
                 entry.markerY() + entry.markerHeight(),
                 color);
+            if (screenDebugComponents.isEnabled()) {
+                screenDebugComponents.add(
+                    "ScrollbarHeadingMarker",
+                    new LytRect(entry.markerX(), entry.markerY(), entry.markerWidth(), entry.markerHeight()),
+                    null,
+                    ScreenDebugComponents.CONTENT_LAYER + 1,
+                    screenDebugComponents.getRoot());
+            }
         }
     }
 
@@ -7793,6 +8036,14 @@ public class GuideScreen extends GuiContainer
         int border = ColorUtils.argb(label.alpha(), 216, 216, 216);
         drawRect(label.x(), label.y(), label.x() + bubbleWidth, label.y() + bubbleHeight, background);
         drawBorder(label.x(), label.y(), bubbleWidth, bubbleHeight, border);
+        if (screenDebugComponents.isEnabled()) {
+            screenDebugComponents.add(
+                "ScrollbarHeadingLabel",
+                new LytRect(label.x(), label.y(), bubbleWidth, bubbleHeight),
+                String.join(" ", label.lines()),
+                ScreenDebugComponents.CONTENT_LAYER + 2,
+                screenDebugComponents.getRoot());
+        }
         int textY = label.y() + SCROLLBAR_OUTLINE_LABEL_PADDING_Y;
         for (String line : label.lines()) {
             fontRenderer.drawStringWithShadow(
