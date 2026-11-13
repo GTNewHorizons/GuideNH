@@ -469,7 +469,9 @@ public class FunctionGraphFenceParser {
         return map;
     }
 
-    /** Tiny case-sensitive map wrapper that exposes typed accessors. */
+    /**
+     * Tiny case-sensitive map wrapper that exposes typed accessors.
+     */
     private static class ParseState {
 
         private boolean headerParsed;

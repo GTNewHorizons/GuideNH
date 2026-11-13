@@ -158,7 +158,7 @@ categories:
 
 **矿辞 `ore` 属性测试：**
 
-- 第一个匹配到的物品：<ItemImage ore="ingotIron" /> 铁锭
+- 第一个匹配到的物品：<ItemImage id="minecraft:iron_ingot" ore="ingotIron" /> 铁锭
 - 第一个匹配到的文本链接：<ItemLink ore="stickWood" />
 - 方块预览：<BlockImage ore="logWood" scale="3" />
 - `ore` 优先于 `id`：<ItemImage id="minecraft:apple" ore="gemDiamond" />

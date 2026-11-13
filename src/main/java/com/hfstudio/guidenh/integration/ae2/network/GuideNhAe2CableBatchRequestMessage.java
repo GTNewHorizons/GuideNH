@@ -4,7 +4,9 @@ import cpw.mods.fml.common.network.simpleimpl.IMessage;
 import io.netty.buffer.ByteBuf;
 import lombok.Getter;
 
-/** Client asks server to snapshot AE2 cable stream bytes at world coords (server runs PartCable.writeToStream). */
+/**
+ * Client asks server to snapshot AE2 cable stream bytes at world coords (server runs PartCable.writeToStream).
+ */
 @Getter
 public class GuideNhAe2CableBatchRequestMessage implements IMessage {
 
@@ -12,7 +14,9 @@ public class GuideNhAe2CableBatchRequestMessage implements IMessage {
 
     private long corrId;
     private int dim;
-    /** Flat xyzxyz… length divisible by 3. */
+    /**
+     * Flat xyzxyz… length divisible by 3.
+     */
     private int[] xyz;
 
     public GuideNhAe2CableBatchRequestMessage() {

@@ -10,7 +10,9 @@ import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxTextElement;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstAnyContent;
 
-/** Prepares template source for the in-game editor without treating unresolved parameters as content errors. */
+/**
+ * Prepares template source for the in-game editor without treating unresolved parameters as content errors.
+ */
 public final class MediaWikiTemplateEditorPreview {
 
     private static final String DYNAMIC_ATTRIBUTE_MARKER = "<Param";

@@ -83,7 +83,9 @@ class MediaWikiTemplateLegacySyntaxTest {
             () -> lines.get(0));
     }
 
-    /** Shorthand so the cases that expect nothing stay one line each. */
+    /**
+     * Shorthand so the cases that expect nothing stay one line each.
+     */
     private static List<String> find(String source, int limit) {
         return MediaWikiTemplateDiagnostics.findLegacySyntax(source, limit);
     }

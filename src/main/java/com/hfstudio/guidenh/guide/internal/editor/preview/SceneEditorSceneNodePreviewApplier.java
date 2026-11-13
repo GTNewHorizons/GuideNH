@@ -35,6 +35,7 @@ import com.hfstudio.guidenh.guide.internal.structure.GuideTextNbtCodec;
 import com.hfstudio.guidenh.guide.internal.util.LangUtil;
 import com.hfstudio.guidenh.guide.scene.LytGuidebookScene;
 import com.hfstudio.guidenh.guide.scene.StructureLibSceneCondition;
+import com.hfstudio.guidenh.guide.scene.annotation.AnnotationColorStyle;
 import com.hfstudio.guidenh.guide.scene.annotation.DiamondAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.InWorldBoxAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.InWorldLineAnnotation;
@@ -579,7 +580,12 @@ public class SceneEditorSceneNodePreviewApplier {
                 element.getPrimaryX() + 1f,
                 element.getPrimaryY() + 1f,
                 element.getPrimaryZ() + 1f);
-            InWorldBoxAnnotation annotation = new InWorldBoxAnnotation(min, max, color, element.getThickness());
+            InWorldBoxAnnotation annotation = new InWorldBoxAnnotation(
+                min,
+                max,
+                color,
+                element.getThickness(),
+                parseColorStyle(element));
             annotation.setAlwaysOnTop(element.isAlwaysOnTop());
             applyTooltip(annotation, element.getTooltipMarkdown());
             applyStructureLibCondition(annotation, element);
@@ -589,7 +595,12 @@ public class SceneEditorSceneNodePreviewApplier {
             Vector3f min = new Vector3f(element.getPrimaryX(), element.getPrimaryY(), element.getPrimaryZ());
             Vector3f max = new Vector3f(element.getSecondaryX(), element.getSecondaryY(), element.getSecondaryZ());
             normalizeBounds(min, max);
-            InWorldBoxAnnotation annotation = new InWorldBoxAnnotation(min, max, color, element.getThickness());
+            InWorldBoxAnnotation annotation = new InWorldBoxAnnotation(
+                min,
+                max,
+                color,
+                element.getThickness(),
+                parseColorStyle(element));
             annotation.setAlwaysOnTop(element.isAlwaysOnTop());
             applyTooltip(annotation, element.getTooltipMarkdown());
             applyStructureLibCondition(annotation, element);
@@ -635,6 +646,14 @@ public class SceneEditorSceneNodePreviewApplier {
         applyTooltip(annotation, element.getTooltipMarkdown());
         applyStructureLibCondition(annotation, element);
         return Collections.singletonList(annotation);
+    }
+
+    private static AnnotationColorStyle parseColorStyle(SceneEditorElementModel element) {
+        String mode = element.getExtraAttribute("colorMode");
+        String period = element.getExtraAttribute("colorPeriod");
+        return AnnotationColorStyle.parse(
+            mode != null ? mode : "solid",
+            period != null ? Float.parseFloat(period) : AnnotationColorStyle.DEFAULT_PERIOD);
     }
 
     private List<Vector3f> resolveLinePoints(SceneEditorElementModel element) {

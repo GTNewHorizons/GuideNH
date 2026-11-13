@@ -8,6 +8,7 @@ import net.minecraft.client.gui.FontRenderer;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.input.Keyboard;
 
+import com.hfstudio.guidenh.guide.internal.debug.DebugComponent;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider.AutocompleteCandidate;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver.CompositeResolver;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver.MarkdownSyntaxResolver;
@@ -19,8 +20,10 @@ import com.hfstudio.guidenh.guide.syntax.GuideSyntaxModel;
 import com.hfstudio.guidenh.guide.syntax.SyntaxEnvironment;
 import com.hfstudio.guidenh.guide.syntax.SyntaxSelection;
 
-/** Owns the guide editor's syntax completion session: it resolves what the cursor is inside, asks the guide's. */
-public class GuideEditorAutocompleteController {
+/**
+ * Owns the guide editor's syntax completion session: it resolves what the cursor is inside, asks the guide's.
+ */
+public class GuideEditorAutocompleteController implements DebugComponent {
 
     public enum KeyResult {
         IGNORED,
@@ -170,6 +173,11 @@ public class GuideEditorAutocompleteController {
         }
         popup.reposition(anchorX, anchorY, viewportWidth, viewportHeight, fontRenderer);
         popup.draw(fontRenderer, mouseX, mouseY);
+    }
+
+    @Override
+    public List<DebugComponent.ComponentEntry> getDebugComponents() {
+        return popup.getDebugComponents();
     }
 
     public KeyResult handleKey(String text, char typedChar, int keyCode) {

@@ -314,8 +314,6 @@ public class MdAstToMdxConverter {
         }
     }
 
-    // Factory helpers
-
     /**
      * Creates a flow element with the given tag name and children.
      * <p>

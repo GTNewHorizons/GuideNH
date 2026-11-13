@@ -12,6 +12,7 @@ GuideNH cena Anotações são filho tags dentro de `<GameScene>` / `<Scene>`. El
 - Anotações pode ser oculto com O cena UI toggle
 - `alwaysOnTop` desenha acima de cena geometria quando Compatível by O anotação Tipo
 - todos cena Anotações também aceitam opcional `showWhenStructure`, `showWhenTier`, e `showWhenChannels` condições quando O cena usa `<ImportStructureLib>`
+- O jogo e Site Export usam o mesmo gradiente de arco-íris e a mesma duração do ciclo.
 
 ## tags de anotação compatíveis
 
@@ -68,8 +69,11 @@ Destaca um volume de bloco 1x1x1 único.
 | --- | --- | --- |
 | `pos` | sim | `x y z` vetor |
 | `color` | não | `#RRGGBB`, `#AARRGGBB`, ou `transparent` |
+| `colorMode` | não | `solid` (padrão) ou `rainbow`; o arco-íris gira 360° ao redor do centro projetado, substitui RGB e preserva o alfa de `color` |
+| `colorPeriod` | não | período positivo e finito do arco-íris em segundos; padrão `2.4`; valores inválidos geram um erro de página |
 | `thickness` | não | espessura da linha decimal |
 | `alwaysOnTop` | não | booleano expressão |
+
 
 Exemplo:
 
@@ -77,6 +81,7 @@ Exemplo:
 <BlockAnnotation pos="2 0 2" color="#33DDEE" alwaysOnTop={true}>
   Destaca o bloco controlador.
 </BlockAnnotation>
+<BlockAnnotation pos="4 0 2" color="#80FFFFFF" colorMode="rainbow" colorPeriod="4.8" />
 ````
 
 ## `<BoxAnnotation>`
@@ -88,8 +93,11 @@ Destaca uma caixa arbitrária alinhada aos eixos.
 | `min` | sim | `x y z` minimum vetor |
 | `max` | sim | `x y z` maximum vetor |
 | `color` | não | anotação cor |
+| `colorMode` | não | `solid` (padrão) ou `rainbow`; o arco-íris gira 360° ao redor do centro projetado, substitui RGB e preserva o alfa de `color` |
+| `colorPeriod` | não | período positivo e finito do arco-íris em segundos; padrão `2.4`; valores inválidos geram um erro de página |
 | `thickness` | não | espessura da linha decimal |
 | `alwaysOnTop` | não | booleano expressão |
+
 
 GuideNH automaticamente swaps min/max coordenadas per axis quando Elas são fornecido em reverse ordem.
 
@@ -99,6 +107,7 @@ Exemplo:
 <BoxAnnotation min="0 1 0" max="1 1.6 0.6" color="#EE3333" thickness="0.04">
   Destaque de área com meia altura.
 </BoxAnnotation>
+<BoxAnnotation min="2 0 0" max="4 1.5 0.5" color="#80FFFFFF" colorMode="rainbow" colorPeriod="2.4" />
 ````
 
 ## `<LineAnnotation>`
@@ -176,10 +185,13 @@ Desenha um contorno de silhueta brilhante ao redor de blocos e entidades, como o
 | `target` | não | `blocks` (padrão), `entities` ou `all`: o que é contornado dentro da região; `entities` sem região contorna todas as entidades |
 | `mode` | não | `auto` (padrão), `geometry`, `cutout` ou `bounds` |
 | `color` | não | cor do contorno; omitida usa branco, ou a cor do time do placar para entidades |
+| `colorMode` | não | `solid` (padrão) ou `rainbow`; o arco-íris gira 360° ao redor do centro projetado, substitui RGB e preserva o alfa de `color` |
+| `colorPeriod` | não | período positivo e finito do arco-íris em segundos; padrão `2.4`; valores inválidos geram um erro de página |
 | `thickness` | não | largura do contorno em pixels de GUI, de `0.25` a `8`, padrão `1` |
 | `alwaysOnTop` | não | expressão booleana; partes ocultas mantêm o brilho total em vez de escurecer |
 | `pulse` | não | expressão booleana; faz o contorno respirar |
 | `pulsePeriod` | não | período da respiração em segundos, padrão `2` |
+
 
 Modos de silhueta:
 
@@ -209,7 +221,7 @@ Exemplo:
   <OutlineAnnotation pos="0 0 0" color="#55FFFF">
     O vidro é contornado como um cubo inteiro.
   </OutlineAnnotation>
-  <OutlineAnnotation pos="2 0 0" color="#FFFF55" thickness="1.5" />
+  <OutlineAnnotation pos="2 0 0" color="#80FFFFFF" colorMode="rainbow" colorPeriod="2.4" thickness="1.5" />
   <OutlineAnnotation entity="sheep" color="#FFAA00" alwaysOnTop={true} pulse={true} />
 </GameScene>
 ````

@@ -10,7 +10,9 @@ import com.hfstudio.guidenh.guide.editor.SceneEditorMenuItem;
 import com.hfstudio.guidenh.guide.internal.GuidebookText;
 import com.hfstudio.guidenh.guide.internal.screen.GuideIconButton;
 
-/** Owns the built-in Scene Editor toolbar and dropdown registration definitions. */
+/**
+ * Owns the built-in Scene Editor toolbar and dropdown registration definitions.
+ */
 public class SceneEditorDefaultControlRegistry {
 
     public static List<GuideIconButton> createToolbarButtons(int x, int y) {

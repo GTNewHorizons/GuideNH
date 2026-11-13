@@ -13,18 +13,8 @@ public enum LatexVerticalAlign {
     TOP,
 
     /**
-     * Formula is positioned so its math baseline aligns with the text baseline.
-     *
-     * <p>
-     * Internally this adds back the formula's typographic depth (pixels below the math baseline,
-     * e.g. denominators in fractions) to the BOTTOM offset, so the math baseline lands on the same
-     * horizontal line as the text glyphs. For depth-zero formulas (pure superscripts, plain letters)
-     * the result is identical to {@link #BOTTOM}.
-     *
-     * <p>
-     * This is the default alignment because it produces the most natural-looking result for inline
-     * math: letters and superscripts align flush with the surrounding text, while fractions and
-     * integral limits extend symmetrically above and below the text baseline.
+     * Aligns the formula's math baseline with the text baseline by accounting for typographic depth below the
+     * formula. Matches BOTTOM for formulas with zero depth. This is the default inline alignment.
      */
     BASELINE,
 

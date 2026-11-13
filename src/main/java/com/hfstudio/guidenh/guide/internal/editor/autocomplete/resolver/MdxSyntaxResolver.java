@@ -91,7 +91,9 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
         return resolveTagStart(text, cursorIndex, enclosingContainerName(text, cursorIndex));
     }
 
-    /** The name of the nearest tag that opens before the caret and has not been closed, or null at the root. */
+    /**
+     * The name of the nearest tag that opens before the caret and has not been closed, or null at the root.
+     */
     @Nullable
     private static String enclosingContainerName(String text, int cursorIndex) {
         Deque<String> open = new ArrayDeque<>();
@@ -157,7 +159,9 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
         return root;
     }
 
-    /** The fence language at the caret, read from the line the caret is on. */
+    /**
+     * The fence language at the caret, read from the line the caret is on.
+     */
     @Nullable
     public static TextSyntaxContext resolveFenceLanguageLine(String text, int cursorIndex) {
         int lineStart = text.lastIndexOf('\n', cursorIndex - 1) + 1;
@@ -232,14 +236,12 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
             return resolvePlainTextWord(text, cursorIndex);
         }
 
-        // 2.5. Markdown link/image URL
         MdAstResource res = findEnclosingLink(root, cursorIndex);
         if (res != null) {
             TextSyntaxContext result = resolveLinkUrl(res, text, cursorIndex);
             if (result != null) return result;
         }
 
-        // 3. MDX element
         MdxJsxElementFields element = findEnclosingMdxElement(root, cursorIndex);
         if (element != null) {
             TextSyntaxContext result = resolveMdxAttribute(element, text, cursorIndex);
@@ -248,7 +250,6 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
             }
         }
 
-        // 4. Tag start
         TextSyntaxContext tagStart = resolveTagStart(text, cursorIndex, element != null ? element.name() : null);
         if (tagStart != null) {
             return tagStart;

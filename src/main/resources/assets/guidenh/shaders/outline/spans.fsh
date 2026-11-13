@@ -9,7 +9,7 @@ uniform int uRadius;
 varying vec2 vUv;
 
 const float STYLE_SLOTS = 256.0;
-const float STYLE_COLUMNS = 4.0;
+const float STYLE_COLUMNS = 5.0;
 const float THICKNESS_COLUMN = 2.0;
 
 vec4 mask(float u) {

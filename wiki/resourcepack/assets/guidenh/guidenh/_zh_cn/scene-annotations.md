@@ -55,6 +55,8 @@ categories:
 所有三种都支持 `color="#AARRGGBB" 或 "#RRGGBB"`、`thickness`（线宽，单位：像素，默认 `1`）以及 `alwaysOnTop`（始终绘制在最前）。子节点是富文本，会作为悬停 tooltip 显示。
 `LineAnnotation` 还可以用 `arrow="start"` 或 `arrow="end"` 在端点绘制 3D 箭头。点标记默认隐藏；可以用 `showPoints={true}` 显示所有点，或用 `<LinePoint index="..." show color="#RRGGBB" size="..."/>` 单独配置某个点。
 
+`BoxAnnotation` 和 `BlockAnnotation` 还支持 `colorMode="solid"`（默认）或 `colorMode="rainbow"`。彩虹围绕注解投影中心旋转 360°，替换 RGB 并保留 `color` 透明度；`colorPeriod` 指定正且有限的循环秒数，默认 `2.4`。游戏和 Site Export 使用相同规则。
+
 <GameScene width="384" height="224" zoom={4} interactive={true}>
   <Block id="minecraft:iron_block" />
   <Block id="minecraft:iron_block" x="1" />
@@ -81,7 +83,7 @@ categories:
   <LineAnnotation color="#ffd24c" from="0.5 1.2 0.5" to="2.5 1.2 2.5" thickness="0.08">
     **线段注解**：连接两个角，`thickness=0.08` 略粗一些。Tooltip 里能嵌三维预览：
 
-    <GameScene width="160" height="96" zoom={5} perspective="isometric_north_east" interactive={false}>
+    <GameScene width="160" height="96" zoom={5} perspective="isometric-north-east" interactive={false}>
       <Block id="minecraft:iron_block" />
       <Block id="minecraft:gold_block" x="1" />
       <DiamondAnnotation pos="0.5 1.2 0.5" color="#ffd24c">连接点 A</DiamondAnnotation>
@@ -101,11 +103,31 @@ categories:
   </LineAnnotation>
 </GameScene>
 
+下面对比半透明的扁长盒子和完整方块，循环周期分别为 `2.4` 秒和 `4.8` 秒：
+
+```mdx
+<GameScene width="384" height="224" zoom={3} interactive={true}>
+  <Block id="minecraft:iron_block" />
+  <Block id="minecraft:glass" x="3" />
+  <BoxAnnotation min="0 1 0" max="2 1.5 0.5" color="#80FFFFFF" colorMode="rainbow" colorPeriod="2.4" thickness="2" />
+  <BlockAnnotation pos="3 0 0" colorMode="rainbow" colorPeriod="4.8" />
+</GameScene>
+```
+
+<GameScene width="384" height="224" zoom={3} interactive={true}>
+  <Block id="minecraft:iron_block" />
+  <Block id="minecraft:glass" x="3" />
+  <BoxAnnotation min="0 1 0" max="2 1.5 0.5" color="#80FFFFFF" colorMode="rainbow" colorPeriod="2.4" thickness="2" />
+  <BlockAnnotation pos="3 0 0" colorMode="rainbow" colorPeriod="4.8" />
+</GameScene>
+
 ## 描边注解
 
 `<OutlineAnnotation>` 会在方块和实体周围绘制类似发光效果的轮廓。轮廓贴合实际渲染出的剪影，被前方物体遮挡时依然可见，相互接触的轮廓会合并成一个整体。用 `pos` 指定单个方块，用包含两端的 `min` / `max` 指定方块区域，或用 `entity="sceneEntityId"` 指定实体；`target="entities"` 或 `target="all"` 还会描边区域内的实体。
 
 属性：`color`（默认白色，实体默认使用队伍颜色）、以 GUI 像素为单位的 `thickness`（默认 `1`）、`alwaysOnTop`、`pulse={true}` 呼吸灯及可选的 `pulsePeriod`（秒），以及 `mode`（`auto`、`geometry`、`cutout`、`bounds`）。子内容会成为悬停 tooltip。
+
+`OutlineAnnotation` 同样支持上表的 `colorMode` 和 `colorPeriod`；颜色动画与 `pulse` 呼吸周期独立，可用于方块、区域、实体和模板。
 
 默认的 `mode="auto"` 下，封闭模型使用几何体轮廓，贴图式渲染使用纹理透明度：
 
@@ -122,7 +144,7 @@ categories:
   <OutlineAnnotation pos="2 0 0" color="#FF5555">
     **染色玻璃**：半透明方块同样保留几何体轮廓。
   </OutlineAnnotation>
-  <OutlineAnnotation pos="4 0 0" color="#FFFF55">
+  <OutlineAnnotation pos="4 0 0" color="#80FFFFFF" colorMode="rainbow" colorPeriod="2.4">
     **花**：交叉贴图按纹理透明度描边，而不是两个四边形面片。
   </OutlineAnnotation>
   <OutlineAnnotation pos="0 0 2" color="#55FF55" />
@@ -147,7 +169,7 @@ categories:
     **区域**：`min` / `max` 把六个方块描成一个整体。
   </OutlineAnnotation>
   <BlockAnnotationTemplate id="minecraft:diamond_block">
-    <OutlineAnnotation color="#FFFF55" pulse={true}>
+    <OutlineAnnotation color="#80FFFFFF" colorMode="rainbow" colorPeriod="4.8" pulse={true}>
       **模板**：每个钻石块都会获得呼吸灯描边。
     </OutlineAnnotation>
   </BlockAnnotationTemplate>

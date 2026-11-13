@@ -116,7 +116,9 @@ public class FrontmatterNavigation {
         return excludedMods;
     }
 
-    /** Search aliases that are indexed in addition to the page title and body. */
+    /**
+     * Search aliases that are indexed in addition to the page title and body.
+     */
     public List<String> keywords() {
         return keywords;
     }

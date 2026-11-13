@@ -10,7 +10,7 @@ categories:
 
 # 内容嵌入与文字环绕
 
-所有块级标签均支持 `wrap` 和 `align` 属性，对应 Microsoft Word 的"文字环绕"选项。
+`BlockImage`、`Recipe`、`GameScene` 等块级标签支持 `wrap` 和 `align`。`FloatingImage` 的独立规则见下方图片示例；`ItemImage` 使用 `Column` 或 `Row` 容器对齐。
 
 ## 环绕模式
 
@@ -21,8 +21,8 @@ categories:
 | `tight` | 本布局系统中等同 `square`（紧密型） |
 | `through` | 本布局系统中等同 `square`（穿越型） |
 | `top-bottom` | 两侧无文字；`align` 控制水平位置（上下型） |
-| `behind` | 同 `inline` 对齐方式，但渲染在文字下方（衬于文字下方） |
-| `front` | 同 `inline` 对齐方式，但渲染在文字上方（浮于文字上方） |
+| `behind` | 当前使用常规对齐放置，不创建独立文字图层 |
+| `front` | 当前使用常规对齐放置，不创建独立文字图层 |
 
 ## 对齐方式
 
@@ -75,18 +75,21 @@ categories:
 
 ## 物品图标
 
-<ItemImage id="minecraft:diamond" align="center" />
+<Column align="center">
+  <ItemImage id="minecraft:diamond" />
+</Column>
 
-<ItemImage id="minecraft:emerald" align="right" />
+<Column align="right">
+  <ItemImage id="minecraft:emerald" />
+</Column>
 
 ## FloatingImage 使用 wrap / align
 
-<FloatingImage src="test1.png" wrap="square" align="left" x="0" y="0" width="128" height="128" scaleX="0.5" scaleY="0.5" title="左浮动" />
+<FloatingImage src="test1.png" wrap="square" align="left" x="0" y="0" width="32" height="32" scaleX="2" scaleY="2" title="左浮动" />
 
-图片左浮动，右侧文字环绕——使用新的 `wrap` + `align` 语法，
-浮动行为保持一致，但现在图片尺寸由裁剪区域和 `scaleX` / `scaleY` 共同决定。
+图片左浮动，右侧文字环绕。裁剪尺寸为 32×32，缩放倍率为 `2`，所以显示为 64×64。
 
-<FloatingImage src="test1.png" wrap="square" align="right" x="0" y="0" width="128" height="128" scaleX="0.5" scaleY="0.5" title="右浮动" />
+<FloatingImage src="test1.png" wrap="square" align="right" x="0" y="0" width="32" height="32" scaleX="2" scaleY="2" title="右浮动" />
 
 图片右浮动，左侧文字环绕——使用 `wrap="square" align="right"`。
 

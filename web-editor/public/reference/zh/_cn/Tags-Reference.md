@@ -25,13 +25,14 @@
 | `<sub>` | 较小的下标风格行内文本 | 无 |
 | `<sup>` | 较小的上标风格行内文本 | 无 |
 | `<Color>` | 彩色行内文本 | `id` 或 `color` |
+| `<Amount>` | 格式化数字与单位 | `value`, `unit`, `format`, `decimals` |
 | `<Spoiler>` | 悬停后显示的行内黑幕文本 | 无 |
 | `<Tooltip>` | 带 Markdown/标签子内容的富悬浮提示 | `label` |
 | `<SoundLink>` | 可点击的富文本音效触发器 | `sound` 或 `src`，`volume`，`pitch`，`cooldown` |
 | `<mark>` | 行内高亮文本；等价于 `==text==`，并可自定义颜色 | `color` |
 | `<PlayerName>` | 插入当前玩家用户名 | 无 |
 | `<KeyBind>` | 插入按键绑定显示名 | `id` 或 `action` |
-| `<ItemImage>` | 行内物品图标 | `id` 或 `ore`，`scale`，`noTooltip`，`showTooltip`，`showIcon`，`label`，`format`，`yOffset`，`labelYOffset` |
+| `<ItemImage>` | 行内物品图标 | `id`, `ore`, `nbt`, `scale`, `noTooltip`, `showTooltip`, `showIcon`, `label`, `format`, `yOffset`, `labelYOffset` |
 | `<ItemLink>` | 物品 tooltip + 可选导航链接 | `id` 或 `ore`，`linksTo`，`showTooltip`，`noTooltip`，`showIcon` |
 | `<CommandLink>` | 可点击的聊天命令链接 | `command`, `title`, `close` |
 | `<Latex>` | LaTeX 数学公式；在流式上下文中行内渲染，在块级上下文中居中显示为独立公式块 | `formula`, `color`, `scale`, `sourceScale`, `tooltip`, `showTooltip` |
@@ -57,7 +58,7 @@
 | `<Column>` | 纵向 flex 布局 | `gap`, `alignItems`, `fullWidth`, `width` |
 | `<FootnoteList>` | 运行时 Markdown 脚注使用的限宽脚注容器 | `width` |
 | `<ItemGrid>` | 紧凑物品图标网格 | 子元素必须是 `<ItemIcon id="..."/>` 或 `<ItemIcon ore="..."/>` |
-| `<BlockImage>` | 非交互式的 3D 单方块预览 | `id` 或 `ore`，可选 `scale`（默认 `4`），`float`，`perspective`，`nbt` |
+| `<BlockImage>` | 非交互式的 3D 单方块预览 | `id`, `ore`, `meta`, `nbt`, `scale`, `width`, `height`, `perspective`, `wrap`, `align` |
 | `<FloatingImage>` | 支持浮动或真正行内放置的裁剪图片块 | `src`, `x`, `y`, `width` / `w`, `height` / `h`, `scaleX`, `scaleY`, `displayWidth`, `displayHeight`, `wrap`, `align`, `title` |
 | `<SubPages>` | 导航子页面列表 | `id`, `alphabetical` |
 | `<Category>` | 分类页面列表 | `name`, `rows` |
@@ -310,6 +311,25 @@ world
 - `cooldown` 是重复播放的间隔毫秒数，默认 `250`
 - `radius` 和 `minVolume` 用于场景中的屏幕空间衰减
 
+### `<Amount>`
+
+`<Amount>` 用于格式化数字数量。省略 `unit`（或使用 `unit="none"`）时只显示数字；`unit="item"` 也不会添加后缀。`unit="fluid"` 遵循 GTNHLib 的流体单位偏好，显示 `mB` 或 `L`。`format` 支持 `default`、`plain`、`compact` 和 `scientific`；`decimals` 用于限制小数位数。速率后缀如 `/s` 请写在标签外。
+
+| 属性 | 含义 |
+| --- | --- |
+| `value` | 必填的有限十进制数值 |
+| `unit` | 可选值 `none`、`item` 或 `fluid`，默认 `none` |
+| `format` | 可选数字格式，默认 `default` |
+| `decimals` | 可选的非负小数位上限 |
+
+示例：
+
+````md
+<Amount value="250" />
+<Amount value="250" unit="fluid" />/s
+<Amount value="1200000" format="compact" /> 个物品
+````
+
 ### `<PlayerName>`
 
 插入当前 Minecraft 会话用户名：
@@ -360,8 +380,8 @@ GuideNH 也会忽略显式 `<Comment>` 标签：
 
 | 属性 | 含义 |
 | --- | --- |
-| `ore` | 矿辞名；默认取第一个匹配结果 |
-| `id` | 当未提供 `ore` 时使用的物品引用 |
+| `ore` | 可选矿物词典选择器；同时提供 `id` |
+| `id` | 必需的物品引用；使用 `ore` 时也必须提供 |
 | `nbt` | 可选的物品 SNBT；会合并到 `id` 的内联 SNBT 之上 |
 | `scale` | float，默认 `1` |
 | `noTooltip` | 传入真值字符串或空属性时禁用 tooltip（旧写法，推荐改用 `showTooltip`） |
@@ -369,8 +389,8 @@ GuideNH 也会忽略显式 `<Comment>` 标签：
 | `showIcon` | boolean，默认 `true`；`false` 时不渲染图标图形 |
 | `label` | `left` 或 `right`——在图标左侧或右侧以文字显示物品名称；省略时不显示文字 |
 | `format` | 标签文字的格式模式；支持 Markdown 风格的包裹标记（`**粗体**`、`*斜体*`、`~~删除线~~`、`__下划线__`、`^^波浪__`、`::点状::`），可包含 `%s` 占位符代替物品名；默认（不写本属性）以斜体渲染物品名 |
-| `yOffset` | scale 为 `1` 时**图标**的像素偏移覆盖值；不影响标签文字 |
-| `labelYOffset` | scale 为 `1` 时**标签文字**的像素偏移覆盖值；不影响图标 |
+| `yOffset` | 行内整体垂直偏移，以 `scale=1` 的像素计；默认 `0`，正值向下 |
+| `labelYOffset` | 仅标签文字的垂直偏移，以 `scale=1` 的像素计；默认 `0` |
 
 说明：
 
@@ -384,7 +404,7 @@ GuideNH 也会忽略显式 `<Comment>` 标签：
 
 ````md
 <ItemImage id="minecraft:diamond" scale="2" />
-<ItemImage ore="ingotIron" />
+<ItemImage id="minecraft:iron_ingot" ore="ingotIron" />
 <ItemImage id="minecraft:diamond_sword" noTooltip="true" />
 <ItemImage id="minecraft:diamond" label="right" />
 <ItemImage id="minecraft:iron_ingot" label="left" format="**%s**" />
@@ -394,7 +414,7 @@ GuideNH 也会忽略显式 `<Comment>` 标签：
 <ItemImage
   id="minecraft:chest"
   scale="2"
-  nbt='{id:"Chest",Items:[{Slot:0b,id:"minecraft:diamond",Count:1b,Damage:0s}]}'
+  nbt='{display:{Name:"Storage Chest"}}'
 />
 ````
 
@@ -503,6 +523,10 @@ GuideNH 会在运行时 Markdown 脚注展开后内部使用这个块标签。�
 | `id` | 方块 id；支持常规 `modid:block[:meta][:{snbt}]` 写法 |
 | `ore` | 矿辞查询；使用第一个匹配到的方块物品 |
 | `scale` | 相机缩放倍率，默认 `4` |
+| `meta` | 方块元数据，覆盖 `id` 内的元数据 |
+| `width` / `height` | 预览视口像素尺寸，宽高分别默认 `128` |
+| `wrap` | 文字环绕模式，默认 `inline` |
+| `align` | 水平对齐：`left`（默认）、`center` 或 `right` |
 | `float` | 旧版流式浮动支持：`left` 或 `right` |
 | `perspective` | `isometric-north-east`（默认）、`isometric-north-west` 或 `up` |
 | `nbt` | 可选的 TileEntity SNBT；会合并到 `id` 内联 SNBT 之上 |
@@ -528,15 +552,11 @@ GuideNH 会在运行时 Markdown 脚注展开后内部使用这个块标签。�
 
 完整行为请参见 [图片与资源](Images-And-Assets)。
 
-快速规则：
+```mdx
+<FloatingImage src="test1.png" displayWidth="128" wrap="inline" />
 
-- `src` 支持相对路径、根路径，以及显式 `modid:path` 纹理 id
-- `x`、`y`、`width` / `w`、`height` / `h` 用于描述原图上的裁剪区域，且必须全部提供
-- `scaleX` 与 `scaleY` 用于缩放裁剪结果，并支持横向 / 纵向独立拉伸
-- `displayWidth` 与 `displayHeight` 以像素指定最终尺寸；只提供一个值时保持裁剪区域比例，两个值都提供时可拉伸
-- `displayWidth` / `displayHeight` 不能与 `scaleX` / `scaleY` 同时使用
-- `wrap="inline"` 会让图片真正作为行内内容插入文本流；此时 `align` 会被忽略
-- 旧内容如果把 `width` / `height` 当成最终显示尺寸，需要手动迁移
+<FloatingImage src="test1.png" x="8" y="8" width="16" height="16" displayWidth="128" wrap="inline" />
+```
 
 ### `<SubPages>`、`<Category>` 与 `<Special>`
 
@@ -692,7 +712,12 @@ $$\begin{pmatrix} a & b \\ c & d \end{pmatrix}$$
 | `<ImportStructure>` | 导入外部 SNBT/NBT 结构资源 | `src`, `x`, `y`, `z`, `offsetX`, `offsetY`, `offsetZ`, `formed` |
 | `<ImportStructureLib>` | 通过控制器 id 导入 StructureLib 多方块 | `controller`, `name`, `piece`, `facing`, `rotation`, `flip`, `tier`, `channel`, `channelName`, `value`, `locked`, `offsetX`, `offsetY`, `offsetZ`, `formed` |
 | `<RemoveBlocks>` | 移除已放置且匹配指定方块匹配器的方块 | `id` |
+| `<BlockAnnotation>` | 高亮单个方块 | `pos`, `color`, `colorMode`, `colorPeriod`, `thickness`, `alwaysOnTop` |
+| `<BoxAnnotation>` | 高亮任意轴对齐包围盒 | `min`, `max`, `color`, `colorMode`, `colorPeriod`, `thickness`, `alwaysOnTop` |
+| `<OutlineAnnotation>` | 沿方块或实体的实际渲染剪影描边 | `pos`, `min`, `max`, `entity`, `target`, `mode`, `color`, `colorMode`, `colorPeriod`, `thickness`, `alwaysOnTop`, `pulse`, `pulsePeriod` |
 | `<BlockAnnotationTemplate>` | 把同一组子注解扩展到场景中所有匹配方块上 | `id` |
+
+`colorMode`: `solid`（默认）或 `rainbow`；彩虹围绕注解投影中心旋转 360°，替换 RGB 并保留 `color` 的透明度. `colorPeriod`: 彩虹循环周期，单位秒，必须为正且有限，默认 `2.4`；非法值会报告页面错误. 游戏和 Site Export 使用相同的彩虹渐变规则与循环周期。
 
 关于场景导入/移除行为，请参见 [游戏场景](GameScene)；关于注解模板规则，请参见 [注解](Annotations)。
 
@@ -858,23 +883,4 @@ $$\begin{pmatrix} a & b \\ c & d \end{pmatrix}$$
 <QuestCard id="01234567-89ab-cdef-0123-456789abcdef" show_desc="false" />
 <QuestCard id="01234567-89ab-cdef-0123-456789abcdef" show_tooltip="false" />
 <QuestCard id="AAAAAAAAAAAAAAAAAAAMug==" />
-````
-
-### `<Amount>`
-
-`<Amount>` 用于格式化数字数量。省略 `unit`（或使用 `unit="none"`）时只显示数字；`unit="item"` 也不会添加后缀。`unit="fluid"` 遵循 GTNHLib 的流体单位偏好，显示 `mB` 或 `L`。`format` 支持 `default`、`plain`、`compact` 和 `scientific`；`decimals` 用于限制小数位数。速率如 `L/s` 请写在标签外。
-
-| 属性 | 含义 |
-| --- | --- |
-| `value` | 必填的有限十进制数值 |
-| `unit` | 可选值 `none`、`item` 或 `fluid`，默认 `none` |
-| `format` | 可选数字格式，默认 `default` |
-| `decimals` | 可选的非负小数位上限 |
-
-示例：
-
-````md
-<Amount value="250" />
-<Amount value="250" unit="fluid" /> L/s
-<Amount value="1200000" format="compact" /> 个物品
 ````

@@ -113,6 +113,16 @@ The child tags set StructureLib defaults for the scene and are restored when the
 <RecipesFor id="minecraft:redstone_torch" input="minecraft:stick&minecraft:redstone" limit="1" />
 ````
 
+### Amount formatting
+
+Use `<Amount>` for quantities. The unit is optional and defaults to a suffix-free number; `fluid` follows the GTNHLib `mB`/`L` preference.
+
+````md
+<Amount value="250" />
+<Amount value="250" unit="fluid" />/s
+<Amount value="1200000" format="compact" /> items
+````
+
 ## When To Use Which Example
 
 - start with `markdown.md` if you are validating parser basics

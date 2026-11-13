@@ -10,86 +10,104 @@ categories:
 
 # 函数图
 
-GuideNH 提供 Desmos 风格的交互函数图，支持平移、缩放、点击查看函数值。
+交互函数图支持拖拽平移、滚轮缩放和沿曲线查看数值。`funcgraph` 围栏、`<FunctionGraph>` 容器与 `<Function>` 简写使用相同的参数规则。
+
+## 面板参数
+
+| 属性 | 默认值 | 说明 |
+| --- | --- | --- |
+| `title` | — | 面板标题 |
+| `xLabel`, `yLabel` | — | 坐标轴标题 |
+| `width`, `height` | 320, 220 | 面板首选像素尺寸 |
+| `xRange`, `yRange` | 自动 | 使用 `a..b` 指定轴范围，优先于单独边界 |
+| `xMin`, `xMax`, `yMin`, `yMax` | 自动 | 单独设置轴边界，接受数值或 `pi` 等常量 |
+| `domain` | — | 容器上的兼容 X 范围写法，仅在未设置其他 X 范围或边界时生效 |
+| `xStep`, `yStep` | 自动 | 刻度与网格间距 |
+| `quadrants` | 自动 | `1,2,3,4` 或 `all`；默认行为见下文 |
+| `background`, `border` | 主题颜色 | 面板填充与边框颜色 |
+| `axisColor`, `gridColor` | 主题颜色 | 坐标轴与网格颜色 |
+| `showGrid`, `showAxes` | true | 网格与坐标轴开关 |
+| `cornerLegend` | none | `none`、`topLeft`、`topRight`、`bottomLeft`、`bottomRight`；在绘图区内列出有名称的曲线 |
+| `cornerLegendWidth`, `cornerLegendHeight` | 120, 64 | 图内图例的最大像素尺寸 |
+| `cornerLegendBackground` | #AA111922 | 图内图例背景颜色 |
+
+省略范围与 `quadrants` 时，默认显示第一象限；若采样发现负 Y 值且未显式设置 Y 边界，会扩展到第三、第四象限。有 `label` 的曲线会显示在面板下方图例中；`cornerLegend` 可控制绘图区内图例。
+
+## 曲线参数
+
+用于容器内的 `<Plot>` / `<Function>`，以及围栏中的表达式行。
+
+| 属性 | 默认值 | 说明 |
+| --- | --- | --- |
+| `expr` | 必需 | 函数表达式 |
+| `inverse` | false | 绘制 `x = f(y)` |
+| `domain` | — | 曲线定义域，例如 `-pi..pi` 或 `x>=0,x<5` |
+| `color` | 调色板 | 曲线颜色 |
+| `label` | — | 图例与提示框中的名称 |
+| `tooltip` | — | 提示框内的附加纯文本 |
+| `showFunction`, `showValues` | true | 在提示框中显示函数式和当前坐标 |
+| `pointEveryX`, `pointEveryY` | 关闭 | 沿 X 或 Y 方向的正数采样间距，为本曲线生成标记点 |
+| `autoPointLabel` | none | `none`、`x`、`y` 或 `xy` |
+| `autoPointColor` | 曲线颜色 | 自动点颜色，省略时继承曲线颜色 |
+
+提示框依次显示名称、函数式、实时坐标、`tooltip` 文本、子节点富文本；缺省或关闭的项目会跳过。带 `expr` 的曲线支持以子 Markdown 与 GuideNH 标签编写富文本提示，站点导出会保留这些内容。
+
+## 标记点参数
+
+| 属性 | 默认值 | 说明 |
+| --- | --- | --- |
+| `x`, `y` | — | 显式点坐标，必须成对提供 |
+| `plot` | — | 锚定曲线的下标，从 0 开始 |
+| `atX`, `atY` | — | 与 `plot` 配合，指定一个坐标并沿曲线计算另一个 |
+| `color` | 自动 | 显式点默认白色，锚定点默认继承曲线颜色 |
+| `label` | — | 点标签 |
 
 ## 围栏代码块
 
-在 Markdown 中用 ` ```funcgraph ` 作为语言标识符，每行一个表达式：
+首行为面板属性；后续非空行为表达式、`:x,y` 显式点或 `@plot=N atX=v` / `@plot=N atY=v` 锚定点。表达式后的 `|` 分隔曲线属性，`#` 开始注释。
 
 ```funcgraph
-y = x^2
-y = x^2 - 1
+width=360 height=220 xRange=-pi..pi yRange=-2..2 quadrants=all cornerLegend=topRight
+sin(x) | color=#ff5566 label="sin" pointEveryX=1 autoPointLabel=x
+cos(x) | color=#3399ff label="cos" pointEveryY=1
+:0,0
+@plot=0 atX=1.5708
 ```
 
 ## `<FunctionGraph>` 容器
 
-MDX 组件写法，支持更细粒度的属性控制：
-
-<FunctionGraph xMin="-5" xMax="5" yMin="-2" yMax="5" xLabel="输入" yLabel="输出">
-  <Function expr="y = x^2" color="#4488ff" label="y = x²" />
-  <Function expr="y = |x| - 1" color="#ff6644" label="y = |x| − 1" />
-  <Function expr="y = sqrt(x)" color="#44bb88" label="y = √x" />
-</FunctionGraph>
-
-`xLabel` 与 `yLabel` 会分别在图的横轴下方和绘图区上方显示轴标题，效果类似 Excel 图表。`domain="a..b"` 可作为未指定 `xRange` 时的兼容 X 范围写法。
-
-`label` 是曲线名称，会显示在图例和默认 tooltip 最上方。`showFunction`、`showValues` 分别控制函数式和实时坐标行，默认都开启；`tooltip` 可追加纯文本。tooltip 固定按曲线名称、函数式、实时坐标、`tooltip` 文本、子 Markdown 富文本排列。带有 `expr` 的 `<Plot>` / `<Function>` 还可以写子 Markdown 和 GuideNH 标签作为最后的富文本正文，站点导出也会保留。
-
-<FunctionGraph xMin="-4" xMax="4" yMin="-2" yMax="6" cornerLegend="topRight">
-  <Plot expr="x^2" label="二次燃料曲线" tooltip="数值会随当前光标位置变化。" showFunction={true} showValues={true}>
-    **燃料效率**会实时计算。示例输入：<ItemLink id="minecraft:coal" />。
+```mdx
+<FunctionGraph width="360" height="220" xRange="-4..4" yRange="-2..6" quadrants="all" cornerLegend="topRight">
+  <Plot expr="x^2" color="#4488ff" label="x²" pointEveryX="1" autoPointLabel="xy">
+    **燃料效率示例：** <ItemLink id="minecraft:coal" />
   </Plot>
-  <Plot expr="x - 1" label="线性参照" showFunction={false} />
+  <Function expr="x - 1" color="#ff6644" label="x - 1" showFunction={false} />
+  <Point x="0" y="0" label="O" />
+  <Point plot="0" atX="1" />
 </FunctionGraph>
-
-## 新增：图内图例与自动点
-
-`cornerLegend` 会把带 `label` 的函数显示在绘图区内部。`pointEveryX` / `pointEveryY` 可以按固定间隔为指定函数生成点。
-
-```funcgraph
-cornerLegend=topRight xRange=-4..4 yRange=-2..6
-y = x^2 | label="y=x^2" pointEveryX=1 autoPointLabel=x
-y = x^2 - 1 | label="y=x^2-1" pointEveryY=1
 ```
 
-<FunctionGraph xMin="-4" xMax="4" yMin="-2" yMax="6" cornerLegend="topRight">
-  <Function expr="y = x^2" color="#4488ff" label="y = x^2" pointEveryX="1" autoPointLabel="x" />
-  <Function expr="y = x^2 - 1" color="#ff6644" label="y = x^2 - 1" pointEveryY="1" />
+<FunctionGraph width="360" height="220" xRange="-4..4" yRange="-2..6" quadrants="all" cornerLegend="topRight">
+  <Plot expr="x^2" color="#4488ff" label="x²" pointEveryX="1" autoPointLabel="xy">
+    **燃料效率示例：** <ItemLink id="minecraft:coal" />
+  </Plot>
+  <Function expr="x - 1" color="#ff6644" label="x - 1" showFunction={false} />
+  <Point x="0" y="0" label="O" />
+  <Point plot="0" atX="1" />
 </FunctionGraph>
 
 ## `<Function>` 简写
 
-`<Function>` 自带独立 `<FunctionGraph>` 包装器，可当作简洁的单函数展示：
+独立的 `<Function>` 自动创建单曲线面板，同时接受面板与曲线参数。
 
-<Function expr="y = sin(x)" />
+<Function expr="x^2 - 2x + 1" xRange="-2..4" yRange="-1..5" color="#3399ff" />
 
-## 表达式语法参考
+## 表达式语法
 
-| 语法            | 说明                                        |
-|---------------|-------------------------------------------|
-| `x^n`         | 幂运算（`^` 优先级高于乘）                         |
-| `sqrt(x)`     | 平方根，等价于 `x^0.5`                          |
-| `cbrt(x)`     | 立方根，等价于 `x^(1/3)`                        |
-| `abs(x)`      | 绝对值，等价于 `\|x\|`                          |
-| `\|x\|`       | 绝对值花括号写法（管道符对）                           |
-| `sin/cos/tan` | 三角函数（弧度制）                                 |
-| `asin/acos`   | 反三角函数                                     |
-| `atan(y, x)`  | 双参数反正切（同 `atan2`）                        |
-| `ln(x)`       | 自然对数                                      |
-| `log(b, x)`   | 以 `b` 为底的对数                               |
-| `floor/ceil`  | 向下/向上取整                                   |
-| `round(x)`    | 四舍五入                                      |
-| `mod(x, m)`   | 取模                                        |
-| `min/max`     | 最小/最大值，支持多参数                              |
-| `pi` / `e`    | 内置常量 π ≈ 3.14159 / e ≈ 2.71828          |
-
-运算符优先级（从高到低）：`^` → 一元 `-` → `* /` → `+ -`。
-
-## 默认象限行为
-
-不设 `xMin/xMax/yMin/yMax` 时，图表自动扩展到显示所有函数曲线的最小包围盒，并各留 10% 边距；用户可用鼠标拖拽平移、滚轮缩放。
-
-<FunctionGraph>
-  <Function expr="y = x" color="#4488ff" label="y = x" />
-  <Function expr="y = -x + 4" color="#ff6644" label="y = −x + 4" />
-</FunctionGraph>
+- 运算符：`+ - * / %`、右结合的 `^`、一元负号；优先级为 `^`、一元负号、`* / %`、`+ -`。
+- 隐式乘法：`2x`、`2pi`、`(x+1)(x-1)`；`|expr|` 表示绝对值。
+- 一元函数：`sin cos tan asin acos atan sinh cosh tanh exp ln log log2 log10 sqrt cbrt abs sign floor ceil round deg rad gamma`。三角函数使用弧度，`log` 等同于 `log10`，`round` 在恰好半整数时取最近的偶数。
+- 双参数函数：`atan2(y,x)`、`min(a,b)`、`max(a,b)`、`pow(a,b)`、`hypot(a,b)`、`mod(a,b)`；任意底数对数可写成 `ln(x)/ln(b)`。
+- 后缀 `!` 表示阶乘，并通过 Gamma 函数扩展到实数；负整数返回 NaN。
+- 常量：`pi`、`tau`、`e`、`phi`；`√` / `sqrt` 和 `∛` / `cbrt` 表示平方根与立方根。
+- `domain` 支持 `min..max` 和逗号分隔的条件（例如 `x>=0,x<5`）；`inverse={true}` 将表达式按 `x = f(y)` 绘制。

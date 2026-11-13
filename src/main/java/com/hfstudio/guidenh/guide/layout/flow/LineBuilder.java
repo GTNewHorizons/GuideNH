@@ -59,7 +59,9 @@ public class LineBuilder implements Consumer<LytFlowContent> {
     private final StringBuilder lineBuffer = new StringBuilder();
     private float[] lineBufferPrefixWidths = new float[64];
 
-    /** Reusable CharacterIterator wrapping {@link #lineBuffer} to avoid String allocation in BreakIterator. */
+    /**
+     * Reusable CharacterIterator wrapping {@link #lineBuffer} to avoid String allocation in BreakIterator.
+     */
     private final StringBuilderCharIterator charIterator = new StringBuilderCharIterator();
 
     /**
@@ -99,7 +101,6 @@ public class LineBuilder implements Consumer<LytFlowContent> {
         } else if (content instanceof LytFlowInlineBlock inlineBlock) {
             appendInlineBlock(inlineBlock);
         } else if (content instanceof LytFlowAnchor anchor) {
-            // Simply set the current layout position for the anchor
             anchor.setLayoutY(lineBoxY);
         } else {
             throw new IllegalArgumentException("Don't know how to layout flow content: " + content);
@@ -647,7 +648,6 @@ public class LineBuilder implements Consumer<LytFlowContent> {
         int actualRight = lineBoxX;
         for (var el = openLineElement; el != null; el = el.next) {
             el.bounds = el.bounds.move(xTranslation, yTranslation);
-            // Ensure that inline blocks update their blocks absolute position
             if (el instanceof LineBlock lineBlock) {
                 lineBlock.layoutBlock(context, el.bounds.width());
             }
@@ -900,7 +900,9 @@ public class LineBuilder implements Consumer<LytFlowContent> {
         private int end;
         private int pos;
 
-        /** Points this iterator at the full content of {@code buf}. */
+        /**
+         * Points this iterator at the full content of {@code buf}.
+         */
         public void reset(StringBuilder buf) {
             this.sb = buf;
             this.begin = 0;

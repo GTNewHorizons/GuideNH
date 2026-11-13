@@ -9,7 +9,9 @@ import com.hfstudio.guidenh.guide.extensions.ExtensionPoint;
 
 public class GuideEditorActionContribution implements Extension {
 
-    /** Declares editor actions for one guide, next to the global registration that adds them to every guide. */
+    /**
+     * Declares editor actions for one guide, next to the global registration that adds them to every guide.
+     */
     public interface Provider extends Extension {
 
         ExtensionPoint<Provider> EXTENSION_POINT = new ExtensionPoint<>(Provider.class);
@@ -46,7 +48,9 @@ public class GuideEditorActionContribution implements Extension {
         return new GuideEditorActionContribution(label, icon, text, null, null);
     }
 
-    /** An action that surrounds the selection with markers, or inserts the pair at the caret when nothing is. */
+    /**
+     * An action that surrounds the selection with markers, or inserts the pair at the caret when nothing is.
+     */
     public static GuideEditorActionContribution wrap(String label, SceneEditorIcon icon, String prefix, String suffix) {
         requireText(label, "label");
         if (icon == null) {

@@ -30,7 +30,9 @@ public class AsyncWorker {
         tasks.put(name, pool.submit(work));
     }
 
-    /** True if the named task has completed (or never existed). */
+    /**
+     * True if the named task has completed (or never existed).
+     */
     public static boolean isDone(String name) {
         var f = tasks.get(name);
         return f == null || f.isDone();
@@ -45,12 +47,16 @@ public class AsyncWorker {
         return false;
     }
 
-    /** Remove completed task entry to free the name. */
+    /**
+     * Remove completed task entry to free the name.
+     */
     public static void clear(String name) {
         tasks.remove(name);
     }
 
-    /** Cancel all running tasks and clear the task map. */
+    /**
+     * Cancel all running tasks and clear the task map.
+     */
     public static void reset() {
         for (var f : tasks.values()) {
             f.cancel(true);

@@ -27,13 +27,8 @@ import codechicken.nei.recipe.TemplateRecipeHandler;
 public class NeiDirectCalls {
 
     /**
-     * Serializes the window in which this class substitutes NEI's static handler list.
-     *
-     * <p>
-     * The list is NEI's own static field, saved, swapped for a private copy and restored. Without this lock
-     * two callers interleave and the restore of the second puts a private copy into NEI's field for good,
-     * because it saved the first caller's copy rather than the original. The cache in front of the crafting
-     * and usage queries holds its own lock, but the site export reaches these two entry points directly.
+     * Protects NEI's static handler-list swap and restoration. All entry points, including site export, must
+     * use this lock to avoid restoring another caller's temporary list.
      */
     private static final Object NEI_LIST_LOCK = new Object();
 
@@ -81,7 +76,9 @@ public class NeiDirectCalls {
         return h(handler).getRecipeName();
     }
 
-    /** Returns {@code null} when the handler's default {@code getHandlerId()} returns null. */
+    /**
+     * Returns {@code null} when the handler's default {@code getHandlerId()} returns null.
+     */
     public static @Nullable String handlerId(Object handler) {
         return h(handler).getHandlerId();
     }
@@ -102,7 +99,9 @@ public class NeiDirectCalls {
         h(handler).drawForeground(idx);
     }
 
-    /** Calls {@code drawExtras} only when {@code handler} is a {@link TemplateRecipeHandler}. */
+    /**
+     * Calls {@code drawExtras} only when {@code handler} is a {@link TemplateRecipeHandler}.
+     */
     public static void drawExtras(Object handler, int idx) {
         if (handler instanceof TemplateRecipeHandler tmpl) {
             tmpl.drawExtras(idx);

@@ -38,17 +38,18 @@ paragraph. It も accepts 明示的な `modid:path` texture ids, so it できま
 | 属性 | 必須 | 意味 |
 | --- | --- | --- |
 | `src` | はい | 画像 パス |
-| `x` | はい | crop 開始 X で ソース-画像 pixels |
-| `y` | はい | crop 開始 Y で ソース-画像 pixels |
-| `width` / `w` | はい | crop 幅 で ソース-画像 pixels; 正確に 1 つ spelling 必要があります なる 使用されます |
-| `height` / `h` | はい | crop 高さ で ソース-画像 pixels; 正確に 1 つ spelling 必要があります なる 使用されます |
+| `x` | 切り抜く場合 | crop 開始 X で ソース-画像 pixels |
+| `y` | 切り抜く場合 | crop 開始 Y で ソース-画像 pixels |
+| `width` / `w` | 切り抜く場合 | crop 幅 で ソース-画像 pixels; 正確に 1 つ spelling 必要があります なる 使用されます |
+| `height` / `h` | 切り抜く場合 | crop 高さ で ソース-画像 pixels; 正確に 1 つ spelling 必要があります なる 使用されます |
 | `scaleX` | いいえ | horizontal 表示 multiplier, 既定値 `1.0` |
 | `scaleY` | いいえ | vertical 表示 multiplier, 既定値 `1.0` |
 | `displayWidth` | いいえ | 最終 表示 幅 で pixels; preserves  crop aspect ratio 場合 使用されます alone |
 | `displayHeight` | いいえ | 最終 表示 高さ で pixels; preserves  crop aspect ratio 場合 使用されます alone |
-| `wrap` | いいえ | `inline` 用 true inline placement, otherwise 使用  通常 wrapping modes |
+| `wrap` | いいえ | `inline` は行内配置。それ以外は `align` が浮動方向を決定 |
 | `align` | いいえ | `left` または `right` 用 floating placement; ignored 場合 `wrap="inline"` |
 | `title` | いいえ | ツールチップ/タイトル テキスト |
+| `alt` | いいえ | 代替テキスト |
 | `sound` | いいえ | sound event played by  whole 画像 |
 | `soundSrc` | いいえ | sound ファイルパス 用  whole 画像 |
 | `trigger` | いいえ | `click` by 既定値, または `hover` 用 ホバー playback |
@@ -57,14 +58,13 @@ paragraph. It も accepts 明示的な `modid:path` texture ids, so it できま
 
 - `x`, `y`, `width` / `w`, と `height` / `h` です すべての 必須 together 場合 cropping
 - 場合  crop 属性 です すべての omitted, `displayWidth` または `displayHeight` displays  完全な ソース 画像
-- `width` と `height` now describe  crop rectangle, ない  最終 表示 サイズ
+- `width` と `height` は元画像の切り抜き寸法です。表示寸法には `displayWidth` / `displayHeight` または倍率を使います。
 - `scaleX` と `scaleY` 計算  最終 表示 サイズ as `cropWidth * scaleX` by `cropHeight * scaleY`
 - `displayWidth` または `displayHeight` sets  最終 表示 サイズ で pixels; 場合 のみ 1 つ です present,  他の dimension です 計算済み から  crop aspect ratio
 - providing 両方 `displayWidth` と `displayHeight` 許可します intentional non-proportional stretching
 - `displayWidth` / `displayHeight` できません なる combined とともに `scaleX` / `scaleY`
 - 単一の-axis stretching です 対応 by setting のみ 1 つ scale differently
 - `width` とともに `w`, または `height` とともに `h`, です 無効 と 描画 a 表示 エラー
-- old `FloatingImage width/height as display size` コンテンツ です intentionally breaking と 必要があります なる migrated 手動で
 - `src` 可能性があります なる 相対, rooted, または 明示的な `modid:path` texture id 例として `minecraft:textures/gui/options_background.png`
 
 ### 例
@@ -119,7 +119,7 @@ an 任意の colored 境界線) へ rectangular region of  画像. 座標 です
 Whole-画像 注釈:
 
 ````md
-<FloatingImage src="test1.png" align="left" x="0" y="0" width="128" height="128">
+<FloatingImage displayWidth="128" displayHeight="128" src="test1.png" align="left" x="0" y="0" width="32" height="32">
   <ImageAnnotation>
     画像上にカーソルを置くと、このツールチップが表示されます。
   </ImageAnnotation>
@@ -129,8 +129,8 @@ Whole-画像 注釈:
 Region 注釈 とともに a 表示 境界線:
 
 ````md
-<FloatingImage src="test1.png" align="left" x="0" y="0" width="128" height="128">
-  <ImageAnnotation x="10" y="10" w="60" h="40" border borderColor="#FFFF4444" borderThickness="2">
+<FloatingImage displayWidth="128" displayHeight="128" src="test1.png" align="left" x="0" y="0" width="32" height="32">
+  <ImageAnnotation x="2" y="2" w="15" h="10" border borderColor="#FFFF4444" borderThickness="2">
     これは**強調領域**のツールチップです。
   </ImageAnnotation>
 </FloatingImage>
@@ -139,11 +139,11 @@ Region 注釈 とともに a 表示 境界線:
 複数の regions on 1 つ 画像:
 
 ````md
-<FloatingImage src="test1.png" align="left" x="0" y="0" width="128" height="128">
-  <ImageAnnotation x="0" y="0" w="64" h="64" border borderColor="#FF44FF44">
+<FloatingImage displayWidth="128" displayHeight="128" src="test1.png" align="left" x="0" y="0" width="32" height="32">
+  <ImageAnnotation x="0" y="0" w="16" h="32" border borderColor="#FF44FF44">
     Left half
   </ImageAnnotation>
-  <ImageAnnotation x="64" y="0" w="64" h="64" border borderColor="#FF4444FF">
+  <ImageAnnotation x="16" y="0" w="16" h="32" border borderColor="#FF4444FF">
     Right half
   </ImageAnnotation>
 </FloatingImage>
@@ -154,17 +154,17 @@ directly on `<ImageAnnotation>` 場合  同じ region も has a ツールチッ�
 
 ````md
 <FloatingImage
-  src="test1.png"
+  displayWidth="128" displayHeight="128" src="test1.png"
   align="left"
   x="0"
   y="0"
-  width="128"
-  height="128"
-  sound="guidenh:image.click"
+  width="32"
+  height="32"
+  sound="guidenh:guide.sample_click"
 >
-  <SoundArea x="0" y="0" w="64" h="64" sound="guidenh:image.left" />
-  <SoundArea x="64" y="0" w="64" h="64" sound="guidenh:image.right" trigger="hover" />
-  <ImageAnnotation x="10" y="10" w="40" h="40" border sound="guidenh:image.note">
+  <SoundArea x="0" y="0" w="16" h="32" sound="guidenh:guide.sample_left" />
+  <SoundArea x="16" y="0" w="16" h="32" sound="guidenh:guide.sample_hover" trigger="hover" />
+  <ImageAnnotation x="2" y="2" w="10" h="10" border sound="guidenh:guide.sample_click">
     この領域にはツールチップの内容とクリック音があります。
   </ImageAnnotation>
 </FloatingImage>
@@ -175,88 +175,25 @@ directly on `<ImageAnnotation>` 場合  同じ region も has a ツールチッ�
 
 ## コンテンツの埋め込みとテキスト折り返し
 
-すべての ブロック-level タグ — `<FloatingImage>`, `<Recipe>`, `<GameScene>`, `<ItemImage>`, `<BlockImage>`,
-と 任意の 他の タグ backed by `BlockTagCompiler` — 対応 2 つ 任意の レイアウト 属性 that
-提供 Word-style コンテンツ embedding.
+`<Recipe>`、`<GameScene>`、`<BlockImage>` など、`BlockTagCompiler` を使うブロックタグは `wrap` と `align` に対応します。
 
-| 属性 | 値 | 既定値 | 意味 |
-| --- | --- | --- | --- |
-| `wrap` | `inline` · `square` · `tight` · `through` · `top-bottom` · `behind` · `front` | `inline` | テキスト-wrapping モード |
-| `align` | `left` · `center` · `right` | `left` | 水平配置 |
+`<FloatingImage>` は独自の規則を使います。`wrap="inline"` なら行内、それ以外は `align="left"` または `"right"` で浮動方向を選びます。`<ItemImage>` は行内アイコンです。配置には `<Column>` または `<Row>` を使います。
 
-### 折り返しモード
+| 属性 | 既定値 | 説明 |
+| --- | --- | --- |
+| `wrap` | `inline` | `inline`：通常の配置。`square`、`tight`、`through`：左右に浮動。`top-bottom`、`behind`、`front`：現在は通常の整列配置で、別のテキストレイヤーは作りません。 |
+| `align` | `left` | ブロックでは `left`、`center`、`right`。浮動モードでは `right` が右、それ以外は左です。中央配置は `wrap="inline" align="center"`。 |
+| `float` | — | `wrap` と `align` がない行内文脈では、従来の `left` / `right` を使用可能です。明示的な属性を推奨します。 |
 
-| モード | Word equivalent | ブロック-context behaviour | Flow-context behaviour |
-| --- | --- | --- | --- |
-| `inline` | で 行 とともに テキスト | 既定値 stack (嵌入型) | Sits on  テキスト 行 |
-| `square` | Square | Document-level 浮動小数点数; テキスト wraps around (方形环绕) | `FLOAT_LEFT` / `FLOAT_RIGHT` |
-| `tight` | Tight | 同じ as `square` (紧密型) | 同じ as `square` |
-| `through` | 通じて | 同じ as `square` (穿越型) | 同じ as `square` |
-| `top-bottom` | 上 と 下 | 完全な-幅 slot; `align` repositions horizontally (上下型) | 行-inline とともに breaks |
-| `behind` | Behind テキスト | Aligned inline slot; 描画 behind テキスト (衬于文字下方) | Sits on  行 |
-| `front` | で front of テキスト | Aligned inline slot; 描画 で front of テキスト (浮于文字上方) | Sits on  行 |
+```mdx
+<BlockImage id="minecraft:stone" wrap="square" align="right" />
 
-### Alignment とともに floating wrap
+<BlockImage id="minecraft:diamond_block" wrap="inline" align="center" />
 
-用 `wrap=square/tight/through`:
-- `align=left` (既定値) — ブロック floats へ  **左**; テキスト fills  右 側.
-- `align=right` — ブロック floats へ  **右**; テキスト fills  左 側.
-- `align=center` — ブロック です centred なしで floating (いいえ テキスト wrapping).
-
-### 例
-
-左-floating 画像 using  new `wrap` 属性:
-
-````md
-<FloatingImage
-  src="test1.png"
-  wrap="square"
-  align="left"
-  x="0"
-  y="0"
-  width="128"
-  height="128"
-  scaleX="0.5"
-  scaleY="0.5"
-/>
-
-画像の右側に流れる段落テキスト…
-````
-
-右-floating recipe:
-
-````md
-<Recipe id="minecraft:stone" wrap="square" align="right" />
-
-レシピ枠の左側に流れるテキスト…
-````
-
-Centred アイテム 画像 (いいえ テキスト wrapping):
-
-````md
-<ItemImage id="minecraft:diamond" align="center" />
-````
-
-右-aligned アイテム 画像:
-
-````md
-<ItemImage id="minecraft:diamond" align="right" />
-````
-
-アイテム NBT できます なる supplied separately から  アイテム id. Inline SNBT で `id` です 引き続き 対応;
-場合 両方 forms です present,  standalone `nbt` 属性 です merged 最後の.
-
-````md
-<ItemImage id="minecraft:diamond" nbt='{display:{Name:"Custom Diamond"}}' />
-<ItemImage
-  id="minecraft:chest"
-  scale="2"
-  nbt='{id:"Chest",Items:[{Slot:0b,id:"minecraft:diamond",Count:1b,Damage:0s}]}'
-/>
-````
-
-> **注記** — `wrap="inline"` now gives `<FloatingImage>` true inline placement 内部 flow テキスト.
-> で inline モード, `align` です ignored 代わりに of producing エラー.
+<Column align="center">
+  <ItemImage id="minecraft:diamond" nbt='{display:{Name:"Custom Diamond"}}' />
+</Column>
+```
 
 ## ナビゲーション Texture Icons
 
@@ -289,9 +226,7 @@ GuideNH pages 可能性があります も reference non-画像 実行時 assets
 
 ## `BlockImage`
 
-`<BlockImage>` 使用します  同じ ブロック-level embedding 規則 as `<FloatingImage>`, but  visual
-コンテンツ は transparent 3D 単一の-ブロック プレビュー 代わりに of bitmap. It です best suited 用
-showing how placed ブロック looks で-ワールド 中 引き続き fitting inline とともに 通常 ガイド prose.
+`<BlockImage>` は設置済みブロックを透明背景の 3D プレビューとして表示し、上記の整列・回り込み属性に対応します。
 
 キー behavior:
 

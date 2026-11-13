@@ -5,7 +5,9 @@ package com.hfstudio.guidenh.guide.scene.snapshot;
  */
 public interface ServerPreviewSupplementFetchContributor {
 
-    /** Same ordering key as snippet codecs sharing this supplement. */
+    /**
+     * Same ordering key as snippet codecs sharing this supplement.
+     */
     String supplementId();
 
     default int priority() {

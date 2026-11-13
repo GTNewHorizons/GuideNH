@@ -11,6 +11,7 @@ GuideNH 的場景註解是放在遊戲場景（`<GameScene>` / `<Scene>`）內�
 - 註解可透過場景 UI 開關隱藏
 - `alwaysOnTop` 會在對應註解類型支持時，讓註解繪製在場景幾何體之上
 - 當場景使用 `<ImportStructureLib>` 時，所有場景註解也支援 `showWhenStructure`、`showWhenTier` 和 `showWhenChannels`
+- 遊戲與 Site Export 使用相同的彩虹漸層規則及循環週期。
 
 ## 支持的注解标签
 
@@ -66,8 +67,11 @@ GuideNH 也支援 `<BlockAnnotationTemplate>`，它會把自己的子註解應�
 | --- | --- | --- |
 | `pos` | 是 | `x y z` 向量 |
 | `color` | 否 | `#RRGGBB`、`#AARRGGBB` 或 `transparent` |
+| `colorMode` | 否 | `solid`（預設）或 `rainbow`；彩虹圍繞注解投影中心旋轉 360°，取代 RGB 並保留 `color` 的透明度 |
+| `colorPeriod` | 否 | 彩虹循環週期，單位秒，必須為正且有限，預設 `2.4`；無效值會回報頁面錯誤 |
 | `thickness` | 否 | 線寬，float |
 | `alwaysOnTop` | 否 | boolean expression |
+
 
 範例：
 
@@ -75,6 +79,7 @@ GuideNH 也支援 `<BlockAnnotationTemplate>`，它會把自己的子註解應�
 <BlockAnnotation pos="2 0 2" color="#33DDEE" alwaysOnTop={true}>
   凸顯控制器方塊。
 </BlockAnnotation>
+<BlockAnnotation pos="4 0 2" color="#80FFFFFF" colorMode="rainbow" colorPeriod="4.8" />
 ````
 
 ## `<BoxAnnotation>`
@@ -86,8 +91,11 @@ GuideNH 也支援 `<BlockAnnotationTemplate>`，它會把自己的子註解應�
 | `min` | 是 | `x y z` 最小向量 |
 | `max` | 是 | `x y z` 最大向量 |
 | `color` | 否 | 註解顏色 |
+| `colorMode` | 否 | `solid`（預設）或 `rainbow`；彩虹圍繞注解投影中心旋轉 360°，取代 RGB 並保留 `color` 的透明度 |
+| `colorPeriod` | 否 | 彩虹循環週期，單位秒，必須為正且有限，預設 `2.4`；無效值會回報頁面錯誤 |
 | `thickness` | 否 | 線寬，float |
 | `alwaysOnTop` | 否 | boolean expression |
+
 
 GuideNH 會在每個軸上自動交換反向提供的 min/max 座標。
 
@@ -97,6 +105,7 @@ GuideNH 會在每個軸上自動交換反向提供的 min/max 座標。
 <BoxAnnotation min="0 1 0" max="1 1.6 0.6" color="#EE3333" thickness="0.04">
   半高區域凸顯。
 </BoxAnnotation>
+<BoxAnnotation min="2 0 0" max="4 1.5 0.5" color="#80FFFFFF" colorMode="rainbow" colorPeriod="2.4" />
 ````
 
 ## `<LineAnnotation>`
@@ -173,10 +182,13 @@ GuideNH 會在每個軸上自動交換反向提供的 min/max 座標。
 | `target` | 否 | `blocks`（預設）、`entities` 或 `all`：區域內描邊哪些內容；沒有區域時 `entities` 會描邊場景中的所有實體 |
 | `mode` | 否 | `auto`（預設）、`geometry`、`cutout` 或 `bounds` |
 | `color` | 否 | 輪廓顏色；省略時為白色，實體則使用其計分板隊伍顏色 |
+| `colorMode` | 否 | `solid`（預設）或 `rainbow`；彩虹圍繞注解投影中心旋轉 360°，取代 RGB 並保留 `color` 的透明度 |
+| `colorPeriod` | 否 | 彩虹循環週期，單位秒，必須為正且有限，預設 `2.4`；無效值會回報頁面錯誤 |
 | `thickness` | 否 | 輪廓寬度，單位為 GUI 像素，範圍 `0.25` 到 `8`，預設 `1` |
 | `alwaysOnTop` | 否 | boolean expression；被遮擋的部分保持完整亮度而不會變暗 |
 | `pulse` | 否 | boolean expression；開啟呼吸燈效果 |
 | `pulsePeriod` | 否 | 呼吸週期，單位秒，預設 `2` |
+
 
 輪廓模式：
 
@@ -206,7 +218,7 @@ GuideNH 會在每個軸上自動交換反向提供的 min/max 座標。
   <OutlineAnnotation pos="0 0 0" color="#55FFFF">
     玻璃會被描成完整的立方體輪廓。
   </OutlineAnnotation>
-  <OutlineAnnotation pos="2 0 0" color="#FFFF55" thickness="1.5" />
+  <OutlineAnnotation pos="2 0 0" color="#80FFFFFF" colorMode="rainbow" colorPeriod="2.4" thickness="1.5" />
   <OutlineAnnotation entity="sheep" color="#FFAA00" alwaysOnTop={true} pulse={true} />
 </GameScene>
 ````

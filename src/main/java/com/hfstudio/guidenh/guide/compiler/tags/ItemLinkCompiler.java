@@ -41,7 +41,6 @@ public class ItemLinkCompiler extends FlowTagCompiler {
         // Manual link target override: linksTo="page.md#heading" or "#heading"
         String linksTo = el.getAttributeString("linksTo", null);
 
-        // Create placeholder link for runtime resolution by ItemLinkScript
         var link = new LytFlowLink();
         link.setStyleClass("ItemLink");
         link.setData("itemId", itemId != null ? itemId.trim() : null);

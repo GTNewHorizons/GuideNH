@@ -10,9 +10,7 @@ import lombok.Getter;
 public abstract class OverlayAnnotation extends SceneAnnotation {
 
     /**
-     * -- GETTER --
-     * Returns the current fade multiplier in the range
-     * .
+     * Fade multiplier in {@code [0, 1]} applied to rendered alpha.
      */
     private float fade = 1f;
 
@@ -26,8 +24,7 @@ public abstract class OverlayAnnotation extends SceneAnnotation {
     }
 
     /**
-     * Multiplies the alpha channel of an ARGB colour by {@code fade}.
-     * Useful for subclass {@code render()} implementations to produce a consistent fade effect.
+     * Multiplies an ARGB alpha channel by the fade multiplier.
      */
     protected static int applyFade(int argb, float fade) {
         int a = (int) (((argb >>> 24) & 0xFF) * fade);

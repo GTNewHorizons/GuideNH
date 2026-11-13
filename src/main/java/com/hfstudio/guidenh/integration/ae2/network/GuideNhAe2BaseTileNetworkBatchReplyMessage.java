@@ -7,7 +7,9 @@ import cpw.mods.fml.common.network.simpleimpl.IMessage;
 import io.netty.buffer.ByteBuf;
 import lombok.Getter;
 
-/** Per-request-position {@code X} payloads (AE2 tile description stream), parallel to request order. */
+/**
+ * Per-request-position {@code X} payloads (AE2 tile description stream), parallel to request order.
+ */
 @Getter
 public class GuideNhAe2BaseTileNetworkBatchReplyMessage implements IMessage {
 

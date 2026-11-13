@@ -20,7 +20,9 @@ public interface ShapeRenderer {
         return false;
     }
 
-    /** Returns SVG markup for this shape's outline + fill, fitted to (x,y,w,h). */
+    /**
+     * Returns SVG markup for this shape's outline + fill, fitted to (x,y,w,h).
+     */
     default String renderSvg(int x, int y, int w, int h, String fill, String stroke) {
         return String.format(
             "<rect x=\"%d\" y=\"%d\" width=\"%d\" height=\"%d\" fill=\"%s\" stroke=\"%s\" stroke-width=\"1.5\"/>",

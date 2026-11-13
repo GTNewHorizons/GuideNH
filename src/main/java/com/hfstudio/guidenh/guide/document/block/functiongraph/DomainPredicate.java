@@ -7,12 +7,16 @@ package com.hfstudio.guidenh.guide.document.block.functiongraph;
  */
 public interface DomainPredicate {
 
-    /** Constant-true singleton. */
+    /**
+     * Constant-true singleton.
+     */
     DomainPredicate ALWAYS = (x, y) -> true;
 
     boolean accepts(double x, double y);
 
-    /** Returns a predicate satisfied when both {@code this} and {@code other} accept. */
+    /**
+     * Returns a predicate satisfied when both {@code this} and {@code other} accept.
+     */
     default DomainPredicate and(DomainPredicate other) {
         if (other == null || other == ALWAYS) {
             return this;
@@ -29,7 +33,9 @@ public interface DomainPredicate {
         return (x, y) -> x >= min && x <= max;
     }
 
-    /** Same as {@link #xRange(double, double)} but applied to the {@code y} variable. */
+    /**
+     * Same as {@link #xRange(double, double)} but applied to the {@code y} variable.
+     */
     static DomainPredicate yRange(double min, double max) {
         return (x, y) -> y >= min && y <= max;
     }
@@ -63,7 +69,9 @@ public interface DomainPredicate {
         return result;
     }
 
-    /** Parse a single clause; returns {@code null} on failure. */
+    /**
+     * Parse a single clause; returns {@code null} on failure.
+     */
     static DomainPredicate parseClause(String clause) {
         if (clause.isEmpty()) {
             return null;
@@ -109,7 +117,9 @@ public interface DomainPredicate {
         return null;
     }
 
-    /** Build a comparison predicate. {@code reversed} indicates literal-on-left layout. */
+    /**
+     * Build a comparison predicate. {@code reversed} indicates literal-on-left layout.
+     */
     static DomainPredicate makeComparison(int which, String op, double v, boolean reversed) {
         return (x, y) -> {
             double lhs = which == 0 ? x : y;
@@ -126,7 +136,9 @@ public interface DomainPredicate {
         };
     }
 
-    /** Parse a numeric literal allowing the constants {@code pi}, {@code e}, {@code tau}. */
+    /**
+     * Parse a numeric literal allowing the constants {@code pi}, {@code e}, {@code tau}.
+     */
     static double parseNumberOrConstant(String text, double fallback) {
         if (text == null || text.isEmpty()) {
             return fallback;

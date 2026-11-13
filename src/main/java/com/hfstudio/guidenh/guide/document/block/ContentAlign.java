@@ -12,13 +12,19 @@ import java.util.Locale;
  */
 public enum ContentAlign {
 
-    /** Flush to the left edge of the available area (default). */
+    /**
+     * Flush to the left edge of the available area (default).
+     */
     LEFT,
 
-    /** Horizontally centred within the available area. */
+    /**
+     * Horizontally centred within the available area.
+     */
     CENTER,
 
-    /** Flush to the right edge of the available area. */
+    /**
+     * Flush to the right edge of the available area.
+     */
     RIGHT;
 
     /**

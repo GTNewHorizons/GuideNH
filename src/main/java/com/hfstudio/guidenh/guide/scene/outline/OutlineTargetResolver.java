@@ -11,6 +11,7 @@ import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.AxisAlignedBB;
 
 import org.jetbrains.annotations.Nullable;
+import org.joml.Vector3f;
 
 import com.hfstudio.guidenh.guide.scene.GuidebookSceneLayerSelection;
 import com.hfstudio.guidenh.guide.scene.LytGuidebookScene;
@@ -20,7 +21,7 @@ import com.hfstudio.guidenh.guide.scene.annotation.InWorldOutlineAnnotation;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockBoundsResolver;
 
-public final class OutlineTargetResolver {
+public class OutlineTargetResolver {
 
     public static final int DEFAULT_ARGB = 0xFFFFFFFF;
     private static final int HOVER_LIGHTEN_PERCENT = 50;
@@ -43,6 +44,13 @@ public final class OutlineTargetResolver {
 
     public static void collect(GuidebookLevel level, InWorldOutlineAnnotation outline,
         GuidebookSceneLayerSelection layers, long timeMillis, OutlineFrame frame) {
+        if (outline.getColorStyle()
+            .isRainbow()) {
+            resolveColorCenter(level, outline, frame.colorCenterScratch());
+        } else {
+            frame.colorCenterScratch()
+                .zero();
+        }
         float intensity = outline.pulseIntensity(timeMillis);
         if (outline.outlinesRegionBlocks()) {
             OutlineRegion region = outline.getRegion();
@@ -56,6 +64,42 @@ public final class OutlineTargetResolver {
         }
         if (outline.targetsEntities()) {
             collectEntities(level, outline, layers, intensity, frame);
+        }
+    }
+
+    private static void resolveColorCenter(GuidebookLevel level, InWorldOutlineAnnotation outline, Vector3f center) {
+        OutlineRegion region = outline.getRegion();
+        if (region != null && outline.getSceneEntityId() == null) {
+            center.set(
+                (region.minX() + region.maxX() + 1f) * 0.5f,
+                (region.minY() + region.maxY() + 1f) * 0.5f,
+                (region.minZ() + region.maxZ() + 1f) * 0.5f);
+            return;
+        }
+        double minX = Double.POSITIVE_INFINITY;
+        double minY = Double.POSITIVE_INFINITY;
+        double minZ = Double.POSITIVE_INFINITY;
+        double maxX = Double.NEGATIVE_INFINITY;
+        double maxY = Double.NEGATIVE_INFINITY;
+        double maxZ = Double.NEGATIVE_INFINITY;
+        for (Entity entity : level.getEntities()) {
+            if (entity == null || entity.isDead
+                || entity.boundingBox == null
+                || !matchesEntity(level, outline, entity)) {
+                continue;
+            }
+            AxisAlignedBB box = entity.boundingBox;
+            minX = Math.min(minX, box.minX);
+            minY = Math.min(minY, box.minY);
+            minZ = Math.min(minZ, box.minZ);
+            maxX = Math.max(maxX, box.maxX);
+            maxY = Math.max(maxY, box.maxY);
+            maxZ = Math.max(maxZ, box.maxZ);
+        }
+        if (Double.isFinite(minX)) {
+            center.set((float) ((minX + maxX) * 0.5), (float) ((minY + maxY) * 0.5), (float) ((minZ + maxZ) * 0.5));
+        } else {
+            center.zero();
         }
     }
 
@@ -302,7 +346,16 @@ public final class OutlineTargetResolver {
         int visible = scaleAlpha(argb, intensity);
         int occluded = outline.isAlwaysOnTop() ? visible
             : scaleAlpha(InWorldAnnotationRenderer.darker(visible, OCCLUDED_DARKEN_PERCENT), 0.5f);
-        return frame.batchFor(visible, occluded, outline.getThickness());
+        float visibleOffset = outline.isHovered() ? 127f / 255f : 0f;
+        float occludedOffset = outline.isAlwaysOnTop() ? visibleOffset : visibleOffset - 127f / 255f;
+        return frame.batchFor(
+            visible,
+            occluded,
+            outline.getThickness(),
+            outline.getColorStyle(),
+            visibleOffset,
+            occludedOffset,
+            frame.colorCenterScratch());
     }
 
     private static int scaleAlpha(int argb, float factor) {

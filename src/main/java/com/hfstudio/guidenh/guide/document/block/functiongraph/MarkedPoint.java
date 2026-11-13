@@ -9,11 +9,17 @@ import lombok.Getter;
 @Getter
 public class MarkedPoint {
 
-    /** Explicit (x, y). */
+    /**
+     * Explicit (x, y).
+     */
     public static final int MODE_EXPLICIT = 0;
-    /** Plot lookup with known x. */
+    /**
+     * Plot lookup with known x.
+     */
     public static final int MODE_PLOT_AT_X = 1;
-    /** Plot lookup with known y; requires bisection on the plot domain. */
+    /**
+     * Plot lookup with known y; requires bisection on the plot domain.
+     */
     public static final int MODE_PLOT_AT_Y = 2;
 
     private final int mode;

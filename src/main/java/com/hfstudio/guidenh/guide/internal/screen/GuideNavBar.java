@@ -11,6 +11,7 @@ import java.util.Set;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.Gui;
+import net.minecraft.client.gui.GuiTextField;
 import net.minecraft.client.renderer.RenderHelper;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.entity.RenderItem;
@@ -18,13 +19,18 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
 
 import org.jetbrains.annotations.Nullable;
+import org.lwjgl.input.Keyboard;
 import org.lwjgl.opengl.GL11;
 
 import com.hfstudio.guidenh.guide.GuidePageIcon;
 import com.hfstudio.guidenh.guide.PageCollection;
 import com.hfstudio.guidenh.guide.color.ColorUtils;
+import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.internal.GuideBookmarkState;
 import com.hfstudio.guidenh.guide.internal.GuidebookText;
+import com.hfstudio.guidenh.guide.internal.debug.DebugComponent;
+import com.hfstudio.guidenh.guide.internal.debug.ScreenDebugComponents;
+import com.hfstudio.guidenh.guide.internal.search.GuideTitleQuery;
 import com.hfstudio.guidenh.guide.internal.util.DisplayScale;
 import com.hfstudio.guidenh.guide.internal.util.SmoothFloatState;
 import com.hfstudio.guidenh.guide.navigation.NavigationNode;
@@ -34,7 +40,7 @@ import com.hfstudio.guidenh.guide.render.GuidePageTexture;
 
 import lombok.Getter;
 
-public class GuideNavBar {
+public class GuideNavBar implements DebugComponent {
 
     public static class NavigationTarget {
 
@@ -156,7 +162,9 @@ public class GuideNavBar {
     private static final int TITLE_SCROLL_INTERVAL_MILLIS = 80;
     private static final String TITLE_SCROLL_GAP = "     ";
     private static final int SCROLLBAR_WIDTH = 4;
-    private static final int SCROLLBAR_GUTTER = SCROLLBAR_WIDTH + 3;
+    private static final int RESIZE_HANDLE_WIDTH = 3;
+    private static final long RESIZE_HOVER_DELAY_MILLIS = 1000L;
+    private static final int SEARCH_MAX_QUERY_LENGTH = 128;
     private static final int MIN_SCROLLBAR_THUMB_HEIGHT = 16;
 
     public interface GuideExpansionListener {
@@ -167,6 +175,7 @@ public class GuideNavBar {
     public record ExpansionChange(@Nullable ResourceLocation guideId, ResourceLocation pageId, boolean expanded) {}
 
     private final List<Row> rows = new ArrayList<>();
+    private final ScreenDebugComponents debugComponents = new ScreenDebugComponents();
     private final Set<NavigationNode.Key> expandedNodeKeys = new HashSet<>();
     private final GuideNavProjection projection = new GuideNavProjection();
     private final StickyStack stickyStack = new StickyStack();
@@ -180,7 +189,9 @@ public class GuideNavBar {
     private boolean bookmarkGroupExpanded = true;
     @Getter
     private boolean templateGroupExpanded = true;
-    /** Template rows to append below the tree, set by the guide editor and empty otherwise. */
+    /**
+     * Template rows to append below the tree, set by the guide editor and empty otherwise.
+     */
     private List<GuideNavProjection.DisplayRow> templateRows = List.of();
     @Nullable
     private GuideExpansionListener onExpansionChanged;
@@ -201,11 +212,20 @@ public class GuideNavBar {
     @Nullable
     private Row hoveredScrollingRow;
     private long hoveredScrollingStartedAtMillis;
+    private boolean draggingResize;
+    private int resizeGrabOffsetX;
+    private long resizeHoverStartedAtMillis;
+    @Nullable
+    private GuiTextField searchField;
+    private boolean searchActive;
+    private GuideTitleQuery titleQuery = new GuideTitleQuery("");
+    private int unfilteredScrollY;
 
     public void setBounds(int x, int y, int height) {
-        if (this.x != x || this.y != y || this.height != height) {
-            releaseScrollbar(0);
+        if (this.x == x && this.y == y && this.height == height) {
+            return;
         }
+        releaseScrollbar(0);
         this.x = x;
         this.y = y;
         this.height = height;
@@ -250,27 +270,38 @@ public class GuideNavBar {
         update(mouseX, mouseY, tree, bookmarkState, false);
     }
 
-    /** Updates navigation state, optionally suppressing hover expansion during another drag gesture. */
+    /**
+     * Updates navigation state, optionally suppressing hover expansion during another drag gesture.
+     */
     public void update(int mouseX, int mouseY, @Nullable NavigationTree tree, GuideBookmarkState bookmarkState,
         boolean suppressHoverExpansion) {
-        if (shouldRebuildRows(tree, bookmarkState)) {
+        if (pinned || contextMenuOpen || draggingScrollbar || draggingResize || isSearchFocused()) {
+            open = true;
+        } else if (suppressHoverExpansion) {
+            open = false;
+        } else {
+            int w = currentWidth();
+            open = mouseX >= x && mouseX < x + w && mouseY >= y && mouseY < y + height;
+        }
+        boolean filterCleared = !open && resetSearch();
+        if (filterCleared || shouldRebuildRows(tree, bookmarkState)) {
             rebuildRows(tree, bookmarkState);
         }
-        if (pinned || contextMenuOpen || draggingScrollbar) {
-            open = true;
-            return;
+        if (filterCleared) {
+            visualScrollY.snapTo(scrollY);
         }
-        if (suppressHoverExpansion) {
-            open = false;
-            return;
+        if (!isInsideResizeHandle(mouseX, mouseY) || draggingScrollbar) {
+            resizeHoverStartedAtMillis = 0L;
+        } else if (resizeHoverStartedAtMillis == 0L) {
+            resizeHoverStartedAtMillis = System.currentTimeMillis();
         }
-        int w = currentWidth();
-        open = mouseX >= x && mouseX < x + w && mouseY >= y && mouseY < y + height;
     }
 
     public GuideNavBarState captureState() {
-        return GuideNavBarState
-            .createExpandedNodes(bookmarkGroupExpanded, new LinkedHashSet<>(expandedNodeKeys), scrollY);
+        return GuideNavBarState.createExpandedNodes(
+            bookmarkGroupExpanded,
+            new LinkedHashSet<>(expandedNodeKeys),
+            titleQuery.isEmpty() ? scrollY : unfilteredScrollY);
     }
 
     public void restoreState(GuideNavBarState state, GuideBookmarkState bookmarkState) {
@@ -281,6 +312,9 @@ public class GuideNavBar {
         expandedNodeKeys.addAll(resolveExpansionKeys(effectiveState.expandedNodeKeys(), lastTree));
         expandedStateVersion++;
         scrollY = effectiveState.scrollY();
+        if (!titleQuery.isEmpty()) {
+            unfilteredScrollY = scrollY;
+        }
         visualScrollY.snapTo(scrollY);
         if (lastTree != null) {
             rebuildRows(lastTree, bookmarkState);
@@ -297,11 +331,10 @@ public class GuideNavBar {
         @Nullable NavigationTree tree, GuideBookmarkState bookmarkState, @Nullable ResourceLocation currentPageId,
         Set<NavigationNode.Key> carryOverKeys) {
 
-        // 1. Replace with new guide's saved state
         expandedNodeKeys.clear();
         expandedNodeKeys.addAll(resolveExpansionKeys(savedState.expandedNodeKeys(), tree));
 
-        // 2. Merge carry-over expansions that exist in the new tree.
+        // Retain expanded entries that also exist in the new tree.
         if (carryOverKeys != null && tree != null) {
             for (NavigationNode.Key key : carryOverKeys) {
                 NavigationNode node = tree.getNodeById(guideId, key.pageId());
@@ -312,6 +345,9 @@ public class GuideNavBar {
         }
 
         bookmarkGroupExpanded = savedState.bookmarkGroupExpanded();
+        if (!titleQuery.isEmpty()) {
+            unfilteredScrollY = savedState.scrollY();
+        }
         // Only restore scroll position during initial screen setup.
         // During cross-guide navigation, keep continuous scroll.
         if (tree == null) {
@@ -320,7 +356,6 @@ public class GuideNavBar {
         }
         activeGuideId = guideId;
 
-        // 3. Expand ancestors of current page (inline, single rebuild at end)
         if (currentPageId != null && tree != null) {
             var path = tree.getPathTo(guideId, currentPageId);
             for (int i = 0; i < path.size() - 1; i++) {
@@ -333,13 +368,14 @@ public class GuideNavBar {
         }
         expandedStateVersion++;
 
-        // 4. Single rebuild with final state
         if (tree != null) {
             rebuildRows(tree, bookmarkState);
         }
     }
 
-    /** Snapshot of current expanded node keys for carry-over before navigation. */
+    /**
+     * Snapshot of current expanded node keys for carry-over before navigation.
+     */
     public Set<NavigationNode.Key> getExpandedNodeKeysSnapshot() {
         return new HashSet<>(expandedNodeKeys);
     }
@@ -419,9 +455,10 @@ public class GuideNavBar {
             clampScrollToRows();
             return;
         }
+        GuideTitleQuery filter = titleQuery.isEmpty() ? null : titleQuery;
         GuideNavProjection.ProjectionResult projected = projection
-            .project(tree, bookmarkState, expandedNodeKeys, bookmarkGroupExpanded);
-        projected = projection.withTemplates(projected, templateRows, templateGroupExpanded);
+            .project(tree, bookmarkState, expandedNodeKeys, bookmarkGroupExpanded, filter);
+        projected = projection.withTemplates(projected, templateRows, templateGroupExpanded, filter);
         for (GuideNavProjection.ProjectedRow projectedRow : projected.rows()) {
             rows.add(new Row(projectedRow));
         }
@@ -434,25 +471,39 @@ public class GuideNavBar {
         @Nullable ResourceLocation currentPageId, int mouseX, int mouseY, @Nullable PageCollection pageCollection,
         GuideBookmarkState bookmarkState, boolean showNewPageButton) {
         updateVisualScroll();
+        debugComponents.beginFrame();
+        if (debugComponents.isEnabled()) {
+            collectPanelDebugComponents();
+        }
         GL11.glPushAttrib(GL11.GL_ENABLE_BIT | GL11.GL_CURRENT_BIT | GL11.GL_COLOR_BUFFER_BIT);
         try {
             int w = currentWidth();
             int rowRight = getRowRight();
             int textRightBase = rowRight - 1;
-            int bookmarkActionLeft = getBookmarkActionLeft(w);
+            int bookmarkActionLeft = getBookmarkActionLeft();
             int bookmarkIconX = bookmarkActionLeft + ACTION_PADDING_RIGHT;
             int bgTop = ColorUtils.ARGB_E0151515.getColor();
             int bgBot = ColorUtils.ARGB_E0101010.getColor();
             drawVGradient(x, y, w, height, bgTop, bgBot);
-            Gui.drawRect(x + w - 1, y, x + w, y + height, ColorUtils.ARGB_FF2A2A2A.getColor());
+            int borderColor = draggingResize || isResizeReady() ? ColorUtils.ARGB_FF5EA8FF.getColor()
+                : ColorUtils.ARGB_FF2A2A2A.getColor();
+            Gui.drawRect(getRightBorderX(), y, x + w, y + height, borderColor);
 
             if (!isOpen()) {
                 resetTitleScroll();
                 drawArrow(x + w / 2 - 2, y + height / 2 - 3, true, ColorUtils.ARGB_FF888888.getColor());
+                if (debugComponents.isEnabled()) {
+                    debugComponents.add(
+                        "NavigationCollapsedArrow",
+                        new LytRect(x + w / 2 - 2, y + height / 2 - 3, 4, 7),
+                        null,
+                        ScreenDebugComponents.NAVIGATION_LAYER,
+                        debugComponents.getRoot());
+                }
                 return;
             }
 
-            renderTitle(mc, w, mouseX, mouseY, showNewPageButton);
+            renderTitle(mc, mouseX, mouseY, showNewPageButton);
 
             int bodyY = getBodyY();
             int bodyHeight = getBodyHeight();
@@ -540,12 +591,16 @@ public class GuideNavBar {
         GuideNavProjection.DisplayRow displayRow = row.displayRow();
         int indent = row.indent();
         int rowX = x + 2 + indent;
-        boolean hovered = !draggingScrollbar && mouseX >= x
+        boolean hovered = !draggingScrollbar && !draggingResize
+            && mouseX >= x
             && mouseX < rowRight
             && mouseY >= Math.max(rowY, getBodyY())
-            && mouseY < Math.min(rowY + ROW_H, getBodyBottom());
+            && mouseY < Math.min(rowY + ROW_H, getBodyBottom())
+            && !isResizeReady(mouseX, mouseY);
         boolean current = isCurrentRow(row, currentGuideId, currentPageId);
         boolean bookmarkable = row.bookmarkable();
+        boolean bookmarked = bookmarkable && row.pageId() != null && bookmarkState.isBookmarked(row.pageId());
+        boolean bookmarkVisible = bookmarkable && (hovered || bookmarked);
 
         if (sticky) {
             Gui.drawRect(x, rowY, rowRight, rowY + ROW_H, ColorUtils.ARGB_F0181818.getColor());
@@ -581,7 +636,7 @@ public class GuideNavBar {
         }
 
         int textRight = textRightBase;
-        if (bookmarkable) {
+        if (bookmarkVisible) {
             textRight -= ACTION_SLOT_W;
         }
         int maxTw = textRight - textX;
@@ -595,7 +650,21 @@ public class GuideNavBar {
 
         boolean bookmarkHovered = hovered
             && isInsideBookmarkAction(mouseX, mouseY, rowY, bookmarkable, bookmarkActionLeft);
-        renderBookmarkIcon(mc, row, rowY, hovered, bookmarkHovered, bookmarkState, bookmarkIconX);
+        if (bookmarkVisible) {
+            renderBookmarkIcon(mc, rowY, bookmarkHovered, bookmarked, bookmarkIconX);
+        }
+        if (debugComponents.isEnabled()) {
+            int titleWidth = maxTw > 0 && !titleScrollActive ? fr.getStringWidth(row.getTitle(fr, maxTw)) : maxTw;
+            collectRowDebugComponents(
+                row,
+                rowY,
+                textX,
+                titleWidth,
+                fr.FONT_HEIGHT,
+                bookmarkVisible,
+                bookmarked,
+                sticky);
+        }
         return titleScrollActive;
     }
 
@@ -652,15 +721,17 @@ public class GuideNavBar {
         hoveredScrollingStartedAtMillis = 0L;
     }
 
-    private void renderTitle(Minecraft mc, int width, int mouseX, int mouseY, boolean showNewPageButton) {
+    private void renderTitle(Minecraft mc, int mouseX, int mouseY, boolean showNewPageButton) {
         FontRenderer fr = mc.fontRenderer;
-        Gui.drawRect(x, y, x + width - 1, y + TITLE_H, ColorUtils.ARGB_D0202020.getColor());
-        Gui.drawRect(x, y + TITLE_H - 1, x + width - 1, y + TITLE_H, ColorUtils.ARGB_FF2A2A2A.getColor());
+        int borderX = getRightBorderX();
+        Gui.drawRect(x, y, borderX, y + TITLE_H, ColorUtils.ARGB_D0202020.getColor());
+        Gui.drawRect(x, y + TITLE_H - 1, borderX, y + TITLE_H, ColorUtils.ARGB_FF2A2A2A.getColor());
         int pinX = getPinButtonX();
         int buttonY = getTitleButtonY();
+        boolean resizeReady = isResizeReady(mouseX, mouseY);
         if (showNewPageButton) {
             int newPageX = getNewPageButtonX();
-            boolean hovered = isInsideTitleButton(mouseX, mouseY, newPageX);
+            boolean hovered = !resizeReady && isInsideTitleButton(mouseX, mouseY, newPageX);
             int color = GuideIconButton.resolveIconColor(true, hovered, false);
             GuideIconButton.drawIcon(
                 mc,
@@ -672,7 +743,7 @@ public class GuideNavBar {
                 color);
         }
 
-        boolean pinHovered = isInsideTitleButton(mouseX, mouseY, pinX);
+        boolean pinHovered = !resizeReady && isInsideTitleButton(mouseX, mouseY, pinX);
         int pinColor = GuideIconButton.resolveIconColor(true, pinHovered, pinned);
         GuideIconButton.drawIcon(
             mc,
@@ -683,9 +754,22 @@ public class GuideNavBar {
             GuideIconButton.HEIGHT,
             pinColor);
 
-        int titleX = x + TITLE_TEXT_LEFT_PADDING;
-        int titleRight = (showNewPageButton ? getNewPageButtonX() : pinX) - TITLE_BUTTON_GAP;
-        int titleW = Math.max(0, titleRight - titleX);
+        GuiTextField field = ensureSearchField(fr, showNewPageButton);
+        if (debugComponents.isEnabled()) {
+            collectTitleDebugComponents(fr, field, showNewPageButton);
+        }
+        int titleX = field.xPosition;
+        int titleW = field.width;
+        if (searchActive) {
+            GL11.glEnable(GL11.GL_SCISSOR_TEST);
+            setScissor(mc, titleX, y, titleW, TITLE_H - 1, DisplayScale.scaleFactor());
+            try {
+                field.drawTextBox();
+            } finally {
+                GL11.glDisable(GL11.GL_SCISSOR_TEST);
+            }
+            return;
+        }
         if (titleW > 0) {
             String title = GuidebookText.NavigationTitle.text();
             String renderedTitle = fr.getStringWidth(title) > titleW
@@ -695,9 +779,173 @@ public class GuideNavBar {
                 renderedTitle,
                 titleX,
                 y + (TITLE_H - fr.FONT_HEIGHT) / 2 + 1,
-                ColorUtils.ARGB_FFE8E8E8.getColor(),
+                isInsideSearchTitle(fr, mouseX, mouseY) ? ColorUtils.ARGB_FF5EA8FF.getColor()
+                    : ColorUtils.ARGB_FFE8E8E8.getColor(),
                 false);
         }
+    }
+
+    private GuiTextField ensureSearchField(FontRenderer font, boolean showNewPageButton) {
+        int fieldX = x + TITLE_TEXT_LEFT_PADDING;
+        int fieldY = y + (TITLE_H - font.FONT_HEIGHT) / 2 + 1;
+        int fieldRight = (showNewPageButton ? getNewPageButtonX() : getPinButtonX()) - TITLE_BUTTON_GAP;
+        int fieldWidth = Math.max(1, fieldRight - fieldX);
+        GuiTextField field = searchField;
+        if (field == null) {
+            field = new GuiTextField(font, fieldX, fieldY, fieldWidth, font.FONT_HEIGHT);
+            field.setEnableBackgroundDrawing(false);
+            field.setMaxStringLength(SEARCH_MAX_QUERY_LENGTH);
+            field.setFocused(false);
+            searchField = field;
+        }
+        boolean widthChanged = field.width != fieldWidth;
+        field.xPosition = fieldX;
+        field.yPosition = fieldY;
+        field.width = fieldWidth;
+        if (widthChanged) {
+            field.setSelectionPos(field.getSelectionEnd());
+        }
+        return field;
+    }
+
+    public boolean isSearchFocused() {
+        return searchActive && searchField != null && searchField.isFocused();
+    }
+
+    public void tickSearchField() {
+        if (searchField != null) {
+            searchField.updateCursorCounter();
+        }
+    }
+
+    public boolean handleControlClick(Minecraft mc, int mouseX, int mouseY, int button, boolean showNewPageButton,
+        GuideBookmarkState bookmarkState) {
+        if (button == 0 && isResizeReady(mouseX, mouseY)) {
+            draggingResize = true;
+            resizeGrabOffsetX = x + currentWidth() - mouseX;
+            return true;
+        }
+        if (isOpen()) {
+            GuiTextField field = ensureSearchField(mc.fontRenderer, showNewPageButton);
+            if ((button == 0 || button == 1 && searchActive) && isInsideSearchTitle(mc.fontRenderer, mouseX, mouseY)) {
+                searchActive = true;
+                field.setFocused(true);
+                if (button == 1) {
+                    field.setText("");
+                    updateTitleQuery("", bookmarkState);
+                } else {
+                    field.mouseClicked(mouseX, field.yPosition, button);
+                }
+                return true;
+            }
+        }
+        if ((button == 0 || button == 1) && searchField != null) {
+            searchField.setFocused(false);
+            if (searchField.getText()
+                .isEmpty()) {
+                searchActive = false;
+            }
+        }
+        return false;
+    }
+
+    public boolean handleSearchKey(char typedChar, int keyCode, GuideBookmarkState bookmarkState) {
+        GuiTextField field = searchField;
+        if (!searchActive || field == null || !field.isFocused()) {
+            return false;
+        }
+        if (keyCode == Keyboard.KEY_ESCAPE) {
+            field.setFocused(false);
+            searchActive = !field.getText()
+                .isEmpty();
+            return true;
+        }
+        String before = field.getText();
+        field.textboxKeyTyped(typedChar, keyCode);
+        if (!before.equals(field.getText())) {
+            updateTitleQuery(field.getText(), bookmarkState);
+        }
+        return true;
+    }
+
+    private void updateTitleQuery(String query, GuideBookmarkState bookmarkState) {
+        if (titleQuery.isEmpty()) {
+            unfilteredScrollY = scrollY;
+        }
+        titleQuery = new GuideTitleQuery(query);
+        scrollY = titleQuery.isEmpty() ? unfilteredScrollY : 0;
+        releaseScrollbar(0);
+        rebuildRows(lastTree, bookmarkState);
+        visualScrollY.snapTo(scrollY);
+    }
+
+    /**
+     * Clears the transient search UI and reports whether the row filter changed.
+     */
+    private boolean resetSearch() {
+        if (!searchActive) {
+            return false;
+        }
+        searchActive = false;
+        if (searchField != null) {
+            searchField.setFocused(false);
+            searchField.setText("");
+        }
+        if (titleQuery.isEmpty()) {
+            return false;
+        }
+        titleQuery = new GuideTitleQuery("");
+        scrollY = unfilteredScrollY;
+        return true;
+    }
+
+    private boolean isInsideSearchTitle(FontRenderer font, int mouseX, int mouseY) {
+        if (searchField == null) {
+            return false;
+        }
+        int width = searchActive ? searchField.width
+            : Math.min(searchField.width, font.getStringWidth(GuidebookText.NavigationTitle.text()));
+        return mouseX >= searchField.xPosition && mouseX < searchField.xPosition + width
+            && mouseY >= y
+            && mouseY < y + TITLE_H - 1;
+    }
+
+    private boolean isInsideResizeHandle(int mouseX, int mouseY) {
+        int right = x + currentWidth();
+        return isOpen() && mouseX >= right - RESIZE_HANDLE_WIDTH
+            && mouseX < right
+            && mouseY >= y
+            && mouseY < y + height;
+    }
+
+    private boolean isResizeReady(int mouseX, int mouseY) {
+        return isInsideResizeHandle(mouseX, mouseY) && isResizeReady();
+    }
+
+    private boolean isResizeReady() {
+        return resizeHoverStartedAtMillis > 0L
+            && System.currentTimeMillis() - resizeHoverStartedAtMillis >= RESIZE_HOVER_DELAY_MILLIS;
+    }
+
+    /**
+     * Continues width capture outside the handle and clamps to the host's available space.
+     */
+    public boolean dragResize(int mouseX, int button, int minWidth, int maxWidth) {
+        if (!draggingResize || button != 0) {
+            return false;
+        }
+        setOpenWidth(Math.clamp(mouseX + resizeGrabOffsetX - x, Math.min(minWidth, maxWidth), maxWidth));
+        return true;
+    }
+
+    public boolean releaseResize(int button) {
+        if (!draggingResize || button != 0) {
+            return false;
+        }
+        draggingResize = false;
+        resizeGrabOffsetX = 0;
+        resizeHoverStartedAtMillis = 0L;
+        return true;
     }
 
     private boolean renderRowTitle(Minecraft mc, FontRenderer fr, Row row, int textX, int rowY, int maxTw, int color,
@@ -757,7 +1005,7 @@ public class GuideNavBar {
             return ClickResult.none();
         }
         if (mouseX >= getRowRight()) {
-            if (hasScrollbar()) {
+            if (hasScrollbar() && mouseX < getRightBorderX()) {
                 int thumbHeight = getScrollbarThumbHeight();
                 int thumbY = getScrollbarThumbY(thumbHeight);
                 boolean insideThumb = mouseY >= thumbY && mouseY < thumbY + thumbHeight;
@@ -780,12 +1028,17 @@ public class GuideNavBar {
 
         Row row = rowHit.row();
         GuideNavProjection.DisplayRow displayRow = row.displayRow();
-        int bookmarkActionLeft = getBookmarkActionLeft(w);
+        int bookmarkActionLeft = getBookmarkActionLeft();
         if (row.bookmarkable() && isInsideBookmarkAction(mouseX, mouseY, rowHit.rowY(), true, bookmarkActionLeft)
             && row.pageId() != null) {
             return ClickResult.toggleBookmark(row.pageId());
         }
 
+        if (!titleQuery.isEmpty() && (row.kind() == GuideNavProjection.RowKind.BOOKMARK_GROUP
+            || row.kind() == GuideNavProjection.RowKind.TEMPLATE_GROUP
+            || row.hasChildren() && isInsideExpandArrow(mouseX, row))) {
+            return ClickResult.none();
+        }
         if (row.hasChildren() && isInsideExpandArrow(mouseX, row)) {
             if (shiftDown && row.kind() == GuideNavProjection.RowKind.TREE_PAGE) {
                 toggleExpandedDescendants(row, bookmarkState);
@@ -807,7 +1060,7 @@ public class GuideNavBar {
             return ClickResult.none();
         }
 
-        if (row.hasChildren() && displayRow.kind() == GuideNavProjection.RowKind.TREE_PAGE) {
+        if (titleQuery.isEmpty() && row.hasChildren() && displayRow.kind() == GuideNavProjection.RowKind.TREE_PAGE) {
             boolean alreadyExpanded = isExpanded(row);
             if (!alreadyExpanded) {
                 toggleExpand(row, bookmarkState);
@@ -845,7 +1098,7 @@ public class GuideNavBar {
 
     @Nullable
     public String getTooltip(int mouseX, int mouseY, boolean showNewPageButton) {
-        if (!isOpen() || !contains(mouseX, mouseY) || mouseY >= y + TITLE_H) {
+        if (!isOpen() || !contains(mouseX, mouseY) || mouseY >= y + TITLE_H || isResizeReady(mouseX, mouseY)) {
             return null;
         }
         if (showNewPageButton && isInsideTitleButton(mouseX, mouseY, getNewPageButtonX())) {
@@ -857,16 +1110,8 @@ public class GuideNavBar {
         return null;
     }
 
-    private void renderBookmarkIcon(Minecraft mc, Row row, int rowY, boolean rowHovered, boolean buttonHovered,
-        GuideBookmarkState bookmarkState, int bookmarkIconX) {
-        if (!row.bookmarkable()) {
-            return;
-        }
-        ResourceLocation pageId = row.pageId();
-        boolean bookmarked = pageId != null && bookmarkState.isBookmarked(pageId);
-        if (!bookmarked && !rowHovered) {
-            return;
-        }
+    private void renderBookmarkIcon(Minecraft mc, int rowY, boolean buttonHovered, boolean bookmarked,
+        int bookmarkIconX) {
         int iconY = getBookmarkIconY(rowY);
         GuideIconButton.Role role = bookmarked ? GuideIconButton.Role.BOOKMARKED : GuideIconButton.Role.BOOKMARK;
         int color = GuideIconButton.resolveIconColor(true, buttonHovered, bookmarked);
@@ -883,8 +1128,8 @@ public class GuideNavBar {
             && mouseY < rowY + ROW_H;
     }
 
-    private int getBookmarkActionLeft(int width) {
-        return x + width - ACTION_SLOT_W - getScrollbarGutter();
+    private int getBookmarkActionLeft() {
+        return getRowRight() - ACTION_SLOT_W;
     }
 
     private int getBookmarkIconY(int rowY) {
@@ -906,6 +1151,9 @@ public class GuideNavBar {
     }
 
     private boolean isCollapsed(Row row) {
+        if (!titleQuery.isEmpty()) {
+            return false;
+        }
         if (row.kind() == GuideNavProjection.RowKind.BOOKMARK_GROUP) {
             return !bookmarkGroupExpanded;
         }
@@ -916,6 +1164,9 @@ public class GuideNavBar {
     }
 
     private boolean isExpanded(Row row) {
+        if (!titleQuery.isEmpty()) {
+            return row.hasChildren();
+        }
         NavigationNode.Key key = row.navigationKey();
         return key != null && expandedNodeKeys.contains(key);
     }
@@ -1086,7 +1337,7 @@ public class GuideNavBar {
     }
 
     private int getPinButtonX() {
-        return x + currentWidth() - GuideIconButton.WIDTH - 1;
+        return getRightBorderX() - GuideIconButton.WIDTH;
     }
 
     private int getNewPageButtonX() {
@@ -1110,11 +1361,18 @@ public class GuideNavBar {
     }
 
     private int getScrollbarGutter() {
-        return hasScrollbar() ? SCROLLBAR_GUTTER : 0;
+        return hasScrollbar() ? SCROLLBAR_WIDTH : 0;
     }
 
     private int getRowRight() {
-        return x + currentWidth() - 1 - getScrollbarGutter();
+        return getRightBorderX() - getScrollbarGutter();
+    }
+
+    /**
+     * Layout ends at the border; the wider resize hit area does not reserve visual space.
+     */
+    private int getRightBorderX() {
+        return x + currentWidth() - 1;
     }
 
     private int getScrollbarThumbHeight() {
@@ -1137,22 +1395,152 @@ public class GuideNavBar {
         if (!hasScrollbar()) {
             return;
         }
-        int barX = x + currentWidth() - 1 - SCROLLBAR_WIDTH;
+        int barX = getRowRight();
         int thumbHeight = getScrollbarThumbHeight();
         int thumbY = getScrollbarThumbY(thumbHeight);
         Gui.drawRect(barX, getBodyY(), barX + SCROLLBAR_WIDTH, getBodyBottom(), ColorUtils.ARGB_40FFFFFF.getColor());
-        boolean hovered = mouseX >= getRowRight() && mouseX < x + currentWidth()
+        boolean hovered = !draggingResize && mouseX >= barX
+            && mouseX < getRightBorderX()
             && mouseY >= thumbY
-            && mouseY < thumbY + thumbHeight;
+            && mouseY < thumbY + thumbHeight
+            && !isResizeReady(mouseX, mouseY);
         Gui.drawRect(
             barX,
             thumbY,
             barX + SCROLLBAR_WIDTH,
             thumbY + thumbHeight,
             draggingScrollbar || hovered ? ColorUtils.WHITE.getColor() : ColorUtils.ARGB_FFCCCCCC.getColor());
+        if (debugComponents.isEnabled()) {
+            var track = debugComponents.add(
+                "NavigationScrollbarTrack",
+                new LytRect(barX, getBodyY(), SCROLLBAR_WIDTH, getBodyHeight()),
+                null,
+                ScreenDebugComponents.NAVIGATION_LAYER + 3,
+                debugComponents.getRoot());
+            debugComponents.add(
+                "NavigationScrollbarThumb",
+                new LytRect(barX, thumbY, SCROLLBAR_WIDTH, thumbHeight),
+                null,
+                ScreenDebugComponents.NAVIGATION_LAYER + 4,
+                track);
+        }
     }
 
-    /** Continues a captured scrollbar drag even outside the navigation panel. */
+    @Override
+    public List<DebugComponent.ComponentEntry> getDebugComponents() {
+        return debugComponents.getDebugComponents();
+    }
+
+    private void collectPanelDebugComponents() {
+        int width = currentWidth();
+        var panel = debugComponents.add(
+            "NavigationPanel",
+            new LytRect(x, y, width, height),
+            null,
+            ScreenDebugComponents.NAVIGATION_LAYER,
+            null);
+        debugComponents.add(
+            "NavigationBorder",
+            new LytRect(getRightBorderX(), y, 1, height),
+            null,
+            ScreenDebugComponents.NAVIGATION_LAYER + 3,
+            panel);
+        if (isOpen() && (isResizeReady() || draggingResize)) {
+            debugComponents.add(
+                "NavigationResizeHandle",
+                new LytRect(x + width - RESIZE_HANDLE_WIDTH, y, RESIZE_HANDLE_WIDTH, height),
+                "Width: " + width,
+                ScreenDebugComponents.NAVIGATION_LAYER + 5,
+                panel);
+        }
+    }
+
+    private void collectTitleDebugComponents(FontRenderer font, GuiTextField field, boolean showNewPageButton) {
+        var header = debugComponents.add(
+            "NavigationHeader",
+            new LytRect(x, y, currentWidth() - 1, TITLE_H),
+            null,
+            ScreenDebugComponents.NAVIGATION_LAYER,
+            debugComponents.getRoot());
+        int titleWidth = searchActive ? field.width
+            : Math.min(field.width, font.getStringWidth(GuidebookText.NavigationTitle.text()));
+        debugComponents.add(
+            searchActive ? "NavigationSearchField" : "NavigationTitle",
+            new LytRect(field.xPosition, field.yPosition, titleWidth, font.FONT_HEIGHT),
+            searchActive ? "Query: " + field.getText() : GuidebookText.NavigationTitle.text(),
+            ScreenDebugComponents.NAVIGATION_LAYER + 1,
+            header);
+        debugComponents.add(
+            "NavigationPinButton",
+            new LytRect(getPinButtonX(), getTitleButtonY(), GuideIconButton.WIDTH, GuideIconButton.HEIGHT),
+            GuideIconButton.Role.NAVIGATION_PIN.tooltip(),
+            ScreenDebugComponents.NAVIGATION_LAYER + 2,
+            header);
+        if (showNewPageButton) {
+            debugComponents.add(
+                "NavigationNewPageButton",
+                new LytRect(getNewPageButtonX(), getTitleButtonY(), GuideIconButton.WIDTH, GuideIconButton.HEIGHT),
+                GuideIconButton.Role.GUIDE_EDITOR_NEW_PAGE.tooltip(),
+                ScreenDebugComponents.NAVIGATION_LAYER + 2,
+                header);
+        }
+    }
+
+    private void collectRowDebugComponents(Row row, int rowY, int textX, int titleWidth, int titleHeight,
+        boolean bookmarkVisible, boolean bookmarked, boolean sticky) {
+        int layer = ScreenDebugComponents.NAVIGATION_LAYER + (sticky ? 1 : 0);
+        LytRect clip = new LytRect(x, getBodyY(), Math.max(0, getRowRight() - x), getBodyHeight());
+        var rowEntry = debugComponents.addClipped(
+            sticky ? "NavigationStickyRow" : "NavigationRow",
+            new LytRect(x, rowY, getRowRight() - x, ROW_H),
+            clip,
+            row.displayRow()
+                .title() + " | "
+                + row.pageId(),
+            layer,
+            debugComponents.getRoot());
+        if (row.hasChildren()) {
+            boolean collapsed = isCollapsed(row);
+            debugComponents.addClipped(
+                "NavigationExpandArrow",
+                new LytRect(x + 2 + row.indent(), rowY + 2, collapsed ? 4 : 7, collapsed ? 7 : 4),
+                clip,
+                collapsed ? "Collapsed" : "Expanded",
+                layer,
+                rowEntry);
+        }
+        if (row.displayRow()
+            .icon() != null) {
+            debugComponents.addClipped(
+                "NavigationIcon",
+                new LytRect(textX - ICON_SIZE - 2, rowY + (ROW_H - ICON_SIZE) / 2, ICON_SIZE, ICON_SIZE),
+                clip,
+                null,
+                layer,
+                rowEntry);
+        }
+        debugComponents.addClipped(
+            "NavigationRowTitle",
+            new LytRect(textX, rowY + 2, titleWidth, titleHeight),
+            clip,
+            row.displayRow()
+                .title(),
+            layer,
+            rowEntry);
+        if (bookmarkVisible) {
+            debugComponents.addClipped(
+                "NavigationBookmarkButton",
+                new LytRect(getBookmarkActionLeft(), rowY, ACTION_SLOT_W, ROW_H),
+                clip,
+                bookmarked ? "Remove bookmark" : "Add bookmark",
+                layer,
+                rowEntry);
+        }
+    }
+
+    /**
+     * Continues a captured scrollbar drag even outside the navigation panel.
+     */
     public boolean dragScrollbar(int mouseY, int button) {
         if (!draggingScrollbar || button != 0) {
             return false;
@@ -1165,7 +1553,9 @@ public class GuideNavBar {
         return true;
     }
 
-    /** Releases the left-button capture without affecting other navigation state. */
+    /**
+     * Releases the left-button capture without affecting other navigation state.
+     */
     public boolean releaseScrollbar(int button) {
         if (!draggingScrollbar || button != 0) {
             return false;
@@ -1327,6 +1717,8 @@ public class GuideNavBar {
         @Nullable
         private final ResourceLocation pageId;
         @Nullable
+        private final NavigationNode.Key navigationKey;
+        @Nullable
         private String cachedTitle;
         @Nullable
         private String cachedScrollingTitle;
@@ -1347,6 +1739,7 @@ public class GuideNavBar {
             hasChildren = displayRow.hasChildren();
             guideId = displayRow.guideId();
             pageId = displayRow.pageId();
+            navigationKey = pageId != null ? new NavigationNode.Key(guideId, pageId) : null;
             bookmarkable = displayRow.kind() == GuideNavProjection.RowKind.BOOKMARK_PAGE
                 || displayRow.kind() == GuideNavProjection.RowKind.TREE_PAGE && displayRow.hasPage();
             stickyCandidate = displayRow.kind() == GuideNavProjection.RowKind.TREE_PAGE && hasChildren
@@ -1401,7 +1794,7 @@ public class GuideNavBar {
 
         @Nullable
         public NavigationNode.Key navigationKey() {
-            return pageId != null ? new NavigationNode.Key(guideId, pageId) : null;
+            return navigationKey;
         }
 
         public GuideNavProjection.RowKind kind() {
@@ -1423,13 +1816,16 @@ public class GuideNavBar {
             if (cachedTitleWidth < 0 || cachedWidthAtLineHeight != lineHeight) {
                 cachedWidthAtLineHeight = lineHeight;
                 cachedTitleWidth = fr.getStringWidth(displayRow.title());
-                cachedScrollCycleWidth = fr.getStringWidth(displayRow.title() + TITLE_SCROLL_GAP);
+                cachedScrollCycleWidth = -1;
             }
             return cachedTitleWidth;
         }
 
         public int getScrollCycleWidth(FontRenderer fr) {
             getTitleWidth(fr);
+            if (cachedScrollCycleWidth < 0) {
+                cachedScrollCycleWidth = fr.getStringWidth(displayRow.title() + TITLE_SCROLL_GAP);
+            }
             return cachedScrollCycleWidth;
         }
 
