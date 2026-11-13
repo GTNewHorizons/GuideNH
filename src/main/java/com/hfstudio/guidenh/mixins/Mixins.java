@@ -31,6 +31,11 @@ public enum Mixins implements IMixins {
     STRUCTURELIB_MINIMUM_HATCHES(Side.CLIENT, Phase.LATE, Mods.StructureLib,
         "compat.structurelib.MixinSurvivalBuildStructureWalker"),
 
+    LWJGL3IFY_TEXT_INPUT(Side.CLIENT, Phase.EARLY, Mods.Lwjgl3ify, "lwjgl3ify.AccessorTextFieldHandler"),
+
+    OFFSCREEN_WINDOW(Side.CLIENT, Phase.LATE, Mods.Offscreen, "offscreen.AccessorOffscreenWindow",
+        "offscreen.MixinOffscreenWindow"),
+
     ;
 
     private final MixinBuilder builder;

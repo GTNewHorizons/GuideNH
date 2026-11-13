@@ -14,6 +14,7 @@ import com.hfstudio.guidenh.config.ModConfig;
 import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.block.LytDocument;
+import com.hfstudio.guidenh.guide.internal.input.GuideInputContext;
 
 import lombok.Getter;
 
@@ -270,9 +271,9 @@ public class GuideDebugOverlay {
      * Returns true if the key was consumed by the debug overlay.
      */
     public boolean handleKeyPress(char typedChar, int keyCode) {
-        if (keyCode == Keyboard.KEY_C && Keyboard.isKeyDown(Keyboard.KEY_LCONTROL)
-            && Keyboard.isKeyDown(Keyboard.KEY_LSHIFT)
-            && Keyboard.isKeyDown(Keyboard.KEY_LMENU)) {
+        if (keyCode == Keyboard.KEY_C && GuideInputContext.isKeyDown(Keyboard.KEY_LCONTROL)
+            && GuideInputContext.isKeyDown(Keyboard.KEY_LSHIFT)
+            && GuideInputContext.isKeyDown(Keyboard.KEY_LMENU)) {
             toggleDebugMode();
             return true;
         }

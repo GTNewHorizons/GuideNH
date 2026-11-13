@@ -37,6 +37,9 @@ dependencies {
     runtimeOnlyNonPublishable("com.github.GTNewHorizons:Botanic-horizons:1.12.10-GTNH:dev")
     compileOnlyApi("com.github.GTNewHorizons:BlockRenderer6343:1.4.24:dev") { transitive = false }
     runtimeOnlyNonPublishable("com.github.GTNewHorizons:BlockRenderer6343:1.4.24:dev") { transitive = false }
+    compileOnly("com.github.GTNewHorizons:Offscreen:0.0.4:dev") { transitive = false }
+    runtimeOnlyNonPublishable("com.github.GTNewHorizons:Offscreen:0.0.4:dev") { transitive = false }
+    compileOnly("com.github.GTNewHorizons:lwjgl3ify:3.0.33:dev") { transitive = false }
     runtimeOnlyNonPublishable("com.github.GTNewHorizons:EnderCore:0.5.15:dev") { transitive = false }
     runtimeOnlyNonPublishable("it.unimi.dsi:fastutil:8.5.18")
     runtimeOnlyNonPublishable(rfg.deobf("curse.maven:spark-361579:4271867"))

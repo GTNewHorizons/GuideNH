@@ -39,6 +39,7 @@ import com.hfstudio.guidenh.guide.siteexport.ExportTask;
 import com.hfstudio.guidenh.guide.siteexport.site.GuideSiteExportOptions;
 import com.hfstudio.guidenh.guide.siteexport.site.GuideSiteExportTask;
 import com.hfstudio.guidenh.guide.siteexport.site.GuideSiteOutputPaths;
+import com.hfstudio.guidenh.integration.offscreen.GuideOffscreenBridge;
 
 public class GuideNhClientCommand extends CommandBase {
 
@@ -166,6 +167,10 @@ public class GuideNhClientCommand extends CommandBase {
     private void toggleGuideEditor(ICommandSender sender) {
         if (!ModConfig.ui.sceneExportEnabled) {
             send(sender, GuidebookText.SceneExportDisabled);
+            return;
+        }
+        GuideScreen screen = GuideScreen.current();
+        if (screen != null && GuideOffscreenBridge.defer(screen, () -> toggleGuideEditor(sender))) {
             return;
         }
         boolean enabled = GuideScreen.toggleEditorModeFromCommand();

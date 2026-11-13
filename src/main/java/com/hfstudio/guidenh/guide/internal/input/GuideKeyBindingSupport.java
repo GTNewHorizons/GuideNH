@@ -15,8 +15,13 @@ public class GuideKeyBindingSupport {
     private GuideKeyBindingSupport() {}
 
     public static boolean isDown(@Nullable KeyBinding binding) {
-        if (binding == null || binding.getKeyCode() == Keyboard.KEY_NONE) {
+        if (binding == null || binding.getKeyCode() == Keyboard.KEY_NONE || !GuideInputContext.isFocused()) {
             return false;
+        }
+        if (GuideInputContext.isActive()) {
+            int keyCode = binding.getKeyCode();
+            return keyCode < 0 ? GuideInputContext.isButtonDown(keyCode + MOUSE_KEY_OFFSET)
+                : GuideInputContext.isKeyDown(keyCode);
         }
         try {
             return GameSettings.isKeyDown(binding);

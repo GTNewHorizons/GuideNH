@@ -47,6 +47,7 @@ import com.hfstudio.guidenh.guide.internal.GuideRegistry;
 import com.hfstudio.guidenh.guide.internal.GuideScreen;
 import com.hfstudio.guidenh.guide.internal.MutableGuide;
 import com.hfstudio.guidenh.guide.internal.host.LytHost;
+import com.hfstudio.guidenh.guide.internal.input.GuidePointerInput;
 import com.hfstudio.guidenh.guide.internal.recipe.NeiItemTooltip;
 import com.hfstudio.guidenh.guide.internal.screen.GuideIconButton;
 import com.hfstudio.guidenh.guide.internal.tooltip.GuideItemTooltipLines;
@@ -58,7 +59,7 @@ import com.hfstudio.guidenh.guide.scene.LytGuidebookScene;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.guide.ui.GuideUiHost;
 
-public class GuideWelcomeScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallback {
+public class GuideWelcomeScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallback, GuidePointerInput {
 
     private static final ResourceLocation PAGE_ID = new ResourceLocation(GuideNH.MODID, "welcome_popup");
     private static final int PANEL_MAX_WIDTH = 420;
@@ -139,7 +140,11 @@ public class GuideWelcomeScreen extends GuiScreen implements GuideUiHost, GuiYes
     @Override
     public void handleMouseInput() {
         super.handleMouseInput();
-        int wheel = Mouse.getEventDWheel();
+        handlePointerScroll(0, 0, Mouse.getEventDWheel());
+    }
+
+    @Override
+    public void handlePointerScroll(int mouseX, int mouseY, int wheel) {
         if (wheel > 0) {
             setTargetScroll(targetScrollY - SCROLL_STEP);
         } else if (wheel < 0) {
@@ -174,6 +179,11 @@ public class GuideWelcomeScreen extends GuiScreen implements GuideUiHost, GuiYes
             return;
         }
         super.mouseClickMove(mouseX, mouseY, clickedMouseButton, timeSinceLastClick);
+    }
+
+    @Override
+    public void handlePointerDrag(int mouseX, int mouseY, int button, long heldMillis) {
+        mouseClickMove(mouseX, mouseY, button, heldMillis);
     }
 
     @Override

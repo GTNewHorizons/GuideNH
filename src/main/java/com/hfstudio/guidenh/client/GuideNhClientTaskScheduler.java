@@ -43,7 +43,14 @@ public class GuideNhClientTaskScheduler {
             runTask(task);
             return;
         }
-        PENDING_TASKS.add(task);
+        enqueue(task);
+    }
+
+    /**
+     * Runs after the current client callback has returned, even when called on the client thread.
+     */
+    public static void enqueue(Runnable task) {
+        PENDING_TASKS.add(Objects.requireNonNull(task, "task"));
     }
 
     @SubscribeEvent

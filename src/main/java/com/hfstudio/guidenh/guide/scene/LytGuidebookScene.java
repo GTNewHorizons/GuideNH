@@ -19,7 +19,6 @@ import java.util.function.Consumer;
 import net.minecraft.block.Block;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Gui;
-import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.renderer.OpenGlHelper;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.entity.Entity;
@@ -42,7 +41,6 @@ import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
-import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.GL11;
 
 import com.hfstudio.guidenh.config.ModConfig;
@@ -58,6 +56,7 @@ import com.hfstudio.guidenh.guide.document.interaction.ContentTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
 import com.hfstudio.guidenh.guide.internal.GuidebookText;
 import com.hfstudio.guidenh.guide.internal.debug.DebugComponent;
+import com.hfstudio.guidenh.guide.internal.input.GuideInputContext;
 import com.hfstudio.guidenh.guide.internal.scene.GuidebookPreviewPlayerPose;
 import com.hfstudio.guidenh.guide.internal.screen.GuideIconButton;
 import com.hfstudio.guidenh.guide.internal.structure.GuideTextNbtCodec;
@@ -3659,7 +3658,7 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
             return false;
         }
         int sign = Integer.signum(dwheel);
-        if (GuiScreen.isShiftKeyDown() && blockStatsMaxScrollX > 0
+        if (GuideInputContext.isShiftKeyDown() && blockStatsMaxScrollX > 0
             || blockStatsMaxScrollY <= 0 && blockStatsMaxScrollX > 0) {
             blockStatsScrollX -= sign * BLOCK_STATS_WHEEL_STEP;
         } else if (blockStatsMaxScrollY > 0) {
@@ -3710,10 +3709,9 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
 
         int mx, my;
         try {
-            var mc = Minecraft.getMinecraft();
             int sw = DisplayScale.scaledWidth(), sh = DisplayScale.scaledHeight();
-            mx = Mouse.getX() * sw / mc.displayWidth;
-            my = sh - Mouse.getY() * sh / mc.displayHeight - 1;
+            mx = GuideInputContext.mouseX(sw);
+            my = GuideInputContext.mouseY(sh);
         } catch (Throwable t) {
             mx = -1;
             my = -1;
@@ -4706,10 +4704,8 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         if (minecraft.currentScreen == null || minecraft.displayWidth <= 0 || minecraft.displayHeight <= 0) {
             return;
         }
-        int mouseX = Mouse.getX() * minecraft.currentScreen.width / minecraft.displayWidth;
-        int mouseY = minecraft.currentScreen.height
-            - Mouse.getY() * minecraft.currentScreen.height / minecraft.displayHeight
-            - 1;
+        int mouseX = GuideInputContext.mouseX(minecraft.currentScreen.width);
+        int mouseY = GuideInputContext.mouseY(minecraft.currentScreen.height);
         if (mouseX == dragLastX && mouseY == dragLastY) {
             return;
         }
@@ -6958,11 +6954,10 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
 
     private boolean updateCurrentMousePosition() {
         try {
-            Minecraft mc = Minecraft.getMinecraft();
             int scaledWidth = DisplayScale.scaledWidth();
             int scaledHeight = DisplayScale.scaledHeight();
-            currentMouseAbsX = Mouse.getX() * scaledWidth / mc.displayWidth;
-            currentMouseAbsY = scaledHeight - Mouse.getY() * scaledHeight / mc.displayHeight - 1;
+            currentMouseAbsX = GuideInputContext.mouseX(scaledWidth);
+            currentMouseAbsY = GuideInputContext.mouseY(scaledHeight);
             currentMousePositionAvailable = true;
             return true;
         } catch (Throwable ignored) {

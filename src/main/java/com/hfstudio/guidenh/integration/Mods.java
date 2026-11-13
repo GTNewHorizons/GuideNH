@@ -15,6 +15,8 @@ public enum Mods implements IMod, ITargetMod {
 
     // spotless:off
     NotEnoughItems("NotEnoughItems"),
+    Offscreen("offscreen"),
+    Lwjgl3ify("lwjgl3ify", null, "me.eigenraven.lwjgl3ify.core.Lwjgl3ifyCoremod"),
     NeiCustomDiagram("neicustomdiagram"),
     BetterQuesting("betterquesting"),
     StructureLib("structurelib"),

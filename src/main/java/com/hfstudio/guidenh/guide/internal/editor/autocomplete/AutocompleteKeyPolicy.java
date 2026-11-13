@@ -2,6 +2,8 @@ package com.hfstudio.guidenh.guide.internal.editor.autocomplete;
 
 import org.lwjgl.input.Keyboard;
 
+import com.hfstudio.guidenh.guide.internal.input.GuideInputContext;
+
 public class AutocompleteKeyPolicy {
 
     private AutocompleteKeyPolicy() {}
@@ -28,7 +30,8 @@ public class AutocompleteKeyPolicy {
         if (isModifierOnlyKey(keyCode)) {
             return false;
         }
-        return typedChar < 32 || Keyboard.isKeyDown(Keyboard.KEY_LCONTROL) || Keyboard.isKeyDown(Keyboard.KEY_RCONTROL);
+        return typedChar < 32 || GuideInputContext.isKeyDown(Keyboard.KEY_LCONTROL)
+            || GuideInputContext.isKeyDown(Keyboard.KEY_RCONTROL);
     }
 
     private static boolean isModifierOnlyKey(int keyCode) {

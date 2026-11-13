@@ -200,6 +200,9 @@ public class GuideNavBar implements DebugComponent {
     private int y;
     private int height;
     private boolean open;
+    private boolean preserveOpenState;
+    private int preservedPointerX = Integer.MIN_VALUE;
+    private int preservedPointerY = Integer.MIN_VALUE;
     @Getter
     private boolean pinned;
     private boolean contextMenuOpen;
@@ -275,13 +278,15 @@ public class GuideNavBar implements DebugComponent {
      */
     public void update(int mouseX, int mouseY, @Nullable NavigationTree tree, GuideBookmarkState bookmarkState,
         boolean suppressHoverExpansion) {
-        if (pinned || contextMenuOpen || draggingScrollbar || draggingResize || isSearchFocused()) {
-            open = true;
-        } else if (suppressHoverExpansion) {
-            open = false;
-        } else {
-            int w = currentWidth();
-            open = mouseX >= x && mouseX < x + w && mouseY >= y && mouseY < y + height;
+        if (!preserveOpenState || !shouldPreserveOpenState(mouseX, mouseY)) {
+            if (pinned || contextMenuOpen || draggingScrollbar || draggingResize || isSearchFocused()) {
+                open = true;
+            } else if (suppressHoverExpansion) {
+                open = false;
+            } else {
+                int w = currentWidth();
+                open = mouseX >= x && mouseX < x + w && mouseY >= y && mouseY < y + height;
+            }
         }
         boolean filterCleared = !open && resetSearch();
         if (filterCleared || shouldRebuildRows(tree, bookmarkState)) {
@@ -302,6 +307,28 @@ public class GuideNavBar implements DebugComponent {
             bookmarkGroupExpanded,
             new LinkedHashSet<>(expandedNodeKeys),
             titleQuery.isEmpty() ? scrollY : unfilteredScrollY);
+    }
+
+    public void preserveOpenStateUntilPointerMoves() {
+        preserveOpenState = true;
+        preservedPointerX = Integer.MIN_VALUE;
+        preservedPointerY = Integer.MIN_VALUE;
+    }
+
+    private boolean shouldPreserveOpenState(int mouseX, int mouseY) {
+        if (mouseX < 0 || mouseY < 0) {
+            return true;
+        }
+        if (preservedPointerX == Integer.MIN_VALUE) {
+            preservedPointerX = mouseX;
+            preservedPointerY = mouseY;
+            return true;
+        }
+        if (mouseX == preservedPointerX && mouseY == preservedPointerY) {
+            return true;
+        }
+        preserveOpenState = false;
+        return false;
     }
 
     public void restoreState(GuideNavBarState state, GuideBookmarkState bookmarkState) {
@@ -810,6 +837,13 @@ public class GuideNavBar implements DebugComponent {
 
     public boolean isSearchFocused() {
         return searchActive && searchField != null && searchField.isFocused();
+    }
+
+    public void restoreSearchFocus() {
+        if (isSearchFocused()) {
+            searchField.setFocused(false);
+            searchField.setFocused(true);
+        }
     }
 
     public void tickSearchField() {

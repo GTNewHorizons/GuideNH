@@ -8,7 +8,6 @@ import java.util.List;
 
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.Gui;
-import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.GuiTextField;
 
 import org.jetbrains.annotations.Nullable;
@@ -18,6 +17,7 @@ import org.lwjgl.opengl.GL11;
 import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.compiler.GuideMarkdownOptions;
 import com.hfstudio.guidenh.guide.document.LytRect;
+import com.hfstudio.guidenh.guide.internal.input.GuideInputContext;
 import com.hfstudio.guidenh.guide.internal.markdown.MdAstToMdxConverter;
 import com.hfstudio.guidenh.guide.internal.util.DisplayScale;
 import com.hfstudio.guidenh.guide.internal.util.SmoothFloatState;
@@ -450,7 +450,7 @@ public class SceneEditorMultilineTextArea {
         if (wheelDelta == 0) {
             return;
         }
-        if (!wrapEnabled && horizontalScrollbarVisible && GuiScreen.isShiftKeyDown()) {
+        if (!wrapEnabled && horizontalScrollbarVisible && GuideInputContext.isShiftKeyDown()) {
             horizontalOffsetPixels = clampHorizontalOffset(horizontalOffsetPixels - Integer.signum(wheelDelta) * 24);
             syncImeFocusProxy();
             return;
@@ -664,7 +664,7 @@ public class SceneEditorMultilineTextArea {
                 ensureCursorVisible();
                 return true;
             case Keyboard.KEY_TAB:
-                if (GuiScreen.isShiftKeyDown()) {
+                if (GuideInputContext.isShiftKeyDown()) {
                     selectionModel.indentLines(true, 4);
                 } else if (selectionModel.hasSelection()) {
                     selectionModel.indentLines(false, 4);
@@ -688,24 +688,24 @@ public class SceneEditorMultilineTextArea {
                 ensureCursorVisible();
                 return true;
             case Keyboard.KEY_LEFT:
-                moveCursorHorizontal(-1, GuiScreen.isShiftKeyDown());
+                moveCursorHorizontal(-1, GuideInputContext.isShiftKeyDown());
                 ensureCursorVisible();
                 return true;
             case Keyboard.KEY_RIGHT:
-                moveCursorHorizontal(1, GuiScreen.isShiftKeyDown());
+                moveCursorHorizontal(1, GuideInputContext.isShiftKeyDown());
                 ensureCursorVisible();
                 return true;
             case Keyboard.KEY_UP:
-                moveCursorVertical(-1, GuiScreen.isShiftKeyDown());
+                moveCursorVertical(-1, GuideInputContext.isShiftKeyDown());
                 return true;
             case Keyboard.KEY_DOWN:
-                moveCursorVertical(1, GuiScreen.isShiftKeyDown());
+                moveCursorVertical(1, GuideInputContext.isShiftKeyDown());
                 return true;
             case Keyboard.KEY_HOME:
-                moveCursorToLineBoundary(true, GuiScreen.isShiftKeyDown());
+                moveCursorToLineBoundary(true, GuideInputContext.isShiftKeyDown());
                 return true;
             case Keyboard.KEY_END:
-                moveCursorToLineBoundary(false, GuiScreen.isShiftKeyDown());
+                moveCursorToLineBoundary(false, GuideInputContext.isShiftKeyDown());
                 return true;
             case Keyboard.KEY_PRIOR:
                 scrollState.scrollPixels(-Math.max(16, textViewportHeight - 24));
@@ -1363,7 +1363,8 @@ public class SceneEditorMultilineTextArea {
     }
 
     private void moveCursorHorizontal(int direction, boolean keepSelection) {
-        boolean ctrl = Keyboard.isKeyDown(Keyboard.KEY_LCONTROL) || Keyboard.isKeyDown(Keyboard.KEY_RCONTROL);
+        boolean ctrl = GuideInputContext.isKeyDown(Keyboard.KEY_LCONTROL)
+            || GuideInputContext.isKeyDown(Keyboard.KEY_RCONTROL);
         int target;
         if (ctrl) {
             if (!keepSelection && selectionModel.hasSelection()) {
@@ -1636,8 +1637,8 @@ public class SceneEditorMultilineTextArea {
     }
 
     public static boolean isCtrlKeyCombo(int keyCode, int expectedKeyCode) {
-        return keyCode == expectedKeyCode
-            && (Keyboard.isKeyDown(Keyboard.KEY_LCONTROL) || Keyboard.isKeyDown(Keyboard.KEY_RCONTROL));
+        return keyCode == expectedKeyCode && (GuideInputContext.isKeyDown(Keyboard.KEY_LCONTROL)
+            || GuideInputContext.isKeyDown(Keyboard.KEY_RCONTROL));
     }
 
     public void setDoubleClickHandler(@Nullable DoubleClickHandler handler) {

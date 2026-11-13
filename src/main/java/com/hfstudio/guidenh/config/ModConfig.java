@@ -130,6 +130,20 @@ public class ModConfig {
     @Comment("UI section (persisted across sessions)")
     public static class Ui {
 
+        @Comment("Open the guide in an additional window when Offscreen is available and a world is loaded.")
+        @DefaultBoolean(false)
+        public boolean guideInSeparateWindow = false;
+
+        @Comment("Additional guide window width in pixels. Zero uses the main window width on first open.")
+        @DefaultInt(0)
+        @RangeInt(min = 0)
+        public int guideWindowWidth = 0;
+
+        @Comment("Additional guide window height in pixels. Zero uses the main window height on first open.")
+        @DefaultInt(0)
+        @RangeInt(min = 0)
+        public int guideWindowHeight = 0;
+
         @Comment("Whether guide book opens in full-width layout (no side margins)")
         @DefaultBoolean(false)
         public boolean fullWidth = false;

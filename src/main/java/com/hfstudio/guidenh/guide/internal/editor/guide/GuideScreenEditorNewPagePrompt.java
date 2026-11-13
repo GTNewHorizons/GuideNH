@@ -45,11 +45,17 @@ public class GuideScreenEditorNewPagePrompt extends GuiScreen {
         int fieldX = baseX + 14;
         int fieldY = baseY + 58;
         int fieldW = PROMPT_WIDTH - 28;
-        this.pathField = new GuiTextField(this.fontRendererObj, fieldX, fieldY, fieldW, FIELD_HEIGHT);
-        this.pathField.setMaxStringLength(260);
-        this.pathField.setText(initialPath != null ? initialPath : "NewGuide.md");
-        this.pathField.setFocused(true);
-        this.pathField.setCursorPositionEnd();
+        if (this.pathField == null) {
+            this.pathField = new GuiTextField(this.fontRendererObj, fieldX, fieldY, fieldW, FIELD_HEIGHT);
+            this.pathField.setMaxStringLength(260);
+            this.pathField.setText(initialPath != null ? initialPath : "NewGuide.md");
+            this.pathField.setFocused(true);
+            this.pathField.setCursorPositionEnd();
+        } else {
+            this.pathField.xPosition = fieldX;
+            this.pathField.yPosition = fieldY;
+            this.pathField.width = fieldW;
+        }
 
         int buttonY = baseY + PROMPT_HEIGHT - 28;
         int totalWidth = BUTTON_WIDTH * 2 + BUTTON_GAP;

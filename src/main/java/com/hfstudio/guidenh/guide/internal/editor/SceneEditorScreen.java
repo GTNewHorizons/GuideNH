@@ -98,6 +98,8 @@ import com.hfstudio.guidenh.guide.internal.editor.preview.SceneEditorPreviewBrid
 import com.hfstudio.guidenh.guide.internal.editor.preview.SceneEditorPreviewCameraController;
 import com.hfstudio.guidenh.guide.internal.editor.preview.SceneEditorSnapModes;
 import com.hfstudio.guidenh.guide.internal.editor.preview.SceneEditorSnapService;
+import com.hfstudio.guidenh.guide.internal.input.GuideInputContext;
+import com.hfstudio.guidenh.guide.internal.input.GuidePointerInput;
 import com.hfstudio.guidenh.guide.internal.item.RegionWandExporter;
 import com.hfstudio.guidenh.guide.internal.recipe.NeiItemTooltip;
 import com.hfstudio.guidenh.guide.internal.screen.GuideIconButton;
@@ -116,7 +118,7 @@ import com.hfstudio.guidenh.guide.scene.support.GuideEntityDisplayResolver;
 import com.hfstudio.guidenh.guide.sound.GuideSoundPlayback;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibPreviewSelection;
 
-public class SceneEditorScreen extends GuiScreen {
+public class SceneEditorScreen extends GuiScreen implements GuidePointerInput {
 
     public static final ResourceLocation BG_TEXTURE = new ResourceLocation(
         "guidenh",
@@ -732,7 +734,7 @@ public class SceneEditorScreen extends GuiScreen {
         if (activeMouseDragButton < 0 || activeMouseDragStartedAt <= 0L) {
             return;
         }
-        if (activeMouseDragButton <= 2 && !Mouse.isButtonDown(activeMouseDragButton)) {
+        if (activeMouseDragButton <= 2 && !GuideInputContext.isButtonDown(activeMouseDragButton)) {
             return;
         }
         long heldTime = Minecraft.getSystemTime() - activeMouseDragStartedAt;
@@ -784,7 +786,7 @@ public class SceneEditorScreen extends GuiScreen {
             return;
         }
         if (button.id == EXPORT_BUTTON_ID) {
-            if (GuiScreen.isShiftKeyDown()) {
+            if (GuideInputContext.isShiftKeyDown()) {
                 copyGameScene();
             } else {
                 attemptExportSnbt();
@@ -1019,13 +1021,17 @@ public class SceneEditorScreen extends GuiScreen {
     @Override
     public void handleMouseInput() {
         super.handleMouseInput();
+        int mouseX = Mouse.getEventX() * this.width / this.mc.displayWidth;
+        int mouseY = this.height - Mouse.getEventY() * this.height / this.mc.displayHeight - 1;
+        handlePointerScroll(mouseX, mouseY, Mouse.getEventDWheel());
+    }
+
+    @Override
+    public void handlePointerScroll(int mouseX, int mouseY, int wheelDelta) {
         if (closeConfirmDialogOpen) {
             return;
         }
-        int wheelDelta = Mouse.getEventDWheel();
         if (wheelDelta != 0 && markdownTextArea != null) {
-            int mouseX = Mouse.getEventX() * this.width / this.mc.displayWidth;
-            int mouseY = this.height - Mouse.getEventY() * this.height / this.mc.displayHeight - 1;
             if (screenshotMenuController.isOpen() && (isInsideScreenshotMenu(mouseX, mouseY)
                 || screenshotScaleField != null && screenshotScaleField.isFocused())) {
                 screenshotMenuController.nudgeScale(wheelDelta);
@@ -1042,7 +1048,7 @@ public class SceneEditorScreen extends GuiScreen {
                 return;
             }
             if (isInsideElementViewport(mouseX, mouseY)) {
-                int step = GuiScreen.isShiftKeyDown() ? 48 : 16;
+                int step = GuideInputContext.isShiftKeyDown() ? 48 : 16;
                 elementPanelScrollState.scrollPixels(-Integer.signum(wheelDelta) * step);
                 return;
             }
@@ -1685,7 +1691,7 @@ public class SceneEditorScreen extends GuiScreen {
                 previewScene.getHoveredBlockHitResult());
             if (name != null) {
                 GuideTooltip structureLibTooltip = previewScene
-                    .createStructureLibTooltipForHoveredBlock(name, isShiftKeyDown());
+                    .createStructureLibTooltipForHoveredBlock(name, GuideInputContext.isShiftKeyDown());
                 if (structureLibTooltip != null) {
                     renderPreviewGuideTooltip(structureLibTooltip, mouseX, mouseY);
                     return;
@@ -1716,7 +1722,7 @@ public class SceneEditorScreen extends GuiScreen {
             previewScene.getHoveredBlockHitResult());
         if (name != null) {
             GuideTooltip structureLibTooltip = previewScene
-                .createStructureLibTooltipForHoveredBlock(name, isShiftKeyDown());
+                .createStructureLibTooltipForHoveredBlock(name, GuideInputContext.isShiftKeyDown());
             if (structureLibTooltip != null) {
                 renderPreviewGuideTooltip(structureLibTooltip, mouseX, mouseY);
                 return;
@@ -3198,11 +3204,11 @@ public class SceneEditorScreen extends GuiScreen {
     }
 
     private int currentMouseX() {
-        return Mouse.getX() * this.width / this.mc.displayWidth;
+        return GuideInputContext.mouseX(width);
     }
 
     private int currentMouseY() {
-        return this.height - Mouse.getY() * this.height / this.mc.displayHeight - 1;
+        return GuideInputContext.mouseY(height);
     }
 
     private boolean isInsideInteractiveToggle(int mouseX, int mouseY) {
@@ -6315,12 +6321,12 @@ public class SceneEditorScreen extends GuiScreen {
     }
 
     public static boolean isCtrlKeyCombo(int keyCode, int expectedKeyCode) {
-        return keyCode == expectedKeyCode
-            && (Keyboard.isKeyDown(Keyboard.KEY_LCONTROL) || Keyboard.isKeyDown(Keyboard.KEY_RCONTROL));
+        return keyCode == expectedKeyCode && (GuideInputContext.isKeyDown(Keyboard.KEY_LCONTROL)
+            || GuideInputContext.isKeyDown(Keyboard.KEY_RCONTROL));
     }
 
     public static boolean isCtrlShiftKeyCombo(int keyCode, int expectedKeyCode) {
-        return isCtrlKeyCombo(keyCode, expectedKeyCode) && GuiScreen.isShiftKeyDown();
+        return isCtrlKeyCombo(keyCode, expectedKeyCode) && GuideInputContext.isShiftKeyDown();
     }
 
     private enum ElementContextMenuAction {

@@ -41,6 +41,7 @@ public class GuideScreenContextMenu implements DebugComponent {
         EXPAND_ALL,
         COLLAPSE_ALL,
         OPEN_SPECIAL_PAGES,
+        SWITCH_GUIDE_WINDOW,
         CREATE_NEW_PAGE,
         OPEN_CONTAINING_FOLDER
     }

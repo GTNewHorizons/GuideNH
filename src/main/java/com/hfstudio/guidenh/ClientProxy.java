@@ -62,6 +62,7 @@ import com.hfstudio.guidenh.integration.GuideNhClientIntegrationBootstrap;
 import com.hfstudio.guidenh.integration.Mods;
 import com.hfstudio.guidenh.integration.ae2.network.Ae2NetworkRegistration;
 import com.hfstudio.guidenh.integration.nei.GuideScreenNeiBridge;
+import com.hfstudio.guidenh.integration.offscreen.GuideOffscreenBridge;
 import com.hfstudio.guidenh.network.GuideNhClientBridgeHandler;
 import com.hfstudio.guidenh.network.GuideNhClientBridgeMessage;
 import com.hfstudio.guidenh.network.GuideNhNetwork;
@@ -240,6 +241,7 @@ public class ClientProxy extends CommonProxy {
             GuideNhClientTaskScheduler.execute(() -> clearClientRuntimeState(reason));
             return;
         }
+        GuideOffscreenBridge.shutdown();
         GuidebookLevel.releaseAllRuntimeWorlds();
         GuidebookLevelRenderer.getInstance()
             .clearClientRuntimeCaches();
