@@ -12,7 +12,9 @@ public class CartesianChartRenderer {
 
     protected CartesianChartRenderer() {}
 
-    /** Compute insets reserved for axis labels; returns [left, top, right, bottom] (pixels). */
+    /**
+     * Compute insets reserved for axis labels; returns [left, top, right, bottom] (pixels).
+     */
     public static int[] computeAxisInsets(RenderContext context, ChartAxisOptions xAxis, ChartAxisOptions yAxis,
         AxisRange xRange, AxisRange yRange, String[] xCategories, boolean showXTicks, boolean showYTicks) {
         ResolvedTextStyle style = LytChartBase.textStyle(ColorUtils.ARGB_FFCCCCCC.getColor());
@@ -61,19 +63,25 @@ public class CartesianChartRenderer {
         return new int[] { left, top, right, bottom };
     }
 
-    /** Data value -> screen X coordinate. */
+    /**
+     * Data value -> screen X coordinate.
+     */
     public static float mapX(double value, AxisRange range, LytRect plotRect) {
         double t = range.normalize(value);
         return (float) (plotRect.x() + t * plotRect.width());
     }
 
-    /** Data value -> screen Y coordinate (Y axis points up, so it is inverted). */
+    /**
+     * Data value -> screen Y coordinate (Y axis points up, so it is inverted).
+     */
     public static float mapY(double value, AxisRange range, LytRect plotRect) {
         double t = range.normalize(value);
         return (float) (plotRect.bottom() - t * plotRect.height());
     }
 
-    /** Render axes + grid lines + tick text inside plotRect. */
+    /**
+     * Render axes + grid lines + tick text inside plotRect.
+     */
     public static void drawAxes(RenderContext context, LytRect plotRect, ChartAxisOptions xAxis, ChartAxisOptions yAxis,
         AxisRange xRange, AxisRange yRange, String[] xCategories, boolean numericX) {
         ResolvedTextStyle xLabelStyle = LytChartBase.textStyle(xAxis.getLabelColor());

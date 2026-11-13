@@ -1988,10 +1988,8 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
     }
 
     /**
-     * Builds the presentation a chart shares from its attributes: size, frame, title, legend placement
-     * and value label style. The legend position comes from the in-game {@code legend} attribute; the
-     * export-only {@code showLegend} flag is still honoured when {@code legend} is absent, so pages
-     * written against it keep working.
+     * Parses shared chart presentation. The in-game {@code legend} attribute takes precedence over legacy
+     * export-only {@code showLegend}.
      */
     private GuideSiteGraphRenderer.ChartStyle resolveChartStyle(MdxJsxElementFields element) {
         return GuideSiteGraphRenderer.ChartStyle
@@ -2304,7 +2302,9 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         return separator >= 0 && range.indexOf("..", separator + 2) < 0 ? separator : -1;
     }
 
-    /** Parse {@code <Series name="..." data="1,2,3" color="...">} children for bar/column/line charts. */
+    /**
+     * Parse {@code <Series name="..." data="1,2,3" color="...">} children for bar/column/line charts.
+     */
     private List<GuideSiteGraphRenderer.SeriesData> parseSeriesChildren(MdxJsxElementFields element) {
         List<GuideSiteGraphRenderer.SeriesData> result = new ArrayList<>();
         int idx = 0;
@@ -2347,7 +2347,9 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         return result;
     }
 
-    /** Parse child {@code <Point x="..." y="..."/>} elements inside a {@code <Series>}. */
+    /**
+     * Parse child {@code <Point x="..." y="..."/>} elements inside a {@code <Series>}.
+     */
     private double[][] parseSeriesChildPoints(MdxJsxElementFields seriesEl) {
         List<Double> xs = new ArrayList<>();
         List<Double> ys = new ArrayList<>();
@@ -2396,7 +2398,9 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         return null;
     }
 
-    /** Parse {@code <Series points="x1:y1,x2:y2,...">} children for scatter chart. */
+    /**
+     * Parse {@code <Series points="x1:y1,x2:y2,...">} children for scatter chart.
+     */
     private List<GuideSiteGraphRenderer.SeriesData> parseScatterSeriesChildren(MdxJsxElementFields element) {
         List<GuideSiteGraphRenderer.SeriesData> result = new ArrayList<>();
         int idx = 0;
@@ -2423,7 +2427,9 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         return result;
     }
 
-    /** Parse {@code <Slice name="..." value="0.5" color="...">} children for pie chart. */
+    /**
+     * Parse {@code <Slice name="..." value="0.5" color="...">} children for pie chart.
+     */
     private List<GuideSiteGraphRenderer.SliceData> parseSliceChildren(MdxJsxElementFields element) {
         List<GuideSiteGraphRenderer.SliceData> result = new ArrayList<>();
         int idx = 0;
@@ -2444,7 +2450,9 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         return result;
     }
 
-    /** Parse {@code <Plot label="..." expr="...">} or {@code <Function label="..." expr="...">} children. */
+    /**
+     * Parse {@code <Plot label="..." expr="...">} or {@code <Function label="..." expr="...">} children.
+     */
     private List<FunctionPlot> parsePlotChildren(MdxJsxElementFields element, String defaultNamespace,
         @Nullable ResourceLocation currentPageId, GuideSiteTemplateRegistry templates,
         GuideSiteHtmlCompiler.SceneResolver sceneResolver, GuideSiteHtmlCompiler compiler) {
@@ -2506,7 +2514,9 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         return result;
     }
 
-    /** Parse {@code <Point x="" y=""/>} or {@code <Point plot="0" atX="..."/>} children. */
+    /**
+     * Parse {@code <Point x="" y=""/>} or {@code <Point plot="0" atX="..."/>} children.
+     */
     private List<MarkedPoint> parsePointChildren(MdxJsxElementFields element) {
         List<MarkedPoint> result = new ArrayList<>();
         for (MdAstAnyContent child : element.children()) {
@@ -2573,7 +2583,9 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         return result;
     }
 
-    /** Parse an ARGB color attribute (hex #rrggbb or #aarrggbb). */
+    /**
+     * Parse an ARGB color attribute (hex #rrggbb or #aarrggbb).
+     */
     private int parseArgbAttr(MdxJsxElementFields element, String attr, int def) {
         String val = readOptional(element, attr);
         if (val == null) {
@@ -2582,7 +2594,9 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         return ChartAttrParser.parseColor(val, def);
     }
 
-    /** Parse a double attribute, returning defaultValue on missing or invalid. */
+    /**
+     * Parse a double attribute, returning defaultValue on missing or invalid.
+     */
     private double parseDoubleAttr(MdxJsxElementFields element, String attr, double defaultValue) {
         String val = readOptional(element, attr);
         if (val == null || val.trim()

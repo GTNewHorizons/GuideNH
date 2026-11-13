@@ -1,4 +1,4 @@
-package com.hfstudio.guidenh.guide.scene.outline;
+package com.hfstudio.guidenh.guide.scene.render;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -9,18 +9,18 @@ import java.util.Map;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL20;
 
-final class OutlineShaderProgram {
+public class SceneShaderProgram {
 
-    private static final String SHADER_ROOT = "/assets/guidenh/shaders/outline/";
+    private static final String SHADER_ROOT = "/assets/guidenh/shaders/";
 
     private final int program;
     private final Map<String, Integer> locations = new HashMap<>();
 
-    private OutlineShaderProgram(int program) {
+    protected SceneShaderProgram(int program) {
         this.program = program;
     }
 
-    static OutlineShaderProgram load(String vertexName, String fragmentName) {
+    public static SceneShaderProgram load(String vertexName, String fragmentName) {
         int vertex = compile(GL20.GL_VERTEX_SHADER, vertexName);
         int fragment;
         try {
@@ -40,38 +40,38 @@ final class OutlineShaderProgram {
         if (GL20.glGetProgrami(program, GL20.GL_LINK_STATUS) == GL11.GL_FALSE) {
             String log = GL20.glGetProgramInfoLog(program, 4096);
             GL20.glDeleteProgram(program);
-            throw new IllegalStateException("Failed to link outline shader " + fragmentName + ": " + log);
+            throw new IllegalStateException("Failed to link scene shader " + fragmentName + ": " + log);
         }
-        return new OutlineShaderProgram(program);
+        return new SceneShaderProgram(program);
     }
 
-    void use() {
+    public void use() {
         GL20.glUseProgram(program);
     }
 
-    OutlineShaderProgram sampler(String name, int unit) {
+    public SceneShaderProgram sampler(String name, int unit) {
         use();
         setInt(name, unit);
         return this;
     }
 
-    void setInt(String name, int value) {
+    public void setInt(String name, int value) {
         GL20.glUniform1i(location(name), value);
     }
 
-    void setFloat(String name, float value) {
+    public void setFloat(String name, float value) {
         GL20.glUniform1f(location(name), value);
     }
 
-    void setVec2(String name, float x, float y) {
+    public void setVec2(String name, float x, float y) {
         GL20.glUniform2f(location(name), x, y);
     }
 
-    void setVec4(String name, float x, float y, float z, float w) {
+    public void setVec4(String name, float x, float y, float z, float w) {
         GL20.glUniform4f(location(name), x, y, z, w);
     }
 
-    void delete() {
+    public void delete() {
         GL20.glDeleteProgram(program);
     }
 
@@ -91,19 +91,26 @@ final class OutlineShaderProgram {
         if (GL20.glGetShaderi(shader, GL20.GL_COMPILE_STATUS) == GL11.GL_FALSE) {
             String log = GL20.glGetShaderInfoLog(shader, 4096);
             GL20.glDeleteShader(shader);
-            throw new IllegalStateException("Failed to compile outline shader " + name + ": " + log);
+            throw new IllegalStateException("Failed to compile scene shader " + name + ": " + log);
         }
         return shader;
     }
 
     private static String readSource(String name) {
-        try (InputStream stream = OutlineShaderProgram.class.getResourceAsStream(SHADER_ROOT + name)) {
+        try (InputStream stream = SceneShaderProgram.class.getResourceAsStream(SHADER_ROOT + name)) {
             if (stream == null) {
-                throw new IllegalStateException("Missing outline shader " + name);
+                throw new IllegalStateException("Missing scene shader " + name);
             }
-            return new String(stream.readAllBytes(), StandardCharsets.UTF_8);
+            String source = new String(stream.readAllBytes(), StandardCharsets.UTF_8);
+            if (source.contains("#include <annotation_color>")) {
+                source = source.replace("#include <annotation_color>", readSource("annotation/rainbow.glsl"));
+            }
+            if (source.contains("#include <annotation_box_surface>")) {
+                source = source.replace("#include <annotation_box_surface>", readSource("annotation/box_surface.glsl"));
+            }
+            return source;
         } catch (IOException e) {
-            throw new IllegalStateException("Failed to read outline shader " + name, e);
+            throw new IllegalStateException("Failed to read scene shader " + name, e);
         }
     }
 }

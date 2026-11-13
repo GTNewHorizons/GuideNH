@@ -5,7 +5,9 @@ import org.jetbrains.annotations.Nullable;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 
-/** Binary wire for {@link Ae2CablePreviewSnapshot} (shared by SNBT Base64, MP batch side-car, and preview store). */
+/**
+ * Binary wire for {@link Ae2CablePreviewSnapshot} (shared by SNBT Base64, MP batch side-car, and preview store).
+ */
 public class Ae2CablePreviewWireCodec {
 
     public static final int WIRE_V1 = 1;

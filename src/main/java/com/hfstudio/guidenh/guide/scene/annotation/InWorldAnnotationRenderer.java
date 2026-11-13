@@ -1,15 +1,26 @@
 package com.hfstudio.guidenh.guide.scene.annotation;
 
+import java.awt.Color;
+import java.nio.FloatBuffer;
+
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
 
 import org.joml.Vector3f;
 import org.lwjgl.opengl.GL11;
+import org.lwjgl.opengl.GL15;
+import org.lwjgl.opengl.GL20;
+import org.lwjgl.opengl.GLContext;
 
 import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.color.ColorValue;
+import com.hfstudio.guidenh.guide.scene.render.AnnotationColorShader;
+import com.hfstudio.guidenh.guide.scene.render.BoxFrameGeometry;
 
 public class InWorldAnnotationRenderer {
+
+    private static final AnnotationColorShader COLOR_SHADER = new AnnotationColorShader();
+    private static final BoxFaceRenderer BOX_FACES = new BoxFaceRenderer();
 
     private InWorldAnnotationRenderer() {}
 
@@ -56,7 +67,8 @@ public class InWorldAnnotationRenderer {
 
             // Pass 2b: alwaysOnTop.
             if (hasAlwaysOnTop) {
-                GL11.glClear(GL11.GL_DEPTH_BUFFER_BIT);
+                GL11.glDisable(GL11.GL_DEPTH_TEST);
+                GL11.glDepthMask(false);
                 drawAll(annotations, /* occluded */ false, /* pass2 */ true);
             }
         } finally {
@@ -72,8 +84,16 @@ public class InWorldAnnotationRenderer {
             if (a.isAlwaysOnTop() != pass2) continue;
             if (occluded && a.isAlwaysOnTop()) continue;
             if (a instanceof InWorldBoxAnnotation box) {
-                int color = resolve(box.color(), a.isHovered(), occluded);
-                drawBoxEdges(box.min(), box.max(), color, box.thickness());
+                drawBoxEdges(
+                    box.min(),
+                    box.max(),
+                    box.color()
+                        .resolve(),
+                    box.thickness(),
+                    box.colorStyle(),
+                    a.isHovered(),
+                    occluded,
+                    box.frameGeometry());
             } else if (a instanceof InWorldBoxFaceOverlayAnnotation overlay) {
                 if (!occluded) {
                     int color = resolve(overlay.color(), a.isHovered(), false);
@@ -127,7 +147,10 @@ public class InWorldAnnotationRenderer {
     }
 
     public static int resolve(ColorValue cv, boolean hovered, boolean occluded) {
-        int argb = cv.resolve();
+        return resolveColor(cv.resolve(), hovered, occluded);
+    }
+
+    private static int resolveColor(int argb, boolean hovered, boolean occluded) {
         if (hovered) argb = lighter(argb, 50);
         if (occluded) {
             argb = darker(argb, 50);
@@ -186,29 +209,124 @@ public class InWorldAnnotationRenderer {
     }
 
     public static void drawBoxEdges(Vector3f min, Vector3f max, int argb, float thickness) {
-        // Render each edge as an extruded cuboid in world space. The cuboid is half-thickness on
-        // each side perpendicular to the edge axis, and extends an extra half-thickness past both
-        // corners along the edge axis. The three cuboids meeting at every box corner therefore
-        // overlap into a solid square corner instead of producing the concave notch that
-        // GL_LINES with cap stroking leaves at thick widths.
-        float t = Math.max(thickness / 32f, 1f / 256f) * 0.5f;
-        GL11.glBegin(GL11.GL_QUADS);
-        // 4 edges along X
-        fillCuboid(min.x - t, min.y - t, min.z - t, max.x + t, min.y + t, min.z + t, argb);
-        fillCuboid(min.x - t, min.y - t, max.z - t, max.x + t, min.y + t, max.z + t, argb);
-        fillCuboid(min.x - t, max.y - t, min.z - t, max.x + t, max.y + t, min.z + t, argb);
-        fillCuboid(min.x - t, max.y - t, max.z - t, max.x + t, max.y + t, max.z + t, argb);
-        // 4 edges along Y
-        fillCuboid(min.x - t, min.y - t, min.z - t, min.x + t, max.y + t, min.z + t, argb);
-        fillCuboid(max.x - t, min.y - t, min.z - t, max.x + t, max.y + t, min.z + t, argb);
-        fillCuboid(min.x - t, min.y - t, max.z - t, min.x + t, max.y + t, max.z + t, argb);
-        fillCuboid(max.x - t, min.y - t, max.z - t, max.x + t, max.y + t, max.z + t, argb);
-        // 4 edges along Z
-        fillCuboid(min.x - t, min.y - t, min.z - t, min.x + t, min.y + t, max.z + t, argb);
-        fillCuboid(max.x - t, min.y - t, min.z - t, max.x + t, min.y + t, max.z + t, argb);
-        fillCuboid(min.x - t, max.y - t, min.z - t, min.x + t, max.y + t, max.z + t, argb);
-        fillCuboid(max.x - t, max.y - t, min.z - t, max.x + t, max.y + t, max.z + t, argb);
-        GL11.glEnd();
+        drawBoxEdges(min, max, argb, thickness, AnnotationColorStyle.SOLID, 0f, 0f);
+    }
+
+    public static void drawBoxEdges(Vector3f min, Vector3f max, int argb, float thickness,
+        AnnotationColorStyle colorStyle, boolean hovered, boolean occluded) {
+        drawBoxEdges(min, max, argb, thickness, colorStyle, hovered, occluded, null);
+    }
+
+    private static void drawBoxEdges(Vector3f min, Vector3f max, int argb, float thickness,
+        AnnotationColorStyle colorStyle, boolean hovered, boolean occluded, BoxFrameGeometry geometry) {
+        if (!colorStyle.isRainbow()) {
+            drawBoxEdges(min, max, resolveColor(argb, hovered, occluded), thickness, colorStyle, 0f, 0f, geometry);
+            return;
+        }
+        int alpha = (argb >>> 24) & 255;
+        drawBoxEdges(
+            min,
+            max,
+            ((occluded ? alpha / 2 : alpha) << 24) | 0xFFFFFF,
+            thickness,
+            colorStyle,
+            hovered ? 127f / 255f : 0f,
+            occluded ? -127f / 255f : 0f,
+            geometry);
+    }
+
+    public static void drawBoxEdges(Vector3f min, Vector3f max, int argb, float thickness,
+        AnnotationColorStyle colorStyle, float highlightOffset, float occlusionOffset) {
+        drawBoxEdges(min, max, argb, thickness, colorStyle, highlightOffset, occlusionOffset, null);
+    }
+
+    private static void drawBoxEdges(Vector3f min, Vector3f max, int argb, float thickness,
+        AnnotationColorStyle colorStyle, float highlightOffset, float occlusionOffset, BoxFrameGeometry geometry) {
+        if ((argb >>> 24) == 0) return;
+        float halfThickness = Math.max(thickness / 32f, 1f / 256f) * 0.5f;
+        boolean shader = GLContext.getCapabilities().OpenGL20;
+        boolean singleSurface = (argb >>> 24) < 255;
+        boolean arrayDraw = shader && geometry != null;
+        int previousProgram = 0;
+        if (shader) {
+            previousProgram = COLOR_SHADER.beginBox(
+                colorStyle,
+                min,
+                max,
+                halfThickness,
+                highlightOffset,
+                occlusionOffset,
+                singleSurface,
+                arrayDraw ? argb : 0xFFFFFFFF);
+        } else if (colorStyle.isRainbow()) {
+            int rgb = Color.HSBtoRGB(colorStyle.phase(System.currentTimeMillis()), 0.65f, 1f);
+            int adjusted = darker(
+                lighter(rgb, Math.round(highlightOffset * 100f)),
+                Math.round(-occlusionOffset * 100f));
+            argb = (argb & 0xFF000000) | (adjusted & 0xFFFFFF);
+        }
+        GL11.glPushAttrib(GL11.GL_ENABLE_BIT | GL11.GL_DEPTH_BUFFER_BIT | GL11.GL_POLYGON_BIT);
+        try {
+            GL11.glDepthMask(!singleSurface);
+            GL11.glEnable(GL11.GL_CULL_FACE);
+            GL11.glCullFace(GL11.GL_BACK);
+            GL11.glFrontFace(GL11.GL_CCW);
+            if (arrayDraw) {
+                drawBoxArray(geometry);
+                return;
+            }
+            BOX_FACES.argb = colorStyle.isRainbow() && shader ? (argb & 0xFF000000) | 0xFFFFFF : argb;
+            GL11.glBegin(GL11.GL_QUADS);
+            try {
+                if (geometry != null) geometry.forEachFace(BOX_FACES);
+                else BoxFrameGeometry.forEachFace(min, max, halfThickness, BOX_FACES);
+            } finally {
+                GL11.glEnd();
+            }
+        } finally {
+            GL11.glPopAttrib();
+            if (shader) GL20.glUseProgram(previousProgram);
+        }
+    }
+
+    private static void drawBoxArray(BoxFrameGeometry geometry) {
+        int previousBuffer = GL11.glGetInteger(GL15.GL_ARRAY_BUFFER_BINDING);
+        GL11.glPushClientAttrib(GL11.GL_CLIENT_VERTEX_ARRAY_BIT);
+        try {
+            if (previousBuffer != 0) GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, 0);
+            FloatBuffer vertices = geometry.vertices();
+            GL11.glInterleavedArrays(GL11.GL_C3F_V3F, 0, vertices);
+            GL11.glDrawArrays(GL11.GL_QUADS, 0, vertices.remaining() / 6);
+        } finally {
+            GL11.glPopClientAttrib();
+            if (previousBuffer != 0) GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, previousBuffer);
+        }
+    }
+
+    private static class BoxFaceRenderer implements BoxFrameGeometry.FaceConsumer {
+
+        private int argb;
+
+        @Override
+        public void accept(float x0, float y0, float z0, float x1, float y1, float z1, int axis, int sign) {
+            if (axis == 0 && sign < 0) {
+                quad(argb, -1f, 0f, 0f, x0, y0, z0, x0, y0, z1, x0, y1, z1, x0, y1, z0);
+            } else if (axis == 0) {
+                quad(argb, 1f, 0f, 0f, x0, y0, z0, x0, y1, z0, x0, y1, z1, x0, y0, z1);
+            } else if (axis == 1 && sign < 0) {
+                quad(argb, 0f, -1f, 0f, x0, y0, z0, x1, y0, z0, x1, y0, z1, x0, y0, z1);
+            } else if (axis == 1) {
+                quad(argb, 0f, 1f, 0f, x0, y0, z0, x0, y0, z1, x1, y0, z1, x1, y0, z0);
+            } else if (sign < 0) {
+                quad(argb, 0f, 0f, -1f, x0, y0, z0, x0, y1, z0, x1, y1, z0, x1, y0, z0);
+            } else {
+                quad(argb, 0f, 0f, 1f, x0, y0, z0, x1, y0, z0, x1, y1, z0, x0, y1, z0);
+            }
+        }
+    }
+
+    public static void release() {
+        COLOR_SHADER.close();
     }
 
     public static void drawPointCube(Vector3f center, int argb, float size) {
@@ -595,13 +713,8 @@ public class InWorldAnnotationRenderer {
     }
 
     /**
-     * Renders X/Z coordinate numbers and N/S/E/W direction initials in 3D world space.
-     *
-     * <p>
-     * Labels are rendered as vertical signs standing just outside each grid edge, facing the viewer
-     * from outside the grid, matching the Ponder editor overlay style. Text scale is computed so
-     * the widest label on each axis fits within one block width, ensuring negative numbers and
-     * multi-digit values never overflow their cell.
+     * Draws grid coordinates and cardinal directions as signs outside each grid edge. Text scale fits the
+     * widest label into one block.
      */
     private static void drawFloorGridLabels(SceneFloorGridAnnotation grid) {
         FontRenderer fr = Minecraft.getMinecraft().fontRenderer;

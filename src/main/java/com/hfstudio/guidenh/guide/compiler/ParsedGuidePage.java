@@ -103,7 +103,9 @@ public class ParsedGuidePage {
         }
     }
 
-    /** Cheap content fingerprint used by the persistent search index. */
+    /**
+     * Cheap content fingerprint used by the persistent search index.
+     */
     public String getSourceFingerprint() {
         return Integer.toHexString(source.hashCode()) + ':' + source.length();
     }
@@ -124,7 +126,9 @@ public class ParsedGuidePage {
         return parseFailureMessage != null && !parseFailureMessage.isEmpty();
     }
 
-    /** Copies deferred body-parse diagnostics into a lazy page shell. */
+    /**
+     * Copies deferred body-parse diagnostics into a lazy page shell.
+     */
     protected final void adoptParseFailure(ParsedGuidePage parsed) {
         if (parsed == null || !parsed.hasParseFailure()) {
             return;

@@ -53,15 +53,9 @@ public class NeiCustomDiagramBridge {
     }
 
     /**
-     * Renders nei-custom-diagram {@code DiagramGroup} content in the Guidebook.
-     * <p>
-     * {@code renderX}/{@code renderY} remain parent-local GUI coordinates (matching {@code Gui});
-     * {@code guiScissorAbs*} are absolute GUI coords (viewport space), same convention as {@code VanillaRenderContext}
-     * scissor 闁?required because {@code GL_SCISSOR} ignores {@code GL_MODELVIEW}.
-     *
-     * <p>
-     * For wide diagrams, {@code guiScissorAbsW} may be smaller than intrinsic layout (NEI {@code HandlerInfo}
-     * width defaults); clip width is inflated up to the scaled GUI bounds.
+     * Renders DiagramGroup content with parent-local draw coordinates and absolute GUI scissor coordinates.
+     * GL_SCISSOR ignores model-view transforms. Wide diagrams may expand the clip to the scaled GUI bounds
+     * beyond HandlerInfo width.
      */
     public static void renderEmbedded(Object handler, int recipeIndex, int renderX, int renderY, int guiScissorAbsX,
         int guiScissorAbsY, int guiScissorAbsW, int guiScissorAbsH) {

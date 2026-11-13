@@ -18,7 +18,9 @@ import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 
 public class GuidebookFakeRenderEnvironment implements AutoCloseable {
 
-    /** Weak cache: the player points back to its preview WorldClient and must not keep old scenes alive. */
+    /**
+     * Weak cache: the player points back to its preview WorldClient and must not keep old scenes alive.
+     */
     public static WeakReference<GuidebookPreviewPlayer> cachedPreviewPlayer = new WeakReference<>(null);
     public static NetHandlerPlayClient cachedNetHandler;
     private static final ThreadLocal<ArrayDeque<GuidebookFakeRenderEnvironment>> ENVIRONMENT_POOL = ThreadLocal
@@ -154,7 +156,9 @@ public class GuidebookFakeRenderEnvironment implements AutoCloseable {
         }
     }
 
-    /** Clears process-wide preview-player state during a client world transition. */
+    /**
+     * Clears process-wide preview-player state during a client world transition.
+     */
     public static void clearClientRuntimeCaches() {
         GuidebookPreviewPlayer previewPlayer = cachedPreviewPlayer.get();
         if (previewPlayer != null) {

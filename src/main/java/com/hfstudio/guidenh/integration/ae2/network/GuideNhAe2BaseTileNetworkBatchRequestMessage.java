@@ -4,7 +4,9 @@ import cpw.mods.fml.common.network.simpleimpl.IMessage;
 import io.netty.buffer.ByteBuf;
 import lombok.Getter;
 
-/** Client asks server for AE2 AEBaseTile description {@code X} payloads (eligible non-cable tiles) at world coords. */
+/**
+ * Client asks server for AE2 AEBaseTile description {@code X} payloads (eligible non-cable tiles) at world coords.
+ */
 @Getter
 public class GuideNhAe2BaseTileNetworkBatchRequestMessage implements IMessage {
 

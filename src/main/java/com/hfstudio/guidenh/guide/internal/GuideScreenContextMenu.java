@@ -11,11 +11,16 @@ import org.jetbrains.annotations.Nullable;
 import org.lwjgl.opengl.GL11;
 
 import com.hfstudio.guidenh.guide.color.ColorUtils;
+import com.hfstudio.guidenh.guide.document.LytRect;
+import com.hfstudio.guidenh.guide.internal.debug.DebugComponent;
+import com.hfstudio.guidenh.guide.internal.debug.ScreenDebugComponents;
 import com.hfstudio.guidenh.guide.internal.util.DisplayScale;
 
 import lombok.Getter;
 
-public class GuideScreenContextMenu {
+public class GuideScreenContextMenu implements DebugComponent {
+
+    private final ScreenDebugComponents debugComponents = new ScreenDebugComponents();
 
     private static final int ITEM_HEIGHT = 14;
     private static final int PADDING_X = 6;
@@ -151,6 +156,7 @@ public class GuideScreenContextMenu {
     }
 
     public void draw(FontRenderer fontRenderer, int mouseX, int mouseY) {
+        debugComponents.beginFrame();
         if (!open) {
             return;
         }
@@ -159,11 +165,40 @@ public class GuideScreenContextMenu {
         Gui.drawRect(x, y + height - 1, x + width, y + height, BORDER_COLOR);
         Gui.drawRect(x, y, x + 1, y + height, BORDER_COLOR);
         Gui.drawRect(x + width - 1, y, x + width, y + height, BORDER_COLOR);
+        DebugComponent.ComponentEntry menu = null;
+        if (debugComponents.isEnabled()) {
+            menu = debugComponents
+                .add("ContextMenu", new LytRect(x, y, width, height), null, ScreenDebugComponents.POPUP_LAYER, null);
+        }
 
         pushScissor(x + 1, y + 1, width - 2, height - 2);
         try {
             int drawY = y + PADDING_Y;
             for (int index = 0; index < entries.size(); index++) {
+                if (debugComponents.isEnabled()) {
+                    var item = debugComponents.addClipped(
+                        "ContextMenuItem",
+                        new LytRect(x + 1, drawY - 1, width - 2, ITEM_HEIGHT),
+                        new LytRect(x + 1, y + 1, width - 2, height - 2),
+                        entries.get(index)
+                            .label(),
+                        ScreenDebugComponents.POPUP_LAYER,
+                        menu);
+                    debugComponents.addClipped(
+                        "ContextMenuLabel",
+                        new LytRect(
+                            x + PADDING_X,
+                            drawY + TEXT_Y_OFFSET,
+                            fontRenderer.getStringWidth(
+                                entries.get(index)
+                                    .label()),
+                            fontRenderer.FONT_HEIGHT),
+                        new LytRect(x + 1, y + 1, width - 2, height - 2),
+                        entries.get(index)
+                            .label(),
+                        ScreenDebugComponents.POPUP_LAYER,
+                        item);
+                }
                 if (index == hoveredIndex) {
                     Gui.drawRect(x + 1, drawY - 1, x + width - 1, drawY + ITEM_HEIGHT - 1, HOVER_COLOR);
                 }
@@ -178,6 +213,11 @@ public class GuideScreenContextMenu {
         } finally {
             popScissor();
         }
+    }
+
+    @Override
+    public List<DebugComponent.ComponentEntry> getDebugComponents() {
+        return open ? debugComponents.getDebugComponents() : List.of();
     }
 
     private int computeWidth(FontRenderer fontRenderer) {

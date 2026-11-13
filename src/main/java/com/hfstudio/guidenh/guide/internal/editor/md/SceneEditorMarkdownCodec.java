@@ -22,6 +22,7 @@ import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorSceneNodeMode
 import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorSceneNodeType;
 import com.hfstudio.guidenh.guide.internal.markdown.MdAstToMdxConverter;
 import com.hfstudio.guidenh.guide.internal.util.GuideStringLines;
+import com.hfstudio.guidenh.guide.scene.annotation.AnnotationColorStyle;
 import com.hfstudio.guidenh.guide.scene.annotation.compiler.BlockAnnotationTemplateElementCompiler;
 import com.hfstudio.guidenh.libs.mdast.MdAst;
 import com.hfstudio.guidenh.libs.mdast.MdastOptions;
@@ -93,6 +94,8 @@ public class SceneEditorMarkdownCodec {
         "pos",
         "color",
         "thickness",
+        "colorMode",
+        "colorPeriod",
         "alwaysOnTop",
         "visible",
         "showWhenStructure",
@@ -103,6 +106,8 @@ public class SceneEditorMarkdownCodec {
         "max",
         "color",
         "thickness",
+        "colorMode",
+        "colorPeriod",
         "alwaysOnTop",
         "visible",
         "showWhenStructure",
@@ -363,6 +368,7 @@ public class SceneEditorMarkdownCodec {
             model.setPrimaryZ(pos[2]);
             model.setColorLiteral(parseColorAttribute(element, model.getColorLiteral()));
             model.setThickness(parseFloatAttribute(element, "thickness", model.getThickness()));
+            applyColorStyleAttributes(model, element);
             model.setAlwaysOnTop(parseBooleanAttribute(element, "alwaysOnTop", model.isAlwaysOnTop()));
             model.setVisible(parseBooleanAttribute(element, "visible", model.isVisible()));
             applyStructureLibConditionAttributes(model, element);
@@ -379,6 +385,7 @@ public class SceneEditorMarkdownCodec {
             applySecondary(model, max);
             model.setColorLiteral(parseColorAttribute(element, model.getColorLiteral()));
             model.setThickness(parseFloatAttribute(element, "thickness", model.getThickness()));
+            applyColorStyleAttributes(model, element);
             model.setAlwaysOnTop(parseBooleanAttribute(element, "alwaysOnTop", model.isAlwaysOnTop()));
             model.setVisible(parseBooleanAttribute(element, "visible", model.isVisible()));
             applyStructureLibConditionAttributes(model, element);
@@ -1051,6 +1058,9 @@ public class SceneEditorMarkdownCodec {
 
     private void appendElementStyleAttributes(StringBuilder builder, SceneEditorElementModel element,
         String defaultColor, boolean includeThickness) {
+        if (element.getType() == SceneEditorElementType.BLOCK || element.getType() == SceneEditorElementType.BOX) {
+            appendExtraAttributes(builder, element, "colorMode", "colorPeriod");
+        }
         if (!defaultColor.equalsIgnoreCase(element.getColorLiteral())) {
             builder.append(" color=\"")
                 .append(escapeAttribute(element.getColorLiteral()))
@@ -1067,6 +1077,14 @@ public class SceneEditorMarkdownCodec {
         if (!element.isVisible()) {
             builder.append(" visible={false}");
         }
+    }
+
+    private void applyColorStyleAttributes(SceneEditorElementModel model, MdxJsxElementFields element) {
+        String mode = getOptionalAttributeValue(element, "colorMode");
+        AnnotationColorStyle.parse(
+            mode == null ? "solid" : mode,
+            parseFloatAttribute(element, "colorPeriod", AnnotationColorStyle.DEFAULT_PERIOD));
+        applyExtraAttributes(model, element, "colorMode", "colorPeriod");
     }
 
     private void appendStructureLibConditionAttributes(StringBuilder builder, SceneEditorElementModel element) {

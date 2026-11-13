@@ -50,8 +50,6 @@ public class KeyBindTagCompiler extends FlowTagCompiler {
         return id.isEmpty() ? null : id;
     }
 
-    // --- Static helpers used by external callers (e.g. site exporter) ---
-
     public static KeyBinding findMapping(String id) {
         return findMapping(Minecraft.getMinecraft().gameSettings.keyBindings, id);
     }

@@ -64,7 +64,9 @@ import io.netty.buffer.Unpooled;
  */
 public class Ae2Helpers {
 
-    /** Low six bits of PartCable stream {@code cs}: {@link ForgeDirection#VALID_DIRECTIONS} only. */
+    /**
+     * Low six bits of PartCable stream {@code cs}: {@link ForgeDirection#VALID_DIRECTIONS} only.
+     */
     public static final int CS_DIRECTION_MASK = 0x3F;
     public static final String CABLE_BUS_TILE_ID = "BlockCableBus";
     public static final String CABLE_BUS_BLOCK_ID = "appliedenergistics2:tile.BlockCableBus";
@@ -578,7 +580,9 @@ public class Ae2Helpers {
         syncSpecialPreviewConnectableSides(aeTile);
     }
 
-    /** Rebuilds transient state only for storage tiles whose render data depends on cell handlers. */
+    /**
+     * Rebuilds transient state only for storage tiles whose render data depends on cell handlers.
+     */
     @Optional.Method(modid = "appliedenergistics2")
     public static void refreshLocalDerivedDisplayState(AEBaseTile tile) {
         if (!(tile instanceof TileChest || tile instanceof TileDrive)) {

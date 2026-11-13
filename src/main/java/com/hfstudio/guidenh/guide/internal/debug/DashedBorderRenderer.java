@@ -7,8 +7,7 @@ import org.lwjgl.opengl.GL11;
 import com.hfstudio.guidenh.config.ModConfig;
 
 /**
- * Renders animated dashed borders for debug overlay, similar to GuideME's DashedRectangle.
- * Optimized for zero overhead when not rendering.
+ * Draws animated dashed borders for the debug overlay.
  */
 public class DashedBorderRenderer {
 

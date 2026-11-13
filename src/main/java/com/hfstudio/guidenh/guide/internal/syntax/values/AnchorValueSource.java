@@ -27,7 +27,9 @@ public class AnchorValueSource implements SyntaxValueSource, SyntaxEnvironmentAw
     private static final Pattern HEADING = Pattern.compile("^#{1,6}\\s+(.+)$", Pattern.MULTILINE);
     private static final List<Heading> NO_HEADINGS = List.of();
 
-    /** The document the cached headings came from, held weakly: it is only a key for "did the text change". */
+    /**
+     * The document the cached headings came from, held weakly: it is only a key for "did the text change".
+     */
     @Nullable
     private WeakReference<String> cachedSource;
     private int cachedSourceLength = -1;
@@ -85,7 +87,9 @@ public class AnchorValueSource implements SyntaxValueSource, SyntaxEnvironmentAw
         return results;
     }
 
-    /** The headings of the current document, parsed on the first query that needs them. */
+    /**
+     * The headings of the current document, parsed on the first query that needs them.
+     */
     private List<Heading> headings() {
         List<Heading> parsed = cachedHeadings;
         if (parsed != null) {

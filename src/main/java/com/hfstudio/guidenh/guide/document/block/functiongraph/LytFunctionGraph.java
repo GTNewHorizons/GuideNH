@@ -133,7 +133,9 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
     @Setter
     private double explicitYStep = Double.NaN;
 
-    /** Bitmask of visible quadrants (bit i = quadrant i+1). {@code 0} means auto. */
+    /**
+     * Bitmask of visible quadrants (bit i = quadrant i+1). {@code 0} means auto.
+     */
     private int explicitQuadrantMask = 0;
 
     private double effectiveXMin;
@@ -536,7 +538,9 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
         return effectiveYMin + t * (effectiveYMax - effectiveYMin);
     }
 
-    /** Convert a screen x to data coordinates. For inverse plots returns the data y instead. */
+    /**
+     * Convert a screen x to data coordinates. For inverse plots returns the data y instead.
+     */
     private double unmapXToData(double screenX, boolean inverse) {
         return inverse ? unmapY(screenX) : unmapX(screenX);
     }
@@ -652,7 +656,9 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
         }
     }
 
-    /** Resolves a MarkedPoint to {dataX, dataY, color}, or null if unresolvable. */
+    /**
+     * Resolves a MarkedPoint to {dataX, dataY, color}, or null if unresolvable.
+     */
     private double[] resolveMarkedPoint(MarkedPoint point) {
         double dataX;
         double dataY;
@@ -1366,7 +1372,9 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
         return bestIndex;
     }
 
-    /** Scans MarkedPoints within {@link #PRESET_HIT_RADIUS} and sets the active marked state. */
+    /**
+     * Scans MarkedPoints within {@link #PRESET_HIT_RADIUS} and sets the active marked state.
+     */
     private boolean hitTestMarkedPoints(float x, float y) {
         if (points.isEmpty()) {
             return false;
@@ -1404,7 +1412,9 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
         return false;
     }
 
-    /** Scans auto points (cached during render) within {@link #PRESET_HIT_RADIUS}. */
+    /**
+     * Scans auto points (cached during render) within {@link #PRESET_HIT_RADIUS}.
+     */
     private boolean hitTestAutoPoints(float x, float y) {
         if (autoPointHitCache.isEmpty()) {
             return false;
@@ -1432,7 +1442,9 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
         return false;
     }
 
-    /** Returns [distSq, nearestX, nearestY] for the closest point on segment (x1,y1)-(x2,y2). */
+    /**
+     * Returns [distSq, nearestX, nearestY] for the closest point on segment (x1,y1)-(x2,y2).
+     */
     private static float[] nearestOnSegment(float px, float py, float x1, float y1, float x2, float y2) {
         float dx = x2 - x1;
         float dy = y2 - y1;
@@ -1452,7 +1464,9 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
         return new float[] { ex * ex + ey * ey, qx, qy };
     }
 
-    /** Bisection solver used when a marked point only knows the y value. */
+    /**
+     * Bisection solver used when a marked point only knows the y value.
+     */
     private double solveForX(FunctionPlot plot, double targetY) {
         double xMin = effectiveXMin;
         double xMax = effectiveXMax;

@@ -7,7 +7,9 @@ import com.hfstudio.guidenh.libs.mdast.MdAstYamlFrontmatter;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstAnyContent;
 
-/** Applies transclusion-only include-control tags. */
+/**
+ * Applies transclusion-only include-control tags.
+ */
 public final class MediaWikiIncludeControl {
 
     public static final String NO_INCLUDE = "NoInclude";
@@ -16,7 +18,9 @@ public final class MediaWikiIncludeControl {
 
     private MediaWikiIncludeControl() {}
 
-    /** Filters and clones in one pass, avoiding a discarded deep copy of excluded nodes. */
+    /**
+     * Filters and clones in one pass, avoiding a discarded deep copy of excluded nodes.
+     */
     public static List<MdAstAnyContent> copyForTransclusion(List<? extends MdAstAnyContent> body) {
         List<? extends MdAstAnyContent> selected = findOnlyInclude(body);
         if (selected != null) {

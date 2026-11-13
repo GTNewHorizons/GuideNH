@@ -35,17 +35,18 @@ other mods directly.
 | Attribute | Required | Meaning |
 | --- | --- | --- |
 | `src` | yes | image path |
-| `x` | yes | crop start X in source-image pixels |
-| `y` | yes | crop start Y in source-image pixels |
-| `width` / `w` | yes | crop width in source-image pixels; exactly one spelling must be used |
-| `height` / `h` | yes | crop height in source-image pixels; exactly one spelling must be used |
+| `x` | when cropping | crop start X in source-image pixels |
+| `y` | when cropping | crop start Y in source-image pixels |
+| `width` / `w` | when cropping | crop width in source-image pixels; exactly one spelling must be used |
+| `height` / `h` | when cropping | crop height in source-image pixels; exactly one spelling must be used |
 | `scaleX` | no | horizontal display multiplier, default `1.0` |
 | `scaleY` | no | vertical display multiplier, default `1.0` |
 | `displayWidth` | no | final display width in pixels; preserves the crop aspect ratio when used alone |
 | `displayHeight` | no | final display height in pixels; preserves the crop aspect ratio when used alone |
-| `wrap` | no | `inline` for true inline placement, otherwise use the normal wrapping modes |
+| `wrap` | no | `inline` places the image on the text line; otherwise `align` chooses the floating side |
 | `align` | no | `left` or `right` for floating placement; ignored when `wrap="inline"` |
 | `title` | no | tooltip/title text |
+| `alt` | no | Alternative text |
 | `sound` | no | sound event played by the whole image |
 | `soundSrc` | no | sound file path for the whole image |
 | `trigger` | no | `click` by default, or `hover` for hover playback |
@@ -54,15 +55,13 @@ other mods directly.
 
 - `x`, `y`, `width` / `w`, and `height` / `h` are all required together when cropping
 - when the crop attributes are all omitted, `displayWidth` or `displayHeight` displays the full source image
-- `width` and `height` now describe the crop rectangle, not the final display size
+- `width` and `height` specify the source crop size. Use `displayWidth` / `displayHeight` or scale multipliers for the displayed size.
 - `scaleX` and `scaleY` calculate the final display size as `cropWidth * scaleX` by `cropHeight * scaleY`
 - `displayWidth` or `displayHeight` sets the final display size in pixels; when only one is present, the other dimension is calculated from the crop aspect ratio
 - providing both `displayWidth` and `displayHeight` allows intentional non-proportional stretching
 - `displayWidth` / `displayHeight` cannot be combined with `scaleX` / `scaleY`
 - single-axis stretching is supported by setting only one scale differently
 - `width` with `w`, or `height` with `h`, is invalid and renders a visible error
-- old `FloatingImage width/height as display size` content is intentionally breaking and must be migrated manually
-- `src` may be relative, rooted, or an explicit `modid:path` texture id such as `minecraft:textures/gui/options_background.png`
 
 ### Example
 
@@ -116,7 +115,7 @@ or stretched.
 Whole-image annotation:
 
 ````md
-<FloatingImage src="test1.png" align="left" x="0" y="0" width="128" height="128">
+<FloatingImage displayWidth="128" displayHeight="128" src="test1.png" align="left" x="0" y="0" width="32" height="32">
   <ImageAnnotation>
     Hover anywhere on the image to see this tooltip.
   </ImageAnnotation>
@@ -126,8 +125,8 @@ Whole-image annotation:
 Region annotation with a visible border:
 
 ````md
-<FloatingImage src="test1.png" align="left" x="0" y="0" width="128" height="128">
-  <ImageAnnotation x="10" y="10" w="60" h="40" border borderColor="#FFFF4444" borderThickness="2">
+<FloatingImage displayWidth="128" displayHeight="128" src="test1.png" align="left" x="0" y="0" width="32" height="32">
+  <ImageAnnotation x="2" y="2" w="15" h="10" border borderColor="#FFFF4444" borderThickness="2">
     This is the **highlighted region** tooltip.
   </ImageAnnotation>
 </FloatingImage>
@@ -136,11 +135,11 @@ Region annotation with a visible border:
 Multiple regions on one image:
 
 ````md
-<FloatingImage src="test1.png" align="left" x="0" y="0" width="128" height="128">
-  <ImageAnnotation x="0" y="0" w="64" h="64" border borderColor="#FF44FF44">
+<FloatingImage displayWidth="128" displayHeight="128" src="test1.png" align="left" x="0" y="0" width="32" height="32">
+  <ImageAnnotation x="0" y="0" w="16" h="32" border borderColor="#FF44FF44">
     Left half
   </ImageAnnotation>
-  <ImageAnnotation x="64" y="0" w="64" h="64" border borderColor="#FF4444FF">
+  <ImageAnnotation x="16" y="0" w="16" h="32" border borderColor="#FF4444FF">
     Right half
   </ImageAnnotation>
 </FloatingImage>
@@ -151,17 +150,17 @@ directly on `<ImageAnnotation>` when the same region also has a tooltip or borde
 
 ````md
 <FloatingImage
-  src="test1.png"
+  displayWidth="128" displayHeight="128" src="test1.png"
   align="left"
   x="0"
   y="0"
-  width="128"
-  height="128"
-  sound="guidenh:image.click"
+  width="32"
+  height="32"
+  sound="guidenh:guide.sample_click"
 >
-  <SoundArea x="0" y="0" w="64" h="64" sound="guidenh:image.left" />
-  <SoundArea x="64" y="0" w="64" h="64" sound="guidenh:image.right" trigger="hover" />
-  <ImageAnnotation x="10" y="10" w="40" h="40" border sound="guidenh:image.note">
+  <SoundArea x="0" y="0" w="16" h="32" sound="guidenh:guide.sample_left" />
+  <SoundArea x="16" y="0" w="16" h="32" sound="guidenh:guide.sample_hover" trigger="hover" />
+  <ImageAnnotation x="2" y="2" w="10" h="10" border sound="guidenh:guide.sample_click">
     This region has both tooltip content and a click sound.
   </ImageAnnotation>
 </FloatingImage>
@@ -172,88 +171,25 @@ and obey the same overlap priority as tooltips: later regions win.
 
 ## Content Embedding and Text Wrapping
 
-All block-level tags — `<FloatingImage>`, `<Recipe>`, `<GameScene>`, `<ItemImage>`, `<BlockImage>`,
-and any other tag backed by `BlockTagCompiler` — support two optional layout attributes that
-provide Word-style content embedding.
+Block tags compiled by `BlockTagCompiler`, including `<Recipe>`, `<GameScene>`, and `<BlockImage>`, accept `wrap` and `align`.
 
-| Attribute | Values | Default | Meaning |
-| --- | --- | --- | --- |
-| `wrap` | `inline` · `square` · `tight` · `through` · `top-bottom` · `behind` · `front` | `inline` | Text-wrapping mode |
-| `align` | `left` · `center` · `right` | `left` | Horizontal alignment |
+`<FloatingImage>` follows its own rules: `wrap="inline"` places it on the text line; otherwise `align="left"` or `"right"` floats it. `<ItemImage>` is an inline icon; place it in a `<Column>` or `<Row>` to control layout.
 
-### Wrap modes
+| Attribute | Default | Meaning |
+| --- | --- | --- |
+| `wrap` | `inline` | `inline`: normal placement. `square`, `tight`, and `through`: float left or right. `top-bottom`, `behind`, and `front` currently use normal aligned placement; they do not create separate text layers. |
+| `align` | `left` | `left`, `center`, or `right` in block context. With a floating wrap mode, `right` floats right; other values float left. For a centered block, use `wrap="inline" align="center"`. |
+| `float` | — | Legacy `left` / `right` in flow context when `wrap` and `align` are absent. Prefer those explicit attributes. |
 
-| Mode | Word equivalent | Block-context behaviour | Flow-context behaviour |
-| --- | --- | --- | --- |
-| `inline` | In line with text | Default stack (嵌入型) | Sits on the text line |
-| `square` | Square | Document-level float; text wraps around (方形环绕) | `FLOAT_LEFT` / `FLOAT_RIGHT` |
-| `tight` | Tight | Same as `square` (紧密型) | Same as `square` |
-| `through` | Through | Same as `square` (穿越型) | Same as `square` |
-| `top-bottom` | Top and Bottom | Full-width slot; `align` repositions horizontally (上下型) | Line-inline with breaks |
-| `behind` | Behind text | Aligned inline slot; renders behind text (衬于文字下方) | Sits on the line |
-| `front` | In front of text | Aligned inline slot; renders in front of text (浮于文字上方) | Sits on the line |
+```mdx
+<BlockImage id="minecraft:stone" wrap="square" align="right" />
 
-### Alignment with floating wrap
+<BlockImage id="minecraft:diamond_block" wrap="inline" align="center" />
 
-For `wrap=square/tight/through`:
-- `align=left` (default) — block floats to the **left**; text fills the right side.
-- `align=right` — block floats to the **right**; text fills the left side.
-- `align=center` — block is centred without floating (no text wrapping).
-
-### Examples
-
-Left-floating image using the new `wrap` attribute:
-
-````md
-<FloatingImage
-  src="test1.png"
-  wrap="square"
-  align="left"
-  x="0"
-  y="0"
-  width="128"
-  height="128"
-  scaleX="0.5"
-  scaleY="0.5"
-/>
-
-Paragraph text that flows to the right of the image...
-````
-
-Right-floating recipe:
-
-````md
-<Recipe id="minecraft:stone" wrap="square" align="right" />
-
-Text that flows to the left of the recipe box...
-````
-
-Centred item image (no text wrapping):
-
-````md
-<ItemImage id="minecraft:diamond" align="center" />
-````
-
-Right-aligned item image:
-
-````md
-<ItemImage id="minecraft:diamond" align="right" />
-````
-
-Item NBT can be supplied separately from the item id. Inline SNBT in `id` is still supported;
-when both forms are present, the standalone `nbt` attribute is merged last.
-
-````md
-<ItemImage id="minecraft:diamond" nbt='{display:{Name:"Custom Diamond"}}' />
-<ItemImage
-  id="minecraft:chest"
-  scale="2"
-  nbt='{id:"Chest",Items:[{Slot:0b,id:"minecraft:diamond",Count:1b,Damage:0s}]}'
-/>
-````
-
-> **Note** — `wrap="inline"` now gives `<FloatingImage>` true inline placement inside flow text.
-> In inline mode, `align` is ignored instead of producing an error.
+<Column align="center">
+  <ItemImage id="minecraft:diamond" nbt='{display:{Name:"Custom Diamond"}}' />
+</Column>
+```
 
 ## Navigation Texture Icons
 
@@ -286,9 +222,7 @@ These assets are loaded through the same guide asset pipeline but are consumed b
 
 ## `BlockImage`
 
-`<BlockImage>` uses the same block-level embedding rules as `<FloatingImage>`, but the visual
-content is a transparent 3D single-block preview instead of a bitmap. It is best suited for
-showing how a placed block looks in-world while still fitting inline with normal guide prose.
+`<BlockImage>` renders a placed block as a transparent 3D preview. It supports the block layout attributes above, including horizontal alignment and floating text wrap.
 
 Key behavior:
 

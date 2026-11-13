@@ -115,6 +115,16 @@ navigation:
 <RecipesFor id="minecraft:redstone_torch" input="minecraft:stick&minecraft:redstone" limit="1" />
 ````
 
+### 数量格式化
+
+使用 `<Amount>` 表示数量。`unit` 可省略，默认只显示数字；`fluid` 遵循 GTNHLib 的 `mB`/`L` 偏好。
+
+````md
+<Amount value="250" />
+<Amount value="250" unit="fluid" />/s
+<Amount value="1200000" format="compact" /> 个物品
+````
+
 ## 什么时候该用哪个示例
 
 - 若你在验证解析器基础能力，先看 `markdown.md`
@@ -130,13 +140,3 @@ navigation:
 4. [游戏场景](GameScene)
 5. [注解](Annotations)
 6. [配方](Recipes)
-
-### 数量格式化
-
-使用 `<Amount>` 表示数量。`unit` 可省略，默认只显示数字；`fluid` 遵循 GTNHLib 的 `mB`/`L` 偏好。
-
-````md
-<Amount value="250" />
-<Amount value="250" unit="fluid" /> L/s
-<Amount value="1200000" format="compact" /> 个物品
-````

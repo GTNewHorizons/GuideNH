@@ -55,7 +55,9 @@ public class MediaWikiListPlanner {
         return groups;
     }
 
-    /** Pixel cost constants — must match MediaWikiGeneratedListBlock layout. */
+    /**
+     * Pixel cost constants — must match MediaWikiGeneratedListBlock layout.
+     */
     private static final int SECTION_HEADER_HEIGHT = 28; // GAP_TOP(5) + HEADER_HEIGHT(20) + GAP_BOTTOM(3)
     private static final int ROW_HEIGHT = 20;
 

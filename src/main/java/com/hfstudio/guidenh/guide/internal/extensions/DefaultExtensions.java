@@ -173,7 +173,6 @@ public class DefaultExtensions {
                 new FunctionGraphTagCompiler(),
                 new FunctionTagCompiler(),
                 new LatexTagCompiler(),
-                // Phase 2A: block-level compilers
                 new ParagraphCompiler(),
                 new HeadingCompiler(),
                 new ListCompiler(),
@@ -182,7 +181,6 @@ public class DefaultExtensions {
                 new BlockquoteCompiler(),
                 new TableCompiler(),
                 new HrCompiler(),
-                // Phase 2A: inline compilers
                 new StrongCompiler(),
                 new EmphasisCompiler(),
                 new DelUWaveMarkCompiler(),

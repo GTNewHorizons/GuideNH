@@ -132,7 +132,9 @@ gold,17
 ````
 
 
-## Markdown 表の幅ヒント
+## Markdown テーブル
+
+### 列幅
 
 表の直後に実行時属性行を置くと、GFM 表に表示列幅を指定できます。
 
@@ -147,7 +149,25 @@ gold,17
 
 表自体は標準 Markdown のまま、GuideNH が実行時だけ列幅を適用します。
 
-## HTML Tables
+### セルの結合と属性
+
+- セルの後ろに `|` を追加すると、その分だけ列を結合します。`||` は 2 列、`|||` は 3 列です。
+- `^^` で始まるセルは上のセルと結合し、内容は改行して追加されます。
+- 両端のコロンで配置を指定します。`: 左寄せ`、`右寄せ :`、`: 中央 :`。
+- 末尾の IAL（`{: ... }`）は `color`、`background` / `bgcolor`、安全な `style`、`align`、`valign`、`id`、`class` を指定します。`{:name: ...}` で再利用できます。危険な CSS と外部 URL は無視されます。
+- 行末の `\` は次の物理行を同じ行に結合します。先頭が区切り行（`|--|--|`）なら見出しなしのテーブルです。
+- セル内ではリンク、画像、強調、LaTeX などの行内 Markdown と MDX が使用できます。HTML では `<thead>`、`<tbody>`、`<tfoot>` も使用できます。
+
+```markdown
+{:warning: style="background: #4b2418; color: #ffd8c2; font-weight: bold"}
+| Stage | Products | Notes |
+| --- | --- | --- |
+| : First stage : | 2 ATP ||
+| ^^ Next step | 3 ATP | {: warning } |
+| Total ||| {: style="text-align: right; background: #26364d"}
+```
+
+### HTML テーブル
 
 HTML tables support captions, column groups, semantic row groups, merged cells, and alignment. `col` accepts pixel `width`; `span` repeats a width. `th` and `td` support `colspan`, `rowspan`, and `align`; `th` supports `scope`:
 
@@ -334,6 +354,11 @@ navigation:
   title: My Dense Page
 ```
 
+## ナビゲーションと埋め込み
+
+ページ内リンクには `<a>` を使い、ナビゲーション分類には `<Category>` と `<Special>` を使います。
+Mermaid の `<Mermaid>` コンテナは複数の `<NodeContent>` を持てます。アイテム参照には既存の
+`<ItemLink>` 構文を使用します。
 
 ## リンクの解決
 
@@ -379,7 +404,6 @@ item_ids:
 
 `item_id` は 1 式、`item_ids` は同じ式の YAML リストです。空白は項、`|` は選択肢、`,` は規則、`!` は除外を表します。完全一致、メタワイルドカード、式の順に検索されます。
 
-undefined
 
 ## エラー処理
 
@@ -390,38 +414,3 @@ undefined
 - [ナビゲーション](Navigation)
 - [画像とアセット](Images-And-Assets)
 - [タグリファレンス](Tags-Reference)
-
-## 追加の構文例
-
-ページ内リンクには `<a>` を使い、ナビゲーション分類には `<Category>` と `<Special>` を使います。
-Mermaid の `<Mermaid>` コンテナは複数の `<NodeContent>` を持てます。アイテム参照には既存の
-`<ItemLink>` 構文を使用します。
-
-### Markdown table spans and cell attributes
-
-GuideNH extends GFM tables with the same compact span notation used by jekyll-spaceship:
-
-- Add one extra `|` after a cell for each additional column it occupies. `||` therefore means `colspan="2"`, and `|||` means `colspan="3"`.
-- Start a cell with `^^` to continue the cell directly above it. The content is appended with a line break and the original cell receives a larger `rowspan`.
-- A cell can use edge colons for alignment (`: left`, `right :`, or `: centered :`).
-- A trailing IAL (`{: ... }`) applies safe attributes to that cell. Supported properties are `color`, `background`/`bgcolor`, `style` (color, background, font-weight, text-decoration, and alignment declarations), `align`, `valign`, `id`, and `class`.
-- Reusable IAL definitions use `{:name: ...}` on their own line and can be referenced from a cell IAL. Unsafe CSS and external URLs are ignored.
-
-```markdown
-{:warning: style="background: #4b2418; color: #ffd8c2; font-weight: bold"}
-| Stage | Products | Notes |
-| --- | --- | --- |
-| : Glycolysis : | 2 ATP ||
-| ^^ A. Peach | 3 ATP | {: warning } |
-| Final total ||| {: style="text-align: right; background: #26364d"}
-```
-
-The syntax remains ordinary Markdown when the extension is not available: extra empty cells are harmless, while `^^` and IAL text stay visible. HTML tables remain supported for complex headers and explicit `rowspan`/`colspan` attributes.
-### Extended Markdown table syntax
-
-GuideNH also supports the jekyll-spaceship table extensions in every preview:
-
-- End a physical row with `\` to append the next physical row to the same cells; each part is rendered on a new line.
-- Use a delimiter row as the first row (`|--|--|`) for a headerless table. Its rows remain data rows and are not bolded.
-- Cell contents keep normal GuideNH Markdown and MDX inline syntax, including links, images, emphasis, and LaTeX.
-- Use HTML `<thead>`, `<tbody>`, and `<tfoot>` when explicit row groups are needed.

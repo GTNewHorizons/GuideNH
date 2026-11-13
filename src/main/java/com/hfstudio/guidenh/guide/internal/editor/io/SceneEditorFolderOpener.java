@@ -8,7 +8,9 @@ import java.util.Locale;
 
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 
-/** Opens a saved Scene Editor file's directory using the host operating system. */
+/**
+ * Opens a saved Scene Editor file's directory using the host operating system.
+ */
 public class SceneEditorFolderOpener {
 
     public static void open(Path directory) {

@@ -116,6 +116,16 @@ Die untergeordnetes Element Tags Setzen Sie StructureLib Standards für Die Szen
 <RecipesFor id="minecraft:redstone_torch" input="minecraft:stick&minecraft:redstone" limit="1" />
 ````
 
+### Mengen formatieren
+
+Verwende `<Amount>` für Mengen. Die Einheit ist optional und zeigt standardmäßig nur die Zahl; `fluid` folgt der GTNHLib-Einstellung für `mB`/`L`.
+
+````md
+<Amount value="250" />
+<Amount value="250" unit="fluid" />/s
+<Amount value="1200000" format="compact" /> items
+````
+
 ## wenn zu verwenden Which Beispiel
 
 - Start mit `markdown.md` Wenn you sind validating Parser basics
@@ -131,13 +141,3 @@ Die untergeordnetes Element Tags Setzen Sie StructureLib Standards für Die Szen
 4. [GameScene](GameScene)
 5. [Annotations](Annotations)
 6. [Recipes](Recipes)
-
-### Mengen formatieren
-
-Verwende `<Amount>` für Mengen. Die Einheit ist optional und zeigt standardmäßig nur die Zahl; `fluid` folgt der GTNHLib-Einstellung für `mB`/`L`.
-
-````md
-<Amount value="250" />
-<Amount value="250" unit="fluid" /> L/s
-<Amount value="1200000" format="compact" /> items
-````

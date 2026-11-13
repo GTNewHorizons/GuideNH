@@ -162,7 +162,9 @@ public class OpenGuideHotkey {
         return true;
     }
 
-    /** Builds tooltip content without live hotkey hints or changes to the hovered-item state. */
+    /**
+     * Builds tooltip content without live hotkey hints or changes to the hovered-item state.
+     */
     public static <T> T withoutTooltipHints(Supplier<T> tooltipBuilder) {
         boolean previous = TOOLTIP_HINTS_SUPPRESSED.get();
         TOOLTIP_HINTS_SUPPRESSED.set(true);

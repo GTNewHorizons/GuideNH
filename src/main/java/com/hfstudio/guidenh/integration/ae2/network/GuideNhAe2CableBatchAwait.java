@@ -14,7 +14,9 @@ public class GuideNhAe2CableBatchAwait {
         PENDING.put(corrId, new Holder());
     }
 
-    /** Drops a registration whose reply will not be waited for. */
+    /**
+     * Drops a registration whose reply will not be waited for.
+     */
     public static void cancel(long corrId) {
         PENDING.remove(corrId);
     }

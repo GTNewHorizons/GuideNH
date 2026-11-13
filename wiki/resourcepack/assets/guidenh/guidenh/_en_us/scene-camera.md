@@ -42,22 +42,22 @@ Viewport size variants, camera presets, and pan/offset tests.
 
 ## Camera Presets
 
-`<GameScene>` / `<Scene>` new attributes:
+Camera attributes on `<GameScene>` / `<Scene>`:
 
-* `perspective="isometric_north_east"` / `"isometric_north_west"` / `"up"` — pick a yaw/pitch/roll preset;
-* `rotateX` / `rotateY` / `rotateZ` — explicit per-axis overrides applied on top of the preset;
+* `perspective="isometric-north-east"` / `"isometric-north-west"` / `"up"` — pick a yaw/pitch/roll preset;
+* `rotateX` / `rotateY` / `rotateZ` — absolute per-axis overrides of the preset;
 * `offsetX` / `offsetY` — screen-space pan (units: blocks);
 * `centerX` / `centerY` / `centerZ` — explicit world-space rotation center (overrides auto-center).
 
 NE vs NW preset:
 
 <Row>
-  <GameScene width="160" height="128" zoom={5} perspective="isometric_north_east" interactive={true}>
+  <GameScene width="160" height="128" zoom={5} perspective="isometric-north-east" interactive={true}>
     <Block id="minecraft:furnace" facing="south" />
     <Block id="minecraft:cobblestone" x="1" />
     <Block id="minecraft:planks" z="1" />
   </GameScene>
-  <GameScene width="160" height="128" zoom={5} perspective="isometric_north_west" interactive={true}>
+  <GameScene width="160" height="128" zoom={5} perspective="isometric-north-west" interactive={true}>
     <Block id="minecraft:furnace" facing="south" />
     <Block id="minecraft:cobblestone" x="1" />
     <Block id="minecraft:planks" z="1" />
@@ -112,51 +112,49 @@ overriding any `perspective` preset.
 * `pitch` — vertical tilt (degrees, –90 to 90; positive looks downward).
 * `roll` — in-plane rotation (degrees, –180 to 180).
 
-NE preset vs explicit yaw 45° pitch 30° (should look identical):
+NE preset vs explicit yaw 225° pitch 30° (should look identical):
 
 <Row>
-  <GameScene width="160" height="128" zoom={5} perspective="isometric_north_east" interactive={true}>
+  <GameScene width="160" height="128" zoom={5} perspective="isometric-north-east" interactive={true}>
     <Block id="minecraft:furnace" facing="south" />
     <Block id="minecraft:cobblestone" x="1" />
     <Block id="minecraft:planks" z="1" />
-    <IsometricCamera />
   </GameScene>
   <GameScene width="160" height="128" zoom={5} interactive={true}>
     <Block id="minecraft:furnace" facing="south" />
     <Block id="minecraft:cobblestone" x="1" />
     <Block id="minecraft:planks" z="1" />
-    <IsometricCamera yaw="45" pitch="30" roll="0" />
+    <IsometricCamera yaw="225" pitch="30" roll="0" />
   </GameScene>
 </Row>
 
-Top-down with yaw 90° (rotated 90° clockwise vs the default `up` preset):
+The `up` preset compared with its explicit yaw 120°, pitch 0°, roll 45° values:
 
 <Row>
   <GameScene width="160" height="128" zoom={5} perspective="up" interactive={true}>
     <Block id="minecraft:iron_block" />
     <Block id="minecraft:gold_block" x="1" />
     <Block id="minecraft:diamond_block" z="1" />
-    <IsometricCamera />
   </GameScene>
   <GameScene width="160" height="128" zoom={5} interactive={true}>
     <Block id="minecraft:iron_block" />
     <Block id="minecraft:gold_block" x="1" />
     <Block id="minecraft:diamond_block" z="1" />
-    <IsometricCamera yaw="90" pitch="90" roll="0" />
+    <IsometricCamera yaw="120" pitch="0" roll="45" />
   </GameScene>
 </Row>
 
 Roll test — left: roll 0°, right: roll 15°:
 
 <Row>
-  <GameScene width="160" height="128" zoom={5} perspective="isometric_north_east" interactive={true}>
+  <GameScene width="160" height="128" zoom={5} perspective="isometric-north-east" interactive={true}>
     <Block id="minecraft:stone" />
     <Block id="minecraft:stone" x="1" />
-    <IsometricCamera roll="0" />
+    <IsometricCamera yaw="225" pitch="30" roll="0" />
   </GameScene>
-  <GameScene width="160" height="128" zoom={5} perspective="isometric_north_east" interactive={true}>
+  <GameScene width="160" height="128" zoom={5} perspective="isometric-north-east" interactive={true}>
     <Block id="minecraft:stone" />
     <Block id="minecraft:stone" x="1" />
-    <IsometricCamera roll="15" />
+    <IsometricCamera yaw="225" pitch="30" roll="15" />
   </GameScene>
 </Row>

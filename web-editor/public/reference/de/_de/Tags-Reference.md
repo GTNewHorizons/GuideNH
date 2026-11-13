@@ -26,13 +26,14 @@ dies Seite lists Die built-in Laufzeit Tags registriert by `DefaultExtensions`.
 | `<sub>` | smaller inline subscript-style Text | none |
 | `<sup>` | smaller inline superscript-style Text | none |
 | `<Color>` | farbig inline Text | `id` oder `color` |
+| `<Amount>` | eine numerische Menge formatieren | `value`, `unit`, `format`, `decimals` |
 | `<Spoiler>` | verborgen inline Text revealed auf Hover | none |
 | `<Tooltip>` | rich Hover Tooltip mit markdown/Tag untergeordnete Elemente | `label` |
 | `<SoundLink>` | clickable rich-Text sound trigger | `sound` oder `src`, `volume`, `pitch`, `cooldown` |
 | `<mark>` | inline highlighted Text; equivalent zu `==text==` mit optional Farbe control | `color` |
 | `<PlayerName>` | inserts aktuell player username | none |
 | `<KeyBind>` | inserts keybinding anzeigen Name | `id` oder `action` |
-| `<ItemImage>` | inline Element icon | `id` oder `ore`, `scale`, `noTooltip`, `showTooltip`, `showIcon`, `label`, `format`, `yOffset`, `labelYOffset` |
+| `<ItemImage>` | inline Element icon | `id`, `ore`, `nbt`, `scale`, `noTooltip`, `showTooltip`, `showIcon`, `label`, `format`, `yOffset`, `labelYOffset` |
 | `<ItemLink>` | Element Tooltip + optional navigation Link | `id` oder `ore`, `linksTo`, `showTooltip`, `noTooltip`, `showIcon` |
 | `<CommandLink>` | clickable chat command Link | `command`, `title`, `close` |
 | `<Latex>` | LaTeX math Formel; inline in flow context, centered anzeigen Block in Block context | `formula`, `color`, `scale`, `sourceScale`, `tooltip`, `showTooltip` |
@@ -58,7 +59,7 @@ Inline markdown auch unterstützt action Links für sound playback:
 | `<Column>` | vertikal flex Layout | `gap`, `alignItems`, `fullWidth`, `width` |
 | `<FootnoteList>` | Breite-constrained footnote container verwendet by Laufzeit markdown footnotes | `width` |
 | `<ItemGrid>` | compact grid von Element icons | untergeordnete Elemente muss sein `<ItemIcon id="..."/>` oder `<ItemIcon ore="..."/>` |
-| `<BlockImage>` | non-interactive 3D einzeln-Block Vorschau | `id` oder `ore`, optional `scale` (Standards zu `4`), `float`, `perspective`, `nbt` |
+| `<BlockImage>` | non-interactive 3D einzeln-Block Vorschau | `id`, `ore`, `meta`, `nbt`, `scale`, `width`, `height`, `perspective`, `wrap`, `align` |
 | `<FloatingImage>` | cropped Bild Block mit Gleitkommazahl oder true inline Positionierung | `src`, `x`, `y`, `width` / `w`, `height` / `h`, `scaleX`, `scaleY`, `displayWidth`, `displayHeight`, `wrap`, `align`, `title` |
 | `<SubPages>` | navigation untergeordnetes Element listing | `id`, `alphabetical` |
 | `<Category>` | Liste pages von Eine category | `name`, `rows` |
@@ -314,6 +315,25 @@ Sound Attribut:
 - `cooldown` ist milliseconds zwischen repeated plays, Standard `250`
 - `radius` und `minVolume` control Bildschirm-space attenuation wenn verwendet in Szenen
 
+### `<Amount>`
+
+`<Amount>` formatiert eine numerische Menge. Ohne `unit` (oder mit `unit="none"`) wird nur die Zahl angezeigt. `unit="item"` fügt ebenfalls kein Suffix hinzu. `unit="fluid"` folgt der GTNHLib-Einstellung und zeigt `mB` oder `L` an. `format` kann `default`, `plain`, `compact` oder `scientific` sein; `decimals` begrenzt die Nachkommastellen. Raten wie `L/s` werden außerhalb des Tags geschrieben.
+
+| Attribut | Bedeutung |
+| --- | --- |
+| `value` | erforderlicher endlicher Dezimalwert |
+| `unit` | optional `none`, `item` oder `fluid`; Standard ist `none` |
+| `format` | optionales Zahlenformat; Standard ist `default` |
+| `decimals` | optionale nichtnegative maximale Nachkommastellen |
+
+Beispiel:
+
+````md
+<Amount value="250" />
+<Amount value="250" unit="fluid" />/s
+<Amount value="1200000" format="compact" /> items
+````
+
 ### `<PlayerName>`
 
 Inserts Die aktuell Minecraft session username:
@@ -364,8 +384,8 @@ zeigt Eine inline Element icon.
 
 | Attribut | Bedeutung |
 | --- | --- |
-| `ore` | ore dictionary Name; Die erste übereinstimmen wins |
-| `id` | Element reference verwendet wenn `ore` ist absent |
+| `ore` | optionaler Ore-Dictionary-Selektor; zusätzlich `id` angeben |
+| `id` | erforderliche Gegenstandsreferenz, auch bei Verwendung von `ore` |
 | `nbt` | optional SNBT Element Daten; merged onto beliebig inline SNBT in `id` |
 | `scale` | Gleitkommazahl, Standard `1` |
 | `noTooltip` | truthy Zeichenkette oder leer Attribut suppresses Tooltip (legacy; prefer `showTooltip`) |
@@ -373,8 +393,8 @@ zeigt Eine inline Element icon.
 | `showIcon` | Boolesch, Standard `true`; `false` hides Die Element icon graphic |
 | `label` | `left` oder `right` — zeigt Die Element anzeigen Name als Text auf Die specified Seite von Die icon; omit für nein Beschriftung |
 | `format` | format pattern für Die Beschriftung Text; unterstützt Markdown-style wrappers (`**bold**`, `*italic*`, `~~strike~~`, `__underline__`, `^^wavy^^`, `::dotted::`) mit optional `%s` placeholder für Die Element Name; Standard (nein Attribut) rendert Die Name in kursiv |
-| `yOffset` | Ganzzahl pixel offset Überschreibung für Die **icon** at scale `1`; tut nicht affect Die Beschriftung Text |
-| `labelYOffset` | Ganzzahl pixel offset Überschreibung für Die **Beschriftung Text** at scale `1`; tut nicht affect Die icon |
+| `yOffset` | vertikaler Inline-Versatz bei `scale=1`; Standard `0`; positiv nach unten |
+| `labelYOffset` | vertikaler Versatz nur für den Beschriftungstext bei `scale=1`; Standard `0` |
 
 Hinweise:
 
@@ -388,7 +408,7 @@ Beispiel:
 
 ````md
 <ItemImage id="minecraft:diamond" scale="2" />
-<ItemImage ore="ingotIron" />
+<ItemImage id="minecraft:iron_ingot" ore="ingotIron" />
 <ItemImage id="minecraft:diamond_sword" noTooltip="true" />
 <ItemImage id="minecraft:diamond" label="right" />
 <ItemImage id="minecraft:iron_ingot" label="left" format="**%s**" />
@@ -398,7 +418,7 @@ Beispiel:
 <ItemImage
   id="minecraft:chest"
   scale="2"
-  nbt='{id:"Chest",Items:[{Slot:0b,id:"minecraft:diamond",Count:1b,Damage:0s}]}'
+  nbt='{display:{Name:"Storage Chest"}}'
 />
 ````
 
@@ -507,6 +527,10 @@ Auswahl outline und tooltip. `ore` muss auflösen zu Eine Block Element stack.
 | `id` | Block id; unterstützt Die normal `modid:block[:meta][:{snbt}]` Schreibweise |
 | `ore` | ore dictionary lookup; Die erste passend Block Element wins |
 | `scale` | Kamera Zoom Multiplikator, Standard `4` |
+| `meta` | Block-Metadaten; überschreibt die Metadaten in `id` |
+| `width` / `height` | Vorschaugröße in Pixeln; je Dimension standardmäßig `128` |
+| `wrap` | Textumbruch; Standard `inline` |
+| `align` | horizontale Ausrichtung: `left` (Standard), `center` oder `right` |
 | `float` | legacy flow Gleitkommazahl Unterstützung: `left` oder `right` |
 | `perspective` | `isometric-north-east` (Standard), `isometric-north-west`, oder `up` |
 | `nbt` | optional SNBT tile-entity Daten merged onto beliebig inline SNBT von `id` |
@@ -534,15 +558,11 @@ Hinweise:
 
 Siehe [Images And Assets](Images-And-Assets) für Die vollständige Verhalten.
 
-Kurzregeln:
+```mdx
+<FloatingImage src="test1.png" displayWidth="128" wrap="inline" />
 
-- `src` unterstützt relativ paths, rooted paths, und explizit `modid:path` texture ids
-- `x`, `y`, `width` / `w`, und `height` / `h` define Die crop rectangle auf Die original Bild und muss alle sein present
-- `scaleX` und `scaleY` resize Die cropped Ergebnis und Unterstützung independent horizontal / vertikal stretching
-- `displayWidth` und `displayHeight` Setzen Sie final dimensions in Pixel; eins Wert preserves Die crop aspect ratio, während zwei Werte erlauben stretching
-- `displayWidth` / `displayHeight` kann nicht sein kombiniert mit `scaleX` / `scaleY`
-- `wrap="inline"` places Die Bild truly inline innerhalb Text flow; in dass Modus `align` ist ignored
-- old Inhalt dass verwendet `width` / `height` als final anzeigen Größe muss sein migrated manuell
+<FloatingImage src="test1.png" x="8" y="8" width="16" height="16" displayWidth="128" wrap="inline" />
+```
 
 ### `<SubPages>`, `<Category>`, und `<Special>`
 
@@ -698,7 +718,12 @@ diese Tags nur funktionieren innerhalb `<GameScene>` / `<Scene>`:
 | `<ImportStructure>` | import Eine extern SNBT/NBT structure Ressource | `src`, `x`, `y`, `z`, `offsetX`, `offsetY`, `offsetZ`, `formed` |
 | `<ImportStructureLib>` | import Eine StructureLib multiblock by controller id | `controller`, `name`, `piece`, `facing`, `rotation`, `flip`, `tier`, `channel`, `channelName`, `value`, `locked`, `offsetX`, `offsetY`, `offsetZ`, `formed` |
 | `<RemoveBlocks>` | entfernen bereits-placed Blöcke dass übereinstimmen Eine Block matcher | `id` |
+| `<BlockAnnotation>` | einen einzelnen Block hervorheben | `pos`, `color`, `colorMode`, `colorPeriod`, `thickness`, `alwaysOnTop` |
+| `<BoxAnnotation>` | eine beliebige achsenparallele Box hervorheben | `min`, `max`, `color`, `colorMode`, `colorPeriod`, `thickness`, `alwaysOnTop` |
+| `<OutlineAnnotation>` | die gerenderte Silhouette von Blöcken oder Entitäten umranden | `pos`, `min`, `max`, `entity`, `target`, `mode`, `color`, `colorMode`, `colorPeriod`, `thickness`, `alwaysOnTop`, `pulse`, `pulsePeriod` |
 | `<BlockAnnotationTemplate>` | stamp Die gleich untergeordnetes Element Annotationen onto jede passend placed Block | `id` |
+
+`colorMode`: `solid` (Standard) oder `rainbow`; der Regenbogen dreht sich um 360° um das projizierte Zentrum, ersetzt RGB und behält den Alphawert von `color` bei. `colorPeriod`: positive, endliche Regenbogenperiode in Sekunden; Standard `2.4`; ungültige Werte erzeugen einen Seitenfehler. Spiel und Site Export verwenden denselben Regenbogenverlauf und dieselbe Zyklusdauer.
 
 Siehe [GameScene](GameScene) für Szene import/removal behavior und [Annotations](Annotations) für Annotation template Regeln.
 
@@ -864,23 +889,4 @@ Beispiel:
 <QuestCard id="01234567-89ab-cdef-0123-456789abcdef" show_desc="false" />
 <QuestCard id="01234567-89ab-cdef-0123-456789abcdef" show_tooltip="false" />
 <QuestCard id="AAAAAAAAAAAAAAAAAAAMug==" />
-````
-
-### `<Amount>`
-
-`<Amount>` formatiert eine numerische Menge. Ohne `unit` (oder mit `unit="none"`) wird nur die Zahl angezeigt. `unit="item"` fügt ebenfalls kein Suffix hinzu. `unit="fluid"` folgt der GTNHLib-Einstellung und zeigt `mB` oder `L` an. `format` kann `default`, `plain`, `compact` oder `scientific` sein; `decimals` begrenzt die Nachkommastellen. Raten wie `L/s` werden außerhalb des Tags geschrieben.
-
-| Attribut | Bedeutung |
-| --- | --- |
-| `value` | erforderlicher endlicher Dezimalwert |
-| `unit` | optional `none`, `item` oder `fluid`; Standard ist `none` |
-| `format` | optionales Zahlenformat; Standard ist `default` |
-| `decimals` | optionale nichtnegative maximale Nachkommastellen |
-
-Beispiel:
-
-````md
-<Amount value="250" />
-<Amount value="250" unit="fluid" /> L/s
-<Amount value="1200000" format="compact" /> items
 ````

@@ -137,13 +137,17 @@ public class CameraSettings {
         }
     }
 
-    /** Converts a screen-space offset to the world-space translation used by this camera. */
+    /**
+     * Converts a screen-space offset to the world-space translation used by this camera.
+     */
     public float screenPixelsToWorldOffset(float pixels) {
         float scale = PROJECTION_SCALE_AT_ZOOM_ONE * zoom;
         return Math.abs(scale) > 1.0e-6f ? pixels / scale : 0f;
     }
 
-    /** Converts this camera's world-space translation to the screen-space value used by Ponder. */
+    /**
+     * Converts this camera's world-space translation to the screen-space value used by Ponder.
+     */
     public float worldOffsetToScreenPixels(float worldOffset) {
         return worldOffset * PROJECTION_SCALE_AT_ZOOM_ONE * zoom;
     }

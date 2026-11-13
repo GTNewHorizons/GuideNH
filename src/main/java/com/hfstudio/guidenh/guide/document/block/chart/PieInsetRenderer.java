@@ -6,8 +6,7 @@ import com.hfstudio.guidenh.guide.render.RenderContext;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
 
 /**
- * Stateless helper that draws a {@link PieInsetSpec} inside a host chart's plot rectangle.
- * The inset occupies a small square in the requested corner of the plot area.
+ * Draws a PieInsetSpec in the requested corner of a host chart's plot rectangle.
  */
 public class PieInsetRenderer {
 

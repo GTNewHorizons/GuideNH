@@ -97,7 +97,9 @@ public class SceneEditorTextSelectionModel {
         selectionActive = !text.isEmpty();
     }
 
-    /** Selects the token around the cursor, including resource ids and paths. */
+    /**
+     * Selects the token around the cursor, including resource ids and paths.
+     */
     public void selectWordAt(int index) {
         int position = clampIndex(index);
         if (position > 0 && (position == text.length() || !isWordCharacter(text.charAt(position)))
@@ -119,7 +121,9 @@ public class SceneEditorTextSelectionModel {
         setSelection(start, end);
     }
 
-    /** Indents or outdents every logical line touched by the current selection. */
+    /**
+     * Indents or outdents every logical line touched by the current selection.
+     */
     public boolean indentLines(boolean outdent, int indentSize) {
         int start = getSelectionStart();
         int end = getSelectionEnd();

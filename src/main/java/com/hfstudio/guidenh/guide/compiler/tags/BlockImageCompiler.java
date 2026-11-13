@@ -38,7 +38,6 @@ public class BlockImageCompiler extends BlockTagCompiler {
         int width = MdxAttrs.getInt(compiler, parent, el, "width", 128);
         int height = MdxAttrs.getInt(compiler, parent, el, "height", 128);
 
-        // Create placeholder block that carries all extracted config to BlockImageScript
         BlockImagePlaceholder placeholder = new BlockImagePlaceholder(
             id,
             ore,

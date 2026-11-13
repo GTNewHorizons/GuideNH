@@ -50,7 +50,8 @@ public class OutlineAnnotationElementCompiler extends AnnotationTagCompiler {
             thickness,
             mode,
             pulse,
-            pulsePeriod);
+            pulsePeriod,
+            AnnotationColorAttributes.parse(compiler, errorSink, el));
         annotation.setAlwaysOnTop(MdxAttrs.getBoolean(compiler, errorSink, el, "alwaysOnTop", false));
         return annotation;
     }

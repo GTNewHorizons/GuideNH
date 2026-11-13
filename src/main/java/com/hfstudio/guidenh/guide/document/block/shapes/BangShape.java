@@ -113,7 +113,9 @@ public class BangShape implements ShapeRenderer {
             stroke);
     }
 
-    /** Returns an SVG points attribute string for this shape, fitted to (x,y,w,h). */
+    /**
+     * Returns an SVG points attribute string for this shape, fitted to (x,y,w,h).
+     */
     public static String generateSvgPoints(int x, int y, int w, int h) {
         float[] raw = buildBangPolygon(w, h);
         float[] bounds = ShapeUtils.computeBounds(raw);

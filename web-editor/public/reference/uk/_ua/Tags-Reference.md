@@ -26,13 +26,14 @@
 | `<sub>` | smaller inline subscript-style текст | none |
 | `<sup>` | smaller inline superscript-style текст | none |
 | `<Color>` | colored inline текст | `id` або `color` |
+| `<Amount>` | форматування числової кількості | `value`, `unit`, `format`, `decimals` |
 | `<Spoiler>` | прихований inline текст revealed on наведення | none |
 | `<Tooltip>` | розширений наведення підказка з Markdown/тег дочірні елементи | `label` |
 | `<SoundLink>` | clickable розширений-текст sound trigger | `sound` або `src`, `volume`, `pitch`, `cooldown` |
 | `<mark>` | inline highlighted текст; equivalent до `==text==` з необов’язковий колір control | `color` |
 | `<PlayerName>` | inserts поточний гравець username | none |
 | `<KeyBind>` | inserts keybinding відображати назва | `id` або `action` |
-| `<ItemImage>` | inline предмет icon | `id` або `ore`, `scale`, `noTooltip`, `showTooltip`, `showIcon`, `label`, `format`, `yOffset`, `labelYOffset` |
+| `<ItemImage>` | inline предмет icon | `id`, `ore`, `nbt`, `scale`, `noTooltip`, `showTooltip`, `showIcon`, `label`, `format`, `yOffset`, `labelYOffset` |
 | `<ItemLink>` | предмет підказка + необов’язковий Навігація посилання | `id` або `ore`, `linksTo`, `showTooltip`, `noTooltip`, `showIcon` |
 | `<CommandLink>` | clickable chat command посилання | `command`, `title`, `close` |
 | `<Latex>` | LaTeX math formula; inline in flow context, centered відображати блок in блок context | `formula`, `color`, `scale`, `sourceScale`, `tooltip`, `showTooltip` |
@@ -58,7 +59,7 @@ Inline Markdown також підтримує action links для sound playback
 | `<Column>` | vertical flex структура | `gap`, `alignItems`, `fullWidth`, `width` |
 | `<FootnoteList>` | ширина-constrained footnote container використовується by виконання Markdown footnotes | `width` |
 | `<ItemGrid>` | compact grid of предмет icons | дочірні елементи має be `<ItemIcon id="..."/>` або `<ItemIcon ore="..."/>` |
-| `<BlockImage>` | non-інтерактивний 3D один-блок перегляд | `id` або `ore`, необов’язковий `scale` (типові до `4`), `float`, `perspective`, `nbt` |
+| `<BlockImage>` | non-інтерактивний 3D один-блок перегляд | `id`, `ore`, `meta`, `nbt`, `scale`, `width`, `height`, `perspective`, `wrap`, `align` |
 | `<FloatingImage>` | cropped зображення блок з число з плаваючою комою або true inline placement | `src`, `x`, `y`, `width` / `w`, `height` / `h`, `scaleX`, `scaleY`, `displayWidth`, `displayHeight`, `wrap`, `align`, `title` |
 | `<SubPages>` | Навігація дочірній елемент listing | `id`, `alphabetical` |
 | `<Category>` | список сторінки з category | `name`, `rows` |
@@ -314,6 +315,25 @@ Sound атрибути:
 - `cooldown` is milliseconds between repeated plays, Типове `250`
 - `radius` і `minVolume` control простір екрана attenuation коли використовується in сцени
 
+### `<Amount>`
+
+`<Amount>` форматує числову кількість. Якщо `unit` пропущено (або вказано `unit="none"`), показується лише число. `unit="item"` також не додає суфікса. `unit="fluid"` використовує налаштування рідин GTNHLib і показує `mB` або `L`. `format` може бути `default`, `plain`, `compact` або `scientific`, а `decimals` обмежує кількість десяткових знаків. Швидкість, наприклад `L/s`, записуйте поза тегом.
+
+| Атрибут | Значення |
+| --- | --- |
+| `value` | обов’язкове скінченне десяткове число |
+| `unit` | необов’язкове `none`, `item` або `fluid`; за замовчуванням `none` |
+| `format` | необов’язковий числовий формат; за замовчуванням `default` |
+| `decimals` | необов’язкова невід’ємна максимальна кількість десяткових знаків |
+
+Приклад:
+
+````md
+<Amount value="250" />
+<Amount value="250" unit="fluid" />/s
+<Amount value="1200000" format="compact" /> items
+````
+
 ### `<PlayerName>`
 
 Inserts  поточний Minecraft session username:
@@ -364,8 +384,8 @@ Shows inline предмет icon.
 
 | Атрибут | Значення |
 | --- | --- |
-| `ore` | ore dictionary назва;  перший відповідати wins |
-| `id` | предмет reference використовується коли `ore` is absent |
+| `ore` | необов’язковий вибір зі словника руд; також укажіть `id` |
+| `id` | обов’язкове посилання на предмет, зокрема з `ore` |
 | `nbt` | необов’язковий SNBT предмет дані; merged onto any inline SNBT in `id` |
 | `scale` | число з плаваючою комою, Типове `1` |
 | `noTooltip` | truthy рядок або empty Атрибут suppresses підказка (legacy; prefer `showTooltip`) |
@@ -373,8 +393,8 @@ Shows inline предмет icon.
 | `showIcon` | логічне значення, Типове `true`; `false` hides  предмет icon graphic |
 | `label` | `left` або `right` — shows  предмет відображати назва as текст on  specified бік of  icon; omit для no мітка |
 | `format` | format pattern для  мітка текст; підтримує Markdown-style wrappers (`**bold**`, `*italic*`, `~~strike~~`, `__underline__`, `^^wavy^^`, `::dotted::`) з необов’язковий `%s` placeholder для  предмет назва; Типове (no Атрибут) renders  назва in italic |
-| `yOffset` | ціле число піксель offset перевизначати для  **icon** at scale `1`; не affect  мітка текст |
-| `labelYOffset` | ціле число піксель offset перевизначати для  **мітка текст** at scale `1`; не affect  icon |
+| `yOffset` | вертикальний зсув у рядку при `scale=1`; типово `0`; додатний униз |
+| `labelYOffset` | вертикальний зсув лише підпису при `scale=1`; типово `0` |
 
 Примітки:
 
@@ -388,7 +408,7 @@ Shows inline предмет icon.
 
 ````md
 <ItemImage id="minecraft:diamond" scale="2" />
-<ItemImage ore="ingotIron" />
+<ItemImage id="minecraft:iron_ingot" ore="ingotIron" />
 <ItemImage id="minecraft:diamond_sword" noTooltip="true" />
 <ItemImage id="minecraft:diamond" label="right" />
 <ItemImage id="minecraft:iron_ingot" label="left" format="**%s**" />
@@ -398,7 +418,7 @@ Shows inline предмет icon.
 <ItemImage
   id="minecraft:chest"
   scale="2"
-  nbt='{id:"Chest",Items:[{Slot:0b,id:"minecraft:diamond",Count:1b,Damage:0s}]}'
+  nbt='{display:{Name:"Storage Chest"}}'
 />
 ````
 
@@ -507,6 +527,10 @@ buttons, no layer controls, і no анотація features, but наведен�
 | `id` | блок id; підтримує  normal `modid:block[:meta][:{snbt}]` spelling |
 | `ore` | ore dictionary lookup;  перший відповідний блок предмет wins |
 | `scale` | камера масштаб multiplier, Типове `4` |
+| `meta` | метадані блока; замінюють метадані в `id` |
+| `width` / `height` | розміри попереднього перегляду в пікселях; типово `128` кожен |
+| `wrap` | обтікання текстом; типово `inline` |
+| `align` | горизонтальне вирівнювання: `left` (типово), `center` або `right` |
 | `float` | legacy flow число з плаваючою комою підтримка: `left` або `right` |
 | `perspective` | `isometric-north-east` (Типове), `isometric-north-west`, або `up` |
 | `nbt` | необов’язковий SNBT блок-сутність дані merged onto any inline SNBT з `id` |
@@ -534,15 +558,11 @@ buttons, no layer controls, і no анотація features, but наведен�
 
 Дивіться [Images And Assets](Images-And-Assets) для  full поведінка.
 
-Quick Правила:
+```mdx
+<FloatingImage src="test1.png" displayWidth="128" wrap="inline" />
 
-- `src` підтримує відносний paths, rooted paths, і явний `modid:path` texture ids
-- `x`, `y`, `width` / `w`, і `height` / `h` define  crop rectangle on  original зображення і має усі be present
-- `scaleX` і `scaleY` resize  cropped результат і підтримка independent horizontal / vertical stretching
-- `displayWidth` і `displayHeight` Установіть кінцевий dimensions in пікселі; один значення preserves  crop aspect ratio, поки два значення дозволяти stretching
-- `displayWidth` / `displayHeight` не може be combined з `scaleX` / `scaleY`
-- `wrap="inline"` places  зображення truly inline усередині текст flow; in який режим `align` is ignored
-- old вміст який використовується `width` / `height` as кінцевий відображати розмір має be migrated вручну
+<FloatingImage src="test1.png" x="8" y="8" width="16" height="16" displayWidth="128" wrap="inline" />
+```
 
 ### `<SubPages>`, `<Category>`, і `<Special>`
 
@@ -698,7 +718,12 @@ $$\begin{pmatrix} a & b \\ c & d \end{pmatrix}$$
 | `<ImportStructure>` | import зовнішній SNBT/NBT структура ресурс | `src`, `x`, `y`, `z`, `offsetX`, `offsetY`, `offsetZ`, `formed` |
 | `<ImportStructureLib>` | import StructureLib multiblock by controller id | `controller`, `name`, `piece`, `facing`, `rotation`, `flip`, `tier`, `channel`, `channelName`, `value`, `locked`, `offsetX`, `offsetY`, `offsetZ`, `formed` |
 | `<RemoveBlocks>` | видалити вже-розміщений блоки який відповідати a блок matcher | `id` |
+| `<BlockAnnotation>` | виділення одного блока | `pos`, `color`, `colorMode`, `colorPeriod`, `thickness`, `alwaysOnTop` |
+| `<BoxAnnotation>` | виділення довільного паралелепіпеда вздовж осей | `min`, `max`, `color`, `colorMode`, `colorPeriod`, `thickness`, `alwaysOnTop` |
+| `<OutlineAnnotation>` | обведення відтвореного силуету блоків або сутностей | `pos`, `min`, `max`, `entity`, `target`, `mode`, `color`, `colorMode`, `colorPeriod`, `thickness`, `alwaysOnTop`, `pulse`, `pulsePeriod` |
 | `<BlockAnnotationTemplate>` | stamp  той самий дочірній елемент Анотації onto кожен відповідний розміщений блок | `id` |
+
+`colorMode`: `solid` (типово) або `rainbow`; веселка обертається на 360° навколо проєкції центра, замінює RGB і зберігає альфа-канал `color`. `colorPeriod`: додатний скінченний період веселки в секундах; типово `2.4`; хибні значення спричиняють помилку сторінки. Гра та Site Export використовують однаковий веселковий градієнт і тривалість циклу.
 
 Дивіться [GameScene](GameScene) для сцена import/removal поведінка і [Annotations](Annotations) для анотація template Правила.
 
@@ -864,23 +889,4 @@ See <QuestLink id="AAAAAAAAAAAAAAAAAAAMug==" text="Compact quest id example" /> 
 <QuestCard id="01234567-89ab-cdef-0123-456789abcdef" show_desc="false" />
 <QuestCard id="01234567-89ab-cdef-0123-456789abcdef" show_tooltip="false" />
 <QuestCard id="AAAAAAAAAAAAAAAAAAAMug==" />
-````
-
-### `<Amount>`
-
-`<Amount>` форматує числову кількість. Якщо `unit` пропущено (або вказано `unit="none"`), показується лише число. `unit="item"` також не додає суфікса. `unit="fluid"` використовує налаштування рідин GTNHLib і показує `mB` або `L`. `format` може бути `default`, `plain`, `compact` або `scientific`, а `decimals` обмежує кількість десяткових знаків. Швидкість, наприклад `L/s`, записуйте поза тегом.
-
-| Атрибут | Значення |
-| --- | --- |
-| `value` | обов’язкове скінченне десяткове число |
-| `unit` | необов’язкове `none`, `item` або `fluid`; за замовчуванням `none` |
-| `format` | необов’язковий числовий формат; за замовчуванням `default` |
-| `decimals` | необов’язкова невід’ємна максимальна кількість десяткових знаків |
-
-Приклад:
-
-````md
-<Amount value="250" />
-<Amount value="250" unit="fluid" /> L/s
-<Amount value="1200000" format="compact" /> items
 ````

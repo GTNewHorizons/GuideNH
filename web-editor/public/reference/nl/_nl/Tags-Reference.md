@@ -26,13 +26,14 @@ Deze pagina lists De built-in runtime tags registered by `DefaultExtensions`.
 | `<sub>` | smaller inline subscript-style tekst | none |
 | `<sup>` | smaller inline superscript-style tekst | none |
 | `<Color>` | colored inline tekst | `id` of `color` |
+| `<Amount>` | een numerieke hoeveelheid opmaken | `value`, `unit`, `format`, `decimals` |
 | `<Spoiler>` | verborgen inline tekst revealed on zweven | none |
 | `<Tooltip>` | rich zweven tooltip met Markdown/tag kinderen | `label` |
 | `<SoundLink>` | clickable rich-tekst sound trigger | `sound` of `src`, `volume`, `pitch`, `cooldown` |
 | `<mark>` | inline highlighted tekst; equivalent naar `==text==` met optioneel kleur control | `color` |
 | `<PlayerName>` | inserts huidige player username | none |
 | `<KeyBind>` | inserts keybinding weergeven naam | `id` of `action` |
-| `<ItemImage>` | inline item icon | `id` of `ore`, `scale`, `noTooltip`, `showTooltip`, `showIcon`, `label`, `format`, `yOffset`, `labelYOffset` |
+| `<ItemImage>` | inline item icon | `id`, `ore`, `nbt`, `scale`, `noTooltip`, `showTooltip`, `showIcon`, `label`, `format`, `yOffset`, `labelYOffset` |
 | `<ItemLink>` | item tooltip + optioneel Navigatie link | `id` of `ore`, `linksTo`, `showTooltip`, `noTooltip`, `showIcon` |
 | `<CommandLink>` | clickable chat command link | `command`, `title`, `close` |
 | `<Latex>` | LaTeX math formula; inline in flow context, centered weergeven blok in blok context | `formula`, `color`, `scale`, `sourceScale`, `tooltip`, `showTooltip` |
@@ -58,7 +59,7 @@ Inline Markdown ook ondersteunt action links voor sound playback:
 | `<Column>` | vertical flex layout | `gap`, `alignItems`, `fullWidth`, `width` |
 | `<FootnoteList>` | breedte-constrained footnote container gebruikt by runtime Markdown footnotes | `width` |
 | `<ItemGrid>` | compact grid of item icons | kinderen moet be `<ItemIcon id="..."/>` of `<ItemIcon ore="..."/>` |
-| `<BlockImage>` | non-interactief 3D enkele-blok voorbeeldweergave | `id` of `ore`, optioneel `scale` (defaults naar `4`), `float`, `perspective`, `nbt` |
+| `<BlockImage>` | non-interactief 3D enkele-blok voorbeeldweergave | `id`, `ore`, `meta`, `nbt`, `scale`, `width`, `height`, `perspective`, `wrap`, `align` |
 | `<FloatingImage>` | cropped afbeelding blok met kommagetal of true inline placement | `src`, `x`, `y`, `width` / `w`, `height` / `h`, `scaleX`, `scaleY`, `displayWidth`, `displayHeight`, `wrap`, `align`, `title` |
 | `<SubPages>` | Navigatie kind listing | `id`, `alphabetical` |
 | `<Category>` | lijst pages van Een category | `name`, `rows` |
@@ -314,6 +315,25 @@ Sound attributen:
 - `cooldown` is milliseconds between repeated plays, Standaard `250`
 - `radius` en `minVolume` control schermruimte attenuation wanneer gebruikt in scènes
 
+### `<Amount>`
+
+`<Amount>` formatteert een numerieke hoeveelheid. Zonder `unit` (of met `unit="none"`) wordt alleen het getal weergegeven. `unit="item"` voegt ook geen achtervoegsel toe. `unit="fluid"` volgt de vloeistofvoorkeur van GTNHLib en toont `mB` of `L`. `format` kan `default`, `plain`, `compact` of `scientific` zijn; `decimals` beperkt het aantal decimalen. Schrijf snelheden zoals `L/s` buiten de tag.
+
+| Attribuut | Betekenis |
+| --- | --- |
+| `value` | verplichte eindige decimale waarde |
+| `unit` | optioneel `none`, `item` of `fluid`; standaard `none` |
+| `format` | optionele getalnotatie; standaard `default` |
+| `decimals` | optioneel niet-negatief maximum aantal decimalen |
+
+Voorbeeld:
+
+````md
+<Amount value="250" />
+<Amount value="250" unit="fluid" />/s
+<Amount value="1200000" format="compact" /> items
+````
+
 ### `<PlayerName>`
 
 Inserts De huidige Minecraft session username:
@@ -364,8 +384,8 @@ Shows Een inline item icon.
 
 | Attribuut | Betekenis |
 | --- | --- |
-| `ore` | ore dictionary naam; De first match wins |
-| `id` | item reference gebruikt wanneer `ore` is absent |
+| `ore` | optionele ertswoordenboekselectie; geef ook `id` op |
+| `id` | verplichte voorwerpreferentie, ook bij gebruik van `ore` |
 | `nbt` | optioneel SNBT item data; merged onto any inline SNBT in `id` |
 | `scale` | kommagetal, Standaard `1` |
 | `noTooltip` | truthy tekenreeks of empty Attribuut suppresses tooltip (legacy; prefer `showTooltip`) |
@@ -373,8 +393,8 @@ Shows Een inline item icon.
 | `showIcon` | boolean, Standaard `true`; `false` hides De item icon graphic |
 | `label` | `left` of `right` — shows De item weergeven naam as tekst on De specified side of De icon; omit voor no label |
 | `format` | format pattern voor De label tekst; ondersteunt Markdown-style wrappers (`**bold**`, `*italic*`, `~~strike~~`, `__underline__`, `^^wavy^^`, `::dotted::`) met optioneel `%s` placeholder voor De item naam; Standaard (no Attribuut) renders De naam in italic |
-| `yOffset` | geheel getal pixel offset override voor De **icon** at scale `1`; doet niet affect De label tekst |
-| `labelYOffset` | geheel getal pixel offset override voor De **label tekst** at scale `1`; doet niet affect De icon |
+| `yOffset` | verticale inlineverschuiving bij `scale=1`; standaard `0`; positief naar beneden |
+| `labelYOffset` | verticale verschuiving van alleen het label bij `scale=1`; standaard `0` |
 
 Notes:
 
@@ -388,7 +408,7 @@ Example:
 
 ````md
 <ItemImage id="minecraft:diamond" scale="2" />
-<ItemImage ore="ingotIron" />
+<ItemImage id="minecraft:iron_ingot" ore="ingotIron" />
 <ItemImage id="minecraft:diamond_sword" noTooltip="true" />
 <ItemImage id="minecraft:diamond" label="right" />
 <ItemImage id="minecraft:iron_ingot" label="left" format="**%s**" />
@@ -398,7 +418,7 @@ Example:
 <ItemImage
   id="minecraft:chest"
   scale="2"
-  nbt='{id:"Chest",Items:[{Slot:0b,id:"minecraft:diamond",Count:1b,Damage:0s}]}'
+  nbt='{display:{Name:"Storage Chest"}}'
 />
 ````
 
@@ -507,6 +527,10 @@ selectie outline en tooltip. `ore` moet oplossen naar Een blok item stack.
 | `id` | blok id; ondersteunt De normal `modid:block[:meta][:{snbt}]` spelling |
 | `ore` | ore dictionary lookup; De first matching blok item wins |
 | `scale` | camera zoomen multiplier, Standaard `4` |
+| `meta` | blokmetadata; overschrijft de metadata in `id` |
+| `width` / `height` | voorbeeldgrootte in pixels; standaard `128` per afmeting |
+| `wrap` | tekstomloop; standaard `inline` |
+| `align` | horizontale uitlijning: `left` (standaard), `center` of `right` |
 | `float` | legacy flow kommagetal ondersteuning: `left` of `right` |
 | `perspective` | `isometric-north-east` (Standaard), `isometric-north-west`, of `up` |
 | `nbt` | optioneel SNBT tile-entity data merged onto any inline SNBT van `id` |
@@ -534,15 +558,11 @@ Notes:
 
 See [Images And Assets](Images-And-Assets) voor De full behavior.
 
-Quick Regels:
+```mdx
+<FloatingImage src="test1.png" displayWidth="128" wrap="inline" />
 
-- `src` ondersteunt relative paths, rooted paths, en explicit `modid:path` texture ids
-- `x`, `y`, `width` / `w`, en `height` / `h` define De crop rectangle on De original afbeelding en moet alle be present
-- `scaleX` en `scaleY` resize De cropped result en ondersteuning independent horizontal / vertical stretching
-- `displayWidth` en `displayHeight` Stel in final dimensions in pixels; one waarde preserves De crop aspect ratio, terwijl two waarden toestaan stretching
-- `displayWidth` / `displayHeight` kan niet be combined met `scaleX` / `scaleY`
-- `wrap="inline"` places De afbeelding truly inline binnen tekst flow; in that modus `align` is ignored
-- old inhoud that gebruikt `width` / `height` as final weergeven grootte moet be migrated manually
+<FloatingImage src="test1.png" x="8" y="8" width="16" height="16" displayWidth="128" wrap="inline" />
+```
 
 ### `<SubPages>`, `<Category>`, en `<Special>`
 
@@ -698,7 +718,12 @@ Deze tags alleen work binnen `<GameScene>` / `<Scene>`:
 | `<ImportStructure>` | import Een external SNBT/NBT structure asset | `src`, `x`, `y`, `z`, `offsetX`, `offsetY`, `offsetZ`, `formed` |
 | `<ImportStructureLib>` | import Een StructureLib multiblock by controller id | `controller`, `name`, `piece`, `facing`, `rotation`, `flip`, `tier`, `channel`, `channelName`, `value`, `locked`, `offsetX`, `offsetY`, `offsetZ`, `formed` |
 | `<RemoveBlocks>` | verwijderen al-placed blokken that match Een blok matcher | `id` |
+| `<BlockAnnotation>` | één blok markeren | `pos`, `color`, `colorMode`, `colorPeriod`, `thickness`, `alwaysOnTop` |
+| `<BoxAnnotation>` | een willekeurige asgerichte box markeren | `min`, `max`, `color`, `colorMode`, `colorPeriod`, `thickness`, `alwaysOnTop` |
+| `<OutlineAnnotation>` | de gerenderde silhouet van blokken of entiteiten omlijnen | `pos`, `min`, `max`, `entity`, `target`, `mode`, `color`, `colorMode`, `colorPeriod`, `thickness`, `alwaysOnTop`, `pulse`, `pulsePeriod` |
 | `<BlockAnnotationTemplate>` | stamp De zelfde kind Annotaties onto iedere matching placed blok | `id` |
+
+`colorMode`: `solid` (standaard) of `rainbow`; de regenboog draait 360° rond het geprojecteerde middelpunt, vervangt RGB en behoudt de alfa van `color`. `colorPeriod`: positieve, eindige regenboogperiode in seconden; standaard `2.4`; ongeldige waarden geven een paginafout. Het spel en Site Export gebruiken hetzelfde regenboogverloop en dezelfde cyclusduur.
 
 See [GameScene](GameScene) voor scène import/removal behavior en [Annotations](Annotations) voor annotatie template Regels.
 
@@ -864,23 +889,4 @@ Example:
 <QuestCard id="01234567-89ab-cdef-0123-456789abcdef" show_desc="false" />
 <QuestCard id="01234567-89ab-cdef-0123-456789abcdef" show_tooltip="false" />
 <QuestCard id="AAAAAAAAAAAAAAAAAAAMug==" />
-````
-
-### `<Amount>`
-
-`<Amount>` formatteert een numerieke hoeveelheid. Zonder `unit` (of met `unit="none"`) wordt alleen het getal weergegeven. `unit="item"` voegt ook geen achtervoegsel toe. `unit="fluid"` volgt de vloeistofvoorkeur van GTNHLib en toont `mB` of `L`. `format` kan `default`, `plain`, `compact` of `scientific` zijn; `decimals` beperkt het aantal decimalen. Schrijf snelheden zoals `L/s` buiten de tag.
-
-| Attribuut | Betekenis |
-| --- | --- |
-| `value` | verplichte eindige decimale waarde |
-| `unit` | optioneel `none`, `item` of `fluid`; standaard `none` |
-| `format` | optionele getalnotatie; standaard `default` |
-| `decimals` | optioneel niet-negatief maximum aantal decimalen |
-
-Voorbeeld:
-
-````md
-<Amount value="250" />
-<Amount value="250" unit="fluid" /> L/s
-<Amount value="1200000" format="compact" /> items
 ````

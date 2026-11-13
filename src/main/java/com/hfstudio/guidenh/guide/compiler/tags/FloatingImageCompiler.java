@@ -116,7 +116,6 @@ public class FloatingImageCompiler extends FlowTagCompiler {
             block.addAnnotation(soundAnnotation);
         }
 
-        // Parse <ImageAnnotation> child elements.
         var children = el.children();
         if (children != null) {
             for (var child : children) {
@@ -132,7 +131,6 @@ public class FloatingImageCompiler extends FlowTagCompiler {
             }
         }
 
-        // Wrap it in a flow content inline block
         var inlineBlock = new LytFlowInlineBlock();
         inlineBlock.setBlock(block);
         String wrap = el.getAttributeString("wrap", null);
@@ -182,7 +180,6 @@ public class FloatingImageCompiler extends FlowTagCompiler {
         MdxJsxElementFields annEl) {
         ImageRegionAnnotation ann = parseImageAnnotationRegion(compiler, parent, annEl, true);
 
-        // Compile tooltip rich-text content from child elements.
         var contentBox = new LytVBox();
         compiler.compileBlockTagChildren(annEl, contentBox);
         if (!contentBox.getChildren()

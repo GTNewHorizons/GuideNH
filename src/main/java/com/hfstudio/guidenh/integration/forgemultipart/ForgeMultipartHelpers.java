@@ -41,14 +41,18 @@ import scala.collection.Iterator;
 import scala.collection.Seq;
 import scala.collection.mutable.ListBuffer;
 
-/** Direct ForgeMultipart integration for scene preview, exports, and block statistics. */
+/**
+ * Direct ForgeMultipart integration for scene preview, exports, and block statistics.
+ */
 public final class ForgeMultipartHelpers {
 
     public static final String SAVED_MULTIPART_ID = "savedMultipart";
 
     public static final ConcurrentMap<String, Boolean> ONCE_KEYS = new ConcurrentHashMap<>();
 
-    /** Lazily maps legacy unlocalized block IDs to blocks while reading old microblock material IDs. */
+    /**
+     * Lazily maps legacy unlocalized block IDs to blocks while reading old microblock material IDs.
+     */
     public static volatile Map<String, Block> unlocalizedBlockCache;
 
     public ForgeMultipartHelpers() {}

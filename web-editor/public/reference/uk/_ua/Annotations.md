@@ -12,6 +12,7 @@ GuideNH сцена Анотації є дочірній елемент теги 
 - Анотації може be прихований з  сцена UI toggle
 - `alwaysOnTop` малює над сцена геометрією коли Підтримувані by  анотація Тип
 - усі сцена Анотації також приймають необов’язковий `showWhenStructure`, `showWhenTier`, і `showWhenChannels` умови коли  сцена використовує `<ImportStructureLib>`
+- Гра та Site Export використовують однаковий веселковий градієнт і тривалість циклу.
 
 ## Підтримувані теги анотацій
 
@@ -68,8 +69,11 @@ StructureLib стан:
 | --- | --- | --- |
 | `pos` | yes | `x y z` вектор |
 | `color` | no | `#RRGGBB`, `#AARRGGBB`, або `transparent` |
+| `colorMode` | no | `solid` (типово) або `rainbow`; веселка обертається на 360° навколо проєкції центра, замінює RGB і зберігає альфа-канал `color` |
+| `colorPeriod` | no | додатний скінченний період веселки в секундах; типово `2.4`; хибні значення спричиняють помилку сторінки |
 | `thickness` | no | товщина лінії число з плаваючою комою |
 | `alwaysOnTop` | no | логічне значення вираз |
+
 
 Приклад:
 
@@ -77,6 +81,7 @@ StructureLib стан:
 <BlockAnnotation pos="2 0 2" color="#33DDEE" alwaysOnTop={true}>
   Підсвічує блок контролера.
 </BlockAnnotation>
+<BlockAnnotation pos="4 0 2" color="#80FFFFFF" colorMode="rainbow" colorPeriod="4.8" />
 ````
 
 ## `<BoxAnnotation>`
@@ -88,8 +93,11 @@ StructureLib стан:
 | `min` | yes | `x y z` minimum вектор |
 | `max` | yes | `x y z` maximum вектор |
 | `color` | no | анотація колір |
+| `colorMode` | no | `solid` (типово) або `rainbow`; веселка обертається на 360° навколо проєкції центра, замінює RGB і зберігає альфа-канал `color` |
+| `colorPeriod` | no | додатний скінченний період веселки в секундах; типово `2.4`; хибні значення спричиняють помилку сторінки |
 | `thickness` | no | товщина лінії число з плаваючою комою |
 | `alwaysOnTop` | no | логічне значення вираз |
+
 
 GuideNH автоматично swaps min/max координати per вісь коли Вони є provided in reverse порядок.
 
@@ -99,6 +107,7 @@ GuideNH автоматично swaps min/max координати per вісь �
 <BoxAnnotation min="0 1 0" max="1 1.6 0.6" color="#EE3333" thickness="0.04">
   Підсвічування області на половину висоти.
 </BoxAnnotation>
+<BoxAnnotation min="2 0 0" max="4 1.5 0.5" color="#80FFFFFF" colorMode="rainbow" colorPeriod="2.4" />
 ````
 
 ## `<LineAnnotation>`
@@ -176,10 +185,13 @@ Places a екран-facing diamond marker at a світ позиція.
 | `target` | ні | `blocks` (типово), `entities` або `all`: що обводиться в області; `entities` без області обводить усі сутності |
 | `mode` | ні | `auto` (типово), `geometry`, `cutout` або `bounds` |
 | `color` | ні | колір контуру; якщо пропущено, білий, а для сутностей колір їхньої команди на табло |
+| `colorMode` | ні | `solid` (типово) або `rainbow`; веселка обертається на 360° навколо проєкції центра, замінює RGB і зберігає альфа-канал `color` |
+| `colorPeriod` | ні | додатний скінченний період веселки в секундах; типово `2.4`; хибні значення спричиняють помилку сторінки |
 | `thickness` | ні | товщина контуру в пікселях GUI, від `0.25` до `8`, типово `1` |
 | `alwaysOnTop` | ні | логічний вираз; приховані частини зберігають повну яскравість замість затемнення |
 | `pulse` | ні | логічний вираз; контур пульсує, як дихання |
 | `pulsePeriod` | ні | період пульсації в секундах, типово `2` |
+
 
 Режими силуету:
 
@@ -209,7 +221,7 @@ Places a екран-facing diamond marker at a світ позиція.
   <OutlineAnnotation pos="0 0 0" color="#55FFFF">
     Скло обводиться як цілий куб.
   </OutlineAnnotation>
-  <OutlineAnnotation pos="2 0 0" color="#FFFF55" thickness="1.5" />
+  <OutlineAnnotation pos="2 0 0" color="#80FFFFFF" colorMode="rainbow" colorPeriod="2.4" thickness="1.5" />
   <OutlineAnnotation entity="sheep" color="#FFAA00" alwaysOnTop={true} pulse={true} />
 </GameScene>
 ````

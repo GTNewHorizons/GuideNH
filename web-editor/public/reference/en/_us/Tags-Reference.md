@@ -23,13 +23,14 @@ This page lists the built-in runtime tags registered by `DefaultExtensions`.
 | `<sub>` | smaller inline subscript-style text | none |
 | `<sup>` | smaller inline superscript-style text | none |
 | `<Color>` | colored inline text | `id` or `color` |
+| `<Amount>` | format a numeric quantity | `value`, `unit`, `format`, `decimals` |
 | `<Spoiler>` | hidden inline text revealed on hover | none |
 | `<Tooltip>` | rich hover tooltip with markdown/tag children | `label` |
 | `<SoundLink>` | clickable rich-text sound trigger | `sound` or `src`, `volume`, `pitch`, `cooldown` |
 | `<mark>` | inline highlighted text; equivalent to `==text==` with optional color control | `color` |
 | `<PlayerName>` | inserts current player username | none |
 | `<KeyBind>` | inserts keybinding display name | `id` or `action` |
-| `<ItemImage>` | inline item icon | `id` or `ore`, `scale`, `noTooltip`, `showTooltip`, `showIcon`, `label`, `format`, `yOffset`, `labelYOffset` |
+| `<ItemImage>` | inline item icon | `id`, `ore`, `nbt`, `scale`, `noTooltip`, `showTooltip`, `showIcon`, `label`, `format`, `yOffset`, `labelYOffset` |
 | `<ItemLink>` | item tooltip + optional navigation link | `id` or `ore`, `linksTo`, `showTooltip`, `noTooltip`, `showIcon` |
 | `<CommandLink>` | clickable chat command link | `command`, `title`, `close` |
 | `<Latex>` | LaTeX math formula; inline in flow context, centered display block in block context | `formula`, `color`, `scale`, `sourceScale`, `tooltip`, `showTooltip` |
@@ -55,7 +56,7 @@ Inline markdown also supports action links for sound playback:
 | `<Column>` | vertical flex layout | `gap`, `alignItems`, `fullWidth`, `width` |
 | `<FootnoteList>` | width-constrained footnote container used by runtime markdown footnotes | `width` |
 | `<ItemGrid>` | compact grid of item icons | children must be `<ItemIcon id="..."/>` or `<ItemIcon ore="..."/>` |
-| `<BlockImage>` | non-interactive 3D single-block preview | `id` or `ore`, optional `scale` (defaults to `4`), `float`, `perspective`, `nbt` |
+| `<BlockImage>` | non-interactive 3D single-block preview | `id`, `ore`, `meta`, `nbt`, `scale`, `width`, `height`, `perspective`, `wrap`, `align` |
 | `<FloatingImage>` | cropped image block with float or true inline placement | `src`, `x`, `y`, `width` / `w`, `height` / `h`, `scaleX`, `scaleY`, `displayWidth`, `displayHeight`, `wrap`, `align`, `title` |
 | `<SubPages>` | navigation child listing | `id`, `alphabetical` |
 | `<Category>` | list pages from a category | `name`, `rows` |
@@ -311,6 +312,25 @@ Sound attributes:
 - `cooldown` is milliseconds between repeated plays, default `250`
 - `radius` and `minVolume` control screen-space attenuation when used in scenes
 
+### `<Amount>`
+
+`<Amount>` formats a numeric amount. Omitting `unit` (or using `unit="none"`) displays only the number. `unit="item"` is also suffix-free. `unit="fluid"` follows the GTNHLib fluid preference and displays `mB` or `L`. The optional `format` is `default`, `plain`, `compact`, or `scientific`; `decimals` limits fractional digits. Keep rate suffixes such as `/s` outside the tag.
+
+| Attribute | Meaning |
+| --- | --- |
+| `value` | required finite decimal value |
+| `unit` | optional `none`, `item`, or `fluid`; defaults to `none` |
+| `format` | optional number format; defaults to `default` |
+| `decimals` | optional non-negative maximum fractional digits |
+
+Example:
+
+````md
+<Amount value="250" />
+<Amount value="250" unit="fluid" />/s
+<Amount value="1200000" format="compact" /> items
+````
+
 ### `<PlayerName>`
 
 Inserts the current Minecraft session username:
@@ -361,8 +381,8 @@ Shows an inline item icon.
 
 | Attribute | Meaning |
 | --- | --- |
-| `ore` | ore dictionary name; the first match wins |
-| `id` | item reference used when `ore` is absent |
+| `ore` | optional ore-dictionary selector; provide `id` as well |
+| `id` | required item reference, including when `ore` is used |
 | `nbt` | optional SNBT item data; merged onto any inline SNBT in `id` |
 | `scale` | float, default `1` |
 | `noTooltip` | truthy string or empty attribute suppresses tooltip (legacy; prefer `showTooltip`) |
@@ -370,8 +390,8 @@ Shows an inline item icon.
 | `showIcon` | boolean, default `true`; `false` hides the item icon graphic |
 | `label` | `left` or `right` — shows the item display name as text on the specified side of the icon; omit for no label |
 | `format` | format pattern for the label text; supports Markdown-style wrappers (`**bold**`, `*italic*`, `~~strike~~`, `__underline__`, `^^wavy^^`, `::dotted::`) with optional `%s` placeholder for the item name; default (no attribute) renders the name in italic |
-| `yOffset` | integer pixel offset override for the **icon** at scale `1`; does not affect the label text |
-| `labelYOffset` | integer pixel offset override for the **label text** at scale `1`; does not affect the icon |
+| `yOffset` | inline vertical offset at scale `1`; default `0`; positive moves down |
+| `labelYOffset` | label-only vertical offset at scale `1`; default `0` |
 
 Notes:
 
@@ -385,7 +405,7 @@ Example:
 
 ````md
 <ItemImage id="minecraft:diamond" scale="2" />
-<ItemImage ore="ingotIron" />
+<ItemImage id="minecraft:iron_ingot" ore="ingotIron" />
 <ItemImage id="minecraft:diamond_sword" noTooltip="true" />
 <ItemImage id="minecraft:diamond" label="right" />
 <ItemImage id="minecraft:iron_ingot" label="left" format="**%s**" />
@@ -395,7 +415,7 @@ Example:
 <ItemImage
   id="minecraft:chest"
   scale="2"
-  nbt='{id:"Chest",Items:[{Slot:0b,id:"minecraft:diamond",Count:1b,Damage:0s}]}'
+  nbt='{display:{Name:"Storage Chest"}}'
 />
 ````
 
@@ -504,6 +524,10 @@ selection outline and tooltip. `ore` must resolve to a block item stack.
 | `id` | block id; supports the normal `modid:block[:meta][:{snbt}]` spelling |
 | `ore` | ore dictionary lookup; the first matching block item wins |
 | `scale` | camera zoom multiplier, default `4` |
+| `meta` | block metadata; overrides metadata in `id` |
+| `width` / `height` | preview viewport in pixels; default `128` for each dimension |
+| `wrap` | text wrapping mode; default `inline` |
+| `align` | horizontal alignment: `left` (default), `center`, or `right` |
 | `float` | legacy flow float support: `left` or `right` |
 | `perspective` | `isometric-north-east` (default), `isometric-north-west`, or `up` |
 | `nbt` | optional SNBT tile-entity data merged onto any inline SNBT from `id` |
@@ -531,15 +555,11 @@ Notes:
 
 See [Images And Assets](Images-And-Assets) for the full behavior.
 
-Quick rules:
+```mdx
+<FloatingImage src="test1.png" displayWidth="128" wrap="inline" />
 
-- `src` supports relative paths, rooted paths, and explicit `modid:path` texture ids
-- `x`, `y`, `width` / `w`, and `height` / `h` define the crop rectangle on the original image and must all be present
-- `scaleX` and `scaleY` resize the cropped result and support independent horizontal / vertical stretching
-- `displayWidth` and `displayHeight` set final dimensions in pixels; one value preserves the crop aspect ratio, while two values allow stretching
-- `displayWidth` / `displayHeight` cannot be combined with `scaleX` / `scaleY`
-- `wrap="inline"` places the image truly inline inside text flow; in that mode `align` is ignored
-- old content that used `width` / `height` as final display size must be migrated manually
+<FloatingImage src="test1.png" x="8" y="8" width="16" height="16" displayWidth="128" wrap="inline" />
+```
 
 ### `<SubPages>`, `<Category>`, And `<Special>`
 
@@ -695,7 +715,12 @@ These tags only work inside `<GameScene>` / `<Scene>`:
 | `<ImportStructure>` | import an external SNBT/NBT structure asset | `src`, `x`, `y`, `z`, `offsetX`, `offsetY`, `offsetZ`, `formed` |
 | `<ImportStructureLib>` | import a StructureLib multiblock by controller id | `controller`, `name`, `piece`, `facing`, `rotation`, `flip`, `tier`, `channel`, `channelName`, `value`, `locked`, `offsetX`, `offsetY`, `offsetZ`, `formed` |
 | `<RemoveBlocks>` | remove already-placed blocks that match a block matcher | `id` |
+| `<BlockAnnotation>` | highlight one block | `pos`, `color`, `colorMode`, `colorPeriod`, `thickness`, `alwaysOnTop` |
+| `<BoxAnnotation>` | highlight an arbitrary axis-aligned box | `min`, `max`, `color`, `colorMode`, `colorPeriod`, `thickness`, `alwaysOnTop` |
+| `<OutlineAnnotation>` | outline the rendered silhouette of blocks or entities | `pos`, `min`, `max`, `entity`, `target`, `mode`, `color`, `colorMode`, `colorPeriod`, `thickness`, `alwaysOnTop`, `pulse`, `pulsePeriod` |
 | `<BlockAnnotationTemplate>` | stamp the same child annotations onto every matching placed block | `id` |
+
+`colorMode`: `solid` (default) or `rainbow`; rainbow rotates through 360 degrees around the projected annotation center, replacing RGB while preserving the alpha of `color`. `colorPeriod`: positive finite rainbow cycle period in seconds; default `2.4`; invalid values produce a page error. Game and Site Export use the same rainbow gradient and cycle duration.
 
 See [GameScene](GameScene) for scene import/removal behavior and [Annotations](Annotations) for annotation template rules.
 
@@ -861,23 +886,4 @@ Example:
 <QuestCard id="01234567-89ab-cdef-0123-456789abcdef" show_desc="false" />
 <QuestCard id="01234567-89ab-cdef-0123-456789abcdef" show_tooltip="false" />
 <QuestCard id="AAAAAAAAAAAAAAAAAAAMug==" />
-````
-
-### `<Amount>`
-
-`<Amount>` formats a numeric amount. Omitting `unit` (or using `unit="none"`) displays only the number. `unit="item"` is also suffix-free. `unit="fluid"` follows the GTNHLib fluid preference and displays `mB` or `L`. The optional `format` is `default`, `plain`, `compact`, or `scientific`; `decimals` limits fractional digits. Keep rates such as `L/s` outside the tag.
-
-| Attribute | Meaning |
-| --- | --- |
-| `value` | required finite decimal value |
-| `unit` | optional `none`, `item`, or `fluid`; defaults to `none` |
-| `format` | optional number format; defaults to `default` |
-| `decimals` | optional non-negative maximum fractional digits |
-
-Example:
-
-````md
-<Amount value="250" />
-<Amount value="250" unit="fluid" /> L/s
-<Amount value="1200000" format="compact" /> items
 ````

@@ -3,8 +3,7 @@ package com.hfstudio.guidenh.guide.internal.debug;
 import com.hfstudio.guidenh.guide.document.block.LytNode;
 
 /**
- * Interface for extracting debug information from specific LytNode types.
- * Implementations can be registered to provide extensible debug info extraction.
+ * Contributes debug information for supported LytNode types.
  */
 public interface DebugInfoExtractor {
 

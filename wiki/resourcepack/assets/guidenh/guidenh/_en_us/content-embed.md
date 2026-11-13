@@ -10,8 +10,7 @@ categories:
 
 # Content Embedding and Text Wrapping
 
-All block-level tags support `wrap` and `align` attributes that mirror
-Microsoft Word's "Text Wrapping" options.
+`BlockImage`, `Recipe`, `GameScene`, and other block tags accept `wrap` and `align`. `FloatingImage` follows the image rules below; align `ItemImage` with a `Column` or `Row` container.
 
 ## Wrap Modes
 
@@ -22,8 +21,8 @@ Microsoft Word's "Text Wrapping" options.
 | `tight` | Equivalent to `square` in this layout system |
 | `through` | Equivalent to `square` in this layout system |
 | `top-bottom` | No text beside the block; `align` controls horizontal position |
-| `behind` | Block aligns like `inline` but renders behind text |
-| `front` | Block aligns like `inline` but renders in front of text |
+| `behind` | Currently normal aligned placement, without a separate text layer |
+| `front` | Currently normal aligned placement, without a separate text layer |
 
 ## Alignment
 
@@ -78,18 +77,22 @@ The placed-block preview is centred horizontally. No text flows to the sides.
 
 ## Item Images
 
-<ItemImage id="minecraft:diamond" align="center" />
+<Column align="center">
+  <ItemImage id="minecraft:diamond" />
+</Column>
 
-<ItemImage id="minecraft:emerald" align="right" />
+<Column align="right">
+  <ItemImage id="minecraft:emerald" />
+</Column>
 
 ## FloatingImage with wrap / align
 
-<FloatingImage src="test1.png" wrap="square" align="left" x="0" y="0" width="128" height="128" scaleX="0.5" scaleY="0.5" title="Float left" />
+<FloatingImage src="test1.png" wrap="square" align="left" x="0" y="0" width="32" height="32" scaleX="2" scaleY="2" title="Float left" />
 
-Text to the right of a floating image using the new `wrap` + `align` syntax.
-This keeps the floating behavior, but the image size now comes from the cropped rectangle plus `scaleX` / `scaleY`.
+Text to the right of a floating image using `wrap` and `align`.
+The 32×32 crop is displayed at 64×64 using `scaleX="2"` and `scaleY="2"`.
 
-<FloatingImage src="test1.png" wrap="square" align="right" x="0" y="0" width="128" height="128" scaleX="0.5" scaleY="0.5" title="Float right" />
+<FloatingImage src="test1.png" wrap="square" align="right" x="0" y="0" width="32" height="32" scaleX="2" scaleY="2" title="Float right" />
 
 Text to the left of a floating image using `wrap="square" align="right"`.
 

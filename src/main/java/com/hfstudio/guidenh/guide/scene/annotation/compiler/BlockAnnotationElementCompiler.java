@@ -32,7 +32,12 @@ public class BlockAnnotationElementCompiler extends AnnotationTagCompiler {
         var thickness = MdxAttrs.getFloat(compiler, errorSink, el, "thickness", InWorldBoxAnnotation.DEFAULT_THICKNESS);
         var alwaysOnTop = MdxAttrs.getBoolean(compiler, errorSink, el, "alwaysOnTop", false);
 
-        var ann = new InWorldBoxAnnotation(min, max, color, thickness);
+        var ann = new InWorldBoxAnnotation(
+            min,
+            max,
+            color,
+            thickness,
+            AnnotationColorAttributes.parse(compiler, errorSink, el));
         ann.setAlwaysOnTop(alwaysOnTop);
         return ann;
     }

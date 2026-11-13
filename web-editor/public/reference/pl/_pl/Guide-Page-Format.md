@@ -182,7 +182,9 @@ gold,17
 ```
 ````
 
-## Wskazówki szerokości tabel Markdown
+## Tabele Markdown
+
+### Szerokości kolumn
 
 Ordinary GFM Markdown tabele może także zapewniać czas wykonania kolumna szerokość hints by adding trailing czas wykonania Atrybut wiersz immediately po  tabela:
 
@@ -196,7 +198,25 @@ Ordinary GFM Markdown tabele może także zapewniać czas wykonania kolumna szer
 
 Ten zachowuje  tabela itself standardowy Markdown podczas letting GuideNH apply czas wykonania-tylko preferowany kolumna widths.
 
-## HTML Tables
+### Scalone komórki i atrybuty
+
+- Dodatkowy `|` po komórce zajmuje kolejną kolumnę: `||` scala dwie kolumny, a `|||` trzy.
+- Komórka rozpoczynająca się od `^^` scala się z komórką powyżej; treść jest dodawana w nowym wierszu.
+- Dwukropki na brzegach ustawiają wyrównanie: `: lewo`, `prawo :`, `: środek :`.
+- Końcowy IAL (`{: ... }`) ustawia `color`, `background` / `bgcolor`, bezpieczny `style`, `align`, `valign`, `id` lub `class`. `{:name: ...}` definiuje atrybuty wielokrotnego użytku. Niebezpieczny CSS i zewnętrzne adresy URL są ignorowane.
+- `\` na końcu wiersza kontynuuje go w następnym wierszu tekstu. Początkowy separator (`|--|--|`) tworzy tabelę bez nagłówka.
+- Komórki obsługują Markdown i MDX w wierszu, w tym łącza, obrazy, wyróżnienia i LaTeX. HTML obsługuje też `<thead>`, `<tbody>` i `<tfoot>`.
+
+```markdown
+{:warning: style="background: #4b2418; color: #ffd8c2; font-weight: bold"}
+| Stage | Products | Notes |
+| --- | --- | --- |
+| : First stage : | 2 ATP ||
+| ^^ Next step | 3 ATP | {: warning } |
+| Total ||| {: style="text-align: right; background: #26364d"}
+```
+
+### Tabele HTML
 
 HTML tables support captions, column groups, semantic row groups, merged cells, and alignment. `col` accepts pixel `width`; `span` repeats a width. `th` and `td` support `colspan`, `rowspan`, and `align`; `th` supports `scope`:
 
@@ -538,32 +558,3 @@ Jeśli strona fails do analizować, GuideNH creates błąd strona zamiast tego o
 - [Navigation](Navigation)
 - [Images And Assets](Images-And-Assets)
 - [Tags Reference](Tags-Reference)
-
-### Markdown table spans and cell attributes
-
-GuideNH extends GFM tables with the same compact span notation used by jekyll-spaceship:
-
-- Add one extra `|` after a cell for each additional column it occupies. `||` therefore means `colspan="2"`, and `|||` means `colspan="3"`.
-- Start a cell with `^^` to continue the cell directly above it. The content is appended with a line break and the original cell receives a larger `rowspan`.
-- A cell can use edge colons for alignment (`: left`, `right :`, or `: centered :`).
-- A trailing IAL (`{: ... }`) applies safe attributes to that cell. Supported properties are `color`, `background`/`bgcolor`, `style` (color, background, font-weight, text-decoration, and alignment declarations), `align`, `valign`, `id`, and `class`.
-- Reusable IAL definitions use `{:name: ...}` on their own line and can be referenced from a cell IAL. Unsafe CSS and external URLs are ignored.
-
-```markdown
-{:warning: style="background: #4b2418; color: #ffd8c2; font-weight: bold"}
-| Stage | Products | Notes |
-| --- | --- | --- |
-| : Glycolysis : | 2 ATP ||
-| ^^ A. Peach | 3 ATP | {: warning } |
-| Final total ||| {: style="text-align: right; background: #26364d"}
-```
-
-The syntax remains ordinary Markdown when the extension is not available: extra empty cells are harmless, while `^^` and IAL text stay visible. HTML tables remain supported for complex headers and explicit `rowspan`/`colspan` attributes.
-### Extended Markdown table syntax
-
-GuideNH also supports the jekyll-spaceship table extensions in every preview:
-
-- End a physical row with `\` to append the next physical row to the same cells; each part is rendered on a new line.
-- Use a delimiter row as the first row (`|--|--|`) for a headerless table. Its rows remain data rows and are not bolded.
-- Cell contents keep normal GuideNH Markdown and MDX inline syntax, including links, images, emphasis, and LaTeX.
-- Use HTML `<thead>`, `<tbody>`, and `<tfoot>` when explicit row groups are needed.

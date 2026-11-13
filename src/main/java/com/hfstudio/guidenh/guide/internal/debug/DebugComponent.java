@@ -7,32 +7,22 @@ import org.jetbrains.annotations.Nullable;
 import com.hfstudio.guidenh.guide.document.LytRect;
 
 /**
- * Interface for nodes that contain sub-components (UI controls, interactive elements)
- * which should be debuggable but are not necessarily part of the LytNode tree.
- * <p>
- * Implementations expose their internal components in a structured, extensible way.
- * <p>
- * Examples:
- * - GameScene: timeline slider, play/pause button, reset button, layer sliders
- * - ContentTabs: individual tab buttons with bounds and state
- * - Mermaid: individual mindmap nodes
- * - Chart: bars, columns, slices with data
+ * Exposes controls and other pickable components outside the LytNode tree to the debug overlay.
  */
 public interface DebugComponent {
 
     /**
-     * Returns all debuggable sub-components within this node.
-     * Called during hover detection to provide fine-grained element picking.
+     * Returns currently pickable components.
      */
     List<ComponentEntry> getDebugComponents();
 
     /**
-     * Represents a debuggable sub-component with bounds and metadata.
+     * Pickable component bounds and metadata.
      */
     interface ComponentEntry {
 
         /**
-         * Display name for this component (e.g., "Play Button", "Tab: Overview", "Bar: Steel Production")
+         * Name shown in the debug overlay.
          */
         String getName();
 
@@ -57,6 +47,14 @@ public interface DebugComponent {
         }
 
         /**
+         * Logical owner for parent outlines; implementations must return an acyclic chain.
+         */
+        @Nullable
+        default ComponentEntry getParent() {
+            return null;
+        }
+
+        /**
          * Optional custom hit-testing. If not overridden, uses getBounds().contains(x, y).
          * Use this for non-rectangular shapes like pie chart slices.
          */
@@ -65,9 +63,6 @@ public interface DebugComponent {
         }
     }
 
-    /**
-     * Simple implementation of ComponentEntry
-     */
     record SimpleComponentEntry(String name, LytRect bounds, @Nullable String extraInfo, int priority)
         implements ComponentEntry {
 

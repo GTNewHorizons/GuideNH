@@ -21,10 +21,6 @@ import lombok.Getter;
  */
 public class DebugInfoExtractorInit {
 
-    /**
-     * -- GETTER --
-     * Check if extractors have been initialized.
-     */
     @Getter
     private static boolean initialized = false;
 
