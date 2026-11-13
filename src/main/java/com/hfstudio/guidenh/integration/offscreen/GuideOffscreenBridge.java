@@ -35,7 +35,7 @@ public class GuideOffscreenBridge {
     }
 
     public static boolean defer(GuideScreen screen, Runnable action) {
-        return isHosted(screen) && GuideOffscreenController.defer(screen, action);
+        return Mods.Offscreen.isModLoaded() && GuideOffscreenController.defer(screen, action);
     }
 
     public static boolean close(GuideScreen screen) {

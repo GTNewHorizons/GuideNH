@@ -12,18 +12,12 @@ import com.hfstudio.guidenh.guide.internal.input.GuidePointerInput;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.sbancuz.offscreen.api.HostUI;
 import com.sbancuz.offscreen.api.UIRegistry;
-import com.sbancuz.offscreen.integration.vanilla.VanillaUI;
 import com.sbancuz.offscreen.scope.Scope;
 import com.sbancuz.offscreen.window.Window;
 import com.sbancuz.offscreen.window.input.FrameEvent;
 import com.sbancuz.offscreen.window.input.KeyEvent;
 
 public class GuideOffscreenHost implements HostUI {
-
-    private enum Disposal {
-        TRANSFER,
-        CLOSE
-    }
 
     private static final Runnable TASK_BOUNDARY = () -> {};
 
@@ -34,7 +28,7 @@ public class GuideOffscreenHost implements HostUI {
     private final GuideOffscreenRenderState renderState = new GuideOffscreenRenderState();
     private GuiScreen activeScreen;
     private HostUI childAdapter;
-    private Disposal disposal = Disposal.CLOSE;
+    private boolean retained;
     private boolean disposed;
     private boolean showWelcome;
     private boolean hadFocus;
@@ -66,11 +60,7 @@ public class GuideOffscreenHost implements HostUI {
     }
 
     public void retainGuide() {
-        disposal = Disposal.TRANSFER;
-    }
-
-    public void closeGuide() {
-        disposal = Disposal.CLOSE;
+        retained = true;
     }
 
     public void requestClose() {
@@ -92,10 +82,6 @@ public class GuideOffscreenHost implements HostUI {
 
     @Override
     public void onResize(int width, int height) {
-        if (disposed) {
-            scope.restoreMainScreen();
-            return;
-        }
         try {
             if (activeScreen != guide && (guide.width != width || guide.height != height)) {
                 dispatch(guide, () -> guide.setWorldAndResolution(Minecraft.getMinecraft(), width, height));
@@ -114,7 +100,7 @@ public class GuideOffscreenHost implements HostUI {
 
     @Override
     public void update() {
-        if (disposed || guide.width <= 0) {
+        if (guide.width <= 0) {
             scope.restoreMainScreen();
             return;
         }
@@ -135,10 +121,6 @@ public class GuideOffscreenHost implements HostUI {
 
     @Override
     public void draw(Minecraft minecraft, int mouseX, int mouseY, float partialTicks, long now) {
-        if (disposed) {
-            scope.restoreMainScreen();
-            return;
-        }
         GuiScreen current = activeScreen;
         renderState.capture();
         try {
@@ -160,11 +142,7 @@ public class GuideOffscreenHost implements HostUI {
         }
         GuiScreen current = activeScreen;
         try {
-            if (!disposed) {
-                dispatch(current, () -> dispatchInput(current, event));
-            } else {
-                scope.restoreMainScreen();
-            }
+            dispatch(current, () -> dispatchInput(current, event));
         } finally {
             event.pressButton = -1;
             event.releaseButton = -1;
@@ -175,7 +153,7 @@ public class GuideOffscreenHost implements HostUI {
     }
 
     private void dispatchInput(GuiScreen current, FrameEvent event) {
-        if (!scope.isFocused()) {
+        if (!GuideInputContext.isFocused()) {
             if (hadFocus && dragButton >= 0) {
                 releasePointer(current, event.mouseX, event.mouseY, dragButton);
             }
@@ -265,7 +243,6 @@ public class GuideOffscreenHost implements HostUI {
             } else {
                 childAdapter.onMouseScroll(event.mouseX, event.mouseY, wheel);
             }
-            if (screenChanged(current)) return;
         }
     }
 
@@ -317,9 +294,6 @@ public class GuideOffscreenHost implements HostUI {
         }
         activeScreen = changed;
         childAdapter = changed == guide ? null : UIRegistry.resolve(changed);
-        if (changed != guide && childAdapter == null) {
-            childAdapter = new VanillaUI(changed);
-        }
     }
 
     @Override
@@ -328,23 +302,21 @@ public class GuideOffscreenHost implements HostUI {
         disposed = true;
         tasks.clear();
         try {
-            if (disposal == Disposal.CLOSE) {
-                releaseGuide();
-            } else {
-                closeChild();
+            if (!retained || activeScreen != guide) {
+                scope.enter();
+                try {
+                    closeChildInScope();
+                    if (!retained) {
+                        guide.finishWindowTransfer();
+                        guide.cancelTemporaryScreenChange();
+                        guide.onGuiClosed();
+                    }
+                } finally {
+                    scope.restore();
+                }
             }
         } finally {
-            GuideOffscreenController.onDisposed(this, disposal == Disposal.TRANSFER);
-        }
-    }
-
-    private void closeChild() {
-        if (activeScreen == guide) return;
-        scope.enter();
-        try {
-            closeChildInScope();
-        } finally {
-            scope.restore();
+            GuideOffscreenController.onDisposed(this, retained);
         }
     }
 
@@ -358,18 +330,6 @@ public class GuideOffscreenHost implements HostUI {
             child.onGuiClosed();
         } finally {
             scope.show(guide);
-        }
-    }
-
-    private void releaseGuide() {
-        closeChild();
-        scope.enter();
-        try {
-            guide.finishWindowTransfer();
-            guide.cancelTemporaryScreenChange();
-            guide.onGuiClosed();
-        } finally {
-            scope.restore();
         }
     }
 }

@@ -27,7 +27,6 @@ public class GuideOffscreenScope implements Scope {
     private boolean savedGrab;
     private boolean savedSkipRenderWorld;
     private boolean entered;
-    private boolean focused;
 
     public GuideOffscreenScope(Supplier<GuiScreen> screen) {
         this.screen = screen;
@@ -51,16 +50,13 @@ public class GuideOffscreenScope implements Scope {
         savedRepeat = Keyboard.areRepeatEventsEnabled();
         savedGrab = Mouse.isGrabbed();
         savedSkipRenderWorld = minecraft.skipRenderWorld;
-        focused = readWindowFocus();
-        input.setFocused(focused);
+        input.setFocused(((AccessorOffscreenWindow) (Object) window).guidenh$isFocused());
         input.enter();
         entered = true;
         try {
             textInput.enter();
-            if (window != null) {
-                minecraft.displayWidth = Math.max(1, window.getPixelWidth());
-                minecraft.displayHeight = Math.max(1, window.getPixelHeight());
-            }
+            minecraft.displayWidth = Math.max(1, window.getPixelWidth());
+            minecraft.displayHeight = Math.max(1, window.getPixelHeight());
             show(screen.get());
         } catch (RuntimeException | Error error) {
             restore();
@@ -106,13 +102,5 @@ public class GuideOffscreenScope implements Scope {
 
     public GuideInputContext input() {
         return input;
-    }
-
-    public boolean isFocused() {
-        return focused;
-    }
-
-    private boolean readWindowFocus() {
-        return window != null && window.isOpen() && ((AccessorOffscreenWindow) (Object) window).guidenh$isFocused();
     }
 }

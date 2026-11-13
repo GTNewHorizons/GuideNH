@@ -27,16 +27,14 @@ public class GuideOffscreenController {
     }
 
     public static boolean open(GuideScreen screen) {
-        if (host != null || !GuideOffscreenBridge.isAvailable()) {
+        if (host != null) {
             return false;
         }
         Window created = null;
-        GuideOffscreenHost candidate = null;
+        GuideOffscreenHost candidate = new GuideOffscreenHost(screen);
         try {
-            candidate = new GuideOffscreenHost(screen);
-            GuideOffscreenHost adapter = candidate;
-            created = OffscreenAPI.open(() -> screen, ignored -> adapter);
-            if (!OffscreenAPI.isOpen(created) || OffscreenAPI.getWindow(created.getId()) != created) {
+            created = OffscreenAPI.open(() -> screen, ignored -> candidate);
+            if (created == null || OffscreenAPI.getWindow(created.getId()) != created) {
                 return false;
             }
             candidate.bind(created);
@@ -48,7 +46,7 @@ public class GuideOffscreenController {
             host = candidate;
             window = created;
             return true;
-        } catch (RuntimeException | LinkageError error) {
+        } catch (RuntimeException error) {
             GuideDebugLog.error("Unable to open the additional guide window", error);
             return false;
         } finally {
@@ -57,7 +55,7 @@ public class GuideOffscreenController {
                 candidate.dispose();
                 try {
                     OffscreenAPI.close(created);
-                } catch (RuntimeException | LinkageError error) {
+                } catch (RuntimeException error) {
                     GuideDebugLog.error("Unable to clean up the additional guide window", error);
                 }
             }
@@ -107,15 +105,10 @@ public class GuideOffscreenController {
     }
 
     private static void moveToMainWindow(GuideScreen screen) {
-        GuideOffscreenHost previous = host;
-        if (previous == null || previous.guide() != screen) {
-            return;
-        }
-        rememberWindowSize();
         if (!screen.showInMainWindow()) {
             return;
         }
-        previous.retainGuide();
+        host.retainGuide();
         OffscreenAPI.close(window);
         ModConfig.ui.guideInSeparateWindow = false;
         ModConfig.save();
@@ -139,7 +132,6 @@ public class GuideOffscreenController {
             if (host != closing || closing == null || closing.guide() != screen) {
                 return;
             }
-            closing.closeGuide();
             OffscreenAPI.close(window);
         });
     }
@@ -148,7 +140,6 @@ public class GuideOffscreenController {
         if (host == null) {
             return;
         }
-        host.closeGuide();
         OffscreenAPI.close(window);
     }
 
@@ -165,9 +156,7 @@ public class GuideOffscreenController {
     }
 
     private static void rememberWindowSize() {
-        if (window != null) {
-            ModConfig.ui.guideWindowWidth = Math.max(1, window.getPixelWidth());
-            ModConfig.ui.guideWindowHeight = Math.max(1, window.getPixelHeight());
-        }
+        ModConfig.ui.guideWindowWidth = Math.max(1, window.getPixelWidth());
+        ModConfig.ui.guideWindowHeight = Math.max(1, window.getPixelHeight());
     }
 }
