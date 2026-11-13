@@ -69,10 +69,14 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
     private final GuidebookBlockPosMap<int[]> filledBlocks = new GuidebookBlockPosMap<>();
     private final GuidebookBlockPosMap<String> explicitBlockIds = new GuidebookBlockPosMap<>();
 
-    /** Opaque server-authoritative preview blobs per coordinate ({@link #packPos}); cleared when block becomes air. */
+    /**
+     * Opaque server-authoritative preview blobs per coordinate ({@link #packPos}); cleared when block becomes air.
+     */
     private final GuidebookPreviewAuthorityStore previewAuthorityStore = new GuidebookPreviewAuthorityStore();
 
-    /** Runtime scene mutations that supersede imported preview state for affected integrations. */
+    /**
+     * Runtime scene mutations that supersede imported preview state for affected integrations.
+     */
     private final GuidebookPreviewRuntimeMutationTracker previewRuntimeMutations;
 
     @Getter

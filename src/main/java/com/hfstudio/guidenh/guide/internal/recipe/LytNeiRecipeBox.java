@@ -81,7 +81,9 @@ public class LytNeiRecipeBox extends LytBlock implements InteractiveElement, Doc
     private final int recipeIndex;
     private final String handlerName;
     private final @Nullable ItemStack iconStack;
-    /** Raw {@code codechicken.nei.drawable.DrawableResource} (kept opaque via Object). */
+    /**
+     * Raw {@code codechicken.nei.drawable.DrawableResource} (kept opaque via Object).
+     */
     private final @Nullable Object iconImage;
     private final int iconImageW;
     private final int iconImageH;

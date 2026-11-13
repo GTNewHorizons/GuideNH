@@ -230,7 +230,9 @@ public class GuideSyntaxModel {
         return fact != null && fact.container;
     }
 
-    /** True when the tag accepts any attribute, so an undeclared one is legal rather than a mistake. */
+    /**
+     * True when the tag accepts any attribute, so an undeclared one is legal rather than a mistake.
+     */
     public boolean forwardsAttributes(@Nullable String tagName) {
         TagFact fact = tagName != null ? tags.get(tagName) : null;
         return fact != null && fact.forwardsAttributes;

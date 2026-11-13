@@ -27,10 +27,7 @@ public interface SymbolicColorResolver extends Extension {
     ColorValue resolve(ResourceLocation id);
 
     /**
-     * Helper to resolve a symbolic color from the pre-defined colors in {@link ColorUtils}, as well as
-     * user-supplied symbolic color resolvers.
-     *
-     * @return null when the color cannot be resolved.
+     * Resolves built-in and contributed symbolic colors. Returns {@code null} for an unknown name.
      */
     @Nullable
     static ColorValue resolve(PageCompiler compiler, String id) {

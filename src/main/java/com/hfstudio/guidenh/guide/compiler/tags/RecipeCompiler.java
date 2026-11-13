@@ -266,8 +266,7 @@ public class RecipeCompiler extends BlockTagCompiler {
     }
 
     /**
-     * The handler patterns the page-level blacklist is combined with: those configured as hidden unless a
-     * tag asks for them.
+     * Configured handler patterns combined with the page blacklist, unless explicitly requested by the tag.
      */
     public static List<String> configuredHandlerBlacklist() {
         String[] configured = ModConfig.runtime.recipeHandlerBlacklist;
@@ -423,7 +422,9 @@ public class RecipeCompiler extends BlockTagCompiler {
         return true;
     }
 
-    /** {@code true} when any stack inside any slot matches {@code ref}. */
+    /**
+     * {@code true} when any stack inside any slot matches {@code ref}.
+     */
     public static boolean slotsContain(@Nullable List<NeiRecipeLookup.Slot> slots, IdUtils.ParsedItemRef ref) {
         if (slots == null) return false;
         for (NeiRecipeLookup.Slot s : slots) {
@@ -529,7 +530,9 @@ public class RecipeCompiler extends BlockTagCompiler {
         return false;
     }
 
-    /** Evaluate a DNF expression against an ingredient-style slot list. */
+    /**
+     * Evaluate a DNF expression against an ingredient-style slot list.
+     */
     public static boolean evalSlots(List<NeiRecipeLookup.Slot> slots, FilterExpr expr) {
         if (expr.isEmpty()) return true;
         if (slots == null) return false;
@@ -564,7 +567,9 @@ public class RecipeCompiler extends BlockTagCompiler {
         return false;
     }
 
-    /** Evaluate a DNF expression against a single-result slot (positional-stack cycling). */
+    /**
+     * Evaluate a DNF expression against a single-result slot (positional-stack cycling).
+     */
     public static boolean evalResultSlot(@Nullable NeiRecipeLookup.Slot result, FilterExpr expr) {
         if (expr.isEmpty()) return true;
         if (result == null) return false;
@@ -605,7 +610,9 @@ public class RecipeCompiler extends BlockTagCompiler {
         return result != null ? evalResultSlot(result, expr) : evalSlots(others, expr);
     }
 
-    /** Evaluate a DNF expression against a single concrete stack (vanilla result). */
+    /**
+     * Evaluate a DNF expression against a single concrete stack (vanilla result).
+     */
     public static boolean evalStack(@Nullable ItemStack stack, FilterExpr expr) {
         if (expr.isEmpty()) return true;
         for (List<FilterTerm> group : expr.orGroups) {
@@ -622,7 +629,9 @@ public class RecipeCompiler extends BlockTagCompiler {
         return false;
     }
 
-    /** Evaluate a DNF expression against a flat ingredient array (vanilla 3x3). */
+    /**
+     * Evaluate a DNF expression against a flat ingredient array (vanilla 3x3).
+     */
     public static boolean evalArray(ItemStack[] stacks, FilterExpr expr) {
         if (expr.isEmpty()) return true;
         for (List<FilterTerm> group : expr.orGroups) {
@@ -719,7 +728,9 @@ public class RecipeCompiler extends BlockTagCompiler {
         }
     }
 
-    /** Split a filter only at top level; commas and ampersands inside SNBT remain part of the item reference. */
+    /**
+     * Split a filter only at top level; commas and ampersands inside SNBT remain part of the item reference.
+     */
     public static List<String> splitFilterParts(String raw, char delimiter) {
         List<String> parts = new ArrayList<>();
         int start = 0;

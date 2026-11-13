@@ -7,7 +7,9 @@ import cpw.mods.fml.common.network.simpleimpl.IMessage;
 import io.netty.buffer.ByteBuf;
 import lombok.Getter;
 
-/** Parallel to request order: hit, cs (unsigned byte), sideOut, then packed side-part blobs. */
+/**
+ * Parallel to request order: hit, cs (unsigned byte), sideOut, then packed side-part blobs.
+ */
 @Getter
 public class GuideNhAe2CableBatchReplyMessage implements IMessage {
 
@@ -26,7 +28,9 @@ public class GuideNhAe2CableBatchReplyMessage implements IMessage {
 
     private int[] sideOut;
 
-    /** Per tile index: {@link Ae2CableBusPartStreamCodec#pack} payload. */
+    /**
+     * Per tile index: {@link Ae2CableBusPartStreamCodec#pack} payload.
+     */
     private byte[][] partPacked;
 
     public GuideNhAe2CableBatchReplyMessage() {
@@ -46,7 +50,9 @@ public class GuideNhAe2CableBatchReplyMessage implements IMessage {
         this.partPacked = budgetPartPayloads(partPacked, n);
     }
 
-    /** {@code true} when arrays match {@code n} positions from the request. */
+    /**
+     * {@code true} when arrays match {@code n} positions from the request.
+     */
     public boolean isConsistentPayload(int n) {
         if (n < 0 || n > GuideNhAe2CableBatchRequestMessage.MAX_POSITIONS) {
             return false;

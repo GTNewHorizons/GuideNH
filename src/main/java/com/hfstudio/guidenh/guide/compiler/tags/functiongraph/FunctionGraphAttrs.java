@@ -19,9 +19,7 @@ import com.hfstudio.guidenh.guide.document.block.functiongraph.MarkedPoint;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 
 /**
- * Shared attribute parsing helpers for the {@code <FunctionGraph>} / {@code <Function>} /
- * {@code <Plot>} / {@code <Point>} tag families. Mirrors the conventions used by the chart attr
- * parsers so authors who already know one can reuse the same shapes.
+ * Attribute parsing for FunctionGraph, Function, Plot, and Point tags.
  */
 public class FunctionGraphAttrs {
 
@@ -29,7 +27,9 @@ public class FunctionGraphAttrs {
 
     protected FunctionGraphAttrs() {}
 
-    /** Apply the panel-level attributes onto {@code graph}. */
+    /**
+     * Apply the panel-level attributes onto {@code graph}.
+     */
     public static void applyContainerAttrs(LytFunctionGraph graph, PageCompiler compiler, LytErrorSink sink,
         MdxJsxElementFields el) {
         graph.setTitle(MdxAttrs.getString(compiler, sink, el, "title", null));
@@ -74,7 +74,9 @@ public class FunctionGraphAttrs {
         graph.setQuadrantMask(parseQuadrantMask(MdxAttrs.getString(compiler, sink, el, "quadrants", null)));
     }
 
-    /** Apply axis range and step attributes. */
+    /**
+     * Apply axis range and step attributes.
+     */
     public static void applyRange(LytFunctionGraph graph, PageCompiler compiler, LytErrorSink sink,
         MdxJsxElementFields el) {
         String xRange = MdxAttrs.getString(compiler, sink, el, "xRange", null);
@@ -154,7 +156,9 @@ public class FunctionGraphAttrs {
             showValues);
     }
 
-    /** Parse a single {@code <Point>} child element into a {@link MarkedPoint}. */
+    /**
+     * Parse a single {@code <Point>} child element into a {@link MarkedPoint}.
+     */
     public static MarkedPoint parsePoint(PageCompiler compiler, LytErrorSink sink, MdxJsxElementFields el) {
         String colorStr = MdxAttrs.getString(compiler, sink, el, "color", null);
         boolean colorInherit = colorStr == null;
@@ -182,7 +186,9 @@ public class FunctionGraphAttrs {
         return null;
     }
 
-    /** Parse {@code "1,2"} style quadrant lists, with {@code "all"} selecting every quadrant. */
+    /**
+     * Parse {@code "1,2"} style quadrant lists, with {@code "all"} selecting every quadrant.
+     */
     public static int parseQuadrantMask(String spec) {
         if (spec == null) {
             return QUADRANT_MASK_AUTO;
@@ -215,7 +221,9 @@ public class FunctionGraphAttrs {
         return mask;
     }
 
-    /** Parse {@code "min..max"}; missing endpoint becomes {@link Double#NaN}. */
+    /**
+     * Parse {@code "min..max"}; missing endpoint becomes {@link Double#NaN}.
+     */
     public static double[] parseRange(String spec) {
         double[] out = { Double.NaN, Double.NaN };
         if (spec == null) {
@@ -236,7 +244,9 @@ public class FunctionGraphAttrs {
         return out;
     }
 
-    /** Parse a numeric literal; supports the same constants as the expression parser. */
+    /**
+     * Parse a numeric literal; supports the same constants as the expression parser.
+     */
     public static double parseDouble(String text, double fallback) {
         if (text == null) {
             return fallback;

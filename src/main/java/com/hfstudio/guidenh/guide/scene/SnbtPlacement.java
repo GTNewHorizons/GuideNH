@@ -6,15 +6,8 @@ import net.minecraft.util.ResourceLocation;
 import lombok.Getter;
 
 /**
- * Records the placement configuration for a single {@code <ImportStructure>} element.
- * Symmetric to {@link StructureLibSceneBinding} — the compiler registers placement configs,
- * and {@link LytGuidebookScene#build()} uses them to place blocks.
- *
- * <p>
- * The compiler has already parsed the structure's NBT by the time it registers a placement, so the parsed
- * form is carried here. A rebuild then places the structure from this, instead of looking it up in a cache
- * that may have evicted it - which used to leave the structure missing from the scene after a slider or
- * layer change.
+ * ImportStructure placement configuration registered by the compiler and applied during scene builds. Owns
+ * the parsed NBT so rebuilds do not depend on the asset cache retaining the structure.
  */
 @Getter
 public class SnbtPlacement {

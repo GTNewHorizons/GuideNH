@@ -541,7 +541,9 @@ public class MarkdownHtmlRuntimeNormalizer {
             .trim();
     }
 
-    /** Keeps table nesting across raw HTML fragments and existing MDX children. */
+    /**
+     * Keeps table nesting across raw HTML fragments and existing MDX children.
+     */
     private static class HtmlTableParser {
 
         private final Deque<MdxJsxElementFields> elements = new ArrayDeque<>();

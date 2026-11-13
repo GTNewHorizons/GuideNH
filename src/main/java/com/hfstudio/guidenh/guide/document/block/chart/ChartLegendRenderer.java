@@ -21,7 +21,9 @@ public class ChartLegendRenderer {
 
     protected ChartLegendRenderer() {}
 
-    /** A single legend entry. */
+    /**
+     * A single legend entry.
+     */
     public static class LegendEntry {
 
         public final String name;
@@ -43,7 +45,9 @@ public class ChartLegendRenderer {
         }
     }
 
-    /** Layout result for the legend and remaining plot area. */
+    /**
+     * Layout result for the legend and remaining plot area.
+     */
     public static class Layout {
 
         public final List<LegendEntry> entries;

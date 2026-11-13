@@ -6,7 +6,9 @@ import com.hfstudio.guidenh.guide.document.LytErrorSink;
 import com.hfstudio.guidenh.guide.scene.annotation.AnnotationColorStyle;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 
-/** Parses the common animated border color contract. */
+/**
+ * Parses the common animated border color contract.
+ */
 public class AnnotationColorAttributes {
 
     private AnnotationColorAttributes() {}

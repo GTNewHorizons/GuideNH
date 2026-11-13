@@ -10,7 +10,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import com.gtnewhorizon.structurelib.structure.IStructureElement;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibMinimumHatchPlacement;
 
-/** Supplies the currently visited element without depending on optional instrumentation. */
+/**
+ * Supplies the currently visited element without depending on optional instrumentation.
+ */
 @Mixin(targets = "com.gtnewhorizon.structurelib.structure.SurvivalBuildStructureWalker", remap = false)
 public abstract class MixinSurvivalBuildStructureWalker {
 

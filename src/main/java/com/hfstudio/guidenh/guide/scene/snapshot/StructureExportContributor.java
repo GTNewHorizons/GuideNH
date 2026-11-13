@@ -5,7 +5,9 @@ package com.hfstudio.guidenh.guide.scene.snapshot;
  */
 public interface StructureExportContributor {
 
-    /** Lower runs first among contributors. */
+    /**
+     * Lower runs first among contributors.
+     */
     int priority();
 
     default void beginExport(ExportSession session) {}

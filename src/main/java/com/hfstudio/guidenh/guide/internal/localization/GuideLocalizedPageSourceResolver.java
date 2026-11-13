@@ -56,7 +56,9 @@ public class GuideLocalizedPageSourceResolver {
         return result;
     }
 
-    /** Resolves only the frontmatter during reload, avoiding a full localized body merge. */
+    /**
+     * Resolves only the frontmatter during reload, avoiding a full localized body merge.
+     */
     public static ResolvedGuidePageSource resolveFrontmatterOnly(String language, String contentRootFolder,
         ResourceLocation pageId, byte[] fileBytes) {
         String fallbackSource = new String(fileBytes, StandardCharsets.UTF_8);

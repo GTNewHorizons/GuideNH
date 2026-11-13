@@ -713,13 +713,8 @@ public class InWorldAnnotationRenderer {
     }
 
     /**
-     * Renders X/Z coordinate numbers and N/S/E/W direction initials in 3D world space.
-     *
-     * <p>
-     * Labels are rendered as vertical signs standing just outside each grid edge, facing the viewer
-     * from outside the grid, matching the Ponder editor overlay style. Text scale is computed so
-     * the widest label on each axis fits within one block width, ensuring negative numbers and
-     * multi-digit values never overflow their cell.
+     * Draws grid coordinates and cardinal directions as signs outside each grid edge. Text scale fits the
+     * widest label into one block.
      */
     private static void drawFloorGridLabels(SceneFloorGridAnnotation grid) {
         FontRenderer fr = Minecraft.getMinecraft().fontRenderer;

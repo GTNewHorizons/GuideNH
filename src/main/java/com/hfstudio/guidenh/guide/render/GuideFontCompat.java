@@ -97,7 +97,9 @@ public class GuideFontCompat {
         return 0f;
     }
 
-    /** How tall one line of this font is, in pixels, which callers add their own gap to. */
+    /**
+     * How tall one line of this font is, in pixels, which callers add their own gap to.
+     */
     public static int getLineHeight(FontRenderer fontRenderer) {
         float drawn = (fontRenderer.FONT_HEIGHT - 1) * getGlyphScaleY(fontRenderer) * getYScaleMultiplier();
         if (drawn <= fontRenderer.FONT_HEIGHT) {
@@ -116,7 +118,9 @@ public class GuideFontCompat {
         return 1f;
     }
 
-    /** The tallest vertical multiplier a glyph can be drawn at, which belongs to the font a glyph comes from. */
+    /**
+     * The tallest vertical multiplier a glyph can be drawn at, which belongs to the font a glyph comes from.
+     */
     public static float getYScaleMultiplier() {
         return Mods.Angelica.isModLoaded() ? AngelicaFontSupport.yScaleMultiplier() : 1f;
     }

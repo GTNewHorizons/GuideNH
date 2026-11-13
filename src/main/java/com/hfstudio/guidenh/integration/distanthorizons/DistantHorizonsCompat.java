@@ -18,10 +18,9 @@ import cpw.mods.fml.common.eventhandler.EventBus;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 
 /**
- * Shields guide preview worlds from Distant Horizons world-load hooks. Callers MUST
- * route through {@link #suppressClientWorldLoadHooks()} which short-circuits to a
- * no-op token when DH is absent. Targets are identified through FML's registered mod owner instead of
- * Distant Horizons' implementation-only client proxy, so this layer has no hard dependency on DH classes.
+ * Suppresses Distant Horizons world-load hooks while creating preview worlds. Call {@link
+ * #suppressClientWorldLoadHooks()}, which returns a no-op token when DH is absent. Hook owners are
+ * resolved through FML without loading DH implementation classes.
  */
 public class DistantHorizonsCompat {
 

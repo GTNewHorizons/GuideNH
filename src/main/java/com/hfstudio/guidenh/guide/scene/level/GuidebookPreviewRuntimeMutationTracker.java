@@ -30,13 +30,19 @@ public class GuidebookPreviewRuntimeMutationTracker {
      */
     private static final long MAX_SPARSE_BOX_AROUND_MARKS = 16_384L;
 
-    /** Runtime mutation key for connection or adjacency dependent render state. */
+    /**
+     * Runtime mutation key for connection or adjacency dependent render state.
+     */
     public static final MutationKind BLOCK_TOPOLOGY = new MutationKind("guidenh:block_topology");
 
-    /** Runtime mutations applied by static GuideScene operations. */
+    /**
+     * Runtime mutations applied by static GuideScene operations.
+     */
     public static final MutationLayer SCENE_OPERATIONS = new MutationLayer("guidenh:scene_operations");
 
-    /** Runtime mutations applied by the current Ponder timeline state. */
+    /**
+     * Runtime mutations applied by the current Ponder timeline state.
+     */
     public static final MutationLayer PONDER_TIMELINE = new MutationLayer("guidenh:ponder_timeline");
 
     private final Object2ObjectOpenHashMap<MutationLayer, Object2ObjectOpenHashMap<MutationKind, MutationMarks>> marksByLayer = new Object2ObjectOpenHashMap<>();
@@ -47,12 +53,16 @@ public class GuidebookPreviewRuntimeMutationTracker {
         this.level = Objects.requireNonNull(level, "level");
     }
 
-    /** Marks one position as having runtime state that supersedes imported preview data. */
+    /**
+     * Marks one position as having runtime state that supersedes imported preview data.
+     */
     public void mark(MutationKind kind, MutationLayer layer, int x, int y, int z) {
         markPosition(kind, marksFor(kind, layer).positions, x, y, z);
     }
 
-    /** Marks a position and all direct neighbours for adjacency dependent preview state. */
+    /**
+     * Marks a position and all direct neighbours for adjacency dependent preview state.
+     */
     public void markAround(MutationKind kind, MutationLayer layer, int x, int y, int z) {
         MutationMarks marks = marksFor(kind, layer);
         markPosition(kind, marks.positions, x, y, z);
@@ -87,7 +97,9 @@ public class GuidebookPreviewRuntimeMutationTracker {
         markBox(kind, marks.positions, minX, clampedMinY, maxZ, maxX, clampedMaxY, maxZ + 1);
     }
 
-    /** Returns whether any layer has marked this position for the requested mutation key. */
+    /**
+     * Returns whether any layer has marked this position for the requested mutation key.
+     */
     public boolean isMarked(MutationKind kind, int x, int y, int z) {
         if (!level.isValidBuildHeight(y)) {
             return false;
@@ -105,7 +117,9 @@ public class GuidebookPreviewRuntimeMutationTracker {
         return false;
     }
 
-    /** Returns whether one lifecycle layer has marked this position for the requested mutation kind. */
+    /**
+     * Returns whether one lifecycle layer has marked this position for the requested mutation kind.
+     */
     public boolean isMarked(MutationKind kind, MutationLayer layer, int x, int y, int z) {
         if (!level.isValidBuildHeight(y)) {
             return false;
@@ -118,7 +132,9 @@ public class GuidebookPreviewRuntimeMutationTracker {
         return marks != null && (marks.positions.contains(x, y, z) || marks.containsRegion(x, y, z));
     }
 
-    /** Clears mutations applied by one lifecycle layer without affecting other scene operations. */
+    /**
+     * Clears mutations applied by one lifecycle layer without affecting other scene operations.
+     */
     public void clearLayer(MutationLayer layer) {
         Object2ObjectOpenHashMap<MutationKind, MutationMarks> marksByKind = marksByLayer.remove(layer);
         if (marksByKind == null) {
@@ -129,7 +145,9 @@ public class GuidebookPreviewRuntimeMutationTracker {
         }
     }
 
-    /** Clears one mutation kind from a lifecycle layer while retaining the layer's other state. */
+    /**
+     * Clears one mutation kind from a lifecycle layer while retaining the layer's other state.
+     */
     public void clear(MutationKind kind, MutationLayer layer) {
         Object2ObjectOpenHashMap<MutationKind, MutationMarks> marksByKind = marksByLayer.get(layer);
         if (marksByKind == null) {
@@ -145,7 +163,9 @@ public class GuidebookPreviewRuntimeMutationTracker {
         }
     }
 
-    /** Clears all runtime mutation state when the preview level is rebuilt or discarded. */
+    /**
+     * Clears all runtime mutation state when the preview level is rebuilt or discarded.
+     */
     public void clear() {
         marksByLayer.clear();
         markedPositionsByKind.clear();
@@ -263,7 +283,9 @@ public class GuidebookPreviewRuntimeMutationTracker {
         }
     }
 
-    /** Exact primitive coordinate set, partitioned by X/Z so Y keeps its full int range. */
+    /**
+     * Exact primitive coordinate set, partitioned by X/Z so Y keeps its full int range.
+     */
     private static class GuidebookBlockPosSet {
 
         private final Long2ObjectOpenHashMap<IntOpenHashSet> yByColumn = new Long2ObjectOpenHashMap<>();
@@ -317,7 +339,9 @@ public class GuidebookPreviewRuntimeMutationTracker {
         }
     }
 
-    /** Sparse multiplicity map paired with {@link GuidebookBlockPosSet}. */
+    /**
+     * Sparse multiplicity map paired with {@link GuidebookBlockPosSet}.
+     */
     private static class GuidebookBlockPosByteMap {
 
         private final Long2ObjectOpenHashMap<Int2ByteOpenHashMap> valuesByColumn = new Long2ObjectOpenHashMap<>();
@@ -375,7 +399,9 @@ public class GuidebookPreviewRuntimeMutationTracker {
         return (int) column;
     }
 
-    /** An exclusive AABB plus its six direct-neighbour faces. */
+    /**
+     * An exclusive AABB plus its six direct-neighbour faces.
+     */
     private static class AroundBox {
 
         private final int minX;

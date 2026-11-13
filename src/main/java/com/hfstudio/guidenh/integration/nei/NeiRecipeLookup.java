@@ -60,7 +60,9 @@ public class NeiRecipeLookup {
         }
     }
 
-    /** NEI crafting recipe tied to {@code handler} index for Phase1/OpenGL snapshots; mirrors {@link #Entry}. */
+    /**
+     * NEI crafting recipe tied to {@code handler} index for Phase1/OpenGL snapshots; mirrors {@link #Entry}.
+     */
     public static class CraftingRecipeRef {
 
         public final Object handler;
@@ -540,7 +542,9 @@ public class NeiRecipeLookup {
         }
     }
 
-    /** Returns the {@code HandlerInfo} display stack for a handler's recipe tab icon. */
+    /**
+     * Returns the {@code HandlerInfo} display stack for a handler's recipe tab icon.
+     */
     public static @Nullable ItemStack lookupHandlerIcon(Object handler) {
         if (!Mods.NotEnoughItems.isModLoaded() || handler == null) return null;
         try {
@@ -591,7 +595,9 @@ public class NeiRecipeLookup {
         }
     }
 
-    /** Native pixel width of a {@code DrawableResource} (includes padding). */
+    /**
+     * Native pixel width of a {@code DrawableResource} (includes padding).
+     */
     public static int drawableWidth(Object drawable) {
         if (drawable == null || !Mods.NotEnoughItems.isModLoaded()) return 0;
         try {
@@ -601,7 +607,9 @@ public class NeiRecipeLookup {
         }
     }
 
-    /** Native pixel height of a {@code DrawableResource} (includes padding). */
+    /**
+     * Native pixel height of a {@code DrawableResource} (includes padding).
+     */
     public static int drawableHeight(Object drawable) {
         if (drawable == null || !Mods.NotEnoughItems.isModLoaded()) return 0;
         try {

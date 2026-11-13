@@ -187,20 +187,13 @@ public class MarkdownLatexShorthand {
         }
     }
 
-    /** A text-or-formula segment produced by {@link #split}. */
+    /**
+     * A text-or-formula segment produced by {@link #split}.
+     */
     @Getter
     public static final class Segment {
 
-        /**
-         * -- GETTER --
-         * Returns the raw text or formula string.
-         */
         private final String value;
-        /**
-         * -- GETTER --
-         * Returns
-         * if this segment holds a LaTeX formula.
-         */
         private final boolean formula;
 
         private Segment(String value, boolean formula) {
@@ -208,12 +201,16 @@ public class MarkdownLatexShorthand {
             this.formula = formula;
         }
 
-        /** Creates a plain-text segment. */
+        /**
+         * Creates a plain-text segment.
+         */
         public static Segment text(String value) {
             return new Segment(value, false);
         }
 
-        /** Creates a LaTeX formula segment. */
+        /**
+         * Creates a LaTeX formula segment.
+         */
         public static Segment formula(String value) {
             return new Segment(value, true);
         }

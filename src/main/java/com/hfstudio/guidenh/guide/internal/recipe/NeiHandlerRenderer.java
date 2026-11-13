@@ -83,10 +83,6 @@ public class NeiHandlerRenderer {
 
         // DiagramGroup is rendered from LytNeiRecipeBox with absolute-GUI scissors (tooltip-safe).
 
-        // Phase 1: NEI-native background + foreground + extras at translated origin.
-        // drawForeground and drawExtras are skipped when getOtherStacks is broken, because
-        // GTNH-NEI calls getOtherStacks inside its own safe-wrapper from those methods, which
-        // would log errors on every render frame.
         GL11.glPushAttrib(
             GL11.GL_ENABLE_BIT | GL11.GL_COLOR_BUFFER_BIT
                 | GL11.GL_CURRENT_BIT
@@ -110,7 +106,6 @@ public class NeiHandlerRenderer {
             GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
         }
 
-        // Phase 2: draw every positioned stack on top.
         List<RecipeSlot> ingredients = cachedIngredients != null ? cachedIngredients
             : registry.readRecipeIngredientSlots(handler, recipeIndex);
         List<RecipeSlot> others = skipForeground ? List.of()
@@ -223,7 +218,9 @@ public class NeiHandlerRenderer {
         drawItemInternal(stack, x, y, true);
     }
 
-    /** Draws item icon + count overlay only when count > 0; icon-only for count=0 items. */
+    /**
+     * Draws item icon + count overlay only when count > 0; icon-only for count=0 items.
+     */
     public static void drawStackWithCount(ItemStack stack, int x, int y) {
         drawItemInternal(stack, x, y, stack.stackSize > 0);
     }

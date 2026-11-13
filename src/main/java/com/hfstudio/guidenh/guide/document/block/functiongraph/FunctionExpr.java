@@ -1,16 +1,19 @@
 package com.hfstudio.guidenh.guide.document.block.functiongraph;
 
 /**
- * Abstract syntax tree of a parsed function expression. Nodes evaluate against two named variables:
- * {@code x} and {@code y}. Out-of-domain or arithmetic failures should produce {@link Double#NaN}
- * rather than throwing, so the renderer can simply break the polyline.
+ * Function-expression tree evaluated against {@code x} and {@code y}. Domain and arithmetic failures
+ * return {@link Double#NaN} so curve sampling can break the polyline.
  */
 public interface FunctionExpr {
 
-    /** Evaluate this expression with the supplied variable values. */
+    /**
+     * Evaluate this expression with the supplied variable values.
+     */
     double evaluate(double x, double y);
 
-    /** Constant numeric literal. */
+    /**
+     * Constant numeric literal.
+     */
     class Constant implements FunctionExpr {
 
         private final double value;
@@ -25,7 +28,9 @@ public interface FunctionExpr {
         }
     }
 
-    /** Variable reference. {@code which} = 0 -> x, {@code which} = 1 -> y. */
+    /**
+     * Variable reference. {@code which} = 0 -> x, {@code which} = 1 -> y.
+     */
     class Variable implements FunctionExpr {
 
         private final int which;
@@ -40,7 +45,9 @@ public interface FunctionExpr {
         }
     }
 
-    /** Unary negation. */
+    /**
+     * Unary negation.
+     */
     class Neg implements FunctionExpr {
 
         private final FunctionExpr inner;
@@ -55,7 +62,9 @@ public interface FunctionExpr {
         }
     }
 
-    /** Absolute value, e.g. produced by {@code |expr|}. */
+    /**
+     * Absolute value, e.g. produced by {@code |expr|}.
+     */
     class Abs implements FunctionExpr {
 
         private final FunctionExpr inner;
@@ -70,7 +79,9 @@ public interface FunctionExpr {
         }
     }
 
-    /** Postfix factorial; uses Lanczos gamma for non-integer / negative inputs (rejects negative integers). */
+    /**
+     * Postfix factorial; uses Lanczos gamma for non-integer / negative inputs (rejects negative integers).
+     */
     class Factorial implements FunctionExpr {
 
         private final FunctionExpr inner;
@@ -85,7 +96,9 @@ public interface FunctionExpr {
         }
     }
 
-    /** Binary arithmetic (+ - * / % ^). */
+    /**
+     * Binary arithmetic (+ - * / % ^).
+     */
     class Binary implements FunctionExpr {
 
         public static final int ADD = 0;
@@ -121,7 +134,9 @@ public interface FunctionExpr {
         }
     }
 
-    /** Named function call with one or two arguments. */
+    /**
+     * Named function call with one or two arguments.
+     */
     class Call implements FunctionExpr {
 
         private final String name;

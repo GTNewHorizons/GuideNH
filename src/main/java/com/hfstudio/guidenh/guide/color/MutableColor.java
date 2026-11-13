@@ -1,7 +1,7 @@
 package com.hfstudio.guidenh.guide.color;
 
 /**
- * A helper for mutating color values. The color values are stored as {@code float} components between 0 and 1.
+ * Mutable color with float components in the range {@code [0, 1]}.
  */
 public class MutableColor implements ColorValue {
 

@@ -79,9 +79,6 @@ public class IdUtils {
     @Nullable
     public static ParsedItemRef parseItemRef(String idText, String defaultNamespace) {
         if (idText == null || idText.isEmpty()) return null;
-        // Cache the common no-NBT case keyed on (namespace + ":" + idText). When the input
-        // contains an SNBT tail (detected by '{') we skip the cache to avoid sharing mutable
-        // NBT references across callers.
         boolean cacheable = idText.indexOf('{') < 0;
         String cacheKey = null;
         if (cacheable) {
@@ -194,14 +191,9 @@ public class IdUtils {
     }
 
     /**
-     * Returns the raw registry key for an item or block ID string, preserving the original casing of
-     * the mod domain. Forge's {@link net.minecraft.util.RegistryNamespaced} uses case-sensitive string
-     * keys; passing a lowercased key (e.g. via {@link ResourceLocation#toString()}) fails to find items
-     * registered under a mixed-case mod ID such as {@code EnderIO}.
-     *
-     * <p>
-     * If {@code idText} already contains a colon it is returned unchanged. Otherwise
-     * {@code defaultNamespace} is prepended (e.g. {@code "minecraft:" + idText}).
+     * Returns a registry key without changing mod-id casing. Unqualified ids are prefixed with {@code
+     * defaultNamespace}; qualified ids are unchanged. Forge registry keys are case-sensitive, unlike
+     * normalized ResourceLocation strings.
      */
     public static String rawRegistryKey(String idText, String defaultNamespace) {
         return idText.contains(":") ? idText : defaultNamespace + ":" + idText;
@@ -240,16 +232,11 @@ public class IdUtils {
     }
 
     /**
-     * True when joining {@code folder} and {@code path} stays inside {@code folder}.
+     * Whether the resolved path remains within the content root. Parent segments are allowed when they stay
+     * inside it, including language-relative shared asset paths such as {@code _en_us/../assets/...}.
      *
-     * <p>
-     * A parent step is not refused on sight: the language candidates a lookup tries are built as
-     * {@code _en_us/../assets/...}, and the content root keeps its shared assets beside the language folders,
-     * so such a path resolves back inside the root and is how those assets are reached at all. What is
-     * refused is a path whose parent steps still climb once resolved, which would read a file outside it.
-     *
-     * @param folder the content root the path is joined onto
-     * @param path   the path as written, using {@code /} separators
+     * @param folder content root
+     * @param path   path using {@code /} separators
      */
     public static boolean isSafeAssetPath(String folder, String path) {
         if (path == null || path.isEmpty()) {

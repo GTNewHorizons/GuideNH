@@ -144,7 +144,9 @@ public class LytPieChart extends LytChartBase implements DebugComponent {
         return -1;
     }
 
-    /** Tests whether {@code angle} lies on the arc (from, to) (in the direction from -> to). */
+    /**
+     * Tests whether {@code angle} lies on the arc (from, to) (in the direction from -> to).
+     */
     public static boolean angleIsBetween(double angle, double from, double to) {
         // Normalize all angles to the same cycle as `from`: bring `angle` into [from, from + 2π).
         double twoPi = Math.PI * 2d;

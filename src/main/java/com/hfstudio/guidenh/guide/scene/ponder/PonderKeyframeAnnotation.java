@@ -320,12 +320,16 @@ public class PonderKeyframeAnnotation {
         return yOffset != null ? yOffset : def;
     }
 
-    /** Maximum text wrap width in pixels for {@code text} annotations. {@code 0} means single-line (no wrap). */
+    /**
+     * Maximum text wrap width in pixels for {@code text} annotations. {@code 0} means single-line (no wrap).
+     */
     public int getMaxWidth(int def) {
         return maxWidth != null ? maxWidth : def;
     }
 
-    /** Background alpha for {@code text} annotation bubbles, clamped to {@code 0..255}. */
+    /**
+     * Background alpha for {@code text} annotation bubbles, clamped to {@code 0..255}.
+     */
     public int getBackgroundAlpha(int def) {
         return backgroundAlpha != null ? Math.clamp(backgroundAlpha, 0, 255) : def;
     }

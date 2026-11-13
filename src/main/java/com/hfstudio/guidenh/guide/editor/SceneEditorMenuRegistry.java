@@ -7,14 +7,9 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Global registry for contributions to the Scene Editor's named dropdown menus.
- *
- * <p>
- * Menu ids identify existing editor menus; registering an item does not create a new visual menu.
- * An item id must be unique within its menu. {@link #snapshot(String)} returns a new immutable,
- * order-sorted list containing only items visible at the time of the call, so callers may safely
- * render it without holding the registry lock.
- * </p>
+ * Contributions to existing editor dropdowns. Registering an item does not create a menu; item ids are
+ * unique within a menu. {@link #snapshot(String)} returns an immutable list of visible items in display
+ * order, usable without the registry lock.
  */
 public class SceneEditorMenuRegistry {
 
@@ -24,7 +19,9 @@ public class SceneEditorMenuRegistry {
     private static final Object LOCK = new Object();
     private static final Map<String, SceneEditorMenuItem> ITEMS = new ConcurrentHashMap<>();
 
-    /** Registers an item and returns a handle that removes that exact contribution when closed. */
+    /**
+     * Registers an item and returns a handle that removes that exact contribution when closed.
+     */
     public static SceneEditorRegistration register(String menuId, SceneEditorMenuItem item) {
         if (menuId == null || menuId.trim()
             .isEmpty()) throw new IllegalArgumentException("menuId must not be blank");
@@ -38,7 +35,9 @@ public class SceneEditorMenuRegistry {
         return () -> ITEMS.remove(key, item);
     }
 
-    /** Returns the currently visible items for a menu, sorted by order and then id. */
+    /**
+     * Returns the currently visible items for a menu, sorted by order and then id.
+     */
     public static List<SceneEditorMenuItem> snapshot(String menuId) {
         synchronized (LOCK) {
             List<SceneEditorMenuItem> result = new ArrayList<>();

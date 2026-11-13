@@ -272,14 +272,9 @@ public class StructureLibPreviewTooltipMetadataBuilder {
     }
 
     /**
-     * The hatch candidates for one element, resolved at most once per build.
-     *
-     * <p>
-     * A structure visits the same element at every position it occupies, and both halves of the query are
-     * expensive: {@code getBlocksToPlace} rebuilds the hatch rule, which streams the element's declared hatch
-     * list, and testing that rule walks the whole meta tile entity registry. The element is the stable
-     * identity to key on; its predicate is not, because {@code HatchElementBuilder} builds a fresh predicate
-     * on every call, so keying on the predicate would never hit and would retain one entry per block.
+     * Caches hatch candidates by structure-element identity for one build. Resolving candidates rebuilds hatch
+     * rules and scans the meta tile registry. Predicates cannot be cache keys because HatchElementBuilder
+     * recreates them on each call.
      */
     private static List<ItemStack> cachedHatches(IStructureElement<?> element,
         IStructureElement.BlocksToPlace blocksToPlace, List<ItemStack> machineStacks,

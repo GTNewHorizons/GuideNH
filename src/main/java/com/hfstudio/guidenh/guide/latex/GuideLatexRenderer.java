@@ -31,17 +31,25 @@ public class GuideLatexRenderer {
 
     private static final int DEFAULT_FILL_COLOR_ARGB = ColorUtils.WHITE.getColor();
 
-    /** Calibration formula used to determine a reference character height at a given sourceScale. */
+    /**
+     * Calibration formula used to determine a reference character height at a given sourceScale.
+     */
     private static final String CALIBRATION_FORMULA = "x";
     private static final int MAX_REF_HEIGHT_ENTRIES = 16;
 
-    /** Maps sourceScale float (rounded to string) -> calibrated reference height in pixels. */
+    /**
+     * Maps sourceScale float (rounded to string) -> calibrated reference height in pixels.
+     */
     private final ConcurrentHashMap<String, Integer> refHeightCache = new ConcurrentHashMap<>();
 
-    /** Lazily queried {@code GL_MAX_TEXTURE_SIZE}; only touched on the render thread. */
+    /**
+     * Lazily queried {@code GL_MAX_TEXTURE_SIZE}; only touched on the render thread.
+     */
     private int maxTextureSize;
 
-    /** Render-thread scratch state for {@link #readModelViewScale()}. */
+    /**
+     * Render-thread scratch state for {@link #readModelViewScale()}.
+     */
     private final FloatBuffer modelViewBuffer = BufferUtils.createFloatBuffer(16);
     private float modelViewScaleX = 1f;
     private float modelViewScaleY = 1f;
@@ -134,17 +142,10 @@ public class GuideLatexRenderer {
     }
 
     /**
-     * Rasterizes {@code formula} at the physical pixel size it occupies on screen and draws it into the GUI-space
-     * rectangle {@code (x, y, displayW, displayH)}.
+     * Rasterizes at display size times GUI and model-view scale to preserve thin strokes during minification.
+     * Call only on the Minecraft render thread.
      *
-     * <p>
-     * The texture is rendered at {@code displayW/H * guiScaleFactor * modelViewScale} pixels instead of the (much
-     * larger) {@code sourceScale} size, so the GPU barely has to minify it. Minifying a large texture with plain
-     * bilinear sampling skips whole texel rows, which made thin strokes such as fraction bars, minus signs and
-     * small superscripts disappear on 1080p-class displays.
-     * Must be called from the Minecraft render thread.
-     *
-     * @return {@code true} if the formula was drawn, {@code false} if it failed to parse or render
+     * @return true if drawn, false on parse or render failure
      */
     public boolean drawLatex(String formula, int fillColorArgb, float sourceScale, int x, int y, int displayW,
         int displayH) {

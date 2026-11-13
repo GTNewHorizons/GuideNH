@@ -58,7 +58,9 @@ public class GuideSiteTemplateRegistry {
         return html != null ? html : "";
     }
 
-    /** Caches fragments containing template references only within this page. */
+    /**
+     * Caches fragments containing template references only within this page.
+     */
     public String getOrComputeLocalRendered(String semanticKey, Supplier<String> renderer) {
         String existing = localRenderedBySemanticKey.get(semanticKey);
         if (existing != null) {

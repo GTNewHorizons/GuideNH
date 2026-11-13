@@ -78,7 +78,9 @@ public abstract class LytChartBase extends LytBlock implements InteractiveElemen
         return explicitHeight;
     }
 
-    /** Currently hovered hit key; {@code -1} means none. The exact semantics is decided by each subclass. */
+    /**
+     * Currently hovered hit key; {@code -1} means none. The exact semantics is decided by each subclass.
+     */
     protected int hoveredKey = -1;
 
     public void setExplicitSize(int width, int height) {

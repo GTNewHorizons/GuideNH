@@ -26,9 +26,13 @@ public class LytColumnChart extends LytChartBase implements DebugComponent {
 
     private static final int LINE_THICKNESS = 1;
     private static final int LINE_POINT_RADIUS = 2;
-    /** High bit marker so line-overlay keys do not collide with bar keys ((si<<16)|ci). */
+    /**
+     * High bit marker so line-overlay keys do not collide with bar keys ((si<<16)|ci).
+     */
     private static final int LINE_KEY_FLAG = 0x40000000;
-    /** Extra horizontal space reserved on the chart's right side when pie inset is RIGHT_OUTSIDE. */
+    /**
+     * Extra horizontal space reserved on the chart's right side when pie inset is RIGHT_OUTSIDE.
+     */
     private static final int PIE_OUTSIDE_GAP = 6;
 
     @Getter

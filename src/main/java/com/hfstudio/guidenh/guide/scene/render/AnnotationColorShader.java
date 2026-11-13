@@ -9,7 +9,9 @@ import org.lwjgl.opengl.GL20;
 
 import com.hfstudio.guidenh.guide.scene.annotation.AnnotationColorStyle;
 
-/** Owns the reusable shader for solid and animated box colors. */
+/**
+ * Owns the reusable shader for solid and animated box colors.
+ */
 public class AnnotationColorShader implements AutoCloseable {
 
     private final IntBuffer viewport = BufferUtils.createIntBuffer(16);

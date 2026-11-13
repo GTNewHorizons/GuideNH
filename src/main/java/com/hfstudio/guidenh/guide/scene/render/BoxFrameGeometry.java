@@ -5,7 +5,9 @@ import java.nio.FloatBuffer;
 import org.joml.Vector3fc;
 import org.lwjgl.BufferUtils;
 
-/** Emits the boundary of the edge-cuboid union without internal or overlapping faces. */
+/**
+ * Emits the boundary of the edge-cuboid union without internal or overlapping faces.
+ */
 public class BoxFrameGeometry {
 
     private final float[] shape = new float[7];
@@ -39,7 +41,9 @@ public class BoxFrameGeometry {
         verticesDirty = true;
     }
 
-    /** Returns reusable, read-only C3F_V3F data for a single client-array draw. */
+    /**
+     * Returns reusable, read-only C3F_V3F data for a single client-array draw.
+     */
     public FloatBuffer vertices() {
         if (vertices == null) {
             vertices = BufferUtils.createFloatBuffer(faces.length / 8 * 4 * 6);

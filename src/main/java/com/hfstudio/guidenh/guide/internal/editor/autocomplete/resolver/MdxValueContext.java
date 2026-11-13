@@ -4,7 +4,9 @@ import com.hfstudio.guidenh.guide.internal.editor.autocomplete.AutocompleteConte
 
 import lombok.Getter;
 
-/** Replaces the old MdxAutocompleteContext. Carries tag name, attribute name, and replacement range. */
+/**
+ * Replaces the old MdxAutocompleteContext. Carries tag name, attribute name, and replacement range.
+ */
 public class MdxValueContext implements AutocompleteContext {
 
     @Getter

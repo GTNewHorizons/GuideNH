@@ -6,7 +6,9 @@ import java.util.Map;
 
 import org.jetbrains.annotations.Nullable;
 
-/** The arguments of one {@code <Template>} call. */
+/**
+ * The arguments of one {@code <Template>} call.
+ */
 public final class MediaWikiTemplateArguments {
 
     private Map<String, MediaWikiTemplateValue> positional;

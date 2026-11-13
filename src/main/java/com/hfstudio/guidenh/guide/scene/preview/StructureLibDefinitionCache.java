@@ -109,13 +109,8 @@ public class StructureLibDefinitionCache {
     }
 
     /**
-     * Finds the {@code IConstructable} a controller id refers to.
-     *
-     * <p>
-     * Iterates {@code GregTechAPI.METATILEENTITIES}, the full unfiltered list of registered machines, so this
-     * works for the machines that carry no tier data as well. The registry holds the instances BlockRenderer6343
-     * keys its data on, which is why the id is resolved through it rather than through the placed controller:
-     * placing one in the preview world builds a fresh instance that its identity-keyed map cannot match.
+     * Resolves controllers through GregTechAPI.METATILEENTITIES, including machines without tier data. The
+     * registered instance matches BlockRenderer6343's identity-keyed map; a placed preview instance does not.
      */
     @Nullable
     public IConstructable findConstructable(String controllerBlockId) {

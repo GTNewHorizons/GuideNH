@@ -8,12 +8,16 @@ public class FunctionLibrary {
 
     protected FunctionLibrary() {}
 
-    /** Returns true when {@code name} is recognised as a built-in function (any arity). */
+    /**
+     * Returns true when {@code name} is recognised as a built-in function (any arity).
+     */
     public static boolean isKnown(String name) {
         return resolveArity(name) != 0;
     }
 
-    /** Returns 1 for unary functions, 2 for binary, otherwise 0. */
+    /**
+     * Returns 1 for unary functions, 2 for binary, otherwise 0.
+     */
     public static int resolveArity(String name) {
         return switch (name) {
             case "sin", "cos", "tan", "asin", "acos", "atan", "sinh", "cosh", "tanh", "ln", "log", "log2", "log10", "exp", "sqrt", "cbrt", "abs", "sign", "floor", "ceil", "round", "deg", "rad", "gamma" -> 1;
@@ -22,7 +26,9 @@ public class FunctionLibrary {
         };
     }
 
-    /** Recognised mathematical constants. Returns {@link Double#NaN} when the name is unknown. */
+    /**
+     * Recognised mathematical constants. Returns {@link Double#NaN} when the name is unknown.
+     */
     public static double constant(String name) {
         return switch (name) {
             case "pi", "PI", "Pi" -> Math.PI;
@@ -33,7 +39,9 @@ public class FunctionLibrary {
         };
     }
 
-    /** Evaluate a unary built-in. */
+    /**
+     * Evaluate a unary built-in.
+     */
     public static double call1(String name, double a) {
         return switch (name) {
             case "sin" -> Math.sin(a);
@@ -63,7 +71,9 @@ public class FunctionLibrary {
         };
     }
 
-    /** Evaluate a binary built-in. */
+    /**
+     * Evaluate a binary built-in.
+     */
     public static double call2(String name, double a, double b) {
         return switch (name) {
             case "atan2" -> Math.atan2(a, b);

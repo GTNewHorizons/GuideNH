@@ -4,7 +4,9 @@ import java.util.Locale;
 
 import com.hfstudio.guidenh.guide.compiler.tags.SerializedEnum;
 
-/** Immutable color animation settings shared by annotations and site export. */
+/**
+ * Immutable color animation settings shared by annotations and site export.
+ */
 public record AnnotationColorStyle(Mode mode, float period) {
 
     public static final float DEFAULT_PERIOD = 2.4f;

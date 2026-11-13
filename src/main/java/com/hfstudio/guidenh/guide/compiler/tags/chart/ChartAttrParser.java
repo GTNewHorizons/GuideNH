@@ -18,7 +18,9 @@ import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
  */
 public class ChartAttrParser {
 
-    /** Default 16-color cyclic palette (opaque). */
+    /**
+     * Default 16-color cyclic palette (opaque).
+     */
     protected ChartAttrParser() {}
 
     public static int paletteColor(int index) {

@@ -4,14 +4,8 @@ import lombok.Getter;
 import lombok.Setter;
 
 /**
- * An in-world annotation that renders a flat grid on a horizontal plane (typically Y=0),
- * covering the structure's XZ footprint extended by one block in each direction.
- *
- * <p>
- * Grid lines are drawn at every integer X and Z coordinate within the annotation's bounds.
- * When {@link #showDebugLabels} is {@code true}, coordinate numbers (X and Z axis) and
- * cardinal direction initials (N/S/E/W) are additionally rendered in 3D world space, flat
- * on the ground plane — exactly like the Ponder editor mode overlay.
+ * Horizontal grid over the structure's XZ footprint with a one-block margin. Optional debug labels show
+ * coordinates and cardinal directions.
  */
 @Getter
 public class SceneFloorGridAnnotation extends InWorldAnnotation {

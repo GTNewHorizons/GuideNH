@@ -36,12 +36,16 @@ public class GuidebookPreviewAuthorityStore {
         }
     }
 
-    /** Clears every supplement slot at this coordinate. */
+    /**
+     * Clears every supplement slot at this coordinate.
+     */
     public void clearAt(long packedPos) {
         byPos.remove(packedPos);
     }
 
-    /** Clears every supplement slot in this store. */
+    /**
+     * Clears every supplement slot in this store.
+     */
     public void clear() {
         byPos.clear();
     }
@@ -75,7 +79,9 @@ public class GuidebookPreviewAuthorityStore {
         return raw != null && raw.length > 0 ? raw.clone() : null;
     }
 
-    /** For diagnostics only. */
+    /**
+     * For diagnostics only.
+     */
     public Map<String, byte[]> snapshotAt(long packedPos) {
         HashMap<String, byte[]> slot = byPos.get(packedPos);
         if (slot == null || slot.isEmpty()) {

@@ -48,7 +48,9 @@ public class Ae2CableStructureSupport {
         TileEntity getTile(int x, int y, int z);
     }
 
-    /** Per-export batch: dim:x:y:z 鈫?unified {@link Ae2CablePreviewWireCodec} bytes. */
+    /**
+     * Per-export map from dimension and block coordinates to Ae2CablePreviewWireCodec bytes.
+     */
     public static class Ae2CableMpSnapshot {
 
         private final Map<String, byte[]> wireByKey;

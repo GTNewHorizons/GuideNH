@@ -44,7 +44,9 @@ public class CompileWorker {
         return t;
     });
 
-    /** Runtime worlds are released on the client thread; compilation itself runs in the worker thread. */
+    /**
+     * Runtime worlds are released on the client thread; compilation itself runs in the worker thread.
+     */
     private final ConcurrentLinkedQueue<GuidePage> pendingRuntimeReleases = new ConcurrentLinkedQueue<>();
 
     private final Map<ResourceLocation, GuidePage> compiledPages = new LinkedHashMap<>(
@@ -74,7 +76,9 @@ public class CompileWorker {
      */
     private volatile ResourceLocation currentPageId;
 
-    /** Invalidates work that was started against a previous resource-pack generation. */
+    /**
+     * Invalidates work that was started against a previous resource-pack generation.
+     */
     private volatile long generation;
 
     /**
@@ -204,7 +208,9 @@ public class CompileWorker {
         pendingRuntimeReleases.add(page);
     }
 
-    /** Drains runtime release requests and must be called from the Minecraft client thread. */
+    /**
+     * Drains runtime release requests and must be called from the Minecraft client thread.
+     */
     public void drainRuntimeReleases() {
         GuidePage page;
         while ((page = pendingRuntimeReleases.poll()) != null) {
@@ -232,10 +238,9 @@ public class CompileWorker {
         while (!shutdown) {
             ResourceLocation target = null;
 
-            // 1. Check priorityId
             ResourceLocation prio = priorityId;
             if (prio != null) {
-                priorityId = null; // grab it, clear it
+                priorityId = null;
                 synchronized (compiledPages) {
                     if (!compiledPages.containsKey(prio)) {
                         target = prio;
@@ -243,14 +248,12 @@ public class CompileWorker {
                 }
             }
 
-            // 2. If no priority target, poll the bulk queue
             if (target == null) {
                 synchronized (bulkQueue) {
                     target = bulkQueue.pollFirst();
                 }
             }
 
-            // 3. Nothing to do — sleep briefly, then check again
             if (target == null) {
                 try {
                     Thread.sleep(50);
@@ -262,20 +265,16 @@ public class CompileWorker {
                 continue;
             }
 
-            // 4. Set current page id
             currentPageId = target;
 
-            // 5. Compile
             try {
                 compileOne(target);
             } catch (Throwable t) {
                 GuideDebugLog.error("[CompileWorker] Failed to compile page {}", target, t);
             } finally {
-                // 6. Clear current page id (always)
                 currentPageId = null;
             }
 
-            // 7. If priorityId matches target, clear it (just compiled it)
             if (Objects.equals(priorityId, target)) {
                 priorityId = null;
             }
@@ -295,11 +294,9 @@ public class CompileWorker {
         }
 
         long t0 = System.nanoTime();
-        // Parse (no-op if already parsed — getAstRoot is lazy + cached)
         parsed.getAstRoot();
         long tParsed = System.nanoTime();
 
-        // Compile
         GuidePage compiled = PageCompiler.compile(guide, guide.getExtensions(), parsed);
         long tCompiled = System.nanoTime();
         synchronized (compiledPages) {

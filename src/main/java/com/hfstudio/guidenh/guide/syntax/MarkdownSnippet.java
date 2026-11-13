@@ -46,7 +46,9 @@ public record MarkdownSnippet(MarkdownSnippetKind kind, String trigger, String l
         return results;
     }
 
-    /** The longest inline trigger that {@code text} ends with, on a word boundary. */
+    /**
+     * The longest inline trigger that {@code text} ends with, on a word boundary.
+     */
     @Nullable
     public static MarkdownSnippet longestInlineTrigger(List<MarkdownSnippet> snippets, String text, int cursorIndex) {
         MarkdownSnippet best = null;

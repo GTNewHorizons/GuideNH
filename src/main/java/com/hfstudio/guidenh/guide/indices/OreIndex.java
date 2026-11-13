@@ -20,24 +20,13 @@ import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 
 /**
- * An index of Forge ore-dictionary names to the main guidebook page describing them.
- * <p/>
- * The {@code ore_ids} frontmatter list contains plain ore-dictionary entry names (e.g.
- * {@code ingotIron}). When an item stack is registered against any of those ore names the page
- * is considered a match.
- * <p/>
- * At rebuild time a precomputed {@code ItemId 閳?PageAnchor} map is built by expanding each
- * indexed ore name through {@link OreDictionary#getOres(String)}. This makes
- * {@link #findByStack(ItemStack)} an O(1) hash lookup instead of requiring a per-call scan of all
- * ore-dictionary IDs assigned to the hovered item, which can be expensive in large modpacks.
+ * Indexes {@code ore_ids} frontmatter entries. Rebuilds expand ore names into an item/meta map for direct
+ * lookup; wildcard metadata follows the same matching rules as {@link ItemIndex}.
  */
 public class OreIndex extends UniqueIndex<String, PageAnchor> {
 
     /**
-     * Precomputed item (item + damage) 閳?page anchor map built during {@link #rebuild} /
-     * {@link #update}. Keyed by exact damage value and also by {@link OreDictionary#WILDCARD_VALUE}
-     * for stacks registered with wildcard meta, matching the two-step lookup used by
-     * {@link ItemIndex#findByItem}.
+     * Item/meta lookup built during {@link #rebuild} and {@link #update}, with exact and wildcard damage keys.
      */
     private Map<ItemId, PageAnchor> itemCache = Map.of();
 
@@ -72,7 +61,7 @@ public class OreIndex extends UniqueIndex<String, PageAnchor> {
                 String oreName = entry.getKey();
                 PageAnchor anchor = get(oreName);
                 if (anchor == null) {
-                    // ore name was rejected (e.g. duplicate) 閳?skip
+                    // Skip ore names rejected by the index, including duplicates.
                     continue;
                 }
                 for (ItemStack stack : OreDictionary.getOres(oreName)) {
@@ -99,7 +88,6 @@ public class OreIndex extends UniqueIndex<String, PageAnchor> {
         // Exact-meta lookup
         PageAnchor anchor = itemCache.get(ItemId.createNoCopy(item, meta, null));
         if (anchor != null) return anchor;
-        // Wildcard-meta fallback (ore registered with WILDCARD_VALUE damage)
         if (meta != OreDictionary.WILDCARD_VALUE) {
             anchor = itemCache.get(ItemId.createNoCopy(item, OreDictionary.WILDCARD_VALUE, null));
         }

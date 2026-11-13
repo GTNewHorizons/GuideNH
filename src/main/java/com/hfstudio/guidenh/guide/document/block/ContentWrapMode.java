@@ -12,25 +12,39 @@ import java.util.Locale;
  */
 public enum ContentWrapMode {
 
-    /** block sits in normal document flow; no text wraps around its sides. */
+    /**
+     * block sits in normal document flow; no text wraps around its sides.
+     */
     INLINE,
 
-    /** surrounding text wraps in a rectangle around the block. */
+    /**
+     * surrounding text wraps in a rectangle around the block.
+     */
     SQUARE,
 
-    /** tighter wrap; functionally equivalent to {@link #SQUARE} in this layout system. */
+    /**
+     * tighter wrap; functionally equivalent to {@link #SQUARE} in this layout system.
+     */
     TIGHT,
 
-    /** through-wrap; functionally equivalent to {@link #SQUARE} in this layout system. */
+    /**
+     * through-wrap; functionally equivalent to {@link #SQUARE} in this layout system.
+     */
     THROUGH,
 
-    /** text appears only above and below the block, never beside it. */
+    /**
+     * text appears only above and below the block, never beside it.
+     */
     TOP_BOTTOM,
 
-    /** block is rendered behind (below) surrounding text. */
+    /**
+     * block is rendered behind (below) surrounding text.
+     */
     BEHIND,
 
-    /** block is rendered in front of (above) surrounding text. */
+    /**
+     * block is rendered in front of (above) surrounding text.
+     */
     FRONT;
 
     /**

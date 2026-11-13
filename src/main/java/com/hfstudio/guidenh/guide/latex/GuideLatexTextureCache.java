@@ -16,7 +16,9 @@ public class GuideLatexTextureCache {
     private static final int MAX_FAILURE_ENTRIES = 256;
     private static final int MAX_SIZE_ENTRIES = 512;
 
-    /** Maps cacheKey -> [textureId, widthPx, heightPx]. Evicts LRU entries when full. */
+    /**
+     * Maps cacheKey -> [textureId, widthPx, heightPx]. Evicts LRU entries when full.
+     */
     private final Map<String, int[]> textureCache = new LinkedHashMap<>(MAX_TEXTURE_ENTRIES + 1, 0.75f, true) {
 
         @Override
@@ -29,7 +31,9 @@ public class GuideLatexTextureCache {
         }
     };
 
-    /** Maps formula string -> error message from parse/render failure. */
+    /**
+     * Maps formula string -> error message from parse/render failure.
+     */
     private final Map<String, String> failureCache = Collections
         .synchronizedMap(new LinkedHashMap<>(MAX_FAILURE_ENTRIES + 1, 0.75f, true) {
 
@@ -39,7 +43,9 @@ public class GuideLatexTextureCache {
             }
         });
 
-    /** Maps (formula + sourceScale string) -> [widthPx, heightPx], no GL needed. Layout thread safe. */
+    /**
+     * Maps (formula + sourceScale string) -> [widthPx, heightPx], no GL needed. Layout thread safe.
+     */
     private final ConcurrentHashMap<String, int[]> sizeCache = new ConcurrentHashMap<>();
 
     protected GuideLatexTextureCache() {}

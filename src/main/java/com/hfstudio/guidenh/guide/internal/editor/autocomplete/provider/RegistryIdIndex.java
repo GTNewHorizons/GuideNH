@@ -11,7 +11,9 @@ import java.util.Set;
 import net.minecraft.block.Block;
 import net.minecraft.item.Item;
 
-/** Read-only views of the game registries shaped for completion queries: identifiers sorted, their lowercase. */
+/**
+ * Read-only views of the game registries shaped for completion queries: identifiers sorted, their lowercase.
+ */
 public class RegistryIdIndex {
 
     public record Entry(String id, String lower) {}

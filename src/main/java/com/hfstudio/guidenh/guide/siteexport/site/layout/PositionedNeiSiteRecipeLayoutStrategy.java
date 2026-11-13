@@ -6,9 +6,8 @@ import java.util.List;
 import com.hfstudio.guidenh.integration.nei.NeiRecipeLookup;
 
 /**
- * Lays out NEI-style recipes using each {@link NeiRecipeLookup.Slot}'s {@code relx}/{@code rely}
- * inside a percentage-based canvas so handlers with irregular grids (e.g. loot tables) match NEI
- * spacing more closely than the legacy 3脳3 + vertical {@code others} column.
+ * Places slots at NEI relative coordinates within a percentage-based canvas, preserving irregular handler
+ * layouts.
  */
 public class PositionedNeiSiteRecipeLayoutStrategy implements SiteRecipeLayoutStrategy {
 

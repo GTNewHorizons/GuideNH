@@ -20,7 +20,9 @@ import com.hfstudio.guidenh.guide.internal.screen.GuideNavBarState;
 
 public class NavigationState {
 
-    /** Sentinel key for the home page's nav bar state (home has no guideId). */
+    /**
+     * Sentinel key for the home page's nav bar state (home has no guideId).
+     */
     static final ResourceLocation HOME_KEY = new ResourceLocation("guidenh", "_home");
 
     @Nullable
