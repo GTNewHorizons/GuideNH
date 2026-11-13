@@ -163,6 +163,7 @@ import com.hfstudio.guidenh.guide.ui.GuideUiHost;
 import com.hfstudio.guidenh.integration.nei.GuideScreenNeiBridge;
 import com.hfstudio.guidenh.libs.unist.UnistPoint;
 
+import cpw.mods.fml.common.FMLContainerHolder;
 import cpw.mods.fml.common.Loader;
 
 public class GuideScreen extends GuiContainer
@@ -917,6 +918,7 @@ public class GuideScreen extends GuiContainer
 
     private void tickScreen() {
         completePendingContentPageLoadIfNeeded();
+        navBar.tickSearchField();
         processPendingSceneRegistrations();
         GuideScreenNeiBridge.tick(this);
         updateGuideEditorHotkeyFocusSuppression();
@@ -1006,11 +1008,27 @@ public class GuideScreen extends GuiContainer
         int requestedWidth = Math
             .max(GuideNavBar.MIN_DYNAMIC_OPEN_WIDTH, this.width * GuideNavBar.OPEN_WIDTH_SCREEN_PERCENT / 100);
         int maxWidth = Math.max(GuideNavBar.WIDTH_CLOSED, panelW - PANEL_PADDING * 2 - 40);
-        return Math.min(requestedWidth, maxWidth);
+        int automaticWidth = Math.min(requestedWidth, maxWidth);
+        int configuredWidth = ModConfig.ui.guideNavigationWidth;
+        return configuredWidth > 0
+            ? Math.clamp(configuredWidth, Math.min(GuideNavBar.MIN_DYNAMIC_OPEN_WIDTH, maxWidth), maxWidth)
+            : automaticWidth;
     }
 
     private int getNavigationReservedWidth() {
         return navBar.isPinned() ? navBar.getOpenWidth() : GuideNavBar.WIDTH_CLOSED;
+    }
+
+    private boolean handleNavigationResize(int mouseX, int button) {
+        int previousWidth = navBar.getOpenWidth();
+        int maxWidth = Math.max(GuideNavBar.WIDTH_CLOSED, panelW - PANEL_PADDING * 2 - 40);
+        if (!navBar.dragResize(mouseX, button, GuideNavBar.MIN_DYNAMIC_OPEN_WIDTH, maxWidth)) {
+            return false;
+        }
+        if (navBar.getOpenWidth() != previousWidth) {
+            ModConfig.ui.guideNavigationWidth = navBar.getOpenWidth();
+        }
+        return true;
     }
 
     private int resolveDefaultNonFullWidthWindowWidthPercent(int neiReservedSideWidth) {
@@ -3057,13 +3075,21 @@ public class GuideScreen extends GuiContainer
         hoveredItemStack = null;
         updateVisualState();
         drawTiledBackground();
+        int previousContentX = contentX;
+        int previousContentW = contentW;
+        pollNavigationWidthDrag(mouseX);
         recomputePanelBounds();
-        if (consumePanelBoundsChanged()) {
+        boolean panelBoundsChanged = consumePanelBoundsChanged();
+        if (panelBoundsChanged || previousContentX != contentX || previousContentW != contentW) {
             rebuildToolbar();
             layoutDocument = null;
             lastLayoutWidth = -1;
+            invalidateScrollbarOutline();
         }
         ensureSearchFields();
+        if (navBar.isSearchFocused()) {
+            unfocusOtherTextInputs();
+        }
         rebuildSearchDocumentIfNeeded(false);
         currentZoom = resolveCurrentZoom();
         ensureLayout();
@@ -3355,6 +3381,12 @@ public class GuideScreen extends GuiContainer
         }
         long heldTime = Minecraft.getSystemTime() - guideLastMouseEvent;
         mouseClickMove(mouseX, mouseY, guideMouseEventButton, heldTime);
+    }
+
+    private void pollNavigationWidthDrag(int mouseX) {
+        if (guideMouseEventButton == 0 && guideLastMouseEvent > 0L && Mouse.isButtonDown(0)) {
+            handleNavigationResize(mouseX, 0);
+        }
     }
 
     private void drawGuideEditorScreen(int mouseX, int mouseY) {
@@ -4516,6 +4548,19 @@ public class GuideScreen extends GuiContainer
     }
 
     private static String getSourceDisplayName(String sourcePack, @Nullable IResourcePack sourceResourcePack) {
+        if (sourceResourcePack instanceof FMLContainerHolder holder) {
+            var container = holder.getFMLContainer();
+            if (container != null) {
+                String modName = container.getName();
+                if (modName != null && !modName.isBlank()) {
+                    return modName;
+                }
+                String modId = container.getModId();
+                if (modId != null && !modId.isBlank()) {
+                    return modId;
+                }
+            }
+        }
         if (sourceResourcePack != null) {
             return formatResourcePackName(sourceResourcePack.getPackName());
         }
@@ -5588,9 +5633,23 @@ public class GuideScreen extends GuiContainer
     }
 
     private boolean isFocusedTextInputReadyForCommittedCharacter() {
-        return isGuideEditorActive() && guideEditorTextArea != null && guideEditorTextArea.isFocused()
+        return navBar.isSearchFocused()
+            || isGuideEditorActive() && guideEditorTextArea != null && guideEditorTextArea.isFocused()
             || searchField != null && searchField.isFocused()
             || specialSearchField != null && specialSearchField.isFocused();
+    }
+
+    private void unfocusOtherTextInputs() {
+        if (searchField != null) {
+            searchField.setFocused(false);
+        }
+        if (specialSearchField != null) {
+            specialSearchField.setFocused(false);
+        }
+        if (guideEditorTextArea != null) {
+            guideEditorTextArea.setFocused(false);
+        }
+        autocompleteController.dismissPopup();
     }
 
     private boolean isSceneWheelInteractionBlocked(long now) {
@@ -5614,6 +5673,12 @@ public class GuideScreen extends GuiContainer
             return;
         }
         if (handleNavBarContextMenuClick(mouseX, mouseY, button)) {
+            return;
+        }
+        if (navBar.handleControlClick(mc, mouseX, mouseY, button, isNavigationNewPageButtonVisible(), bookmarkState)) {
+            if (navBar.isSearchFocused()) {
+                unfocusOtherTextInputs();
+            }
             return;
         }
         if (handleHomePageToolbarRightClick(mouseX, mouseY, button)) {
@@ -6424,6 +6489,9 @@ public class GuideScreen extends GuiContainer
     protected void mouseClickMove(int mouseX, int mouseY, int clickedMouseButton, long timeSinceLastClick) {
         lastMouseX = mouseX;
         lastMouseY = mouseY;
+        if (handleNavigationResize(mouseX, clickedMouseButton)) {
+            return;
+        }
         if (navBar.dragScrollbar(mouseY, clickedMouseButton)) {
             return;
         }
@@ -6477,6 +6545,13 @@ public class GuideScreen extends GuiContainer
     protected void mouseMovedOrUp(int mouseX, int mouseY, int state) {
         lastMouseX = mouseX;
         lastMouseY = mouseY;
+        if (state == 0) {
+            handleNavigationResize(mouseX, state);
+        }
+        if (navBar.releaseResize(state)) {
+            ModConfig.save();
+            return;
+        }
         if (navBar.releaseScrollbar(state)) {
             return;
         }
@@ -6751,6 +6826,7 @@ public class GuideScreen extends GuiContainer
     @Override
     protected void keyTyped(char typedChar, int keyCode) {
         if (handleDebugHudToggleKey(keyCode)) return;
+        if (navBar.handleSearchKey(typedChar, keyCode, bookmarkState)) return;
         if (GuideScreenNeiBridge.keyTyped(this, typedChar, keyCode)) return;
         if (handleSearchFieldKey(typedChar, keyCode)) return;
         if (handleSpecialSearchFieldKey(typedChar, keyCode)) return;
@@ -6912,6 +6988,9 @@ public class GuideScreen extends GuiContainer
 
     @Override
     public void onGuiClosed() {
+        if (navBar.releaseResize(0)) {
+            ModConfig.save();
+        }
         navBar.releaseScrollbar(0);
         GuideSoundPlayback.stopAll();
         if (guideEditorCloseConfirmed && GuideScreenEditorState.isAutosaveEnabled() && guideEditorDirty) {
