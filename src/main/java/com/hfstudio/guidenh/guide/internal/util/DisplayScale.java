@@ -11,6 +11,7 @@ public class DisplayScale {
     public static int cachedScaleFactor = 2;
     public static int cachedScaledWidth = 0;
     public static int cachedScaledHeight = 0;
+    private static boolean cachedUnicode;
 
     private DisplayScale() {}
 
@@ -19,11 +20,13 @@ public class DisplayScale {
         int dw = mc.displayWidth;
         int dh = mc.displayHeight;
         int gs = mc.gameSettings != null ? mc.gameSettings.guiScale : 0;
-        if (dw == cachedDW && dh == cachedDH && gs == cachedGuiScale) return;
+        boolean unicode = mc.func_152349_b();
+        if (dw == cachedDW && dh == cachedDH && gs == cachedGuiScale && unicode == cachedUnicode) return;
         ScaledResolution sr = new ScaledResolution(mc, dw, dh);
         cachedDW = dw;
         cachedDH = dh;
         cachedGuiScale = gs;
+        cachedUnicode = unicode;
         cachedScaleFactor = sr.getScaleFactor();
         cachedScaledWidth = sr.getScaledWidth();
         cachedScaledHeight = sr.getScaledHeight();
