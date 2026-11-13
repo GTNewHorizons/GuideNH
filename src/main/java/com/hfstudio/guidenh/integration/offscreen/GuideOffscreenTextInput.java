@@ -15,10 +15,10 @@ public class GuideOffscreenTextInput {
 
     private int depth;
     private WeakReference<GuiTextField> focusedField = NO_FIELD;
-    private String pendingText = "";
+    private final StringBuilder pendingText = new StringBuilder();
     private int savedDepth;
     private WeakReference<GuiTextField> savedField;
-    private String savedText;
+    private final StringBuilder savedText = new StringBuilder();
     private int enteredDepth;
     private WeakReference<GuiTextField> enteredField;
 
@@ -31,7 +31,7 @@ public class GuideOffscreenTextInput {
     public void enter() {
         savedDepth = AccessorTextFieldHandler.guidenh$getTextInputDepth();
         savedField = AccessorTextFieldHandler.guidenh$getFocusedTextInput();
-        savedText = TextFieldHandler.textBuffer.toString();
+        copyText(TextFieldHandler.textBuffer, savedText);
         enteredDepth = depth;
         enteredField = focusedField;
         install(depth, focusedField, pendingText);
@@ -46,7 +46,7 @@ public class GuideOffscreenTextInput {
             install(savedDepth, savedField, savedText);
         } finally {
             savedField = null;
-            savedText = null;
+            savedText.setLength(0);
             enteredField = null;
         }
     }
@@ -62,15 +62,18 @@ public class GuideOffscreenTextInput {
     private void capture() {
         depth = AccessorTextFieldHandler.guidenh$getTextInputDepth();
         focusedField = AccessorTextFieldHandler.guidenh$getFocusedTextInput();
-        pendingText = TextFieldHandler.textBuffer.toString();
+        copyText(TextFieldHandler.textBuffer, pendingText);
     }
 
-    private static void install(int depth, WeakReference<GuiTextField> field, String text) {
+    private static void install(int depth, WeakReference<GuiTextField> field, StringBuilder text) {
         AccessorTextFieldHandler.guidenh$setTextInputDepth(depth);
         AccessorTextFieldHandler.guidenh$setFocusedTextInput(field);
-        StringBuilder buffer = TextFieldHandler.textBuffer;
-        buffer.setLength(0);
-        buffer.append(text);
+        copyText(text, TextFieldHandler.textBuffer);
+    }
+
+    private static void copyText(StringBuilder source, StringBuilder target) {
+        target.setLength(0);
+        target.append(source);
     }
 
     private static void restoreNativeInput(int depth) {

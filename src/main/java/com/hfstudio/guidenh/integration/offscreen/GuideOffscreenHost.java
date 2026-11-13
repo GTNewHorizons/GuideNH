@@ -118,13 +118,15 @@ public class GuideOffscreenHost implements HostUI {
             scope.restoreMainScreen();
             return;
         }
-        tasks.add(TASK_BOUNDARY);
-        Runnable task;
-        while ((task = tasks.poll()) != null && task != TASK_BOUNDARY) {
-            try {
-                dispatch(guide, task);
-            } catch (RuntimeException error) {
-                GuideDebugLog.error("Additional guide window task failed", error);
+        if (!tasks.isEmpty()) {
+            tasks.add(TASK_BOUNDARY);
+            Runnable task;
+            while ((task = tasks.poll()) != null && task != TASK_BOUNDARY) {
+                try {
+                    dispatch(guide, task);
+                } catch (RuntimeException error) {
+                    GuideDebugLog.error("Additional guide window task failed", error);
+                }
             }
         }
         GuiScreen current = activeScreen;
