@@ -1,13 +1,18 @@
 package com.hfstudio.guidenh.guide.siteexport.site;
 
+import java.util.ArrayList;
 import java.util.IllegalFormatException;
+import java.util.List;
 import java.util.Locale;
 
 import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.compiler.tags.MdxAttrs;
 import com.hfstudio.guidenh.guide.compiler.tags.chart.ChartAttrParser;
+import com.hfstudio.guidenh.guide.compiler.tags.chart.ChartChildParser;
 import com.hfstudio.guidenh.guide.document.block.chart.ChartAxisOptions;
+import com.hfstudio.guidenh.guide.document.block.chart.ChartReferenceLine;
+import com.hfstudio.guidenh.guide.scene.SceneTagCompiler;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 
 public class SiteChartAxis {
@@ -26,6 +31,7 @@ public class SiteChartAxis {
     private final String unit;
     private final boolean gridVisible;
     private final int gridColor;
+    private List<ChartReferenceLine> referenceLines = List.of();
 
     private SiteChartAxis(@Nullable String label, @Nullable Double min, @Nullable Double max, @Nullable Double step,
         @Nullable String tickFormat, @Nullable String unit, boolean gridVisible, int gridColor) {
@@ -46,7 +52,7 @@ public class SiteChartAxis {
         if (gridColorText != null) {
             gridColor = ChartAttrParser.parseColor(gridColorText, defaultGridColor);
         }
-        return new SiteChartAxis(
+        SiteChartAxis axis = new SiteChartAxis(
             MdxAttrs.getString(el, prefix + "Label", null),
             ChartAttrParser.parseBoxedDouble(el, prefix + "Min"),
             ChartAttrParser.parseBoxedDouble(el, prefix + "Max"),
@@ -55,6 +61,18 @@ public class SiteChartAxis {
             MdxAttrs.getString(el, prefix + "Unit", null),
             MdxAttrs.getBoolean(el, gridFlagAttr, true),
             gridColor);
+        boolean bar = "BarChart".equals(el.name());
+        if ((bar ? "xAxis" : "yAxis").equals(prefix)) {
+            List<ChartReferenceLine> lines = new ArrayList<>();
+            for (var child : el.children()) {
+                var childEl = SceneTagCompiler.unwrapSceneElement(child);
+                if (childEl == null || !"ReferenceLine".equals(childEl.name())) continue;
+                var line = ChartChildParser.readReferenceLine(childEl, bar ? "x" : "y");
+                if (line != null) lines.add(line);
+            }
+            axis.referenceLines = List.copyOf(lines);
+        }
+        return axis;
     }
 
     public static SiteChartAxis automatic(int defaultGridColor) {
@@ -65,7 +83,7 @@ public class SiteChartAxis {
         if (axis == null) {
             return automatic(defaultGridColor);
         }
-        return new SiteChartAxis(
+        SiteChartAxis result = new SiteChartAxis(
             axis.getLabel(),
             axis.getMin(),
             axis.getMax(),
@@ -74,11 +92,25 @@ public class SiteChartAxis {
             axis.getUnit(),
             axis.isGridVisible(),
             axis.getGridColor());
+        result.referenceLines = List.copyOf(axis.getReferenceLines());
+        return result;
+    }
+
+    public List<ChartReferenceLine> referenceLines() {
+        return referenceLines;
     }
 
     @Nullable
     public String label() {
         return label;
+    }
+
+    public String unit() {
+        return unit;
+    }
+
+    public String tickFormat() {
+        return tickFormat;
     }
 
     @Nullable

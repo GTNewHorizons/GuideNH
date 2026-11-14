@@ -168,7 +168,7 @@ public class LytBarChart extends LytChartBase implements DebugComponent {
         for (double t = xRange.min; t <= xRange.max + 1e-9; t += xRange.step) {
             float gx = CartesianChartRenderer.mapX(t, xRange, inner);
             if (xAxis.isGridVisible()) {
-                context.drawLine(gx, inner.y(), gx, inner.bottom(), 1f, xAxis.getGridColor());
+                CartesianChartRenderer.drawGridLine(context, gx, inner.y(), gx, inner.bottom(), xAxis.getGridColor());
             }
             String s = xAxis.formatTick(t);
             int sw = context.getStringWidth(s, style);
@@ -187,6 +187,9 @@ public class LytBarChart extends LytChartBase implements DebugComponent {
             String c = i < categories.length ? categories[i] : Integer.toString(i + 1);
             int sw = context.getStringWidth(c, style);
             float cy = inner.y() + categoryHeight * (i + 0.5f);
+            if (yAxis.isGridVisible()) {
+                CartesianChartRenderer.drawGridLine(context, inner.x(), cy, inner.right(), cy, yAxis.getGridColor());
+            }
             context.drawText(c, inner.x() - sw - 4, (int) cy - lh / 2, style);
         }
 
@@ -264,11 +267,9 @@ public class LytBarChart extends LytChartBase implements DebugComponent {
             }
         }
 
-        if (pieArea != null) {
-            PieInsetRenderer.drawAt(context, pieArea, pieInset);
-        } else {
-            PieInsetRenderer.draw(context, inner, pieInset);
-        }
+        CartesianChartRenderer.drawVerticalReferenceLines(context, inner, xAxis, xRange);
+        drawPieInset(context, inner, pieArea, pieInset);
+        drawVerticalHoverCursor(context, inner, xAxis, xRange);
     }
 
     private void drawValueLabel(RenderContext context, ResolvedTextStyle style, double value, LytRect bar, float endX) {

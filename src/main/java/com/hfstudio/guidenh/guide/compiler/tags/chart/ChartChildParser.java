@@ -10,6 +10,7 @@ import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.MdxAttrs;
 import com.hfstudio.guidenh.guide.document.LytErrorSink;
 import com.hfstudio.guidenh.guide.document.block.chart.ChartIcon;
+import com.hfstudio.guidenh.guide.document.block.chart.ChartReferenceLine;
 import com.hfstudio.guidenh.guide.document.block.chart.ChartSeries;
 import com.hfstudio.guidenh.guide.document.block.chart.PieInsetSpec;
 import com.hfstudio.guidenh.guide.document.block.chart.PieSlice;
@@ -60,7 +61,7 @@ public class ChartChildParser {
             if (!"Series".equals(name)) {
                 // Recognized sibling tags inside chart blocks (combo chart support) are silently skipped
                 // here because they are parsed by separate helpers below.
-                if ("LineSeries".equals(name) || "PieInset".equals(name)) {
+                if ("LineSeries".equals(name) || "PieInset".equals(name) || "ReferenceLine".equals(name)) {
                     continue;
                 }
                 errorSink.appendError(compiler, "Expected <Series> child but got <" + name + ">", child);
@@ -212,6 +213,42 @@ public class ChartChildParser {
 
     public static List<? extends MdAstAnyContent> childElements(PageCompiler compiler, MdxJsxElementFields parentEl) {
         return compiler.reparseBlockTagChildren(parentEl);
+    }
+
+    public static List<ChartReferenceLine> parseReferenceLines(PageCompiler compiler, LytErrorSink errorSink,
+        List<? extends MdAstAnyContent> children) {
+        return parseReferenceLines(compiler, errorSink, children, "y");
+    }
+
+    public static List<ChartReferenceLine> parseReferenceLines(PageCompiler compiler, LytErrorSink errorSink,
+        List<? extends MdAstAnyContent> children, String coordinate) {
+        List<ChartReferenceLine> result = new ArrayList<>();
+        for (MdAstAnyContent child : children) {
+            MdxJsxElementFields el = SceneTagCompiler.unwrapSceneElement(child);
+            if (el == null || !"ReferenceLine".equals(el.name())) continue;
+            ChartReferenceLine line = readReferenceLine(el, coordinate);
+            if (line == null) {
+                errorSink.appendError(compiler, "ReferenceLine requires a finite " + coordinate + " value", child);
+            } else {
+                result.add(line);
+            }
+        }
+        return List.copyOf(result);
+    }
+
+    public static ChartReferenceLine readReferenceLine(MdxJsxElementFields el) {
+        return readReferenceLine(el, "y");
+    }
+
+    public static ChartReferenceLine readReferenceLine(MdxJsxElementFields el, String coordinate) {
+        // Horizontal bars accept the original y spelling as an alias for their value axis.
+        String attribute = "x".equals(coordinate) && MdxAttrs.getString(el, "x", null) == null ? "y" : coordinate;
+        Double y = ChartAttrParser.parseBoxedDouble(el, attribute);
+        if (y == null) return null;
+        return new ChartReferenceLine(
+            y,
+            MdxAttrs.getString(el, "label", ""),
+            ChartAttrParser.parseColor(MdxAttrs.getString(el, "color", ""), ChartReferenceLine.DEFAULT_COLOR));
     }
 
     private static void applyIconAndTooltip(PageCompiler compiler, LytErrorSink errorSink, MdxJsxElementFields el,

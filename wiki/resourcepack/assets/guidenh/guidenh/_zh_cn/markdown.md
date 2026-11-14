@@ -603,6 +603,76 @@ docs
 </FileTree>
 ```
 
+### 长路径与深层目录
+
+下面包含长路径、连续无分隔符文件名、中英文混排、多个同级文件和九层目录。缩窄窗口或调大指南缩放，观察长名称的自动换行：续行应对齐名称开头，图标保持在首行，目录连接线贯穿多行；深层目录会压缩缩进，为文件名保留阅读空间。
+
+```filetree
+GuideNH-Large-Project/
+├── assets/
+│   ├── guidenh/
+│   │   ├── guides/
+│   │   │   ├── zh_cn/
+│   │   │   │   ├── progression/
+│   │   │   │   │   ├── electrical_age/
+│   │   │   │   │   │   ├── high_voltage/
+│   │   │   │   │   │   │   ├── advanced_processing/
+│   │   │   │   │   │   │   │   ├── `superconductingwirefactorycontrollerconfiguration.json`
+│   │   │   │   │   │   │   │   ├── `大型化工厂连续生产线与副产物回收配置说明.md`
+│   │   │   │   │   │   │   │   └── `configuration/processing/machines/very_long_machine_recipe_with_multiple_byproducts.json`
+│   │   │   │   │   │   │   ├── `高压时代的能源输入与多方块机器排布建议.md`
+│   │   │   │   │   │   │   └── `machine_maintenance_and_energy_distribution_checklist.md`
+│   │   │   │   │   │   └── `README-high-voltage-machine-progression-and-material-requirements.md`
+│   │   │   │   │   ├── medium_voltage/
+│   │   │   │   │   │   ├── `ore_processing_with_secondary_products_and_recycling.json`
+│   │   │   │   │   │   └── `电路生产线 从原料准备到成品自动化.md`
+│   │   │   │   │   └── low_voltage/
+│   │   │   │   │       └── [低压入门与基础机器配置](./index.md)
+│   │   │   │   ├── `跨维度物流与远程物品传输网络的完整使用手册.md`
+│   │   │   │   └── `installation-and-troubleshooting-for-custom-resource-packs.md`
+│   │   │   ├── en_us/
+│   │   │   │   ├── `getting_started_with_large_multiblock_factory_layouts.md`
+│   │   │   │   └── `configuration_reference_for_automated_processing_networks.md`
+│   │   │   └── `shared_navigation_and_localization_fallback_configuration.json`
+│   │   ├── textures/
+│   │   │   ├── {:iconPng=test1.png} `machine_controller_front_panel_with_active_indicator.png`
+│   │   │   ├── `超大型生产线总览图 与机器连接方向说明.png`
+│   │   │   └── `high_resolution_resource_pack_preview_for_all_voltage_tiers.png`
+│   │   └── lang/
+│   │       ├── `zh_CN.lang`
+│   │       ├── `en_US.lang`
+│   │       └── `additional_localization_entries_for_factory_controllers.lang`
+│   └── minecraft/
+│       └── `textures/blocks/custom_machine_casing_with_connected_textures.png`
+├── config/
+│   ├── {:iconItem=minecraft:iron_ingot} `industrial_material_processing_and_energy_balance.json`
+│   ├── `client_rendering_options_for_small_screens_and_large_gui_scales.json`
+│   ├── `世界生成、矿脉分布与大型矿场自动化配置.toml`
+│   └── `server_side_recipe_overrides_and_machine_compatibility_settings.cfg`
+├── documentation/
+│   ├── **安装与升级说明（包含旧版配置迁移步骤）**
+│   ├── [图表交互与数值显示示例](./charts.md)
+│   ├── `known-issues-and-workarounds-for-complex-directory-layouts.md`
+│   └── `Frequently Asked Questions for Guide Authors and Resource Pack Maintainers.md`
+├── `README-with-installation-steps-and-supported-modpack-versions.md`
+├── `CHANGELOG-for-machine-recipe-updates-and-localization-improvements.md`
+└── `LICENSE`
+```
+
+### 较浅目录中的连续长名称
+
+这个示例保留较大的行距，便于检查长文件名换行后的连接线，以及图标与首行的对齐。
+
+<FileTree indent="16" gap="3">
+factory-backups/
+├── {:iconItem=minecraft:chest} `2026-11-14-complete-factory-backup-including-machine-settings-and-item-routing.zip`
+├── {:icon=档} `连续生产线配置备份（包含全部机器参数、物品过滤与流体路由规则）.json`
+├── `aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.json`
+├── `LV-MV-HV-EV-IV-LuV-ZPM-UV-UHV-UEV-UIV-UMV-UXV-complete-progression-checklist.md`
+├── [资源包目录与指南编写说明](./index.md)
+└── `最后一个超长文件名用于检查多行内容下方的末端分支是否正确结束.md`
+</FileTree>
+
 ## 函数图
 
 <Function expr="x^2 - 2x + 1" xRange="-2..4" yRange="-1..5" color="#3399ff" />

@@ -32,7 +32,11 @@ public class CartesianChartRenderer {
                     maxLabel = w;
                 }
             }
-            left = Math.max(left, maxLabel + 6);
+            // Leave room for fractional cursor values as well as the regular ticks.
+            double offset = (yRange.max - yRange.min) * 0.0001;
+            maxLabel = Math.max(maxLabel, context.getStringWidth(yAxis.formatTick(yRange.min + offset), style));
+            maxLabel = Math.max(maxLabel, context.getStringWidth(yAxis.formatTick(yRange.max - offset), style));
+            left = Math.max(left, maxLabel + 10);
             // Y-axis title is drawn horizontally above the plot's top-left corner; reserve a row.
             if (yAxis.getLabel() != null && !yAxis.getLabel()
                 .isEmpty()) {
@@ -79,6 +83,105 @@ public class CartesianChartRenderer {
         return (float) (plotRect.bottom() - t * plotRect.height());
     }
 
+    public static void drawGridLine(RenderContext context, float x1, float y1, float x2, float y2, int color) {
+        int alpha = Math.round((color >>> 24) * 0.55f);
+        int faintColor = (color & 0x00FFFFFF) | (alpha << 24);
+        float length = (float) Math.hypot(x2 - x1, y2 - y1);
+        for (float offset = 0; offset < length; offset += 10) {
+            float start = offset / length;
+            float end = Math.min(offset + 1, length) / length;
+            context.drawLine(
+                x1 + (x2 - x1) * start,
+                y1 + (y2 - y1) * start,
+                x1 + (x2 - x1) * end,
+                y1 + (y2 - y1) * end,
+                1f,
+                faintColor);
+        }
+    }
+
+    public static void drawHoverCursor(RenderContext context, LytRect plot, ChartAxisOptions axis, AxisRange range,
+        float mouseX, float mouseY) {
+        if (!Float.isFinite(mouseX) || !Float.isFinite(mouseY)
+            || plot.isEmpty()
+            || mouseX < plot.x()
+            || mouseX > plot.right()
+            || mouseY < plot.y()
+            || mouseY > plot.bottom()) return;
+        int accent = 0xFFF2C14E;
+        for (int x = plot.x(); x < plot.right(); x += 7) {
+            context.drawLine(x, mouseY, Math.min(x + 4, plot.right()), mouseY, 1f, accent);
+        }
+        double value = range.max - (mouseY - plot.y()) / plot.height() * (range.max - range.min);
+        String label = axis.formatTick(value);
+        ResolvedTextStyle style = LytChartBase.textStyle(0xFF161A22);
+        int textWidth = context.getStringWidth(label, style);
+        int lineHeight = context.getLineHeight(style);
+        int right = plot.x() - 1;
+        int top = Math.round(mouseY) - lineHeight / 2 - 2;
+        context.fillRect(new LytRect(right - textWidth - 8, top, textWidth + 8, lineHeight + 4), accent);
+        context.drawText(label, right - textWidth - 4, top + 2, style);
+    }
+
+    public static void drawReferenceLines(RenderContext context, LytRect plotRect, ChartAxisOptions axis,
+        AxisRange range) {
+        for (ChartReferenceLine line : axis.getReferenceLines()) {
+            if (line.y() < range.min || line.y() > range.max) continue;
+            float y = mapY(line.y(), range, plotRect);
+            for (int x = plotRect.x(); x < plotRect.right(); x += 7) {
+                context.drawLine(x, y, Math.min(x + 4, plotRect.right()), y, 1f, line.color());
+            }
+            String label = line.label();
+            if (label.isEmpty()) continue;
+            ResolvedTextStyle style = LytChartBase.textStyle(line.color());
+            int labelY = (int) y - context.getLineHeight(style) / 2;
+            context.drawText(label, plotRect.x() - context.getStringWidth(label, style) - 4, labelY, style);
+        }
+    }
+
+    public static void drawVerticalHoverCursor(RenderContext context, LytRect plot, ChartAxisOptions axis,
+        AxisRange range, float mouseX, float mouseY) {
+        if (!Float.isFinite(mouseX) || !Float.isFinite(mouseY)
+            || plot.isEmpty()
+            || mouseX < plot.x()
+            || mouseX > plot.right()
+            || mouseY < plot.y()
+            || mouseY > plot.bottom()) return;
+        int accent = 0xFFF2C14E;
+        for (int y = plot.y(); y < plot.bottom(); y += 7) {
+            context.drawLine(mouseX, y, mouseX, Math.min(y + 4, plot.bottom()), 1f, accent);
+        }
+        double value = range.min + (mouseX - plot.x()) / plot.width() * (range.max - range.min);
+        String label = axis.formatTick(value);
+        ResolvedTextStyle style = LytChartBase.textStyle(0xFF161A22);
+        int textWidth = context.getStringWidth(label, style);
+        int lineHeight = context.getLineHeight(style);
+        int left = Math.round(mouseX) - textWidth / 2 - 4;
+        left = Math.max(plot.x() - 4, Math.min(plot.right() - textWidth - 4, left));
+        int top = plot.bottom() + 1;
+        context.fillRect(new LytRect(left, top, textWidth + 8, lineHeight + 4), accent);
+        context.drawText(label, left + 4, top + 2, style);
+    }
+
+    public static void drawVerticalReferenceLines(RenderContext context, LytRect plot, ChartAxisOptions axis,
+        AxisRange range) {
+        for (ChartReferenceLine line : axis.getReferenceLines()) {
+            if (line.y() < range.min || line.y() > range.max) continue;
+            float x = mapX(line.y(), range, plot);
+            for (int y = plot.y(); y < plot.bottom(); y += 7) {
+                context.drawLine(x, y, x, Math.min(y + 4, plot.bottom()), 1f, line.color());
+            }
+            if (line.label()
+                .isEmpty()) continue;
+            ResolvedTextStyle style = LytChartBase.textStyle(line.color());
+            context.drawText(
+                line.label(),
+                Math.round(x) - context.getStringWidth(line.label(), style) / 2,
+                plot.bottom() + 3,
+                style);
+        }
+    }
+
     /**
      * Render axes + grid lines + tick text inside plotRect.
      */
@@ -92,7 +195,7 @@ public class CartesianChartRenderer {
             for (double t = yRange.min; t <= yRange.max + 1e-9; t += yRange.step) {
                 float y = mapY(t, yRange, plotRect);
                 if (yAxis.isGridVisible()) {
-                    context.drawLine(plotRect.x(), y, plotRect.right(), y, 1f, yAxis.getGridColor());
+                    drawGridLine(context, plotRect.x(), y, plotRect.right(), y, yAxis.getGridColor());
                 }
                 String s = yAxis.formatTick(t);
                 int sw = context.getStringWidth(s, yLabelStyle);
@@ -107,7 +210,7 @@ public class CartesianChartRenderer {
             for (double t = xRange.min; t <= xRange.max + 1e-9; t += xRange.step) {
                 float x = mapX(t, xRange, plotRect);
                 if (xAxis.isGridVisible()) {
-                    context.drawLine(x, plotRect.y(), x, plotRect.bottom(), 1f, xAxis.getGridColor());
+                    drawGridLine(context, x, plotRect.y(), x, plotRect.bottom(), xAxis.getGridColor());
                 }
                 String s = xAxis.formatTick(t);
                 int sw = context.getStringWidth(s, xLabelStyle);
@@ -123,6 +226,9 @@ public class CartesianChartRenderer {
                 String label = xCategories[i] != null ? xCategories[i] : "";
                 int sw = context.getStringWidth(label, xLabelStyle);
                 float cx = plotRect.x() + step * (i + 0.5f);
+                if (xAxis.isGridVisible()) {
+                    drawGridLine(context, cx, plotRect.y(), cx, plotRect.bottom(), xAxis.getGridColor());
+                }
                 int tx = (int) cx - sw / 2;
                 context.drawText(label, tx, plotRect.bottom() + 3, xLabelStyle);
             }

@@ -493,6 +493,12 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
             AttributeSyntax.of("iconImage", SyntaxValueKind.FILE_PATH),
             AttributeSyntax.of("tooltip", SyntaxValueKind.STRING));
         sink.attributes(
+            "ReferenceLine",
+            AttributeSyntax.of("x", SyntaxValueKind.FLOAT),
+            AttributeSyntax.of("y", SyntaxValueKind.FLOAT),
+            AttributeSyntax.of("label", SyntaxValueKind.STRING),
+            AttributeSyntax.of("color", SyntaxValueKind.COLOR));
+        sink.attributes(
             "LineSeries",
             AttributeSyntax.of("name", SyntaxValueKind.STRING),
             AttributeSyntax.of("data", SyntaxValueKind.STRING),
@@ -1418,10 +1424,10 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
             "OutlineAnnotation",
             "TextAnnotation",
             "BlockAnnotationTemplate");
-        sink.children("BarChart", "Series", "LineSeries", "PieInset");
-        sink.children("ColumnChart", "Series", "LineSeries", "PieInset");
-        sink.children("LineChart", "Series", "LineSeries", "PieInset");
-        sink.children("ScatterChart", "Series", "LineSeries", "PieInset");
+        sink.children("BarChart", "Series", "LineSeries", "PieInset", "ReferenceLine");
+        sink.children("ColumnChart", "Series", "LineSeries", "PieInset", "ReferenceLine");
+        sink.children("LineChart", "Series", "LineSeries", "PieInset", "ReferenceLine");
+        sink.children("ScatterChart", "Series", "LineSeries", "PieInset", "ReferenceLine");
         sink.children("PieChart", "Slice", "PieInset");
         sink.children("PieInset", "Slice");
         sink.children("FunctionGraph", "Plot", "Point", "Function");
