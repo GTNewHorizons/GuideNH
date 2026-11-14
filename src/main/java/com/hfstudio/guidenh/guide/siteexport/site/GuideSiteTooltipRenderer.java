@@ -92,7 +92,6 @@ import com.hfstudio.guidenh.guide.document.interaction.ItemTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.ItemTooltipAppender;
 import com.hfstudio.guidenh.guide.document.interaction.TextTooltip;
 import com.hfstudio.guidenh.guide.internal.item.GuideDisplayItemStacks;
-import com.hfstudio.guidenh.guide.internal.markdown.FileTreeParser.SlotKind;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidDiagramType;
 import com.hfstudio.guidenh.guide.internal.mermaid.flowchart.FlowchartParser;
 import com.hfstudio.guidenh.guide.internal.mermaid.mindmap.MindmapParser;
@@ -933,12 +932,23 @@ public class GuideSiteTooltipRenderer {
     private void appendFileTree(StringBuilder html, LytFileTree fileTree, @Nullable ResourceLocation currentPageId,
         @Nullable GuideSitePageAssetExporter assetExporter, GuideSiteItemIconResolver itemIconResolver,
         @Nullable GuideSiteTemplateRegistry templates, boolean allowNestedItemTooltips) {
-        html.append("<div class=\"guide-file-tree\">");
+        html.append("<div class=\"guide-file-tree\" style=\"--tree-max-depth:")
+            .append(
+                Math.max(
+                    1,
+                    fileTree.getRows()
+                        .stream()
+                        .mapToInt(
+                            row -> row.getSlots()
+                                .size())
+                        .max()
+                        .orElse(1)))
+            .append(";--tree-indent:")
+            .append(fileTree.getIndentPx())
+            .append("px\">");
         for (LytFileTree.Row row : fileTree.getRows()) {
             html.append("<div class=\"guide-file-tree-row\">");
-            html.append("<span class=\"guide-file-tree-prefix\">")
-                .append(escapeHtml(fileTreePrefix(row.getSlots())))
-                .append("</span>");
+            html.append(GuideSiteGraphRenderer.renderFileTreePrefix(row.getSlots()));
             if (row.getIconBlock() != null) {
                 html.append("<span class=\"guide-file-tree-icon\">");
                 appendBlock(
@@ -964,19 +974,6 @@ public class GuideSiteTooltipRenderer {
             html.append("</div>");
         }
         html.append("</div>");
-    }
-
-    private String fileTreePrefix(List<SlotKind> slots) {
-        StringBuilder prefix = new StringBuilder();
-        for (SlotKind slot : slots) {
-            switch (slot) {
-                case VERTICAL -> prefix.append("|   ");
-                case BRANCH -> prefix.append("|-- ");
-                case LAST_BRANCH -> prefix.append("`-- ");
-                case EMPTY -> prefix.append("    ");
-            }
-        }
-        return prefix.toString();
     }
 
     private void appendGuiSprite(StringBuilder html, LytGuiSprite sprite,
@@ -1206,7 +1203,8 @@ public class GuideSiteTooltipRenderer {
         return GuideSiteGraphRenderer.renderBarChart(
             chartStyle(chart, chart.getXAxis(), chart.getYAxis(), chart.getBarWidthRatio(), -90f, true),
             categories(chart.getCategories()),
-            seriesData(chart.getSeries()));
+            seriesData(chart.getSeries()),
+            chart.getPieInset() != null ? pieInsetData(chart.getPieInset()) : null);
     }
 
     private String renderLineChart(LytLineChart chart) {

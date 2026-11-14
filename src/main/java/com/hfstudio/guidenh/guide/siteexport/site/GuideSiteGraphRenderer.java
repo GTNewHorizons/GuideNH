@@ -113,31 +113,19 @@ public class GuideSiteGraphRenderer {
     public static String renderFileTree(String source) {
         FileTreeModel model = FileTreeParser.parse(source);
         StringBuilder html = new StringBuilder();
-        html.append("<div class=\"guide-file-tree\">");
+        html.append("<div class=\"guide-file-tree\" style=\"--tree-max-depth:")
+            .append(
+                Math.max(
+                    1,
+                    model.entries()
+                        .stream()
+                        .mapToInt(FileTreeEntry::depth)
+                        .max()
+                        .orElse(1)))
+            .append("\">");
         for (FileTreeEntry entry : model.entries()) {
             html.append("<div class=\"guide-file-tree-row\">");
-            StringBuilder prefix = new StringBuilder();
-            for (SlotKind slot : entry.slots()) {
-                switch (slot) {
-                    case VERTICAL:
-                        prefix.append("│   ");
-                        break;
-                    case BRANCH:
-                        prefix.append("├── ");
-                        break;
-                    case LAST_BRANCH:
-                        prefix.append("└── ");
-                        break;
-                    default:
-                        prefix.append("    ");
-                        break;
-                }
-            }
-            if (!prefix.isEmpty()) {
-                html.append("<span class=\"guide-file-tree-prefix\">")
-                    .append(esc(prefix.toString()))
-                    .append("</span>");
-            }
+            html.append(renderFileTreePrefix(entry.slots()));
             FileTreeIcon icon = entry.icon();
             if (icon != null && icon.kind() == FileTreeIconKind.TEXT) {
                 html.append("<span class=\"guide-file-tree-icon\">")
@@ -151,6 +139,23 @@ public class GuideSiteGraphRenderer {
         }
         html.append("</div>");
         return html.toString();
+    }
+
+    public static String renderFileTreePrefix(List<SlotKind> slots) {
+        StringBuilder html = new StringBuilder("<span class=\"guide-file-tree-prefix\" aria-hidden=\"true\">");
+        for (SlotKind slot : slots) {
+            String kind = switch (slot) {
+                case VERTICAL -> "vertical";
+                case BRANCH -> "branch";
+                case LAST_BRANCH -> "last-branch";
+                case EMPTY -> "empty";
+            };
+            html.append("<span class=\"guide-file-tree-slot guide-file-tree-slot-")
+                .append(kind)
+                .append("\"></span>");
+        }
+        return html.append("</span>")
+            .toString();
     }
 
     public static String renderMermaidTree(MindmapDocument doc) {
@@ -571,7 +576,7 @@ public class GuideSiteGraphRenderer {
         StringBuilder svg = openSvg(w, h, "guide-chart", bgColor, borderColor);
         appendTitle(svg, title, w, style.titleColor());
         appendYGridAndLabels(svg, left, right, top, bottom, plotH, yMin, yMax, yAxis);
-        appendCategoryXLabels(svg, categories, left, clusterW, bottom);
+        appendCategoryXLabels(svg, categories, left, clusterW, top, bottom, style.xAxisOrDefault());
 
         // Y-axis unit label (e.g. "(t)" above Y axis)
         if (yAxisUnit != null && !yAxisUnit.isEmpty()) {
@@ -696,6 +701,22 @@ public class GuideSiteGraphRenderer {
             }
         }
 
+        appendCursorDomain(svg, left, right, top, bottom, yMin, yMax, yAxis);
+        appendReferenceLines(svg, left, right, top, bottom, yMin, yMax, yAxis);
+
+        appendPieInset(svg, pieInset, w, bgColor, left, right, top, bottom, plotH);
+
+        appendYAxis(svg, left, top, bottom);
+        appendXAxis(svg, left, right, bottom);
+        if (legend.width() > 0) {
+            renderLegend(svg, series, legend.x(), legend.y(), legend.width(), legend.limit(), legend.cols());
+        }
+        return svg.append("</svg></div>")
+            .toString();
+    }
+
+    private static void appendPieInset(StringBuilder svg, @Nullable PieInsetData pieInset, int w, int bgColor, int left,
+        int right, int top, int bottom, int plotH) {
         // Pie inset overlay
         if (pieInset != null && !pieInset.slices.isEmpty()) {
             double total = 0;
@@ -747,7 +768,7 @@ public class GuideSiteGraphRenderer {
                 double y2 = pcy + pr * Math.sin(ea);
                 int la = sweep > Math.PI ? 1 : 0;
                 double pct = (sl.value / total) * 100.0;
-                svg.append("<path class=\"guide-chart-shape\" d=\"M ")
+                svg.append("<path class=\"guide-chart-shape guide-chart-pie-slice\" d=\"M ")
                     .append(pcx)
                     .append(" ")
                     .append(pcy)
@@ -794,13 +815,6 @@ public class GuideSiteGraphRenderer {
             }
         }
 
-        appendYAxis(svg, left, top, bottom);
-        appendXAxis(svg, left, right, bottom);
-        if (legend.width() > 0) {
-            renderLegend(svg, series, legend.x(), legend.y(), legend.width(), legend.limit(), legend.cols());
-        }
-        return svg.append("</svg></div>")
-            .toString();
     }
 
     private static boolean isPieInsetRightOutside(@Nullable String position) {
@@ -831,6 +845,11 @@ public class GuideSiteGraphRenderer {
     }
 
     public static String renderBarChart(ChartStyle style, String[] categories, List<SeriesData> series) {
+        return renderBarChart(style, categories, series, null);
+    }
+
+    public static String renderBarChart(ChartStyle style, String[] categories, List<SeriesData> series,
+        @Nullable PieInsetData pieInset) {
         int w = style.layoutWidth();
         int h = style.layoutHeight();
         String title = style.title();
@@ -878,7 +897,8 @@ public class GuideSiteGraphRenderer {
             style,
             seriesNames(series),
             PADDING + 36,
-            w - PADDING,
+            w - PADDING
+                - (pieInset != null && isPieInsetRightOutside(pieInset.position) ? pieInset.size + PIE_OUTSIDE_GAP : 0),
             titleBottom,
             h - PADDING - AXIS_PAD_BOTTOM);
         int left = legend.left();
@@ -905,17 +925,7 @@ public class GuideSiteGraphRenderer {
             double xv = xMin + gi * (xMax - xMin) / nGridX;
             int gx = left + (int) Math.round((xv - xMin) / (xMax - xMin) * plotW);
             if (barValueAxis.gridVisible()) {
-                svg.append("<line x1=\"")
-                    .append(gx)
-                    .append("\" y1=\"")
-                    .append(top)
-                    .append("\" x2=\"")
-                    .append(gx)
-                    .append("\" y2=\"")
-                    .append(bottom)
-                    .append("\" stroke=\"")
-                    .append(argbToRgba(barValueAxis.gridColor()))
-                    .append("\" stroke-width=\"1\"/>");
+                appendGridLine(svg, gx, top, gx, bottom, barValueAxis.gridColor());
             }
             svg.append("<text x=\"")
                 .append(gx)
@@ -930,6 +940,17 @@ public class GuideSiteGraphRenderer {
         // Category labels on left (Y axis)
         for (int ci = 0; ci < categories.length; ci++) {
             int cy = top + (int) Math.round((ci + 0.5) * rowH);
+            if (style.yAxisOrDefault()
+                .gridVisible()) {
+                appendGridLine(
+                    svg,
+                    left,
+                    cy,
+                    right,
+                    cy,
+                    style.yAxisOrDefault()
+                        .gridColor());
+            }
             svg.append("<text x=\"")
                 .append(left - 4)
                 .append("\" y=\"")
@@ -994,6 +1015,10 @@ public class GuideSiteGraphRenderer {
                 }
             }
         }
+
+        appendCursorDomain(svg, left, right, top, bottom, xMin, xMax, barValueAxis, true);
+        appendReferenceLines(svg, left, right, top, bottom, xMin, xMax, barValueAxis, true);
+        appendPieInset(svg, pieInset, w, bgColor, left, right, top, bottom, plotH);
 
         // Axis lines
         svg.append("<line x1=\"")
@@ -1145,17 +1170,7 @@ public class GuideSiteGraphRenderer {
                 continue;
             }
             if (lineYAxis.gridVisible()) {
-                svg.append("<line x1=\"")
-                    .append(left)
-                    .append("\" y1=\"")
-                    .append(gy)
-                    .append("\" x2=\"")
-                    .append(right)
-                    .append("\" y2=\"")
-                    .append(gy)
-                    .append("\" stroke=\"")
-                    .append(argbToRgba(lineYAxis.gridColor()))
-                    .append("\" stroke-width=\"1\"/>");
+                appendGridLine(svg, left, gy, right, gy, lineYAxis.gridColor());
             }
             svg.append("<text x=\"")
                 .append(left - 3)
@@ -1170,6 +1185,17 @@ public class GuideSiteGraphRenderer {
         if (!numericX) {
             for (int ci = 0; ci < maxIdx && ci < categories.length; ci++) {
                 int cx = left + (int) Math.round((double) ci / Math.max(1, maxIdx - 1) * plotW);
+                if (style.xAxisOrDefault()
+                    .gridVisible()) {
+                    appendGridLine(
+                        svg,
+                        cx,
+                        top,
+                        cx,
+                        bottom,
+                        style.xAxisOrDefault()
+                            .gridColor());
+                }
                 svg.append("<text x=\"")
                     .append(cx)
                     .append("\" y=\"")
@@ -1185,15 +1211,17 @@ public class GuideSiteGraphRenderer {
                 if (gx < left - 2 || gx > right + 2) {
                     continue;
                 }
-                svg.append("<line x1=\"")
-                    .append(gx)
-                    .append("\" y1=\"")
-                    .append(top)
-                    .append("\" x2=\"")
-                    .append(gx)
-                    .append("\" y2=\"")
-                    .append(bottom)
-                    .append("\" stroke=\"#3A4047\" stroke-width=\"1\"/>");
+                if (style.xAxisOrDefault()
+                    .gridVisible()) {
+                    appendGridLine(
+                        svg,
+                        gx,
+                        top,
+                        gx,
+                        bottom,
+                        style.xAxisOrDefault()
+                            .gridColor());
+                }
                 svg.append("<text x=\"")
                     .append(gx)
                     .append("\" y=\"")
@@ -1269,6 +1297,8 @@ public class GuideSiteGraphRenderer {
             }
         }
 
+        appendCursorDomain(svg, left, right, top, bottom, yMin, yMax, lineYAxis);
+        appendReferenceLines(svg, left, right, top, bottom, yMin, yMax, lineYAxis);
         appendYAxis(svg, left, top, bottom);
         appendXAxis(svg, left, right, bottom);
         renderChartCornerLegend(
@@ -1536,17 +1566,7 @@ public class GuideSiteGraphRenderer {
                 continue;
             }
             if (scatterXAxis.gridVisible()) {
-                svg.append("<line x1=\"")
-                    .append(gx)
-                    .append("\" y1=\"")
-                    .append(top)
-                    .append("\" x2=\"")
-                    .append(gx)
-                    .append("\" y2=\"")
-                    .append(bottom)
-                    .append("\" stroke=\"")
-                    .append(argbToRgba(scatterXAxis.gridColor()))
-                    .append("\" stroke-width=\"1\"/>");
+                appendGridLine(svg, gx, top, gx, bottom, scatterXAxis.gridColor());
             }
             svg.append("<text x=\"")
                 .append(gx)
@@ -1602,6 +1622,8 @@ public class GuideSiteGraphRenderer {
             }
         }
 
+        appendCursorDomain(svg, left, right, top, bottom, yMin, yMax, scatterYAxis);
+        appendReferenceLines(svg, left, right, top, bottom, yMin, yMax, scatterYAxis);
         appendYAxis(svg, left, top, bottom);
         appendXAxis(svg, left, right, bottom);
         renderChartCornerLegend(
@@ -2700,17 +2722,7 @@ public class GuideSiteGraphRenderer {
                 continue;
             }
             if (axis.gridVisible()) {
-                svg.append("<line x1=\"")
-                    .append(left)
-                    .append("\" y1=\"")
-                    .append(gy)
-                    .append("\" x2=\"")
-                    .append(right)
-                    .append("\" y2=\"")
-                    .append(gy)
-                    .append("\" stroke=\"")
-                    .append(argbToRgba(axis.gridColor()))
-                    .append("\" stroke-width=\"1\"/>");
+                appendGridLine(svg, left, gy, right, gy, axis.gridColor());
             }
             svg.append("<text x=\"")
                 .append(left - 3)
@@ -2722,16 +2734,109 @@ public class GuideSiteGraphRenderer {
         }
     }
 
+    private static void appendGridLine(StringBuilder svg, double x1, double y1, double x2, double y2, int color) {
+        svg.append("<line class=\"guide-chart-grid\" x1=\"")
+            .append(fmtD(x1))
+            .append("\" y1=\"")
+            .append(fmtD(y1))
+            .append("\" x2=\"")
+            .append(fmtD(x2))
+            .append("\" y2=\"")
+            .append(fmtD(y2))
+            .append("\" stroke=\"")
+            .append(argbToRgba(color))
+            .append("\" stroke-width=\"1\" stroke-dasharray=\"1 9\" stroke-opacity=\"0.55\"/>");
+    }
+
     private static void appendCategoryXLabels(StringBuilder svg, String[] categories, int left, double clusterW,
-        int bottom) {
+        int top, int bottom, SiteChartAxis axis) {
         for (int ci = 0; ci < categories.length; ci++) {
             int cx = left + (int) Math.round((ci + 0.5) * clusterW);
+            if (axis.gridVisible()) {
+                appendGridLine(svg, cx, top, cx, bottom, axis.gridColor());
+            }
             svg.append("<text x=\"")
                 .append(cx)
                 .append("\" y=\"")
                 .append(bottom + 10)
                 .append("\" text-anchor=\"middle\" font-size=\"8\" fill=\"#B8C2CF\" font-family=\"inherit\">")
                 .append(esc(categories[ci]))
+                .append("</text>");
+        }
+    }
+
+    private static void appendCursorDomain(StringBuilder svg, int left, int right, int top, int bottom, double min,
+        double max, SiteChartAxis axis) {
+        appendCursorDomain(svg, left, right, top, bottom, min, max, axis, false);
+    }
+
+    private static void appendCursorDomain(StringBuilder svg, int left, int right, int top, int bottom, double min,
+        double max, SiteChartAxis axis, boolean vertical) {
+        String coordinate = vertical ? "x" : "y";
+        svg.append("<metadata data-chart-cursor-domain data-plot-left=\"")
+            .append(left)
+            .append("\" data-plot-right=\"")
+            .append(right)
+            .append("\" data-plot-top=\"")
+            .append(top)
+            .append("\" data-plot-bottom=\"")
+            .append(bottom)
+            .append("\" data-cursor-orientation=\"")
+            .append(vertical ? "vertical" : "horizontal")
+            .append("\" data-")
+            .append(coordinate)
+            .append("-min=\"")
+            .append(min)
+            .append("\" data-")
+            .append(coordinate)
+            .append("-max=\"")
+            .append(max)
+            .append("\" data-")
+            .append(coordinate)
+            .append("-unit=\"")
+            .append(esc(axis.unit() == null ? "" : axis.unit()))
+            .append("\" data-")
+            .append(coordinate)
+            .append("-format=\"")
+            .append(esc(axis.tickFormat() == null ? "" : axis.tickFormat()))
+            .append("\"/>");
+    }
+
+    private static void appendReferenceLines(StringBuilder svg, int left, int right, int top, int bottom, double min,
+        double max, SiteChartAxis axis) {
+        appendReferenceLines(svg, left, right, top, bottom, min, max, axis, false);
+    }
+
+    private static void appendReferenceLines(StringBuilder svg, int left, int right, int top, int bottom, double min,
+        double max, SiteChartAxis axis, boolean vertical) {
+        for (var line : axis.referenceLines()) {
+            if (line.y() < min || line.y() > max) continue;
+            double y = bottom - (line.y() - min) / (max - min) * (bottom - top);
+            double x = left + (line.y() - min) / (max - min) * (right - left);
+            String color = argbToRgba(line.color());
+            svg.append("<line class=\"guide-chart-reference\" x1=\"")
+                .append(fmtD(vertical ? x : left))
+                .append("\" y1=\"")
+                .append(fmtD(vertical ? top : y))
+                .append("\" x2=\"")
+                .append(fmtD(vertical ? x : right))
+                .append("\" y2=\"")
+                .append(fmtD(vertical ? bottom : y))
+                .append("\" stroke=\"")
+                .append(color)
+                .append("\" stroke-width=\"1\" stroke-dasharray=\"4 3\"/>");
+            if (line.label()
+                .isEmpty()) continue;
+            svg.append("<text class=\"guide-chart-reference-label\" x=\"")
+                .append(fmtD(vertical ? x : left - 4))
+                .append("\" y=\"")
+                .append(fmtD(vertical ? bottom + 10 : y + 4))
+                .append("\" text-anchor=\"")
+                .append(vertical ? "middle" : "end")
+                .append("\" font-size=\"8\" fill=\"")
+                .append(color)
+                .append("\">")
+                .append(esc(line.label()))
                 .append("</text>");
         }
     }

@@ -2143,6 +2143,8 @@ p {
 }
 
 .guide-file-tree {
+    container-type: inline-size;
+    --tree-indent: 14px;
     display: flow-root;
     background: rgb(27, 31, 35);
     border: 1px solid rgb(58, 64, 71);
@@ -2155,20 +2157,58 @@ p {
 }
 
 .guide-file-tree-row {
-    white-space: nowrap;
+    display: flex;
+    align-items: flex-start;
 }
 
 .guide-file-tree-prefix {
+    display: flex;
+    align-self: stretch;
+    flex: 0 0 auto;
     color: rgb(90, 100, 108);
 }
 
+.guide-file-tree-slot {
+    position: relative;
+    width: min(var(--tree-indent), calc(45cqw / var(--tree-max-depth)));
+}
+
+.guide-file-tree-slot:not(.guide-file-tree-slot-empty)::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 0;
+    bottom: 0;
+    border-left: 1px solid;
+}
+
+.guide-file-tree-slot-last-branch::before { height: .8em; }
+.guide-file-tree-slot-branch::after, .guide-file-tree-slot-last-branch::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    right: 0;
+    top: .8em;
+    border-top: 1px solid;
+}
+
 .guide-file-tree-icon {
+    flex: 0 0 auto;
     color: rgb(210, 210, 210);
     margin-right: 2px;
 }
 
 .guide-file-tree-name {
+    flex: 1;
+    min-width: 0;
+    white-space: normal;
+    overflow-wrap: anywhere;
     color: rgb(210, 210, 210);
+}
+
+.guide-file-tree-name code, .guide-file-tree-name a {
+    white-space: normal;
+    overflow-wrap: anywhere;
 }
 
 .guide-details {

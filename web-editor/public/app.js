@@ -5,6 +5,7 @@ import { zipToFiles } from "./modules/zip-reader.js";
 import { browserLanguages, collectProjectLanguages, detectLanguage, languageLabel, localizedPagePath, normalizeLanguage, preferredUiLanguage, projectLanguageFor, translatedString, uiLanguageFor, UI_LANGUAGES } from "./modules/language.js";
 import { createSyntaxReference } from "./modules/syntax-reference.js";
 import { createScrollSync } from "./modules/scroll-sync.js";
+import { installChartCursors } from "./modules/chart-cursor.js";
 
 const savedSiteLanguage = localStorage.getItem("guidenh-site-language");
 const state = { project: null, filter: "", dirty: false, saveTimer: null, collapsedTreePaths: new Set(), selectedDirectory: "", theme: localStorage.getItem("guidenh-theme") || "dark", syncScroll: localStorage.getItem("guidenh-sync-scroll") === "true", locale: localStorage.getItem("guidenh-locale") ? uiLanguageFor(localStorage.getItem("guidenh-locale")) : preferredUiLanguage(browserLanguages()), siteLanguage: normalizeLanguage(savedSiteLanguage || browserLanguages()[0]) };
@@ -381,6 +382,7 @@ function installRichTooltipInteractions() {
 }
 
 function installPreviewInteractions() {
+  installChartCursors(elements.preview);
   installRichTooltipInteractions();
   for (const tabs of elements.preview.querySelectorAll("[data-guide-tabs]")) {
     for (const button of tabs.querySelectorAll("[data-guide-tab]")) button.addEventListener("click", () => {

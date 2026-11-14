@@ -194,6 +194,8 @@ Water is H<sub>2</sub>O and x<sup>2</sup> is a square.
 
 渲染目录树式大纲，并依据每行前缀符号绘制真实的连接线。前缀同时支持 Unicode 框线（`│ ├ └ ─`）与 ASCII 形式（`| +-- \-- ` / 4 个空格），可任意混用。每行的文本部分支持常规行内 Markdown（链接、**加粗**、`代码` 等），这些链接在游戏内和内置站点导出中都可以点击。等价语法是 ` ```tree ` / ` ```filetree ` 围栏代码块。
 
+窄栏中会自动压缩层级缩进，为文本保留可读宽度。长路径优先在 `/`、`\`、`_`、`-` 后换行，过长文件名可在字符间换行；续行与文件名起点对齐，图标及分支连接首行。
+
 ````md
 <FileTree indent="14" gap="0">
 project
@@ -703,11 +705,18 @@ $$\begin{pmatrix} a & b \\ c & d \end{pmatrix}$$
 
 笛卡尔系图表（柱形/条形/折线/散点）支持坐标轴属性 `xAxisLabel`、`xAxisMin`、`xAxisMax`、`xAxisStep`、`xAxisUnit`、`xAxisTickFormat`，以及对应的 `yAxis*`，外加 `showXGrid={true}` 与 `showYGrid={true}` 控制网格线。
 
+刻度网格在横、竖方向使用淡而稀疏的虚线（短线段与大间隔），与坐标刻度对齐；两轴网格可分别关闭。
+
+`<ColumnChart>`、`<LineChart>` 和 `<ScatterChart>` 在鼠标进入绘图区后自动显示水平辅助虚线，随鼠标的高度移动，并在左侧坐标轴以金色底高亮当前数值和单位。虚线上不放文字；空白处也生效，移出绘图区后隐藏，无需添加子标签。
+
+`<BarChart>` 的数值轴为 X 轴，因此使用竖向金色跟随虚线，随鼠标左右移动，仅在底部坐标轴高亮数值与单位。横、竖刻度网格仍使用淡而稀疏的虚线。
+
 子元素：
 
 * `<Series name="..." color="#..." data="10,20,30"/>` — 用于按类别取值的图表（柱形/条形/类别 X 折线）。
 * `<Series name="..." color="#..." points="x:y,x:y,..."/>` — 用于数值 X（折线 `numericX={true}`、散点）。
 * `<Slice name="..." value="..." color="#..."/>` — 仅 `<PieChart>` 使用。
+* `<ReferenceLine y="100"/>` — 在 `<ColumnChart>`、`<LineChart>`、`<ScatterChart>` 的指定 Y 值绘制固定水平虚线；`<BarChart>` 使用 `<ReferenceLine x="100"/>` 绘制固定竖线，也兼容 `y` 写法。默认使用半透明灰色，与金色鼠标线区分。可添加多条，也可用 `color` 自定义颜色；默认不添加文字，可选 `label` 仅显示在对应数值轴外。参考线独立于网格开关，不扩展自动坐标范围，范围外不显示；饼图不支持此标签。
 
 未指定 `color` 时按内置 16 色调色板循环分配。
 
@@ -736,6 +745,8 @@ $$\begin{pmatrix} a & b \\ c & d \end{pmatrix}$$
 
 - `<LineSeries name="…" data="v1,v2,…" color="#rrggbb" icon="…"/>` — 在柱簇上方再叠加一条折线。每个折点位于对应类别簇中心，与宿主图共享数值轴；可同时声明多条 `<LineSeries>`。
 - `<PieInset size="60" position="topRight" title="…" startAngleDeg="-90" direction="clockwise" titleColor="#rrggbb">` — 在绘图区四角之一（`topRight`/`topLeft`/`bottomRight`/`bottomLeft`）绘制小型饼图，内部 `<Slice>` 子元素与 `<PieChart>` 一致。
+
+混合图表中的 `PieInset` 支持独立扇区悬停：显示名称、数值、占比及 `tooltip` 附加说明，有物品图标时保留物品提示。扇区识别优先于底层柱条和折线；悬停饼图时隐藏主图的鼠标辅助线。
 
 ```mdx
 <ColumnChart title="季度产量" categories="Q1,Q2,Q3,Q4">

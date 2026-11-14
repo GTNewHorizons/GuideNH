@@ -39,6 +39,7 @@ public class ColumnChartCompiler extends BlockTagCompiler {
         chart.setBarWidthRatio(ratio);
 
         List<? extends MdAstAnyContent> children = ChartChildParser.childElements(compiler, el);
+        yAxis.setReferenceLines(ChartChildParser.parseReferenceLines(compiler, parent, children));
         chart.setSeries(ChartChildParser.parseValueSeries(compiler, parent, children));
         chart.setLineOverlays(ChartChildParser.parseLineOverlays(compiler, parent, children));
         chart.setPieInset(ChartChildParser.parsePieInset(compiler, parent, children));

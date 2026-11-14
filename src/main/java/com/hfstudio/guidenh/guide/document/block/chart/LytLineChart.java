@@ -221,6 +221,8 @@ public class LytLineChart extends LytChartBase {
                 }
             }
         }
+        CartesianChartRenderer.drawReferenceLines(context, inner, yAxis, yRange);
+        drawHoverCursor(context, inner, yAxis, yRange);
     }
 
     private static float[] computeOutwardNormal(float[] xs, float[] ys, int i, int n) {
