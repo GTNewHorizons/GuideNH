@@ -475,6 +475,9 @@ public class GuideSiteSceneAnnotationSerializer {
             data.put("modifier", modifier.trim());
         }
         ItemStack itemStack = inputAnnotation.getItemStack();
+        var fluid = inputAnnotation.getFluidSpec();
+        if (fluid != null) data
+            .put("fluid", GuideSiteFluidHtml.exportedData(fluid, GuideSiteFluidIconResolver.from(itemIconResolver)));
         if (itemStack != null && itemStack.stackSize > 0) {
             GuideSiteExportedItem exportedItem = GuideSiteItemSupport.export(itemStack, itemIconResolver);
             if (!exportedItem.isEmpty()) {
@@ -525,6 +528,7 @@ public class GuideSiteSceneAnnotationSerializer {
         data.put("itemId", item.itemId());
         data.put("displayName", item.displayName());
         data.put("iconSrc", item.iconSrc());
+        data.put("count", item.count());
         return data;
     }
 

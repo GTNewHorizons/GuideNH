@@ -136,6 +136,7 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
     @Nullable
     private final MediaWikiListContext mediaWikiListContext;
     private final GuideSiteItemIconResolver itemIconResolver;
+    private final GuideSiteFluidTagRenderer fluidTagRenderer;
     @Nullable
     private Map<String, PageAnchor> itemAnchorsByItemId;
     @Nullable
@@ -183,6 +184,9 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         this.assetExportersByGuideId = assetExportersByGuideId;
         this.mediaWikiListContext = mediaWikiListContext;
         this.itemIconResolver = itemIconResolver != null ? itemIconResolver : GuideSiteItemIconResolver.NONE;
+        this.fluidTagRenderer = new GuideSiteFluidTagRenderer(
+            GuideSiteFluidIconResolver.from(this.itemIconResolver),
+            parsedPagesById);
         this.siteTagRenderers = GuideSiteTagRenderers.of(guide);
         // Cached for the same reason as the tag renderers: the export asks for this list once per fence, and
         // resolving it copies the registry each time.
@@ -218,6 +222,10 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             return contributed;
         }
         String name = element.name();
+        String fluidHtml = fluidTagRenderer.render(
+            new GuideSiteTagRenderContext(defaultNamespace, currentPageId, templates, sceneResolver, compiler),
+            element);
+        if (fluidHtml != null) return fluidHtml;
         if ("ItemImage".equals(name)) {
             return renderItemImage(element, defaultNamespace, currentPageId, templates, true);
         }
@@ -830,91 +838,7 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
      * Markdown-style wrapping markers are converted to HTML inline elements.
      */
     private String buildLabelHtml(ItemStack stack, @Nullable String format) {
-        if (format == null) {
-            return "<em>" + escapeHtml(stack.getDisplayName()) + "</em>";
-        }
-        String template = stripFormatMarkersHtml(format);
-        String text = template.contains("%s") ? String.format(template, stack.getDisplayName()) : template;
-        return applyFormatMarkersHtml(format, escapeHtml(text));
-    }
-
-    private String stripFormatMarkersHtml(String s) {
-        boolean changed = true;
-        while (changed) {
-            changed = false;
-            if (isHtmlWrapped(s, "~~")) {
-                s = s.substring(2, s.length() - 2);
-                changed = true;
-            } else if (isHtmlWrapped(s, "**")) {
-                s = s.substring(2, s.length() - 2);
-                changed = true;
-            } else if (isHtmlWrapped(s, "__")) {
-                s = s.substring(2, s.length() - 2);
-                changed = true;
-            } else if (isHtmlWrapped(s, "^^")) {
-                s = s.substring(2, s.length() - 2);
-                changed = true;
-            } else if (isHtmlWrapped(s, "::")) {
-                s = s.substring(2, s.length() - 2);
-                changed = true;
-            } else if (isHtmlWrapped(s, "++")) {
-                s = s.substring(2, s.length() - 2);
-                changed = true;
-            } else if (isHtmlWrapped(s, "*")) {
-                s = s.substring(1, s.length() - 1);
-                changed = true;
-            } else if (isHtmlWrapped(s, "_")) {
-                s = s.substring(1, s.length() - 1);
-                changed = true;
-            }
-        }
-        return s;
-    }
-
-    private String applyFormatMarkersHtml(String format, String escapedText) {
-        StringBuilder open = new StringBuilder();
-        StringBuilder close = new StringBuilder();
-        String s = format;
-        boolean changed = true;
-        while (changed) {
-            changed = false;
-            if (isHtmlWrapped(s, "~~")) {
-                open.insert(0, "<s>");
-                close.append("</s>");
-                s = s.substring(2, s.length() - 2);
-                changed = true;
-            } else if (isHtmlWrapped(s, "**")) {
-                open.insert(0, "<strong>");
-                close.append("</strong>");
-                s = s.substring(2, s.length() - 2);
-                changed = true;
-            } else if (isHtmlWrapped(s, "__") || isHtmlWrapped(s, "++")) {
-                open.insert(0, "<u>");
-                close.append("</u>");
-                s = s.substring(2, s.length() - 2);
-                changed = true;
-            } else if (isHtmlWrapped(s, "^^")) {
-                open.insert(0, "<span style=\"text-decoration:underline wavy\">");
-                close.append("</span>");
-                s = s.substring(2, s.length() - 2);
-                changed = true;
-            } else if (isHtmlWrapped(s, "::")) {
-                open.insert(0, "<span style=\"text-decoration:underline dotted\">");
-                close.append("</span>");
-                s = s.substring(2, s.length() - 2);
-                changed = true;
-            } else if (isHtmlWrapped(s, "*") || isHtmlWrapped(s, "_")) {
-                open.insert(0, "<em>");
-                close.append("</em>");
-                s = s.substring(1, s.length() - 1);
-                changed = true;
-            }
-        }
-        return open + escapedText + close;
-    }
-
-    private static boolean isHtmlWrapped(String s, String marker) {
-        return s.length() > 2 * marker.length() && s.startsWith(marker) && s.endsWith(marker);
+        return GuideSiteLabelFormatter.render(stack.getDisplayName(), format);
     }
 
     private String renderBlockImage(MdxJsxElementFields element, String defaultNamespace,
@@ -1037,6 +961,15 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         html.append("<div class=\"guide-item-grid\">");
         for (var child : element.children()) {
             if (!(child instanceof MdxJsxElementFields itemChild) || !"ItemIcon".equals(itemChild.name())) {
+                if (child instanceof MdxJsxElementFields fluidChild && "FluidIcon".equals(fluidChild.name())) {
+                    try {
+                        html.append("<div class=\"ingredient-box\">")
+                            .append(fluidTagRenderer.renderIcon(fluidChild, templates, currentPageId))
+                            .append("</div>");
+                    } catch (IllegalArgumentException exception) {
+                        html.append(renderError(exception.getMessage()));
+                    }
+                }
                 continue;
             }
             String rawId = readOptional(itemChild, "id");
@@ -1133,6 +1066,14 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         }
         NavigationNode node = navigationTree.getNodeById(target.pageId());
         return GuideSiteHrefResolver.resolvePageAnchor(currentPageId, node != null ? node.guideId() : null, target);
+    }
+
+    public String resolveFluidHref(String fluid, ResourceLocation page) {
+        return fluidTagRenderer.resolveHref(fluid, page);
+    }
+
+    public List<Map<String, String>> resolveFluidTargets(String fluid, ResourceLocation page) {
+        return fluidTagRenderer.resolveTargets(fluid, page);
     }
 
     @Nullable
@@ -3008,6 +2949,10 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
     private void appendGuidePageIcon(StringBuilder html, @Nullable GuidePageIcon icon,
         @Nullable ResourceLocation guideId) {
         if (icon == null) {
+            return;
+        }
+        if (icon.isFluidIcon()) {
+            html.append(GuideSiteFluidHtml.pageIcon(icon, GuideSiteFluidIconResolver.from(itemIconResolver)));
             return;
         }
         if (icon.isItemIcon() && icon.resolveCurrentItemStack() != null) {

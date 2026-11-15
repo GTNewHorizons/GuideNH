@@ -22,7 +22,9 @@
   "navigation": {
     "open": "Nawigacja",
     "close": "Zamknij nawigację",
-    "holdToOpenGuide": "Przytrzymaj G, aby otworzyć poradnik"
+    "holdToOpenGuide": "Przytrzymaj G, aby otworzyć poradnik",
+    "chooseGuide": "Wybierz stronę poradnika",
+    "closeChooser": "Zamknij wybór strony"
   },
   "sceneLoading": {
     "error": "Nie można załadować sceny 3D.",

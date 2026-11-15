@@ -30,7 +30,7 @@ public class GuideSiteItemSupport {
         }
 
         String iconSrc = iconResolver != null ? iconResolver.exportIcon(stack) : "";
-        return new GuideSiteExportedItem(itemId, displayName, iconSrc);
+        return new GuideSiteExportedItem(itemId, displayName, iconSrc, stack.stackSize, null);
     }
 
     public static GuideSiteExportedItem unresolved(String itemId) {

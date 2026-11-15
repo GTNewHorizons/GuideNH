@@ -22,7 +22,9 @@
   "navigation": {
     "open": "Navegação",
     "close": "Fechar navegação",
-    "holdToOpenGuide": "Mantenha G pressionado para abrir o guia"
+    "holdToOpenGuide": "Mantenha G pressionado para abrir o guia",
+    "chooseGuide": "Escolher uma página do guia",
+    "closeChooser": "Fechar seleção de páginas"
   },
   "sceneLoading": {
     "error": "Não foi possível carregar a cena 3D.",
