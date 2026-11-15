@@ -110,6 +110,7 @@ Guide.builder(id).extension(SyntaxContributor.EXTENSION_POINT, new MyModSyntaxCo
 | `ENUM` | 传给 `AttributeSyntax.of` 的枚举常量，或声明的固定候选 | `"..."` |
 | `COLOR` | `#rrggbb` 以及符号颜色名 | `"..."` |
 | `ITEM_ID`、`BLOCK_ID` | 物品/方块注册名，带图标 | `"..."` |
+| `FLUID_ID` | 流体注册名，带原生流体图标 | `"..."` |
 | `ORE_DICT`、`ENTITY_ID`、`KEY_BIND`、`COMMAND` | 对应的游戏注册表 | `"..."` |
 | `PAGE_PATH`、`FILE_PATH` | 指南页面 id、指南资源目录中的文件 | `"..."` |
 | `MOD_ID` | 取自物品注册表命名空间的模组 id | `"..."` |
@@ -117,6 +118,8 @@ Guide.builder(id).extension(SyntaxContributor.EXTENSION_POINT, new MyModSyntaxCo
 | `VECTOR3` | 自由文本 | 裸值 |
 | `SNBT` | 自由文本 | `{...}` |
 | `QUEST_UUID` | 自由文本；任务 id 目前无法枚举 | `"..."` |
+
+游戏内编辑器中，`FluidImage`、`FluidLink` 和 `FluidIcon` 的补全方式与对应的 Item 标签相同，不填入示例 ID 或属性。流体取值候选左侧显示原生图标，YAML 流体绑定也使用相同预览。自定义取值源可使用 `SyntaxSuggestion.withFluidIcon(value, stack)`；`withIcon(value, stack)` 继续接受物品栈。
 
 复用内置类型不需要注册任何东西：把属性标成 `ITEM_ID`，它就有物品补全。
 

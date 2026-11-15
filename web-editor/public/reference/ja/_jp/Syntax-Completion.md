@@ -104,6 +104,7 @@ Guide.builder(id).extension(SyntaxContributor.EXTENSION_POINT, new MyModSyntaxCo
 | `ENUM` | `AttributeSyntax.of` に渡した列挙値 | `"..."` |
 | `COLOR` | `#rrggbb` とシンボル色名 | `"..."` |
 | `ITEM_ID`、`BLOCK_ID` | アイテム/ブロックのレジストリ名とアイコン | `"..."` |
+| `FLUID_ID` | 流体のレジストリ名とネイティブアイコン | `"..."` |
 | `ORE_DICT`、`ENTITY_ID`、`KEY_BIND`、`COMMAND` | 対応するゲームレジストリ | `"..."` |
 | `PAGE_PATH`、`FILE_PATH` | ガイドページ ID とガイドアセット内のファイル | `"..."` |
 | `MOD_ID` | アイテムレジストリの namespace から得た Mod ID | `"..."` |
@@ -111,6 +112,8 @@ Guide.builder(id).extension(SyntaxContributor.EXTENSION_POINT, new MyModSyntaxCo
 | `VECTOR3` | 自由なテキスト | そのまま |
 | `SNBT` | 自由なテキスト | `{...}` |
 | `QUEST_UUID` | 自由なテキスト。現在はクエスト ID を自動検出しない | `"..."` |
+
+ゲーム内エディターでは、`FluidImage`、`FluidLink`、`FluidIcon` は対応する Item タグと同じ形式で補完され、サンプル ID や属性は挿入されません。流体の値候補には左側にネイティブアイコンが表示され、YAML の流体バインドにも対応します。独自の値ソースは `SyntaxSuggestion.withFluidIcon(value, stack)` を使用できます。`withIcon(value, stack)` は引き続きアイテムスタックを受け取ります。
 
 組み込みの種類を再利用する場合、追加登録は不要です。属性を `ITEM_ID` と指定するだけでアイテム補完が有効になります。
 

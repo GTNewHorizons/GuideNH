@@ -114,6 +114,7 @@ An attribute's `SyntaxValueKind` decides how the editor completes and quotes its
 | `ENUM` | the constants of the enum passed to `AttributeSyntax.of`, or the declared values | `"..."` |
 | `COLOR` | `#rrggbb` plus the symbolic colour names | `"..."` |
 | `ITEM_ID`, `BLOCK_ID` | item and block registry names, with icons | `"..."` |
+| `FLUID_ID` | fluid registry names, with native fluid icons | `"..."` |
 | `ORE_DICT`, `ENTITY_ID`, `KEY_BIND`, `COMMAND` | the matching game registry | `"..."` |
 | `PAGE_PATH`, `FILE_PATH` | guide page ids, and files in the guide assets | `"..."` |
 | `MOD_ID` | mod ids taken from the item registry namespaces | `"..."` |
@@ -121,6 +122,8 @@ An attribute's `SyntaxValueKind` decides how the editor completes and quotes its
 | `VECTOR3` | free text | bare |
 | `SNBT` | free text | `{...}` |
 | `QUEST_UUID` | free text; quest ids are not discoverable yet | `"..."` |
+
+In the in-game editor, `FluidImage`, `FluidLink`, and `FluidIcon` complete like their Item counterparts, without example IDs or attributes. Fluid value suggestions display a native icon on the left, including YAML fluid bindings. Custom value sources can use `SyntaxSuggestion.withFluidIcon(value, stack)`; `withIcon(value, stack)` continues to accept item stacks.
 
 Reusing a built-in kind means you do not register anything: marking an attribute as `ITEM_ID` is enough
 to get item completion for it.

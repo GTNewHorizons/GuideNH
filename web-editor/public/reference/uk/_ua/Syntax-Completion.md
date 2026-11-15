@@ -117,6 +117,7 @@ An Атрибут's `SyntaxValueKind` decides how  редактор completes і
 | `ENUM` |  constants of  enum passed до `AttributeSyntax.of`, або  declared значення | `"..."` |
 | `COLOR` | `#rrggbb` plus  symbolic colour names | `"..."` |
 | `ITEM_ID`, `BLOCK_ID` | предмет і блок registry names, з icons | `"..."` |
+| `FLUID_ID` | назви з реєстру рідин із нативними значками | `"..."` |
 | `ORE_DICT`, `ENTITY_ID`, `KEY_BIND`, `COMMAND` |  відповідний game registry | `"..."` |
 | `PAGE_PATH`, `FILE_PATH` | сторінка посібника ids, і files in  посібник ресурси | `"..."` |
 | `MOD_ID` | mod ids taken з  предмет registry namespaces | `"..."` |
@@ -124,6 +125,8 @@ An Атрибут's `SyntaxValueKind` decides how  редактор completes і
 | `VECTOR3` | free текст | bare |
 | `SNBT` | free текст | `{...}` |
 | `QUEST_UUID` | free текст; quest ids є не discoverable yet | `"..."` |
+
+В ігровому редакторі `FluidImage`, `FluidLink` і `FluidIcon` доповнюються так само, як відповідні теги Item, без прикладів ID та атрибутів. Підказки рідин показують нативний значок ліворуч, зокрема для прив’язок YAML. Власні джерела значень можуть використовувати `SyntaxSuggestion.withFluidIcon(value, stack)`; `withIcon(value, stack)` і далі приймає стоси предметів.
 
 Reusing built-in тип означає you do не реєструвати anything: marking an Атрибут as `ITEM_ID` is enough
 до get предмет completion для it.

@@ -117,6 +117,7 @@ Um Atributo's `SyntaxValueKind` decides how O editor completes e quotes seu valo
 | `ENUM` | O constants of O enum passed para `AttributeSyntax.of`, ou O declared valores | `"..."` |
 | `COLOR` | `#rrggbb` plus O symbolic colour names | `"..."` |
 | `ITEM_ID`, `BLOCK_ID` | item e bloco registry names, com icons | `"..."` |
+| `FLUID_ID` | nomes do registro de fluidos com ícones nativos | `"..."` |
 | `ORE_DICT`, `ENTITY_ID`, `KEY_BIND`, `COMMAND` | O correspondente game registry | `"..."` |
 | `PAGE_PATH`, `FILE_PATH` | página do guia ids, e files em O guia assets | `"..."` |
 | `MOD_ID` | mod ids taken de O item registry namespaces | `"..."` |
@@ -124,6 +125,8 @@ Um Atributo's `SyntaxValueKind` decides how O editor completes e quotes seu valo
 | `VECTOR3` | free texto | bare |
 | `SNBT` | free texto | `{...}` |
 | `QUEST_UUID` | free texto; quest ids são não discoverable yet | `"..."` |
+
+No editor do jogo, `FluidImage`, `FluidLink` e `FluidIcon` são completados como seus equivalentes Item, sem IDs ou atributos de exemplo. As sugestões de fluidos mostram um ícone nativo à esquerda, inclusive nas associações YAML. Fontes de valores personalizadas podem usar `SyntaxSuggestion.withFluidIcon(value, stack)`; `withIcon(value, stack)` continua aceitando pilhas de itens.
 
 Reusing Uma built-em kind significa you do não registrar anything: marking Um Atributo as `ITEM_ID` é enough
 para get item completion para it.

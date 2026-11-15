@@ -117,6 +117,7 @@ Eine Attribut's `SyntaxValueKind` decides how Die Editor completes und quotes se
 | `ENUM` | Die constants von Die enum passed zu `AttributeSyntax.of`, oder Die declared Werte | `"..."` |
 | `COLOR` | `#rrggbb` plus Die symbolic colour names | `"..."` |
 | `ITEM_ID`, `BLOCK_ID` | Element und Block Registrierungsnames, mit icons | `"..."` |
+| `FLUID_ID` | Fluid-Registrierungsnamen mit nativen Fluid-Symbolen | `"..."` |
 | `ORE_DICT`, `ENTITY_ID`, `KEY_BIND`, `COMMAND` | Die passend game registry | `"..."` |
 | `PAGE_PATH`, `FILE_PATH` | Leitfaden Seite ids, und files in Die Leitfaden assets | `"..."` |
 | `MOD_ID` | mod ids taken von Die Element Registrierungsnamespaces | `"..."` |
@@ -124,6 +125,8 @@ Eine Attribut's `SyntaxValueKind` decides how Die Editor completes und quotes se
 | `VECTOR3` | free Text | bare |
 | `SNBT` | free Text | `{...}` |
 | `QUEST_UUID` | free Text; quest ids sind nicht discoverable yet | `"..."` |
+
+Im Spiel ergänzen `FluidImage`, `FluidLink` und `FluidIcon` den Text wie die entsprechenden Item-Tags, ohne Beispiel-IDs oder Attribute. Fluid-Wertvorschläge zeigen links ein natives Symbol, auch bei YAML-Fluid-Bindungen. Eigene Wertquellen können `SyntaxSuggestion.withFluidIcon(value, stack)` verwenden; `withIcon(value, stack)` akzeptiert weiterhin ItemStacks.
 
 Reusing Eine built-in kind bedeutet you do nicht registrieren anything: marking Eine Attribut als `ITEM_ID` ist enough
 zu get Element completion für it.

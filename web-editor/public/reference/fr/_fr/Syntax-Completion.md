@@ -117,6 +117,7 @@ Un attribut's `SyntaxValueKind` decides how Le éditeur completes et quotes son 
 | `ENUM` | Le constants of Le enum passed vers `AttributeSyntax.of`, ou Le declared valeurs | `"..."` |
 | `COLOR` | `#rrggbb` plus Le symbolic colour names | `"..."` |
 | `ITEM_ID`, `BLOCK_ID` | élément et bloc registry names, avec icons | `"..."` |
+| `FLUID_ID` | noms du registre des fluides avec des icônes natives | `"..."` |
 | `ORE_DICT`, `ENTITY_ID`, `KEY_BIND`, `COMMAND` | Le correspondant game registry | `"..."` |
 | `PAGE_PATH`, `FILE_PATH` | guide page ids, et files dans Le guide assets | `"..."` |
 | `MOD_ID` | mod ids taken depuis Le élément registry namespaces | `"..."` |
@@ -124,6 +125,8 @@ Un attribut's `SyntaxValueKind` decides how Le éditeur completes et quotes son 
 | `VECTOR3` | free texte | bare |
 | `SNBT` | free texte | `{...}` |
 | `QUEST_UUID` | free texte; quest ids sont ne discoverable yet | `"..."` |
+
+Dans l’éditeur du jeu, `FluidImage`, `FluidLink` et `FluidIcon` se complètent comme leurs équivalents Item, sans identifiants ni attributs d’exemple. Les suggestions de fluides affichent une icône native à gauche, y compris pour les associations YAML. Les sources personnalisées peuvent utiliser `SyntaxSuggestion.withFluidIcon(value, stack)` ; `withIcon(value, stack)` accepte toujours les piles d’objets.
 
 Reusing Un built-dans kind signifie you do ne enregistrer anything: marking Un attribut as `ITEM_ID` est enough
 vers get élément completion pour it.

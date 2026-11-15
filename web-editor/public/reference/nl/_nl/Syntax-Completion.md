@@ -117,6 +117,7 @@ Een Attribuut's `SyntaxValueKind` decides how De editor completes en quotes its 
 | `ENUM` | De constants of De enum passed naar `AttributeSyntax.of`, of De declared waarden | `"..."` |
 | `COLOR` | `#rrggbb` plus De symbolic colour names | `"..."` |
 | `ITEM_ID`, `BLOCK_ID` | item en blok registry names, met icons | `"..."` |
+| `FLUID_ID` | namen uit het vloeistofregister met eigen vloeistoficonen | `"..."` |
 | `ORE_DICT`, `ENTITY_ID`, `KEY_BIND`, `COMMAND` | De matching game registry | `"..."` |
 | `PAGE_PATH`, `FILE_PATH` | gids­pagina ids, en files in De gids assets | `"..."` |
 | `MOD_ID` | mod ids taken van De item registry namespaces | `"..."` |
@@ -124,6 +125,8 @@ Een Attribuut's `SyntaxValueKind` decides how De editor completes en quotes its 
 | `VECTOR3` | free tekst | bare |
 | `SNBT` | free tekst | `{...}` |
 | `QUEST_UUID` | free tekst; quest ids are niet discoverable yet | `"..."` |
+
+In de editor in het spel worden `FluidImage`, `FluidLink` en `FluidIcon` aangevuld zoals hun Item-equivalenten, zonder voorbeeld-ID’s of attributen. Vloeistofvoorstellen tonen links een eigen icoon, ook bij YAML-koppelingen. Eigen waardebronnen kunnen `SyntaxSuggestion.withFluidIcon(value, stack)` gebruiken; `withIcon(value, stack)` blijft itemstapels accepteren.
 
 Reusing Een built-in kind betekent you do niet register anything: marking Een Attribuut as `ITEM_ID` is enough
 naar get item completion voor it.

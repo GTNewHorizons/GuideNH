@@ -117,6 +117,7 @@ Atrybut's `SyntaxValueKind` decides how  edytor completes i quotes jego wartoś�
 | `ENUM` |  constants of  enum passed do `AttributeSyntax.of`, lub  declared wartości | `"..."` |
 | `COLOR` | `#rrggbb` plus  symbolic colour names | `"..."` |
 | `ITEM_ID`, `BLOCK_ID` | element i blok registry names, z icons | `"..."` |
+| `FLUID_ID` | nazwy z rejestru płynów z natywnymi ikonami | `"..."` |
 | `ORE_DICT`, `ENTITY_ID`, `KEY_BIND`, `COMMAND` |  pasujący game registry | `"..."` |
 | `PAGE_PATH`, `FILE_PATH` | strona przewodnika ids, i files in  przewodnik zasoby | `"..."` |
 | `MOD_ID` | mod ids taken z  element registry namespaces | `"..."` |
@@ -124,6 +125,8 @@ Atrybut's `SyntaxValueKind` decides how  edytor completes i quotes jego wartoś�
 | `VECTOR3` | free tekst | bare |
 | `SNBT` | free tekst | `{...}` |
 | `QUEST_UUID` | free tekst; quest ids są nie discoverable yet | `"..."` |
+
+W edytorze gry `FluidImage`, `FluidLink` i `FluidIcon` uzupełniają tekst tak jak odpowiednie znaczniki Item, bez przykładowych identyfikatorów i atrybutów. Sugestie płynów pokazują natywną ikonę po lewej stronie, także dla powiązań YAML. Własne źródła wartości mogą używać `SyntaxSuggestion.withFluidIcon(value, stack)`; `withIcon(value, stack)` nadal przyjmuje stosy przedmiotów.
 
 Reusing built-in rodzaj oznacza you do nie rejestrować anything: marking Atrybut as `ITEM_ID` is enough
 do get element completion dla it.
