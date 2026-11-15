@@ -193,6 +193,8 @@ Water is H<sub>2</sub>O and x<sup>2</sup> is a square.
 
 渲染目录树式大纲，并依据每行前缀符号绘制真实的连接线。前缀同时支持 Unicode 框线（`│ ├ └ ─`）与 ASCII 形式（`| +-- \-- ` / 4 个空格），可任意混用。每行的文本部分支持常规行内 Markdown（链接、**加粗**、`代码` 等），这些链接在游戏内和内置站点导出中都可以点击。等价语法是 ` ```tree ` / ` ```filetree ` 围栏代码块。
 
+窄栏中会自动压缩层级缩进，为文本保留可读宽度。长路径优先在 `/`、`\`、`_`、`-` 后换行，连续长文件名可在字符间换行；续行与名称起点对齐，图标和分支连接线对齐首行。
+
 ````md
 <FileTree indent="14" gap="0">
 project
@@ -740,11 +742,16 @@ $$\begin{pmatrix} a & b \\ c & d \end{pmatrix}$$
 
 笛卡尔系图表（柱形/条形/折线/散点）支持坐标轴属性 `xAxisLabel`、`xAxisMin`、`xAxisMax`、`xAxisStep`、`xAxisUnit`、`xAxisTickFormat`，以及对应的 `yAxis*`，外加 `showXGrid={true}` 与 `showYGrid={true}` 控制网格线。
 
+无效或过大的刻度格式会回退为自动数字格式。格式字符串最多 256 个字符，字段宽度最多 128，精度最多 20。 数值刻度文字拥挤时会自动省略部分标签，其对应的网格线保持不变。
+
+`ColumnChart`、`LineChart` 和 `ScatterChart` 在鼠标进入绘图区后显示金色水平辅助虚线，空白处也生效，左侧坐标轴高亮当前 Y 值。`BarChart` 使用竖向辅助线，并在底部高亮 X 值。数值遵循对应轴的刻度格式和单位；虚线上不放文字，移出绘图区后隐藏。两轴网格采用淡而稀疏的虚线，通过 `showXGrid`、`showYGrid` 分别控制。极小的正刻度步长会自动合并，避免渲染工作量失控。
+
 子元素：
 
 * `<Series name="..." color="#..." data="10,20,30"/>` — 用于按类别取值的图表（柱形/条形/类别 X 折线）。
 * `<Series name="..." color="#..." points="x:y,x:y,..."/>` — 用于数值 X（折线 `numericX={true}`、散点）。
 * `<Slice name="..." value="..." color="#..."/>` — 仅 `<PieChart>` 使用。
+* `<ReferenceLine y="100"/>` — 在 `ColumnChart`、`LineChart`、`ScatterChart` 的指定 Y 值绘制固定水平虚线；`BarChart` 使用 `<ReferenceLine x="100"/>` 绘制固定竖线，也兼容 `y` 写法。坐标必须是有限数值。可添加多条，默认半透明灰色，可用 `color` 修改；可选 `label` 显示在绘图区内，避免与坐标刻度重叠。参考线独立于网格开关，不扩展自动坐标范围，范围外不显示；`PieChart` 不支持此标签。
 
 未指定 `color` 时按内置 16 色调色板循环分配。
 
@@ -773,6 +780,8 @@ $$\begin{pmatrix} a & b \\ c & d \end{pmatrix}$$
 
 - `<LineSeries name="…" data="v1,v2,…" color="#rrggbb" icon="…"/>` — 在柱簇上方再叠加一条折线。每个折点位于对应类别簇中心，与宿主图共享数值轴；可同时声明多条 `<LineSeries>`。
 - `<PieInset size="60" position="topRight" title="…" startAngleDeg="-90" direction="clockwise" titleColor="#rrggbb">` — 在绘图区四角之一（`topRight`/`topLeft`/`bottomRight`/`bottomLeft`）绘制小型饼图，内部 `<Slice>` 子元素与 `<PieChart>` 一致。
+
+`PieInset` 扇区优先于底层柱条和折线响应悬停：提示包含名称、数值、占比及 `tooltip` 附加说明；游戏内有物品图标时保留物品提示。悬停扇区时隐藏主图辅助线。仅使用第一个内嵌饼图；`position="rightOutside"` 在右侧预留独立区域。支持 `startAngleDeg="0"`、`direction="counterclockwise"` 和单扇区完整圆形。
 
 ```mdx
 <ColumnChart title="季度产量" categories="Q1,Q2,Q3,Q4">

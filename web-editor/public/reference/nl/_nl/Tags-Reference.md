@@ -197,6 +197,8 @@ Groups alternative rich inhoud under independent tabs. alleen direct `<Tab>` kin
 
 Renders Een directory-style outline met real connector regels drawn van De prefix glyphs on elke rij. Both Unicode box-drawing (`│ ├ └ ─`) en ASCII (`| +-- \-- ` / four spaces) forms are accepted en kan be mixed. Payload tekst ondersteunt De usual inline Markdown (links, **bold**, `code`, …), en those links are clickable both in-game en in De built-in site export. De zelfde inhoud kan ook be written as Een fenced ` ```tree ` or ` ```filetree ` blok.
 
+In smalle weergaven wordt de inspringing verkleind om ruimte voor tekst te houden. Lange paden breken bij voorkeur na `/`, `\`, `_` en `-`; namen zonder scheidingstekens kunnen tussen tekens afbreken. Vervolgregels beginnen bij de naam, terwijl pictogrammen en vertakkingen bij de eerste regel blijven.
+
 ````md
 <FileTree indent="14" gap="0">
 project
@@ -746,11 +748,16 @@ See [GameScene](GameScene) voor scène import/removal behavior en [Annotations](
 
 Cartesian Grafieken (kolom / Bar / regel / Scatter) additionally accept axis attributen `xAxisLabel`, `xAxisMin`, `xAxisMax`, `xAxisStep`, `xAxisUnit`, `xAxisTickFormat` en De matching `yAxis*` Stel in, plus `showXGrid={true}` / `showYGrid={true}` naar toggle gridlines.
 
+Ongeldige of te grote getalformaten vallen terug op automatische opmaak. De limieten zijn 256 tekens, een veldbreedte van 128 en een precisie van 20. Overlappende numerieke aslabels worden waar nodig weggelaten, terwijl de bijbehorende rasterlijnen behouden blijven.
+
+`ColumnChart`, `LineChart` en `ScatterChart` tonen binnen het tekengebied een horizontale gouden hulplijn, ook boven lege ruimte, met de Y-waarde links gemarkeerd. `BarChart` gebruikt een verticale hulplijn met de X-waarde onderaan. Waarden volgen de asopmaak en eenheid. De lijn bevat geen tekst en verdwijnt buiten het tekengebied. Beide assen gebruiken lichte rasterlijnen met ruime streepjesafstand; `showXGrid` en `showYGrid` regelen ze afzonderlijk. Zeer kleine positieve stapgroottes worden automatisch vergroot om het tekenwerk te begrenzen.
+
 kinderen:
 
 * `<Series name="..." color="#..." data="10,20,30"/>` voor category-based Grafieken (kolom / Bar / categorical regel).
 * `<Series name="..." color="#..." points="x:y,x:y,..."/>` voor numeric X (regel `numericX={true}`, Scatter).
 * `<Slice name="..." value="..." color="#..."/>` voor `<PieChart>` alleen.
+* `<ReferenceLine y="100"/>` tekent een vaste horizontale lijn in `ColumnChart`, `LineChart` en `ScatterChart`. `BarChart` gebruikt `<ReferenceLine x="100"/>` voor een verticale lijn en accepteert `y` als alias. De coördinaat moet eindig zijn. Meerdere lijnen zijn toegestaan; `color` vervangt het halftransparante grijs en het optionele `label` staat binnen het diagram zonder de aslabels te bedekken. Referenties blijven zichtbaar zonder raster, vergroten het automatische bereik niet en verdwijnen buiten dat bereik. `PieChart` ondersteunt deze tag niet.
 
 wanneer `color` wordt weggelaten on a `<Series>` of `<Slice>`, GuideNH cycles through Een built-in 16-kleur palette.
 
@@ -779,6 +786,8 @@ Extra attributen: `categories` (X-axis of Y-axis labels, comma separated), `barW
 
 - `<LineSeries name="…" data="v1,v2,…" color="#rrggbb" icon="…"/>` — drawn as Een polylijn overlay on top of De bars. elke regel punt sits at De cluster center of De matching category index; De overlay shares De host chart's waarde axis. You kan declare meerdere `<LineSeries>` naar overlay several trends.
 - `<PieInset size="60" position="topRight" title="…" startAngleDeg="-90" direction="clockwise" titleColor="#rrggbb">` — Een small pie chart drawn binnen one of De four corners (`topRight`, `topLeft`, `bottomRight`, `bottomLeft`) of De plot area. Its `<Slice>` kinderen share De zelfde syntaxis as in `<PieChart>`.
+
+Segmenten van `PieInset` krijgen bij aanwijzen voorrang op onderliggende balken en lijnen: de tooltip toont naam, waarde, percentage en optionele `tooltip`-tekst. Itemtooltips blijven in het spel behouden. De hoofdhulplijn verdwijnt boven een segment. Alleen het eerste ingevoegde cirkeldiagram wordt gebruikt. `position="rightOutside"` reserveert rechts een apart gebied. `startAngleDeg="0"`, `direction="counterclockwise"` en één segment als volledige cirkel worden ondersteund.
 
 ```mdx
 <ColumnChart title="Quarterly output" categories="Q1,Q2,Q3,Q4">

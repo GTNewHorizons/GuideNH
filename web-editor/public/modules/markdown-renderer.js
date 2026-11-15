@@ -5,10 +5,10 @@ import { translatedString } from "./language.js";
 function copy(context, key) { return escapeHtml(translatedString(context?.locale || "en_us", key)); }
 
 const INLINE_TAGS = new Set(["a", "abbr", "b", "br", "wbr", "code", "del", "em", "i", "img", "kbd", "mark", "small", "span", "strong", "sub", "sup", "u", "Color", "Spoiler", "Tooltip", "SoundLink", "PlayerName", "KeyBind", "ItemImage", "ItemIcon", "ItemLink", "CommandLink", "Latex", "Amount", "QuestLink", "FloatingImage"]);
-const BLOCK_TAGS = new Set(["address", "article", "aside", "blockquote", "caption", "col", "colgroup", "details", "div", "dl", "dt", "dd", "fieldset", "figcaption", "figure", "footer", "h1", "h2", "h3", "h4", "h5", "h6", "header", "hr", "main", "nav", "ol", "p", "pre", "section", "table", "tbody", "td", "tfoot", "th", "thead", "tr", "ul", "video", "audio", "Latex", "Tooltip", "Spoiler", "ContentTabs", "Tab", "FileTree", "Row", "Column", "FootnoteList", "ItemGrid", "ItemImage", "ItemIcon", "ItemLink", "Block", "BlockImage", "FloatingImage", "GameScene", "Scene", "Structure", "Mermaid", "CsvTable", "ColumnChart", "BarChart", "LineChart", "PieChart", "ScatterChart", "FunctionGraph", "Function", "Recipe", "RecipeFor", "RecipesFor", "ImportPonder", "Ponder", "QuestCard", "SubPages", "Category", "Special", "ImageAnnotation", "BlockStats", "BlockStat", "ImportStructure", "ImportStructureLib", "IsometricCamera", "PlaySound", "RemoveBlocks", "RemoveEntity", "ReplaceBlock", "PlaceBlock", "BlockAnnotationTemplate", "Entity", "BoxAnnotation", "LineAnnotation", "DiamondAnnotation", "OutlineAnnotation", "TextAnnotation", "InputAnnotation", "SoundArea", "NodeContent", "Series", "LineSeries", "Slice", "PieInset", "Plot", "Point", "Tier", "Channel", "Facing", "Rotation", "Flip", "Orientation", "GregTechActiveController", "GregTechPlaceHatches", "Comment"]);
+const BLOCK_TAGS = new Set(["address", "article", "aside", "blockquote", "caption", "col", "colgroup", "details", "div", "dl", "dt", "dd", "fieldset", "figcaption", "figure", "footer", "h1", "h2", "h3", "h4", "h5", "h6", "header", "hr", "main", "nav", "ol", "p", "pre", "section", "table", "tbody", "td", "tfoot", "th", "thead", "tr", "ul", "video", "audio", "Latex", "Tooltip", "Spoiler", "ContentTabs", "Tab", "FileTree", "Row", "Column", "FootnoteList", "ItemGrid", "ItemImage", "ItemIcon", "ItemLink", "Block", "BlockImage", "FloatingImage", "GameScene", "Scene", "Structure", "Mermaid", "CsvTable", "ColumnChart", "BarChart", "LineChart", "PieChart", "ScatterChart", "FunctionGraph", "Function", "Recipe", "RecipeFor", "RecipesFor", "ImportPonder", "Ponder", "QuestCard", "SubPages", "Category", "Special", "ImageAnnotation", "BlockStats", "BlockStat", "ImportStructure", "ImportStructureLib", "IsometricCamera", "PlaySound", "RemoveBlocks", "RemoveEntity", "ReplaceBlock", "PlaceBlock", "BlockAnnotationTemplate", "Entity", "BoxAnnotation", "LineAnnotation", "DiamondAnnotation", "OutlineAnnotation", "TextAnnotation", "InputAnnotation", "SoundArea", "NodeContent", "Series", "ReferenceLine", "LineSeries", "Slice", "PieInset", "Plot", "Point", "Tier", "Channel", "Facing", "Rotation", "Flip", "Orientation", "GregTechActiveController", "GregTechPlaceHatches", "Comment"]);
 const SAFE_HTML_ATTRIBUTES = new Set(["class", "className", "id", "role", "title", "lang", "dir", "aria-label", "aria-description", "colspan", "rowspan", "align", "valign", "width", "height", "scope", "span", "abbr", "headers", "axis", "char", "charoff", "summary", "border", "cellpadding", "cellspacing", "frame", "rules", "bordercolor", "bgcolor", "style", "target", "rel", "href", "src", "alt", "poster", "controls", "autoplay", "loop", "muted", "playsinline"]);
 const HTML_CONTAINER_TAGS = new Set(["address", "article", "aside", "blockquote", "caption", "colgroup", "details", "div", "dl", "fieldset", "figure", "footer", "header", "main", "nav", "ol", "section", "table", "tbody", "td", "tfoot", "th", "thead", "tr", "ul"]);
-const RUNTIME_TAGS = new Set(["Block", "BlockImage", "BlockId", "ItemId", "GameScene", "Scene", "Structure", "Recipe", "RecipeFor", "RecipesFor", "ImportPonder", "Ponder", "QuestCard", "QuestLink", "BlockStats", "BlockStat", "ImportStructure", "ImportStructureLib", "IsometricCamera", "PlaySound", "RemoveBlocks", "RemoveEntity", "ReplaceBlock", "PlaceBlock", "BlockAnnotationTemplate", "Entity", "BoxAnnotation", "LineAnnotation", "DiamondAnnotation", "OutlineAnnotation", "TextAnnotation", "InputAnnotation", "SoundArea", "Series", "LineSeries", "Slice", "PieInset", "Plot", "Point", "Tier", "Channel", "Facing", "Rotation", "Flip", "Orientation", "GregTechActiveController", "GregTechPlaceHatches"]);
+const RUNTIME_TAGS = new Set(["Block", "BlockImage", "BlockId", "ItemId", "GameScene", "Scene", "Structure", "Recipe", "RecipeFor", "RecipesFor", "ImportPonder", "Ponder", "QuestCard", "QuestLink", "BlockStats", "BlockStat", "ImportStructure", "ImportStructureLib", "IsometricCamera", "PlaySound", "RemoveBlocks", "RemoveEntity", "ReplaceBlock", "PlaceBlock", "BlockAnnotationTemplate", "Entity", "BoxAnnotation", "LineAnnotation", "DiamondAnnotation", "OutlineAnnotation", "TextAnnotation", "InputAnnotation", "SoundArea", "Series", "ReferenceLine", "LineSeries", "Slice", "PieInset", "Plot", "Point", "Tier", "Channel", "Facing", "Rotation", "Flip", "Orientation", "GregTechActiveController", "GregTechPlaceHatches"]);
 const ITEM_PLACEHOLDER_TAGS = new Set(["ItemLink", "ItemImage", "ItemIcon", "Block", "BlockId", "ItemId"]);
 const VOID_TAGS = new Set(["area", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr"]);
 
@@ -1088,29 +1088,28 @@ function renderFileTree(body, attributes, context = {}) {
   const indent = numberAttr(attributes, 14, "indent");
   const gap = numberAttr(attributes, 0, "gap");
   const sourceLines = String(body || "").replaceAll("\r\n", "\n").split("\n").filter((line) => line.trim());
+  let maxDepth = 1;
   const rows = sourceLines.map((line) => {
     const iconImage = line.match(/\{:\s*iconPng\s*=\s*["']?([^}\"']+)["']?\s*\}/i);
     const iconText = line.match(/\{:\s*icon\s*=\s*["']?([^}\"']+)["']?\s*\}/i);
     const iconItem = line.match(/\{:\s*iconItem\s*=\s*["']?([^}\"']+)["']?\s*\}/i);
     const withoutDirectives = line.replace(/\{:\s*(?:iconPng|iconItem|icon)\s*=\s*[^}]+\}/gi, "");
-    const prefixMatch = withoutDirectives.match(/^[│| ├└─+\\\-]*/);
+    const prefixMatch = withoutDirectives.match(/^(?:(?:[│|]   | {4}))*(?:[├+|][─-]{2} |[└\\][─-]{2} )?/);
     const prefix = prefixMatch?.[0] || "";
     const label = withoutDirectives.slice(prefix.length).trim();
     const depth = Math.max(0, Math.floor(prefix.replace(/[│|]/g, " ").length / 4));
-    const connector = [...prefix].map((character) => {
-      if (character === "│" || character === "|") return `<span class="guide-filetree-vertical">│</span>`;
-      if (["├", "+"].includes(character)) return `<span class="guide-filetree-branch">├</span>`;
-      if (["└", "\\"].includes(character)) return `<span class="guide-filetree-branch">└</span>`;
-      if (["─", "-"].includes(character)) return `<span class="guide-filetree-horizontal">─</span>`;
-      return " ";
+    maxDepth = Math.max(maxDepth, depth);
+    const connector = (prefix.match(/.{4}/g) || []).map((slot) => {
+      const kind = /^[└\\]/.test(slot) ? "last-branch" : /^[├+|][─-]/.test(slot) ? "branch" : /^[│|]/.test(slot) ? "vertical" : "empty";
+      return `<span class="guide-filetree-slot guide-filetree-slot-${kind}"></span>`;
     }).join("");
     const iconSource = iconImage ? iconImage[1].trim() : "";
     const iconAsset = iconSource ? resolveAsset(iconSource, context) : "";
     const icon = iconItem ? renderItemPlaceholder("ItemIcon", { id: iconItem[1].trim(), showId: false }, context, true) : iconAsset ? `<img class="guide-filetree-image" src="${escapeHtml(iconAsset)}" alt="">` : iconImage ? "▧" : iconText ? escapeHtml(iconText[1].trim()) : (/[\/]$/.test(label) ? "▰" : "▱");
     const type = /[\/]$/.test(label) ? "directory" : "file";
-    return `<div class="guide-filetree-row guide-filetree-${type}" data-tree-depth="${depth}"><span class="guide-filetree-prefix">${connector}</span><span class="guide-filetree-icon">${icon}</span><span class="guide-filetree-label">${renderInline(label, context)}</span></div>`;
+    return `<div class="guide-filetree-row guide-filetree-${type}" data-tree-depth="${depth}"><span class="guide-filetree-prefix" aria-hidden="true">${connector}</span><span class="guide-filetree-icon">${icon}</span><span class="guide-filetree-label">${renderInline(label, context)}</span></div>`;
   }).join("");
-  return `<div class="guide-filetree" style="--tree-indent:${indent}px;--tree-gap:${gap}px">${rows}</div>`;
+  return `<div class="guide-filetree" style="--tree-indent:${indent}px;--tree-gap:${gap}px;--tree-max-depth:${maxDepth}">${rows}</div>`;
 }
 
 function renderCsvTable(source, attributes, context) {

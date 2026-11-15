@@ -10,12 +10,14 @@ import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.MdxAttrs;
 import com.hfstudio.guidenh.guide.document.LytErrorSink;
 import com.hfstudio.guidenh.guide.document.block.chart.ChartIcon;
+import com.hfstudio.guidenh.guide.document.block.chart.ChartReferenceLine;
 import com.hfstudio.guidenh.guide.document.block.chart.ChartSeries;
 import com.hfstudio.guidenh.guide.document.block.chart.PieInsetSpec;
 import com.hfstudio.guidenh.guide.document.block.chart.PieSlice;
 import com.hfstudio.guidenh.guide.scene.SceneTagCompiler;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstAnyContent;
+import com.hfstudio.guidenh.libs.mdast.model.MdAstParent;
 
 /**
  * Parses {@code <Series>} / {@code <Slice>} child elements inside chart tags.
@@ -60,7 +62,7 @@ public class ChartChildParser {
             if (!"Series".equals(name)) {
                 // Recognized sibling tags inside chart blocks (combo chart support) are silently skipped
                 // here because they are parsed by separate helpers below.
-                if ("LineSeries".equals(name) || "PieInset".equals(name)) {
+                if ("LineSeries".equals(name) || "PieInset".equals(name) || "ReferenceLine".equals(name)) {
                     continue;
                 }
                 errorSink.appendError(compiler, "Expected <Series> child but got <" + name + ">", child);
@@ -214,6 +216,62 @@ public class ChartChildParser {
         return compiler.reparseBlockTagChildren(parentEl);
     }
 
+    public static List<MdxJsxElementFields> childElements(MdxJsxElementFields parentEl) {
+        List<MdxJsxElementFields> elements = new ArrayList<>();
+        collectChildElements(parentEl.children(), elements);
+        return elements;
+    }
+
+    private static void collectChildElements(List<? extends MdAstAnyContent> children,
+        List<MdxJsxElementFields> elements) {
+        for (MdAstAnyContent child : children) {
+            if (child instanceof MdxJsxElementFields element) {
+                if ("p".equals(element.name())) {
+                    collectChildElements(element.children(), elements);
+                } else {
+                    elements.add(element);
+                }
+            } else if (child instanceof MdAstParent<?>parent) {
+                collectChildElements(parent.children(), elements);
+            }
+        }
+    }
+
+    public static List<ChartReferenceLine> parseReferenceLines(PageCompiler compiler, LytErrorSink errorSink,
+        List<? extends MdAstAnyContent> children) {
+        return parseReferenceLines(compiler, errorSink, children, "y");
+    }
+
+    public static List<ChartReferenceLine> parseReferenceLines(PageCompiler compiler, LytErrorSink errorSink,
+        List<? extends MdAstAnyContent> children, String coordinate) {
+        List<ChartReferenceLine> result = new ArrayList<>();
+        for (MdAstAnyContent child : children) {
+            MdxJsxElementFields el = SceneTagCompiler.unwrapSceneElement(child);
+            if (el == null || !"ReferenceLine".equals(el.name())) continue;
+            ChartReferenceLine line = readReferenceLine(el, coordinate);
+            if (line == null) {
+                errorSink.appendError(compiler, "ReferenceLine requires a finite " + coordinate + " value", child);
+            } else {
+                result.add(line);
+            }
+        }
+        return List.copyOf(result);
+    }
+
+    public static ChartReferenceLine readReferenceLine(MdxJsxElementFields el) {
+        return readReferenceLine(el, "y");
+    }
+
+    public static ChartReferenceLine readReferenceLine(MdxJsxElementFields el, String coordinate) {
+        String attribute = "x".equals(coordinate) && !el.hasAttribute("x") ? "y" : coordinate;
+        Double value = ChartAttrParser.parseBoxedDouble(el, attribute);
+        if (value == null) return null;
+        return new ChartReferenceLine(
+            value,
+            el.getAttributeString("label", ""),
+            ChartAttrParser.parseColor(el.getAttributeString("color", ""), ChartReferenceLine.DEFAULT_COLOR));
+    }
+
     private static void applyIconAndTooltip(PageCompiler compiler, LytErrorSink errorSink, MdxJsxElementFields el,
         ChartSeries series) {
         series.setIcon(parseIcon(compiler, errorSink, el));
@@ -298,7 +356,7 @@ public class ChartChildParser {
             }
             double x = MdxAttrs.getFloat(compiler, errorSink, pointEl, "x", Float.NaN);
             double y = MdxAttrs.getFloat(compiler, errorSink, pointEl, "y", Float.NaN);
-            if (Double.isNaN(x) || Double.isNaN(y)) {
+            if (!Double.isFinite(x) || !Double.isFinite(y)) {
                 continue;
             }
             xs.add(x);
