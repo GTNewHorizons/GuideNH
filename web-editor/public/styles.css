@@ -280,6 +280,14 @@ input:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 2px
 .guide-item-placeholder-icon { display: inline-grid; place-items: center; width: 1.25em; height: 1.25em; color: var(--preview-gold); font-family: serif; }
 .guide-item-placeholder-id { color: var(--preview-tooltip-code); text-decoration: underline dotted; text-underline-offset: 3px; }
 .guide-item-placeholder-label { color: inherit; }
+.guide-fluid-icon-stack { position: relative; display: inline-flex; flex: none; vertical-align: middle; }
+.guide-fluid-icon { display: block; image-rendering: pixelated; }
+.guide-fluid-icon-fallback { display: inline-grid; place-items: center; background: rgba(127,127,127,.15); }
+.guide-fluid-quantity { position: absolute; right: 0; bottom: 0; color: white; font-size: 10px; line-height: 1; text-shadow: 1px 1px 1px black; }
+.guide-fluid-link { color: var(--accent); text-decoration: underline; }
+.guide-item-grid { display: grid; grid-template-columns: repeat(auto-fill, 28px); gap: 4px; margin: 10px 0; }
+.guide-item-grid > .guide-item-placeholder { box-sizing: border-box; width: 28px; height: 28px; min-height: 0; padding: 2px; justify-content: center; border: 1px solid var(--border); background: rgba(127,127,127,.1); }
+.guide-item-grid .guide-item-placeholder-id { display: none; }
 .guide-hidden-runtime-id { color: var(--preview-soft-text); font-style: italic; text-decoration-style: dotted; }
 .guide-runtime-placeholder { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 7px; color: var(--preview-runtime-text); }
 .guide-runtime-placeholder .runtime-icon { color: var(--preview-gold); font-size: 20px; }

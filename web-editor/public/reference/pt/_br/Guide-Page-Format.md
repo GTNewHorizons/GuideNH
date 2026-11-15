@@ -333,6 +333,7 @@ GuideNH reads O primeiro YAML frontmatter bloco e parses Estes known chaves:
 | `categories` | lista of strings | Adds O página para MediaWiki-style categories; cada entrada pode optionally usar `category|sort key` |
 | `item_id` | item filtro expressão | A único NEI-style item expressão que makes O página discoverable by `<ItemLink>` |
 | `item_ids` | lista of item filtro expressions | lista form of `item_id`; qualquer correspondente expressão makes O página discoverable by `<ItemLink>` |
+| `fluid_id` / `fluid_ids` | string / string list | Exact fluid registry-name binding, optionally with #anchor |
 | `ore_ids` | lista of ore dictionary names | Makes O página discoverable by ore-dictionary itens (e.g. `ingotIron`, `oreCopper`) |
 | `quest_ids` | lista of BetterQuesting quest ids | Makes O página discoverable by `<QuestLink>` / `<QuestCard>` e by O open-guia hotkey quando Uma quest é hovered em O BQ GUI. Accepts canonical UUID strings e BetterQuesting's compact Base64 form. somente consumed quando BetterQuesting é carregado. Consulte [Mod Compatibility](Mod-Compatibility) |
 | `author` | texto | único author nome. Displayed em O baixo bar. |
@@ -341,6 +342,22 @@ GuideNH reads O primeiro YAML frontmatter bloco e parses Estes known chaves:
 | `updated` | texto ou YYYY-MM-DD date | último atualizado date. Displayed em O baixo bar. |
 | `zoom` | positive decimal | Per-página conteúdo zoom multiplier (e.g. `1.5` = 150 %). Multiplied com O global `contentZoom` setting em ModConfig. Padrão `1.0`. |
 | qualquer outro chave | qualquer YAML valor | Preserved em `additionalProperties` para extensions ou tooling |
+
+### Native fluid bindings and navigation icons
+
+`fluid_id` accepts one registry-name binding. `fluid_ids` accepts a string list. Both may coexist and are merged without duplicate destinations. Append `#anchor` to target a section; distinct anchors remain distinct. Bindings use exact names and ignore displayed amount and NBT.
+
+```yaml
+fluid_id: water
+fluid_ids:
+  - water#coolant
+  - steam#uses
+navigation:
+  title: Fluid handling
+  icon_fluid: water
+```
+
+`navigation.icon_fluid` accepts one fluid registry name; `icon_fluids` accepts a nonempty name list cycling once per second and takes precedence over the single field. These presentation fields do not create page bindings. Do not combine them with item or texture icon sources. Fluid availability is checked in the running game; disconnected editors must not report registry-name existence errors.
 
 ### `navigation`
 

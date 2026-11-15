@@ -3,8 +3,6 @@ package com.hfstudio.guidenh.guide.document.block.chart;
 import java.util.ArrayList;
 import java.util.List;
 
-import net.minecraft.item.ItemStack;
-
 import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.internal.debug.DebugComponent;
@@ -433,19 +431,19 @@ public class LytBarChart extends LytChartBase implements DebugComponent {
     }
 
     @Override
-    protected ItemStack getHitItemStack(int key) {
+    protected ChartIcon getHitIcon(int key) {
         if (isLineKey(key)) {
             int li = decodeSeries(key & ~LINE_KEY_FLAG);
             if (li < 0 || li >= lineOverlays.size()) return null;
             ChartIcon icon = lineOverlays.get(li)
                 .getIcon();
-            return icon != null && icon.hasItemStack() ? icon.getStack() : null;
+            return icon;
         }
         int si = decodeSeries(key);
         if (si < 0 || si >= series.size()) return null;
         ChartIcon icon = series.get(si)
             .getIcon();
-        return icon != null && icon.hasItemStack() ? icon.getStack() : null;
+        return icon;
     }
 
     @Override

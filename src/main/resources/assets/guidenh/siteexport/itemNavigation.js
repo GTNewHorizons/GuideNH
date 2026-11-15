@@ -1,11 +1,91 @@
 import { siteText } from "./locale.js";
 
 const HOLD_DURATION_MS = 500;
+const targetCache = new WeakMap();
+let chooser;
+
+export function readGuideNavigationTarget(source, key = source) {
+  if (!(source instanceof Element)) return null;
+  const raw = source.getAttribute("data-guide-fluid-targets") || "";
+  let cached = targetCache.get(source);
+  if (!cached || cached.raw !== raw) {
+    let choices = [];
+    try {
+      const value = raw ? JSON.parse(raw) : [];
+      if (Array.isArray(value)) choices = value.filter(choice => typeof choice?.href === "string"
+        && typeof choice?.title === "string").map(choice => ({ href: choice.href, title: choice.title }));
+    } catch {}
+    cached = { raw, choices };
+    targetCache.set(source, cached);
+  }
+  const href = source.getAttribute("data-guide-fluid-href") || source.getAttribute("data-guide-item-href");
+  return href || cached.choices.length ? { key, source, href, choices: cached.choices, revision: raw } : null;
+}
+
+export function guideNavigationTarget(element) {
+  const source = element instanceof Element
+    ? element.closest("[data-guide-item-href], [data-guide-fluid-href], [data-guide-fluid-targets]") : null;
+  return readGuideNavigationTarget(source);
+}
+
+function destination(href) {
+  if (typeof href !== "string" || !href.trim()) return null;
+  try {
+    const url = new URL(href, document.baseURI);
+    return ["http:", "https:", "file:"].includes(url.protocol) ? url.href : null;
+  } catch {
+    return null;
+  }
+}
+
+export function activateGuideTarget(target, navigate) {
+  const choices = (target?.choices || []).filter(choice => destination(choice.href));
+  if (choices.length <= 1) {
+    const href = destination(choices[0]?.href || target?.href);
+    if (href) navigate(href);
+    return;
+  }
+  chooser?.close();
+  const previousFocus = document.activeElement;
+  const dialog = document.createElement("dialog");
+  chooser = dialog;
+  dialog.className = "guide-resource-chooser";
+  dialog.setAttribute("aria-label", siteText("navigation", "chooseGuide"));
+  const title = document.createElement("h2");
+  title.textContent = siteText("navigation", "chooseGuide");
+  const close = document.createElement("button");
+  close.type = "button";
+  close.className = "guide-resource-chooser-close";
+  close.textContent = "×";
+  close.setAttribute("aria-label", siteText("navigation", "closeChooser"));
+  close.addEventListener("click", () => dialog.close());
+  dialog.append(title, close);
+  for (const choice of choices) {
+    const link = document.createElement("a");
+    link.href = destination(choice.href);
+    link.textContent = choice.title;
+    link.addEventListener("click", event => {
+      if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+      event.preventDefault();
+      dialog.close();
+      navigate(link.href);
+    });
+    dialog.append(link);
+  }
+  dialog.addEventListener("click", event => { if (event.target === dialog) dialog.close(); });
+  dialog.addEventListener("close", () => {
+    dialog.remove();
+    if (chooser === dialog) chooser = null;
+    if (previousFocus instanceof HTMLElement && previousFocus.isConnected) previousFocus.focus();
+  }, { once: true });
+  document.body.append(dialog);
+  dialog.showModal();
+  dialog.querySelector("a")?.focus();
+}
 
 function domTarget(element) {
-  const source = element instanceof Element ? element.closest("[data-guide-item-href]") : null;
-  const href = source?.getAttribute("data-guide-item-href");
-  return href && source.isConnected ? { key: source, source, href } : null;
+  const target = guideNavigationTarget(element);
+  return target?.source.isConnected ? target : null;
 }
 
 function isEditing(target) {
@@ -49,7 +129,7 @@ export function installGuideItemNavigation(tooltipRoot, resolveTooltipTarget, en
     const target = tooltipRoot.hidden
       ? domTarget(hovered) || domTarget(focused)
       : tooltipTarget;
-    if (target?.key !== current?.key || target?.href !== current?.href) cancel();
+    if (target?.key !== current?.key || target?.href !== current?.href || target?.revision !== current?.revision) cancel();
     current = target;
     if (!current || tooltipRoot.hidden) {
       footer.remove();
@@ -71,9 +151,9 @@ export function installGuideItemNavigation(tooltipRoot, resolveTooltipTarget, en
     const value = Math.min(1, (time - holding.started) / HOLD_DURATION_MS);
     setProgress(value);
     if (value === 1) {
-      const href = holding.href;
+      const target = holding.target;
       cancel();
-      navigate(new URL(href, document.baseURI).href);
+      activateGuideTarget(target, navigate);
     } else {
       frame = requestAnimationFrame(tick);
     }
@@ -105,7 +185,7 @@ export function installGuideItemNavigation(tooltipRoot, resolveTooltipTarget, en
     ensureTooltip(current.source);
     refresh();
     if (!current) return;
-    holding = { key: current.key, href: current.href, started: performance.now() };
+    holding = { key: current.key, target: current, started: performance.now() };
     frame = requestAnimationFrame(tick);
   });
   window.addEventListener("keyup", event => {
@@ -119,6 +199,12 @@ export function installGuideItemNavigation(tooltipRoot, resolveTooltipTarget, en
   window.addEventListener("blur", reset);
   document.addEventListener("visibilitychange", () => { if (document.hidden) reset(); });
   document.addEventListener("scroll", cancel, { capture: true, passive: true });
+  document.addEventListener("click", event => {
+    const source = event.target instanceof Element ? event.target.closest(".guide-fluid-link[data-guide-fluid-targets]") : null;
+    if (!source || event.defaultPrevented || event.button !== 0) return;
+    event.preventDefault();
+    activateGuideTarget(readGuideNavigationTarget(source), navigate);
+  });
 
   function reset() {
     cancel();

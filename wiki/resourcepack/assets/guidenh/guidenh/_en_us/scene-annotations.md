@@ -11,6 +11,13 @@ categories:
 
 All annotation kinds live in world space and can be toggled with the scene's *Show/Hide annotations* button.
 
+## Native fluid input annotation
+
+<GameScene width="180" height="120">
+  <Block x="0" y="0" z="0" id="minecraft:stone" />
+  <InputAnnotation pos="0.5 1.5 0.5" inputType="rmb" fluid="water" amount={1000} />
+</GameScene>
+
 ## DiamondAnnotation
 
 Place a **diamond marker** at any world coordinate. The diamond always faces the screen; hovering shows a semi-transparent white overlay while its compiled child content is rendered as a rich tooltip.

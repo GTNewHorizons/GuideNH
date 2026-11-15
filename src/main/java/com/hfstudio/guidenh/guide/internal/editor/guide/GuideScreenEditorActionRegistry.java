@@ -364,6 +364,7 @@ public class GuideScreenEditorActionRegistry {
         addAdvanced(specs, GuideScreenEditorAction.QUOTE_CALLOUT, GuideScreenEditorActionGroup.BLOCK);
         addAdvanced(specs, GuideScreenEditorAction.QUOTE_ICON_TEXT, GuideScreenEditorActionGroup.BLOCK);
         addAdvanced(specs, GuideScreenEditorAction.QUOTE_ICON_ITEM, GuideScreenEditorActionGroup.BLOCK);
+        addAdvanced(specs, GuideScreenEditorAction.QUOTE_ICON_FLUID, GuideScreenEditorActionGroup.BLOCK);
         addAdvanced(specs, GuideScreenEditorAction.QUOTE_ICON_PNG, GuideScreenEditorActionGroup.BLOCK);
         addAdvanced(specs, GuideScreenEditorAction.CSV_TABLE, GuideScreenEditorActionGroup.BLOCK);
         addAdvanced(specs, GuideScreenEditorAction.MERMAID, GuideScreenEditorActionGroup.BLOCK);
@@ -408,6 +409,7 @@ public class GuideScreenEditorActionRegistry {
         addAdvanced(specs, GuideScreenEditorAction.LINE_ANNOTATION, GuideScreenEditorActionGroup.SCENE);
         addAdvanced(specs, GuideScreenEditorAction.DIAMOND_ANNOTATION, GuideScreenEditorActionGroup.SCENE);
         addAdvanced(specs, GuideScreenEditorAction.TEXT_ANNOTATION, GuideScreenEditorActionGroup.SCENE);
+        addAdvanced(specs, GuideScreenEditorAction.FLUID_INPUT_ANNOTATION, GuideScreenEditorActionGroup.SCENE);
         addAdvanced(specs, GuideScreenEditorAction.BLOCK_ANNOTATION_TEMPLATE, GuideScreenEditorActionGroup.SCENE);
 
         addAdvanced(specs, GuideScreenEditorAction.IMPORT_STRUCTURE, GuideScreenEditorActionGroup.SCENE_MUTATION);
@@ -422,25 +424,32 @@ public class GuideScreenEditorActionRegistry {
     private static void addEmbedActions(List<GuideScreenEditorActionSpec> specs) {
         addAdvanced(specs, GuideScreenEditorAction.TOOLTIP, GuideScreenEditorActionGroup.EMBED);
         addAdvanced(specs, GuideScreenEditorAction.ITEM_IMAGE, GuideScreenEditorActionGroup.EMBED);
+        addAdvanced(specs, GuideScreenEditorAction.FLUID_IMAGE, GuideScreenEditorActionGroup.EMBED);
         addAdvanced(specs, GuideScreenEditorAction.BLOCK_IMAGE, GuideScreenEditorActionGroup.EMBED);
         addAdvanced(specs, GuideScreenEditorAction.ITEM_LINK, GuideScreenEditorActionGroup.EMBED);
+        addAdvanced(specs, GuideScreenEditorAction.FLUID_LINK, GuideScreenEditorActionGroup.EMBED);
         addAdvanced(specs, GuideScreenEditorAction.COMMAND_LINK, GuideScreenEditorActionGroup.EMBED);
         addAdvanced(specs, GuideScreenEditorAction.SOUND_LINK, GuideScreenEditorActionGroup.EMBED);
         addAdvanced(specs, GuideScreenEditorAction.RECIPE, GuideScreenEditorActionGroup.EMBED);
         addAdvanced(specs, GuideScreenEditorAction.RECIPE_FOR, GuideScreenEditorActionGroup.EMBED);
+        addAdvanced(specs, GuideScreenEditorAction.FLUID_RECIPE, GuideScreenEditorActionGroup.EMBED);
         addAdvanced(specs, GuideScreenEditorAction.RECIPES_FOR, GuideScreenEditorActionGroup.EMBED);
+        addAdvanced(specs, GuideScreenEditorAction.FLUID_USAGE, GuideScreenEditorActionGroup.EMBED);
         addAdvanced(specs, GuideScreenEditorAction.FLOATING_IMAGE, GuideScreenEditorActionGroup.EMBED);
         addAdvanced(specs, GuideScreenEditorAction.QUEST_LINK, GuideScreenEditorActionGroup.EMBED);
         addAdvanced(specs, GuideScreenEditorAction.QUEST_CARD, GuideScreenEditorActionGroup.EMBED);
         addAdvanced(specs, GuideScreenEditorAction.QUEST_IDS, GuideScreenEditorActionGroup.EMBED);
         addAdvanced(specs, GuideScreenEditorAction.NAV_POSITION, GuideScreenEditorActionGroup.EMBED);
         addAdvanced(specs, GuideScreenEditorAction.NAV_ICON, GuideScreenEditorActionGroup.EMBED);
+        addAdvanced(specs, GuideScreenEditorAction.NAV_FLUID_ICON, GuideScreenEditorActionGroup.EMBED);
         addAdvanced(specs, GuideScreenEditorAction.NAV_ICON_TEXTURE, GuideScreenEditorActionGroup.EMBED);
         addAdvanced(specs, GuideScreenEditorAction.NAV_ICONS, GuideScreenEditorActionGroup.EMBED);
+        addAdvanced(specs, GuideScreenEditorAction.NAV_FLUID_ICONS, GuideScreenEditorActionGroup.EMBED);
         addAdvanced(specs, GuideScreenEditorAction.NAV_ICON_TEXTURES, GuideScreenEditorActionGroup.EMBED);
         addAdvanced(specs, GuideScreenEditorAction.NAV_REQUIRED_MODS, GuideScreenEditorActionGroup.EMBED);
         addAdvanced(specs, GuideScreenEditorAction.PAGE_CATEGORIES, GuideScreenEditorActionGroup.EMBED);
         addAdvanced(specs, GuideScreenEditorAction.PAGE_ITEM_IDS, GuideScreenEditorActionGroup.EMBED);
+        addAdvanced(specs, GuideScreenEditorAction.PAGE_FLUID_IDS, GuideScreenEditorActionGroup.EMBED);
         addAdvanced(specs, GuideScreenEditorAction.PAGE_ORE_IDS, GuideScreenEditorActionGroup.EMBED);
         addAdvanced(specs, GuideScreenEditorAction.PAGE_METADATA, GuideScreenEditorActionGroup.EMBED);
     }

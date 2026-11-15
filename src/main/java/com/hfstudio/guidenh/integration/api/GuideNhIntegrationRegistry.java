@@ -3,6 +3,7 @@ package com.hfstudio.guidenh.integration.api;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -14,6 +15,7 @@ import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.world.World;
+import net.minecraftforge.fluids.FluidStack;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -463,6 +465,41 @@ public class GuideNhIntegrationRegistry {
             }
         }
         return List.of();
+    }
+
+    public List<Object> queryRawFluidCraftingHandlers(@Nullable FluidStack target) {
+        return queryFluidHandlers(target, false);
+    }
+
+    public List<Object> queryRawFluidUsageHandlers(@Nullable FluidStack target) {
+        return queryFluidHandlers(target, true);
+    }
+
+    private List<Object> queryFluidHandlers(@Nullable FluidStack target, boolean usage) {
+        if (target == null || target.getFluid() == null) return List.of();
+        var handlers = new LinkedHashSet<Object>();
+        for (var provider : rawRecipeHandlerProviders()) {
+            try {
+                List<Object> result = usage ? provider.queryRawFluidUsageHandlers(target.copy())
+                    : provider.queryRawFluidCraftingHandlers(target.copy());
+                if (result != null) result.stream()
+                    .filter(handler -> handler != null)
+                    .forEach(handlers::add);
+            } catch (RuntimeException | LinkageError exception) {
+                String key = "fluid-recipe:" + provider.getClass()
+                    .getName();
+                synchronized (REPORTED_PROVIDER_FAILURES) {
+                    if (REPORTED_PROVIDER_FAILURES.add(key)) {
+                        GuideDebugLog.warnAlways(
+                            "[GuideNH] Fluid recipe provider {} failed",
+                            provider.getClass()
+                                .getName(),
+                            exception);
+                    }
+                }
+            }
+        }
+        return List.copyOf(handlers);
     }
 
     public List<RecipeEntry> findCraftingRecipeEntries(@Nullable ItemStack target) {

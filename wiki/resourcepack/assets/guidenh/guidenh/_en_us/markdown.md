@@ -14,6 +14,18 @@ This page is a runtime sample sheet for checking what GuideNH currently renders 
 
 See also: [Charts](./charts.md) · [Function Graphs](./function-graph.md) · [Markdown Table Extensions](./markdown-table.md)
 
+## Native fluid icons
+
+<FluidImage id="water" amount={1000} label="right" />
+
+<FluidLink id="steam" showIcon="left" />
+
+<ItemGrid>
+  <ItemIcon id="minecraft:bucket" />
+  <FluidIcon id="water" amount={1000} />
+  <FluidIcon id="steam" />
+</ItemGrid>
+
 ## LaTeX Formulas
 
 Render LaTeX math inline with `<Latex formula="..." />`, or as a centered display block by using the same tag

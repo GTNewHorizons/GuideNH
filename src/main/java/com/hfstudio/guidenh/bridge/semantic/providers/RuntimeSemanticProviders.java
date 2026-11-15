@@ -11,6 +11,7 @@ public class RuntimeSemanticProviders {
     public static void registerBaseline(SemanticProviderRegistry registry) {
         SemanticProvider itemProvider = new ItemSemanticProvider();
         registry.register(itemProvider);
+        registry.register(new FluidSemanticProvider());
         registry.register(new AliasSemanticProvider(SemanticCapability.RECIPES, itemProvider));
         registry.register(new PageSemanticProvider());
         registry.register(new OreSemanticProvider());

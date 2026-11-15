@@ -23,6 +23,12 @@ GuideNH 内置五种交互式图表标签：`<ColumnChart>`（竖柱）、`<BarC
 柱形图、折线图和散点图默认提供鼠标水平辅助线：将鼠标移入绘图区，金色横虚线跟随鼠标高度，左侧坐标轴以金色底突出显示对应数值和单位。虚线上不显示文字，无需命中数据点；移出绘图区后自动隐藏。
 
 
+## 原生流体系列图标
+
+<ColumnChart title="Fluids" categories="Water,Steam">
+  <Series name="Flow" values="1000,1600" iconFluid="water" />
+</ColumnChart>
+
 ## ColumnChart
 
 <ColumnChart

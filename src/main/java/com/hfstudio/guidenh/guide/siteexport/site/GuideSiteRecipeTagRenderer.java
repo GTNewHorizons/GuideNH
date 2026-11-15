@@ -12,6 +12,10 @@ import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.compiler.IdUtils;
 import com.hfstudio.guidenh.guide.compiler.tags.RecipeCompiler;
+import com.hfstudio.guidenh.guide.internal.fluid.FluidStackSpec;
+import com.hfstudio.guidenh.guide.internal.fluid.FluidStacks;
+import com.hfstudio.guidenh.guide.internal.recipe.FluidFilterExpression;
+import com.hfstudio.guidenh.guide.internal.recipe.FluidRecipeSlots;
 import com.hfstudio.guidenh.guide.internal.recipe.RecipeCache;
 import com.hfstudio.guidenh.guide.internal.recipe.RecipeLookup;
 import com.hfstudio.guidenh.guide.siteexport.site.layout.SiteRecipeLayoutContext;
@@ -19,6 +23,7 @@ import com.hfstudio.guidenh.guide.siteexport.site.layout.SiteRecipeLayoutStrateg
 import com.hfstudio.guidenh.guide.siteexport.site.layout.SiteRecipeRawHandlerAccess;
 import com.hfstudio.guidenh.integration.api.GuideNhIntegrationRegistry;
 import com.hfstudio.guidenh.integration.api.RecipeSlot;
+import com.hfstudio.guidenh.integration.nei.NeiRecipeHandlerSlotProvider;
 import com.hfstudio.guidenh.integration.nei.NeiRecipeLookup;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 
@@ -38,7 +43,7 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
     private static NeiRecipeLookup.Slot siteRecipeResultSlot(Object handler, int recipeIndex) {
         RecipeSlot slot = GuideNhIntegrationRegistry.global()
             .readRecipeResultSlot(handler, recipeIndex);
-        return slot != null ? new NeiRecipeLookup.Slot(slot.x(), slot.y(), slot.stacks(), slot.currentStack()) : null;
+        return NeiRecipeLookup.Slot.fromRecipeSlot(slot);
     }
 
     private static List<NeiRecipeLookup.Slot> toNeiSlots(List<RecipeSlot> slots) {
@@ -47,7 +52,7 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
         }
         List<NeiRecipeLookup.Slot> converted = new ArrayList<>(slots.size());
         for (RecipeSlot slot : slots) {
-            converted.add(new NeiRecipeLookup.Slot(slot.x(), slot.y(), slot.stacks(), slot.currentStack()));
+            converted.add(NeiRecipeLookup.Slot.fromRecipeSlot(slot));
         }
         return converted;
     }
@@ -358,6 +363,20 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
     @Override
     public String render(MdxJsxElementFields element, String defaultNamespace) {
         String fallbackText = element.getAttributeString("fallbackText", "");
+        String fluidId = element.getAttributeString("fluid", null);
+        String itemId = element.getAttributeString("id", null);
+        if ((fluidId == null) == (itemId == null)) return fallbackParagraph(
+            fallbackText.isEmpty() ? "Recipe tag requires exactly one of id and fluid" : fallbackText);
+        FluidStackSpec fluid;
+        FluidFilterExpression inputFluid;
+        FluidFilterExpression outputFluid;
+        try {
+            fluid = fluidId == null ? null : new FluidStackSpec(fluidId);
+            inputFluid = FluidFilterExpression.parse(element.getAttributeString("inputFluid", null));
+            outputFluid = FluidFilterExpression.parse(element.getAttributeString("outputFluid", null));
+        } catch (IllegalArgumentException exception) {
+            return fallbackParagraph(fallbackText.isEmpty() ? exception.getMessage() : fallbackText);
+        }
         String handlerOrderRaw = RecipeCompiler.trimToNull(element.getAttributeString("handlerOrder", null));
         Integer parsedHandlerOrder = parseInteger(handlerOrderRaw);
         if (handlerOrderRaw != null && parsedHandlerOrder == null) {
@@ -386,7 +405,7 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
         return renderInternal(
             new RenderRequest(
                 element.name() != null ? element.name() : "Recipe",
-                element.getAttributeString("id", ""),
+                fluid == null ? itemId : fluid.id(),
                 fallbackText,
                 defaultNamespace,
                 RecipeCompiler.trimToNull(element.getAttributeString("handlerName", null)),
@@ -403,7 +422,10 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
                 parsedRecipeIndex != null ? parsedRecipeIndex : -1,
                 limit,
                 multi,
-                usageQuery));
+                usageQuery,
+                fluid,
+                inputFluid,
+                outputFluid));
     }
 
     @Override
@@ -445,11 +467,13 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
 
         ItemStack targetStack;
         try {
-            targetStack = targetStackResolver.resolve(recipeId, request.defaultNamespace);
+            if (request.fluid != null) FluidStacks.resolve(request.fluid);
+            targetStack = request.fluid == null ? targetStackResolver.resolve(recipeId, request.defaultNamespace)
+                : null;
         } catch (IllegalArgumentException e) {
             return fallbackParagraph(request.fallbackText);
         }
-        if (targetStack == null || targetStack.getItem() == null) {
+        if (request.fluid == null && (targetStack == null || targetStack.getItem() == null)) {
             return fallbackParagraph(request.fallbackText);
         }
 
@@ -462,6 +486,8 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
         if (!rawHandlerResult.renderedRecipes.isEmpty()) {
             return exporter.renderRecipeCollection(rawHandlerResult.renderedRecipes, request.multi);
         }
+        if (request.fluid != null) return fallbackParagraph(
+            request.fallbackText.isEmpty() ? "No fluid recipe found for " + request.fluid.id() : request.fallbackText);
         if (hasHandlerFilter) {
             return fallbackParagraph(request.fallbackText);
         }
@@ -482,11 +508,17 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
 
     private RawHandlerRenderResult renderFromRawHandlers(RenderRequest request, ItemStack targetStack,
         boolean hasRecipeFilter) {
-        List<Object> rawHandlers = request.usageQuery ? safeHandlers(rawHandlerFinder.findUsageHandlers(targetStack))
-            : safeHandlers(rawHandlerFinder.findCraftingHandlers(targetStack));
+        List<Object> rawHandlers = request.fluid != null
+            ? request.usageQuery ? RecipeCache.getFluidUsageHandlers(request.fluid)
+                : RecipeCache.getFluidCraftingHandlers(request.fluid)
+            : request.usageQuery ? safeHandlers(rawHandlerFinder.findUsageHandlers(targetStack))
+                : safeHandlers(rawHandlerFinder.findCraftingHandlers(targetStack));
         if (!request.usageQuery && (request.handlerIdFilter != null || request.handlerNameFilter != null
             || !request.handlerWhitelist.isEmpty())) {
-            rawHandlers = mergeHandlers(rawHandlers, safeHandlers(rawHandlerFinder.findUsageHandlers(targetStack)));
+            rawHandlers = mergeHandlers(
+                rawHandlers,
+                request.fluid != null ? RecipeCache.getFluidUsageHandlers(request.fluid)
+                    : safeHandlers(rawHandlerFinder.findUsageHandlers(targetStack)));
         }
 
         List<Object> handlers = RecipeCompiler.filterHandlers(
@@ -501,27 +533,32 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
             return new RawHandlerRenderResult(List.of());
         }
 
-        IdUtils.ParsedItemRef targetRef = parseTargetRef(request.recipeId, request.defaultNamespace);
+        IdUtils.ParsedItemRef targetRef = request.fluid == null
+            ? parseTargetRef(request.recipeId, request.defaultNamespace)
+            : null;
         List<String> renderedRecipes = new ArrayList<>();
         Set<String> recipeFingerprints = new LinkedHashSet<>();
         for (int hi = 0; hi < handlers.size() && renderedRecipes.size() < request.limit; hi++) {
             Object handler = handlers.get(hi);
             int recipeCount = handlerRuntime.recipeCount(handler);
             int recipeStart = Math.max(request.recipeIndex, 0);
-            int recipeEnd = request.recipeIndex >= 0 ? Math.min(recipeCount, request.recipeIndex + 1) : recipeCount;
+            int recipeEnd = request.recipeIndex >= 0 ? (int) Math.min(recipeCount, (long) request.recipeIndex + 1)
+                : recipeCount;
             for (int recipeIndex = recipeStart; recipeIndex < recipeEnd
                 && renderedRecipes.size() < request.limit; recipeIndex++) {
                 NeiRecipeLookup.Entry entry = readRawHandlerEntry(handler, recipeIndex);
-                if (!request.usageQuery && (targetRef == null || !RecipeCompiler.handlerTargetMatches(
-                    entry,
-                    targetRef,
-                    request.handlerIdFilter != null || request.handlerNameFilter != null
-                        || !request.handlerWhitelist.isEmpty()))) {
+                if (request.fluid == null && !request.usageQuery
+                    && (targetRef == null || !RecipeCompiler.handlerTargetMatches(
+                        entry,
+                        targetRef,
+                        request.handlerIdFilter != null || request.handlerNameFilter != null
+                            || !request.handlerWhitelist.isEmpty()))) {
                     continue;
                 }
                 if (hasRecipeFilter && !RecipeCompiler.recipeMatches(entry, request.inputExpr, request.outputExpr)) {
                     continue;
                 }
+                if (!fluidFiltersMatch(request, entry)) continue;
                 if (!recipeFingerprints.add(NeiRecipeLookup.recipeFingerprint(handler, entry))) continue;
 
                 String rendered = renderHandlerRecipe(handler, recipeIndex, targetStack, entry);
@@ -559,6 +596,7 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
             if (hasRecipeFilter && !RecipeCompiler.entryMatches(entry, request.inputExpr, request.outputExpr)) {
                 continue;
             }
+            if (!fluidFiltersMatch(request, entry)) continue;
             if (!recipeFingerprints.add(NeiRecipeLookup.recipeFingerprint(ref.handler, entry))) continue;
 
             @Nullable
@@ -599,6 +637,7 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
             if (hasRecipeFilter && !RecipeCompiler.entryMatches(entry, request.inputExpr, request.outputExpr)) {
                 continue;
             }
+            if (!fluidFiltersMatch(request, entry)) continue;
             if (!recipeFingerprints.add(NeiRecipeLookup.recipeFingerprint(null, entry))) continue;
 
             String rendered = layoutRegistry.render(
@@ -632,6 +671,7 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
             if (hasRecipeFilter && !RecipeCompiler.vanillaEntryMatches(entry, request.inputExpr, request.outputExpr)) {
                 continue;
             }
+            if (!request.inputFluid.matches(Set.of()) || !request.outputFluid.matches(Set.of())) continue;
             if (!recipeFingerprints.add(vanillaFingerprint(entry))) continue;
 
             String rendered = layoutRegistry
@@ -851,11 +891,40 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
         private final int limit;
         private final boolean multi;
         private final boolean usageQuery;
+        private final @Nullable FluidStackSpec fluid;
+        private final FluidFilterExpression inputFluid;
+        private final FluidFilterExpression outputFluid;
 
         private RenderRequest(String tagName, String recipeId, String fallbackText, String defaultNamespace,
             @Nullable String handlerNameFilter, @Nullable String handlerIdFilter, int handlerOrder,
             List<String> handlerWhitelist, List<String> handlerBlacklist, RecipeCompiler.FilterExpr inputExpr,
             RecipeCompiler.FilterExpr outputExpr, int recipeIndex, int limit, boolean multi, boolean usageQuery) {
+            this(
+                tagName,
+                recipeId,
+                fallbackText,
+                defaultNamespace,
+                handlerNameFilter,
+                handlerIdFilter,
+                handlerOrder,
+                handlerWhitelist,
+                handlerBlacklist,
+                inputExpr,
+                outputExpr,
+                recipeIndex,
+                limit,
+                multi,
+                usageQuery,
+                null,
+                FluidFilterExpression.EMPTY,
+                FluidFilterExpression.EMPTY);
+        }
+
+        private RenderRequest(String tagName, String recipeId, String fallbackText, String defaultNamespace,
+            @Nullable String handlerNameFilter, @Nullable String handlerIdFilter, int handlerOrder,
+            List<String> handlerWhitelist, List<String> handlerBlacklist, RecipeCompiler.FilterExpr inputExpr,
+            RecipeCompiler.FilterExpr outputExpr, int recipeIndex, int limit, boolean multi, boolean usageQuery,
+            @Nullable FluidStackSpec fluid, FluidFilterExpression inputFluid, FluidFilterExpression outputFluid) {
             this.tagName = tagName;
             this.recipeId = recipeId;
             this.fallbackText = fallbackText;
@@ -871,7 +940,23 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
             this.limit = Math.max(1, limit);
             this.multi = multi;
             this.usageQuery = usageQuery;
+            this.fluid = fluid;
+            this.inputFluid = inputFluid;
+            this.outputFluid = outputFluid;
         }
+    }
+
+    private static boolean fluidFiltersMatch(RenderRequest request, NeiRecipeLookup.Entry entry) {
+        if (request.fluid == null && request.inputFluid.isEmpty() && request.outputFluid.isEmpty()) return true;
+        return FluidRecipeSlots.matches(
+            NeiRecipeHandlerSlotProvider.convertSlots(entry.ingredients),
+            NeiRecipeHandlerSlotProvider.convertSlots(entry.others),
+            NeiRecipeHandlerSlotProvider.convertSlot(entry.result),
+            request.fluid == null ? null : request.fluid.id(),
+            request.usageQuery,
+            request.handlerIdFilter != null || request.handlerNameFilter != null || !request.handlerWhitelist.isEmpty(),
+            request.inputFluid,
+            request.outputFluid);
     }
 
     private static class RawHandlerRenderResult {

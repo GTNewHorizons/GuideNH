@@ -15,6 +15,12 @@ categories:
 
 左上角小图标显示了该配方所属的"配方池"（由 NEI 的 `GuiRecipeTab.handlerMap` 提供）。
 
+## 原生流体配方
+
+<RecipeFor fluid="steam" fallbackText="No fluid recipe provider is available." />
+
+<RecipesUsage fluid="water" inputFluid="water&amp;!lava" limit="3" fallbackText="No fluid usage provider is available." />
+
 ## 基础示例
 
 <RecipeFor id="minecraft:wooden_door" />

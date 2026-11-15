@@ -338,6 +338,7 @@ GuideNH 会读取第一个 YAML frontmatter 块，并解析这些已知键：
 | `categories` | 字符串列表 | 将页面加入 MediaWiki 风格分类；每一项可选使用 `分类名|排序名` |
 | `item_id` | 单个物品筛选表达式 | 单个 NEI 风格物品表达式，让页面可被 `<ItemLink>` 发现 |
 | `item_ids` | 物品筛选表达式列表 | `item_id` 的列表形式，任一表达式匹配即可让页面被 `<ItemLink>` 发现 |
+| `fluid_id` / `fluid_ids` | string / string list | 流体注册名绑定，可带 #anchor |
 | `ore_ids` | 矿辞名列表 | 让页面可被矿辞物品（如 `ingotIron`、`oreCopper`）索引 |
 | `quest_ids` | BetterQuesting 任务 id 列表 | 让页面可被 `<QuestLink>` / `<QuestCard>` 以及 BQ 任务 GUI 中的打开指南快捷键发现。支持标准 UUID 字符串和 BetterQuesting 的紧凑 Base64 形式。仅在 BetterQuesting 加载时生效。参见 [模组兼容](Mod-Compatibility) |
 | `author` | string | 单一作者名称。显示在底部栏中。 |
@@ -346,6 +347,22 @@ GuideNH 会读取第一个 YAML frontmatter 块，并解析这些已知键：
 | `updated` | 字符串或 YYYY-MM-DD 日期 | 最后更新日期。显示在底部栏中。 |
 | `zoom` | 正浮点数 | 单页内容缩放倍数（如 `1.5` 表示 150%）。与 ModConfig 中全局 `contentZoom` 设置相乘。默认 `1.0`。 |
 | 其他任意键 | 任意 YAML 值 | 保存在 `additionalProperties` 中，供扩展或工具使用 |
+
+### 原生流体绑定与导航图标
+
+`fluid_id` 接受单个流体注册名绑定，`fluid_ids` 接受字符串列表；两者可以共存，合并时去重。添加 `#anchor` 可以指向章节，不同锚点保留为独立目标。绑定精确匹配注册名，不匹配显示数量或 NBT。
+
+```yaml
+fluid_id: water
+fluid_ids:
+  - water#coolant
+  - steam#uses
+navigation:
+  title: 流体处理
+  icon_fluid: water
+```
+
+`navigation.icon_fluid` 接受单个注册名，`icon_fluids` 接受非空列表并每秒轮换；列表优先于单个图标。这些显示字段不会创建页面绑定，也不能与物品/纹理图标源混用。注册名是否存在由运行中的游戏检查，未连接游戏的编辑器不能误报流体不存在。
 
 ### `navigation`
 

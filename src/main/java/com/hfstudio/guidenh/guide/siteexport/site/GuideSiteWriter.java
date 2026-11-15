@@ -623,6 +623,10 @@ public class GuideSiteWriter {
         if (icon == null) {
             return;
         }
+        if (icon.isFluidIcon()) {
+            html.append(GuideSiteFluidHtml.pageIcon(icon, GuideSiteFluidIconResolver.from(itemIconResolver)));
+            return;
+        }
         if (icon.isItemIcon() && icon.itemStack() != null) {
             GuideSiteItemHtml.appendIcon(
                 html,

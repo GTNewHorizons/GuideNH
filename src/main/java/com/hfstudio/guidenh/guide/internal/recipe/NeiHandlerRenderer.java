@@ -161,6 +161,9 @@ public class NeiHandlerRenderer {
 
     private static @Nullable ItemStack drawSlotBatchSlot(RecipeSlot slot, int screenX, int screenY, int mouseX,
         int mouseY, Minecraft mc, @Nullable ItemStack currentHovered) {
+        if (FluidRecipeRenderer.draw(slot, screenX + slot.x(), screenY + slot.y(), 16)) {
+            return currentHovered;
+        }
         ItemStack shown = pickVisibleStack(slot);
         if (shown == null) return currentHovered;
         try {

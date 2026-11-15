@@ -266,6 +266,19 @@ GuideNH 目前註冊了以下場景子標籤：
 提供 `x`、`y`、`z` 時，音量會從投影後的場景座標到點擊點或場景中心進行螢幕空間衰減。
 `radius` 預設是場景較短邊的 75%，`minVolume` 預設是 `0.15`。
 
+## `<InputAnnotation>` 流体目标
+
+InputAnnotation 可以指定 `item` 或 `fluid`，不能同时填写。流体目标可选填 `amount`（非负整数）和 `nbt`（SNBT），这两个参数要求同时提供 `fluid`。位置、inputType、modifier 与 StructureLib 可见条件沿用现有规则。
+
+```mdx
+<GameScene width="180" height="120">
+  <Block x="0" y="0" z="0" id="minecraft:stone" />
+  <InputAnnotation pos="0.5 1.5 0.5" inputType="rmb" fluid="water" amount={1000} />
+</GameScene>
+```
+
+注解只显示操作图标和流体信息，不会填充容器或改变场景世界。编辑、保存、重载和导出需要保留注册名、数量与 NBT。可放置的流体方块仍须在 Block / PlaceBlock 中使用真实方块 ID。
+
 ## `<BlockStats>` 和 `<BlockStat>`
 
 宣告或自訂方塊統計疊加框。包含方塊的場景即使省略該子標籤，也會啟用自動統計切換按鈕；如果包含 `<BlockStat>` 子項，則切換到手動統計模式。

@@ -15,6 +15,12 @@ categories:
 
 The small icon in the top-left shows which "recipe pool" the entry belongs to (sourced from `GuiRecipeTab.handlerMap`).
 
+## Native fluid recipes
+
+<RecipeFor fluid="steam" fallbackText="No fluid recipe provider is available." />
+
+<RecipesUsage fluid="water" inputFluid="water&amp;!lava" limit="3" fallbackText="No fluid usage provider is available." />
+
 ## Basic Examples
 
 <RecipeFor id="minecraft:wooden_door" />

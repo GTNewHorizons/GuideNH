@@ -12,6 +12,20 @@ GuideNH 可以直接在指南页面中渲染合成配方和基于 NEI 的配方�
 
 三者使用同一套编译器和属性集。
 
+## 原生流体配方目标与筛选
+
+Recipe、Usage、RecipeFor、RecipeUsage、RecipesFor、RecipesUsage 必须在 `id` 与 `fluid` 中二选一。`fluid` 使用完整的 Forge 注册名，原有处理器、索引、数量上限、回退文本与布局参数继续有效。
+
+`inputFluid` / `outputFluid` 使用注册名表达式，支持或（`,`）、且（`&`）、非（`!`）。注册名区分大小写；所有已填写的物品和流体筛选都必须满足。无效流体筛选会报错，不能悄悄变成无筛选。数量与 NBT 不参与这些名称筛选；流体输出同时检查主结果与附加输出槽。
+
+```mdx
+<RecipeFor fluid="steam" fallbackText="当前没有可用的蒸汽配方提供器。" />
+<RecipesUsage fluid="water" inputFluid="water&!lava" limit="3" />
+<RecipesFor id="minecraft:iron_ingot" outputFluid="steam,water" />
+```
+
+Forge 没有通用的流体机器配方注册表，因此由可选集成提供配方；没有提供器时显示 fallbackText 或诊断。NEI 可以在查询内部临时构造展示物品，但数字 ID 不会写进指南。真正的装液容器仍然是物品原料，只有明确的流体槽或已识别的流体展示替身才按原生流体渲染。
+
 ## 标签语义
 
 | 标签 | 行为 |

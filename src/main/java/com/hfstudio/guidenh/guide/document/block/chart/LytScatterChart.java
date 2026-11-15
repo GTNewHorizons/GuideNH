@@ -3,8 +3,6 @@ package com.hfstudio.guidenh.guide.document.block.chart;
 import java.util.ArrayList;
 import java.util.List;
 
-import net.minecraft.item.ItemStack;
-
 import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.render.RenderContext;
@@ -220,12 +218,12 @@ public class LytScatterChart extends LytChartBase {
     }
 
     @Override
-    protected ItemStack getHitItemStack(int key) {
+    protected ChartIcon getHitIcon(int key) {
         int si = decodeSeries(key);
         if (si < 0 || si >= series.size()) return null;
         ChartIcon icon = series.get(si)
             .getIcon();
-        return icon != null && icon.hasItemStack() ? icon.getStack() : null;
+        return icon;
     }
 
     @Override

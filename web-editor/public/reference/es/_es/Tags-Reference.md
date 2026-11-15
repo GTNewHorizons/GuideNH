@@ -35,6 +35,7 @@ esto página lists El built-en ejecución etiquetas registrado by `DefaultExtens
 | `<KeyBind>` | inserts keybinding mostrar nombre | `id` o `action` |
 | `<ItemImage>` | inline elemento icon | `id`, `ore`, `nbt`, `scale`, `noTooltip`, `showTooltip`, `showIcon`, `label`, `format`, `yOffset`, `labelYOffset` |
 | `<ItemLink>` | elemento tooltip + opcional navigation enlace | `id` o `ore`, `linksTo`, `showTooltip`, `noTooltip`, `showIcon` |
+| `<FluidImage>` / `<FluidLink>` | native fluid icon and page navigation | `id`, `amount`, `nbt`, `scale`, `showTooltip`, `noTooltip`, `showIcon`, `label`, `linksTo` |
 | `<CommandLink>` | clickable chat command enlace | `command`, `title`, `close` |
 | `<Latex>` | LaTeX math fórmula; inline en flow context, centered mostrar bloque en bloque context | `formula`, `color`, `scale`, `sourceScale`, `tooltip`, `showTooltip` |
 | `<QuestLink>` | BetterQuesting quest enlace con estado-aware styling (compat etiqueta, solo registrado cuando BetterQuesting es cargado) | `id`, `text`, `show_tooltip` |
@@ -51,14 +52,14 @@ Inline markdown también admite action enlaces para sound playback:
 | etiqueta | Purpose | clave atributos |
 | --- | --- | --- |
 | `<div>` | pass-a través de bloque wrapper | none |
-| `<ContentTabs>` | groups alternative enriquecido contenido under independent tabs | `title`, `color`, `background`, `icon`, `iconPng`, `icon_png`, `iconItem`, `icon_item`, `default`, `defaultIndex` |
+| `<ContentTabs>` | groups alternative enriquecido contenido under independent tabs | `title`, `color`, `background`, `icon`, `iconPng`, `icon_png`, `iconItem`, `icon_item`, `iconFluid`, `icon_fluid`, `default`, `defaultIndex` |
 | `<Tab>` | uno contenido panel dentro de `<ContentTabs>` | `title` |
 | `<details>` | collapsible ejecución bloque | `open`, `width`, `height`, `wrap`, `align` |
 | `<FileTree>` | directorio-style outline con conector líneas | `indent`, `gap` |
 | `<Row>` | horizontal flex diseño | `gap`, `alignItems`, `fullWidth`, `width` |
 | `<Column>` | vertical flex diseño | `gap`, `alignItems`, `fullWidth`, `width` |
 | `<FootnoteList>` | ancho-constrained footnote container usado by ejecución markdown footnotes | `width` |
-| `<ItemGrid>` | compact grid of elemento icons | hijos debe ser `<ItemIcon id="..."/>` o `<ItemIcon ore="..."/>` |
+| `<ItemGrid>` | compact grid of item and fluid icons | mix `<ItemIcon id="..."/>`, `<ItemIcon ore="..."/>`, and `<FluidIcon id="..."/>` |
 | `<BlockImage>` | non-interactivo 3D único-bloque vista previa | `id`, `ore`, `meta`, `nbt`, `scale`, `width`, `height`, `perspective`, `wrap`, `align` |
 | `<FloatingImage>` | cropped imagen bloque con decimal o true inline placement | `src`, `x`, `y`, `width` / `w`, `height` / `h`, `scaleX`, `scaleY`, `displayWidth`, `displayHeight`, `wrap`, `align`, `title` |
 | `<SubPages>` | navigation hijo listing | `id`, `alphabetical` |
@@ -449,6 +450,37 @@ Ejemplos:
 <ItemLink id="minecraft:compass" linksTo="#usage" />
 ````
 
+### `<FluidImage>`, `<FluidLink>`, and `<FluidIcon>`
+
+Native fluid icons resolve the exact Forge fluid registry name, such as `water`, `steam`, or `molten.iron`. Persist names, never numeric fluid IDs or NEI display-item metadata. Rendering uses the Forge fluid texture and tint and does not require NEI.
+
+ExportSite displays item counts and fluid amounts as text overlays using its bundled Pixeloid Mono font. Item durability bars remain part of the icon image.
+
+| Attribute | Contract |
+| --- | --- |
+| `id` | Required complete fluid registry name; no implicit namespace or item metadata |
+| `amount` | Optional nonnegative integer up to 2147483647; raw fluid units shown as L in GTNH; zero remains a valid fluid |
+| `nbt` | Optional SNBT describing a private fluid stack tag |
+| `showTooltip`, `noTooltip` | Same visibility precedence as item icons; hiding a tooltip does not disable G navigation |
+| `scale`, `showIcon`, `label`, `format`, `yOffset`, `labelYOffset` | FluidImage shares ItemImage presentation options; scale must be finite and positive |
+| `showIcon`, `showText`, `linksTo` | FluidLink shares ItemLink label, icon-side, and explicit page/anchor behavior |
+
+`FluidIcon` is an ItemGrid child and accepts only `id`, `amount`, `nbt`, `showTooltip`, and `noTooltip`. A single ItemGrid may mix ItemIcon and FluidIcon children in source order. There is no separate FluidGrid. `ore` and item metadata are not fluid selectors.
+
+```mdx
+<FluidImage id="water" amount={1000} scale="2" label="right" />
+<FluidLink id="steam" showIcon="left">Steam</FluidLink>
+<ItemGrid>
+  <ItemIcon id="minecraft:bucket" />
+  <FluidIcon id="water" amount={1000} />
+  <FluidIcon id="steam" />
+</ItemGrid>
+```
+
+Bind pages with `fluid_id` / `fluid_ids`. Hold the remappable open-guide key (G by default) over native fluid icons or supported container/display representations. One match opens directly; multiple matches show a chooser with fluid pages before container pages. Amount and NBT affect display, while bindings match the registry name. Empty containers retain ordinary item navigation. Unrecognized fluid GUIs require a registered hover provider.
+
+Use `navigation.icon_fluid` / `icon_fluids` for single/cycling page icons, and `iconFluid` in ContentTabs, FileTree directives, quote directives, chart Series / LineSeries / Slice. Fluid icon sources must not be combined with item, PNG, or text icon sources. Six Recipe/Usage tags accept `fluid`, `inputFluid`, and `outputFluid`; InputAnnotation accepts `fluid`, `amount`, and `nbt`. See Recipes, Guide Page Format, and Annotations for the remaining contracts.
+
 ### `<CommandLink>`
 
 Sends Un chat command cuando clicked.
@@ -507,7 +539,7 @@ GuideNH usa esto bloque etiqueta internally cuando ejecución markdown footnotes
 
 ### `<ItemGrid>`
 
-renderiza Un compact elemento grid. hijos debe ser sin procesar `<ItemIcon>` elements, que son analizado directly by El grid compilador. cada hijo puede usar cualquiera `id` o `ore`.
+Renders a compact icon grid. The grid compiler parses raw ItemIcon and FluidIcon children in source order. Item children select `id` or `ore`; fluid children select a registry-name `id` with optional amount and NBT.
 
 ````md
 <ItemGrid>

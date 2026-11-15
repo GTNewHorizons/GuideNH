@@ -14,6 +14,18 @@ categories:
 
 另见：[图表](./charts.md) · [函数图](./function-graph.md) · [Markdown 表格扩展](./markdown-table.md)
 
+## 原生流体图标
+
+<FluidImage id="water" amount={1000} label="right" />
+
+<FluidLink id="steam" showIcon="left" />
+
+<ItemGrid>
+  <ItemIcon id="minecraft:bucket" />
+  <FluidIcon id="water" amount={1000} />
+  <FluidIcon id="steam" />
+</ItemGrid>
+
 ## LaTeX 公式
 
 使用 `<Latex formula="..." />` 在行内渲染 LaTeX 数学公式；将同一标签单独写成一段（块级上下文）则渲染为居中展示的独立公式块。
