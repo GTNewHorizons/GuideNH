@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.List;
@@ -70,6 +71,9 @@ class ChartCursorTest {
                             : new LytRect((int) args[0], (int) args[1], (int) args[2], (int) args[3]));
                     break;
                 default:
+                    if (method.isDefault()) {
+                        return InvocationHandler.invokeDefault(proxy, method, args);
+                    }
                     break;
             }
             return method.getReturnType() == int.class ? 0 : null;
