@@ -14,8 +14,8 @@ Use the buttons in the top-right corner to search, return home, move backward or
 
 When a page has an item index, hover over the corresponding item in your inventory and hold <KeyBind id="key.guidenh.open_guide" /> to jump directly to the related page.
 
-<Tooltip text="Some pages may include item links, recipes, structures, diagrams, or interactive previews.">
-  Hover here for a quick tip.
+<Tooltip label="Hover here for a quick tip.">
+  Some pages may include item links, recipes, structures, diagrams, or interactive previews.
 </Tooltip>
 
 ## What You May Find Here
