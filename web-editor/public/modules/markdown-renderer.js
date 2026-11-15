@@ -1,6 +1,7 @@
 import { attr, booleanAttr, colorValue, cssLength, escapeHtml, numberAttr, parseAttributes, parseCsv, splitComma } from "./html-utils.js";
 import { renderChart, renderFunctionGraph, renderMermaidDiagram } from "./visual-renderers.js";
 import { translatedString } from "./language.js";
+import { fluidDescription, fluidScale, renderFluidIcon, fluidTooltipVisible, fluidIconSourceConflict, renderFluidLabel } from "./fluid-presentation.js";
 
 function copy(context, key) { return escapeHtml(translatedString(context?.locale || "en_us", key)); }
 
@@ -11,6 +12,15 @@ const HTML_CONTAINER_TAGS = new Set(["address", "article", "aside", "blockquote"
 const RUNTIME_TAGS = new Set(["Block", "BlockImage", "BlockId", "ItemId", "GameScene", "Scene", "Structure", "Recipe", "RecipeFor", "RecipesFor", "ImportPonder", "Ponder", "QuestCard", "QuestLink", "BlockStats", "BlockStat", "ImportStructure", "ImportStructureLib", "IsometricCamera", "PlaySound", "RemoveBlocks", "RemoveEntity", "ReplaceBlock", "PlaceBlock", "BlockAnnotationTemplate", "Entity", "BoxAnnotation", "LineAnnotation", "DiamondAnnotation", "OutlineAnnotation", "TextAnnotation", "InputAnnotation", "SoundArea", "Series", "ReferenceLine", "LineSeries", "Slice", "PieInset", "Plot", "Point", "Tier", "Channel", "Facing", "Rotation", "Flip", "Orientation", "GregTechActiveController", "GregTechPlaceHatches"]);
 const ITEM_PLACEHOLDER_TAGS = new Set(["ItemLink", "ItemImage", "ItemIcon", "Block", "BlockId", "ItemId"]);
 const VOID_TAGS = new Set(["area", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr"]);
+const FLUID_TAGS = new Set(["FluidImage", "FluidLink", "FluidIcon"]);
+for (const name of FLUID_TAGS) {
+  INLINE_TAGS.add(name);
+  BLOCK_TAGS.add(name);
+}
+for (const name of ["Usage", "RecipeUsage", "RecipesUsage"]) {
+  BLOCK_TAGS.add(name);
+  RUNTIME_TAGS.add(name);
+}
 
 export function parseFrontmatter(source) {
   const normalized = String(source ?? "").replaceAll("\r\n", "\n");
@@ -193,7 +203,7 @@ function renderParagraph(source, context) {
   if (standaloneTag && standaloneTag.nextIndex === trimmed.length && (standaloneTag.name === "Latex" || BLOCK_TAGS.has(standaloneTag.name) || BLOCK_TAGS.has(standaloneTag.name.toLowerCase()))) {
     return renderTag(standaloneTag.name, standaloneTag.attributes, standaloneTag.body, standaloneTag.selfClosing, context, false);
   }
-  const blockNames = [...BLOCK_TAGS].filter((name) => !["ItemImage", "ItemIcon", "ItemLink", "Block", "FloatingImage"].includes(name));
+  const blockNames = [...BLOCK_TAGS].filter((name) => !["ItemImage", "ItemIcon", "ItemLink", "Block", "FloatingImage"].includes(name) && !FLUID_TAGS.has(name));
   if (new RegExp(`<\\/?(?:${blockNames.join("|")})\\b`, "i").test(source)) return renderInline(source, context);
   return `<p>${renderInline(source, context)}</p>`;
 }
@@ -660,6 +670,7 @@ function renderTag(name, attributes, body, selfClosing, context, inline) {
     return `<img class="guide-inline-image" src="${escapeHtml(resolved)}" alt="${escapeHtml(attr(attributes, "alt", "title") || "")}">`;
   }
   if (lowerName === "video" || lowerName === "audio") return renderMedia(lowerName, attributes, body, context);
+  if (FLUID_TAGS.has(name)) return renderFluidPlaceholder(name, attributes, context, inline, body);
   if (ITEM_PLACEHOLDER_TAGS.has(name)) {
     const wrap = String(attr(attributes, "wrap") || "inline").toLowerCase();
     return wrap !== "inline" ? applyWrap(renderItemPlaceholder(name, attributes, context, false, body), attributes) : renderItemPlaceholder(name, attributes, context, inline, body);
@@ -734,6 +745,7 @@ function renderBlockTag(name, attributes, body, context) {
   if (name === "Spoiler") return `<span class="guide-spoiler" tabindex="0"><span class="guide-spoiler-content">${renderInline(body, context)}</span></span>`;
   if (name === "Latex") return renderLatex(String(attr(attributes, "formula") || body || ""), attributes, false, body && body.trim() ? renderMarkdown(normalizeNestedMarkdown(body), { ...context, suppressFootnotes: true }) : "", true, context);
   if (name === "Amount") return renderAmount(attributes, context);
+  if (FLUID_TAGS.has(name)) return applyWrap(renderFluidPlaceholder(name, attributes, context, false, body), attributes);
   if (ITEM_PLACEHOLDER_TAGS.has(name)) return applyWrap(renderItemPlaceholder(name, attributes, context, false, body), attributes);
   if (RUNTIME_TAGS.has(name)) return applyWrap(renderRuntimePlaceholder(name, attributes, false, context, body), attributes);
   if (name === "Row" || name === "Column") {
@@ -782,7 +794,7 @@ function renderBlockTag(name, attributes, body, context) {
   if (["ColumnChart", "BarChart", "LineChart", "PieChart", "ScatterChart"].includes(name)) return renderChart(name, attributesToText(attributes), body);
   if (name === "FunctionGraph") return renderFunctionGraph(attributesToText(attributes), body);
   if (name === "Function") return renderFunctionGraph(attributesToText(attributes), body, attr(attributes, "expr"));
-  if (name === "ItemGrid") return applyWrap(`<div class="guide-item-grid">${renderInline(body, context)}</div>`, attributes);
+  if (name === "ItemGrid") return applyWrap(`<div class="guide-item-grid">${renderInline(body, { ...context, iconGrid: true })}</div>`, attributes);
   if (name === "SubPages" || name === "Category" || name === "Special") return `<div class="guide-runtime-panel"><strong>${escapeHtml(name)}</strong><span>${copy(context, "navigationRuntime")}</span></div>`;
   if (name === "ImageAnnotation") return renderStandaloneImageAnnotation(attributes, body, context);
   if (name[0] === name[0]?.toLowerCase()) return renderSafeHtmlTag(name.toLowerCase(), attributes, body, context);
@@ -951,8 +963,45 @@ function renderItemPlaceholder(name, attributes, context, inline, body = "") {
   return inline ? element : `<div class="guide-item-placeholder-block">${element}</div>`;
 }
 
+function renderFluidPlaceholder(name, attributes, context, inline, body = "") {
+  try {
+    if (name === "FluidIcon" && !context.iconGrid) throw new Error("FluidIcon requires ItemGrid");
+    const spec = fluidDescription(attributes);
+    const scale = fluidScale(attributes);
+    const preview = context.resolveFluidPreview?.(spec) || context.fluidPreviews?.[spec.id];
+    const displayName = String(preview?.displayName || spec.id);
+    const labelOption = String(attr(attributes, "label") ?? "").trim().toLowerCase();
+    const labelSide = ["left", "right"].includes(labelOption) ? labelOption : ["true", "1"].includes(labelOption) ? "right" : "";
+    const link = name === "FluidLink";
+    const iconOption = String(attr(attributes, "showIcon") ?? (link ? "false" : "true")).toLowerCase();
+    const showIcon = !["false", "0", "no"].includes(iconOption);
+    const icon = showIcon ? renderFluidIcon(attributes, context) : "";
+    const format = attr(attributes, "format");
+    const labelContent = renderFluidLabel(displayName, format);
+    const labelOffset = attr(attributes, "labelYOffset");
+    const imageOffset = attr(attributes, "yOffset");
+    for (const [key, value] of [["labelYOffset", labelOffset], ["yOffset", imageOffset]]) {
+      if (value !== undefined && (!/^[+-]?\d+$/.test(String(value)) || Number(value) < -2147483648 || Number(value) > 2147483647)) throw new Error(`${key} must be an integer`);
+    }
+    const labelStyle = labelOffset === undefined ? "" : ` style="position:relative;top:${Number(labelOffset) * scale}px"`;
+    const label = link ? (body.trim() ? renderInline(body, context) : booleanAttr(attributes, "showText") === false ? "" : escapeHtml(displayName))
+      : labelSide ? `<span class="guide-item-placeholder-label"${labelStyle}>${labelContent}</span>` : "";
+    const details = spec.amount === undefined ? displayName : `${displayName}\n${spec.amount} L`;
+    const tooltip = fluidTooltipVisible(attributes) ? renderTooltipParts(name, { showTooltip: true }, details, context, spec.id)
+      : { attributes: "", template: "" };
+    let content = labelSide === "left" || link && iconOption === "right" ? label + icon : icon + label;
+    const target = attr(attributes, "linksTo") ?? context.resolveFluidHref?.(spec.id);
+    if (link && target && isSafeHtmlUrl(target, "href")) content = `<a class="guide-fluid-link" href="${escapeHtml(target)}">${content}</a>`;
+    const imageStyle = imageOffset === undefined ? "" : ` style="position:relative;top:${Number(imageOffset) * scale}px"`;
+    const source = `<span class="guide-item-placeholder guide-fluid-placeholder ${inline ? "inline" : "block"}" data-fluid-id="${escapeHtml(spec.id)}"${imageStyle}${tooltip.attributes}>${content}${tooltip.template}</span>`;
+    return inline ? source : `<div class="guide-item-placeholder-block">${source}</div>`;
+  } catch (error) {
+    return `<span class="guide-tag-card unknown">${escapeHtml(error.message)}</span>`;
+  }
+}
+
 function renderRuntimePlaceholder(name, attributes, inline, context = {}, body = "") {
-  const id = attr(attributes, "id", "controller", "name");
+  const id = attr(attributes, "fluid", "id", "controller", "name");
   const details = id ? `<span class="runtime-id">${escapeHtml(id)}</span>` : "";
   const icon = name === "BlockImage" ? "▣" : "◇";
   const tooltip = renderTooltipParts(name, attributes, body || attr(attributes, "tooltip"), context, id ? String(id) : "");
