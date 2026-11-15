@@ -197,6 +197,8 @@ Groups alternative bogata treść under independent tabs. tylko bezpośredni `<T
 
 Renders katalog-style outline z real łącznik wiersze drawn z  prefix glyphs on każdy wiersz. Both Unicode box-drawing (`│ ├ └ ─`) i ASCII (`| +-- \-- ` / four spaces) forms są accepted i może be mixed. Payload tekst obsługuje  usual inline Markdown (links, **bold**, `code`, …), i those links są clickable both in-game i in  built-in site export.  ten sam treść może także be zapisany as fenced ` ```tree ` or ` ```filetree ` blok.
 
+W wąskim widoku wcięcia są zmniejszane, aby zachować miejsce na tekst. Długie ścieżki są dzielone przede wszystkim po `/`, `\`, `_` i `-`; nazwy bez separatorów mogą być łamane między znakami. Kolejne wiersze wyrównują się do początku nazwy, a ikony i rozgałęzienia do pierwszego wiersza.
+
 ````md
 <FileTree indent="14" gap="0">
 project

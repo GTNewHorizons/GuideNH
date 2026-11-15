@@ -197,6 +197,8 @@ Groups alternative リッチ コンテンツ under independent tabs. のみ 直�
 
 描画 ディレクトリ-style outline とともに real connector 行 drawn から  prefix glyphs on 各 行. 両方 Unicode box-drawing (`│ ├ └ ─`) と ASCII (`| +-- \-- ` / four spaces) forms です accepted と 可能性があります なる mixed. Payload テキスト 対応します  usual inline Markdown (リンク, **bold**, `code`, …), と those リンク です clickable 両方 で-game と で  built-で site export.  同じ コンテンツ できます も なる written as fenced ` ```tree ` or ` ```filetree ` ブロック.
 
+幅が狭い場合は階層のインデントを縮め、文字の表示領域を確保します。長いパスは `/`、`\`、`_`、`-` の直後を優先して折り返し、区切りのない長い名前は文字間でも折り返します。続きの行は名前の先頭に揃い、アイコンと枝線は最初の行に揃います。
+
 ````md
 <FileTree indent="14" gap="0">
 project

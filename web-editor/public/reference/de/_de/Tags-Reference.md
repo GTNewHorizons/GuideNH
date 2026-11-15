@@ -197,6 +197,8 @@ Groups alternative rich Inhalt under independent tabs. nur direkt `<Tab>` unterg
 
 rendert Eine Verzeichnis-style outline mit real connector Linien drawn von Die prefix glyphs auf jede Zeile. beide Unicode box-drawing (`│ ├ └ ─`) und ASCII (`| +-- \-- ` / four spaces) forms sind accepted und kann sein mixed. Payload Text unterstützt Die usual inline markdown (Links, **fett**, `code`, …), und those Links sind clickable beide in-game und in Die built-in site export. Die gleich Inhalt kann auch sein written als Eine fenced ` ```tree ` or ` ```filetree ` Block.
 
+In schmalen Ansichten wird die Einrückung verkleinert, damit Text lesbar bleibt. Lange Pfade werden bevorzugt nach `/`, `\`, `_` und `-` umgebrochen; durchgehende Namen können zwischen Zeichen umbrechen. Folgezeilen beginnen beim Namen, Symbole und Abzweigungen bleiben an der ersten Zeile ausgerichtet.
+
 ````md
 <FileTree indent="14" gap="0">
 project

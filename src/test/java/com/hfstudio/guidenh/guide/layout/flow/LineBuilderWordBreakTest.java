@@ -36,6 +36,11 @@ class LineBuilderWordBreakTest {
     };
 
     @Test
+    void longWordAtTheStartOfALineUsesEmergencyWrapping() {
+        assertEquals(List.of("supercondu", "ctingwiref", "actory"), layout(60, "superconductingwirefactory"));
+    }
+
+    @Test
     void wbrTextNodeLetsTheNextWordWrap() {
         assertEquals(List.of("Cobble", "stone/s"), layout(60, "Cobble", WBR, "stone/s"));
     }
