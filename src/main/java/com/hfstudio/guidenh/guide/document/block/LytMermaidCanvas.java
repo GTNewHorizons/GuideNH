@@ -840,20 +840,6 @@ public abstract class LytMermaidCanvas<T extends LytMermaidCanvas<T>> extends Ly
         }
 
         @Override
-        public void drawDashedLine(float x1, float y1, float x2, float y2, float thickness, float dashLength,
-            float gapLength, int argbColor) {
-            delegate.drawDashedLine(
-                scaleFloatX(x1),
-                scaleFloatY(y1),
-                scaleFloatX(x2),
-                scaleFloatY(y2),
-                Math.max(1f, thickness * scale),
-                dashLength * scale,
-                gapLength * scale,
-                argbColor);
-        }
-
-        @Override
         public void fillTriangle(float x1, float y1, float x2, float y2, float x3, float y3, int argbColor) {
             delegate.fillTriangle(
                 scaleFloatX(x1),

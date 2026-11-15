@@ -92,6 +92,7 @@ import com.hfstudio.guidenh.guide.document.interaction.ItemTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.ItemTooltipAppender;
 import com.hfstudio.guidenh.guide.document.interaction.TextTooltip;
 import com.hfstudio.guidenh.guide.internal.item.GuideDisplayItemStacks;
+import com.hfstudio.guidenh.guide.internal.markdown.FileTreeParser.SlotKind;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidDiagramType;
 import com.hfstudio.guidenh.guide.internal.mermaid.flowchart.FlowchartParser;
 import com.hfstudio.guidenh.guide.internal.mermaid.mindmap.MindmapParser;
@@ -99,8 +100,6 @@ import com.hfstudio.guidenh.guide.internal.structure.GuideTextNbtCodec;
 import com.hfstudio.guidenh.guide.internal.tooltip.GuideItemTooltipLines;
 import com.hfstudio.guidenh.guide.scene.LytGuidebookScene;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
-import com.hfstudio.guidenh.guide.siteexport.site.GuideSiteGraphRenderer.PieInsetData;
-import com.hfstudio.guidenh.guide.siteexport.site.GuideSiteGraphRenderer.SliceData;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
 import com.hfstudio.guidenh.guide.style.TextAlignment;
 
@@ -934,25 +933,12 @@ public class GuideSiteTooltipRenderer {
     private void appendFileTree(StringBuilder html, LytFileTree fileTree, @Nullable ResourceLocation currentPageId,
         @Nullable GuideSitePageAssetExporter assetExporter, GuideSiteItemIconResolver itemIconResolver,
         @Nullable GuideSiteTemplateRegistry templates, boolean allowNestedItemTooltips) {
-        var rows = fileTree.getRows();
-        html.append("<div class=\"guide-file-tree\" style=\"--tree-max-depth:")
-            .append(
-                Math.max(
-                    1,
-                    rows.stream()
-                        .mapToInt(
-                            row -> row.getSlots()
-                                .size())
-                        .max()
-                        .orElse(1)))
-            .append(";--tree-indent:")
-            .append(fileTree.getIndentPx())
-            .append("px;--tree-gap:")
-            .append(fileTree.getRowGapPx())
-            .append("px\">");
-        for (LytFileTree.Row row : rows) {
+        html.append("<div class=\"guide-file-tree\">");
+        for (LytFileTree.Row row : fileTree.getRows()) {
             html.append("<div class=\"guide-file-tree-row\">");
-            html.append(GuideSiteGraphRenderer.renderFileTreePrefix(row.getSlots()));
+            html.append("<span class=\"guide-file-tree-prefix\">")
+                .append(escapeHtml(fileTreePrefix(row.getSlots())))
+                .append("</span>");
             if (row.getIconBlock() != null) {
                 html.append("<span class=\"guide-file-tree-icon\">");
                 appendBlock(
@@ -978,6 +964,19 @@ public class GuideSiteTooltipRenderer {
             html.append("</div>");
         }
         html.append("</div>");
+    }
+
+    private String fileTreePrefix(List<SlotKind> slots) {
+        StringBuilder prefix = new StringBuilder();
+        for (SlotKind slot : slots) {
+            switch (slot) {
+                case VERTICAL -> prefix.append("|   ");
+                case BRANCH -> prefix.append("|-- ");
+                case LAST_BRANCH -> prefix.append("`-- ");
+                case EMPTY -> prefix.append("    ");
+            }
+        }
+        return prefix.toString();
     }
 
     private void appendGuiSprite(StringBuilder html, LytGuiSprite sprite,
@@ -1176,20 +1175,6 @@ public class GuideSiteTooltipRenderer {
         return result;
     }
 
-    private List<GuideSiteGraphRenderer.SeriesData> seriesData(List<ChartSeries> series, List<ChartSeries> overlays) {
-        List<GuideSiteGraphRenderer.SeriesData> result = seriesData(series);
-        for (ChartSeries overlay : overlays) {
-            result.add(
-                new GuideSiteGraphRenderer.SeriesData(
-                    overlay.getName(),
-                    overlay.getColor(),
-                    overlay.getXs(),
-                    overlay.getYs(),
-                    GuideSiteGraphRenderer.SeriesData.TYPE_LINE));
-        }
-        return result;
-    }
-
     private String[] categories(String[] values) {
         return values != null ? values : new String[0];
     }
@@ -1202,8 +1187,18 @@ public class GuideSiteTooltipRenderer {
             chart.getBarWidthRatio(),
             -90f,
             true);
-        PieInsetData inset = chart.getPieInset() != null ? pieInsetData(chart.getPieInset()) : null;
-        List<GuideSiteGraphRenderer.SeriesData> series = seriesData(chart.getSeries(), chart.getLineOverlays());
+        GuideSiteGraphRenderer.PieInsetData inset = chart.getPieInset() != null ? pieInsetData(chart.getPieInset())
+            : null;
+        List<GuideSiteGraphRenderer.SeriesData> series = seriesData(chart.getSeries());
+        for (ChartSeries overlay : chart.getLineOverlays()) {
+            series.add(
+                new GuideSiteGraphRenderer.SeriesData(
+                    overlay.getName(),
+                    overlay.getColor(),
+                    overlay.getXs(),
+                    overlay.getYs(),
+                    GuideSiteGraphRenderer.SeriesData.TYPE_LINE));
+        }
         return GuideSiteGraphRenderer.renderColumnChart(style, categories(chart.getCategories()), series, inset, null);
     }
 
@@ -1211,8 +1206,7 @@ public class GuideSiteTooltipRenderer {
         return GuideSiteGraphRenderer.renderBarChart(
             chartStyle(chart, chart.getXAxis(), chart.getYAxis(), chart.getBarWidthRatio(), -90f, true),
             categories(chart.getCategories()),
-            seriesData(chart.getSeries(), chart.getLineOverlays()),
-            chart.getPieInset() != null ? pieInsetData(chart.getPieInset()) : null);
+            seriesData(chart.getSeries()));
     }
 
     private String renderLineChart(LytLineChart chart) {
@@ -1229,9 +1223,9 @@ public class GuideSiteTooltipRenderer {
     }
 
     private String renderPieChart(LytPieChart chart) {
-        List<SliceData> slices = new ArrayList<>();
+        List<GuideSiteGraphRenderer.SliceData> slices = new ArrayList<>();
         for (PieSlice slice : chart.getSlices()) {
-            slices.add(new SliceData(slice.getLabel(), slice.getValue(), slice.getColor(), slice.getTooltipExtra()));
+            slices.add(new GuideSiteGraphRenderer.SliceData(slice.getLabel(), slice.getValue(), slice.getColor()));
         }
         return GuideSiteGraphRenderer
             .renderPieChart(chartStyle(chart, null, null, 0.7f, chart.getStartAngleDeg(), chart.isClockwise()), slices);
@@ -1247,22 +1241,19 @@ public class GuideSiteTooltipRenderer {
             chart.getCornerLegendBackgroundColor());
     }
 
-    private PieInsetData pieInsetData(PieInsetSpec inset) {
-        List<SliceData> slices = new ArrayList<>();
+    private GuideSiteGraphRenderer.PieInsetData pieInsetData(PieInsetSpec inset) {
+        List<GuideSiteGraphRenderer.SliceData> slices = new ArrayList<>();
         for (PieSlice slice : inset.getSlices()) {
-            slices.add(new SliceData(slice.getLabel(), slice.getValue(), slice.getColor(), slice.getTooltipExtra()));
+            slices.add(new GuideSiteGraphRenderer.SliceData(slice.getLabel(), slice.getValue(), slice.getColor()));
         }
-        return new PieInsetData(
+        return new GuideSiteGraphRenderer.PieInsetData(
             slices,
             inset.getSize(),
             inset.getPosition()
                 .name()
                 .toLowerCase(Locale.ROOT)
                 .replace('_', '-'),
-            inset.getTitle(),
-            inset.getStartAngleDeg(),
-            inset.isClockwise(),
-            inset.getTitleColor());
+            inset.getTitle());
     }
 
     private void appendImageBlock(StringBuilder html, LytImageBlock image, @Nullable ResourceLocation currentPageId,

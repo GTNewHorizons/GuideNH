@@ -163,40 +163,34 @@ public class LytLineChart extends LytChartBase {
 
             int hoveredSeries = decodeSeries(hoveredKey);
             int hoveredPoint = decodePoint(hoveredKey);
-            context.pushLocalScissor(inner);
-            try {
-                // Line segments (segments adjacent to the hovered point are thickened).
-                for (int i = 0; i + 1 < n; i++) {
-                    float thick = LINE_THICKNESS;
-                    if (hoveredKey >= 0 && hoveredSeries == si && (hoveredPoint == i || hoveredPoint == i + 1)) {
-                        thick = LINE_THICKNESS + 1f;
-                    }
-                    context.drawLine(px[i], py[i], px[i + 1], py[i + 1], thick, s.getColor());
+            // Line segments (segments adjacent to the hovered point are thickened).
+            for (int i = 0; i + 1 < n; i++) {
+                float thick = LINE_THICKNESS;
+                if (hoveredKey >= 0 && hoveredSeries == si && (hoveredPoint == i || hoveredPoint == i + 1)) {
+                    thick = LINE_THICKNESS + 1f;
                 }
+                context.drawLine(px[i], py[i], px[i + 1], py[i + 1], thick, s.getColor());
+            }
 
-                // Data points.
-                if (showPoints) {
-                    for (int i = 0; i < n; i++) {
-                        boolean hovered = hoveredKey >= 0 && hoveredSeries == si && hoveredPoint == i;
-                        float x = px[i];
-                        float y = py[i];
-                        if (hovered) {
-                            // Push outward by 2px along the "orientation" (normal of the average tangent of the
-                            // adjacent segments).
-                            float[] off = computeOutwardNormal(px, py, i, n);
-                            x += off[0] * 2f;
-                            y += off[1] * 2f;
-                        }
-                        float r = hovered ? POINT_RADIUS + 2f : POINT_RADIUS;
-                        context.fillCircle(x, y, r, s.getColor());
-                        if (hovered) {
-                            context.drawCircleOutline(x, y, r, 1f, ColorUtils.BLACK.getColor());
-                        }
+            // Data points.
+            if (showPoints) {
+                for (int i = 0; i < n; i++) {
+                    boolean hovered = hoveredKey >= 0 && hoveredSeries == si && hoveredPoint == i;
+                    float x = px[i];
+                    float y = py[i];
+                    if (hovered) {
+                        // Push outward by 2px along the "orientation" (normal of the average tangent of the
+                        // adjacent segments).
+                        float[] off = computeOutwardNormal(px, py, i, n);
+                        x += off[0] * 2f;
+                        y += off[1] * 2f;
+                    }
+                    float r = hovered ? POINT_RADIUS + 2f : POINT_RADIUS;
+                    context.fillCircle(x, y, r, s.getColor());
+                    if (hovered) {
+                        context.drawCircleOutline(x, y, r, 1f, ColorUtils.BLACK.getColor());
                     }
                 }
-
-            } finally {
-                context.popScissor();
             }
 
             // Data value labels.
@@ -227,8 +221,6 @@ public class LytLineChart extends LytChartBase {
                 }
             }
         }
-        CartesianChartRenderer.drawReferenceLines(context, inner, yAxis, yRange);
-        drawHoverCursor(context, inner, yAxis, yRange);
     }
 
     private static float[] computeOutwardNormal(float[] xs, float[] ys, int i, int n) {

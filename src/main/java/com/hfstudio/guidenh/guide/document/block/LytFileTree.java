@@ -38,10 +38,9 @@ public class LytFileTree extends LytBlock {
     private int rowGapPx = DEFAULT_ROW_GAP_PX;
     private int iconBoxPx = DEFAULT_ICON_BOX_PX;
     private int iconGapPx = DEFAULT_ICON_GAP_PX;
-    private float layoutIndentPx = DEFAULT_INDENT_PX;
 
     public void appendRow(List<SlotKind> slots, @Nullable LytBlock iconBlock, LytParagraph payload) {
-        Row row = new Row(slots, iconBlock, payload);
+        Row row = new Row(new ArrayList<>(slots), iconBlock, payload);
         if (iconBlock != null) {
             iconBlock.parent = this;
             childNodes.add(iconBlock);
@@ -101,23 +100,16 @@ public class LytFileTree extends LytBlock {
     protected LytRect computeLayout(LayoutContext context, int x, int y, int availableWidth) {
         int currentY = y;
         int totalHeight = 0;
-        int maxDepth = 0;
-        int iconReserve = 0;
-        for (Row row : rows) {
-            maxDepth = Math.max(maxDepth, row.slots.size());
-            if (row.iconBlock != null) iconReserve = iconBoxPx + iconGapPx;
-        }
-        int textReserve = Math.min(80, availableWidth / 2);
-        layoutIndentPx = maxDepth == 0 ? indentPx
-            : Math.min(indentPx, Math.max(0, availableWidth - textReserve - iconReserve) / (float) maxDepth);
 
         for (int i = 0; i < rows.size(); i++) {
             Row row = rows.get(i);
-            int iconX = x + Math.round(row.slots.size() * layoutIndentPx);
+            int iconX = x + row.slots.size() * indentPx;
             int payloadX;
             int iconHeight = 0;
             if (row.iconBlock != null) {
-                int iconAvailable = Math.max(1, x + availableWidth - iconX - textReserve - iconGapPx);
+                // Give the icon enough headroom so its natural width can be measured. Cap it to
+                // half of the remaining row space so a runaway label cannot eat the whole row.
+                int iconAvailable = Math.max(iconBoxPx, (x + availableWidth - iconX) / 2);
                 row.iconBlock.layout(context, iconX, currentY, Math.max(1, iconAvailable));
                 LytRect iconBounds = row.iconBlock.getBounds();
                 int actualIconWidth = iconBounds.width();
@@ -129,23 +121,17 @@ public class LytFileTree extends LytBlock {
             }
             int payloadAvailable = Math.max(1, x + availableWidth - payloadX);
             LytRect payloadBounds = row.payload.layout(context, payloadX, currentY, payloadAvailable);
-            LytRect firstLine = row.payload.getFirstLineBounds();
-            int firstLineHeight = firstLine != null ? firstLine.height() : payloadBounds.height();
-            int firstRowHeight = Math.max(firstLineHeight, iconHeight);
-            centerRowChild(row.payload, firstRowHeight, firstLineHeight);
-            if (row.iconBlock != null) {
-                centerRowChild(row.iconBlock, firstRowHeight, iconHeight);
-            }
-            int rowHeight = Math.max(
-                row.payload.getBounds()
-                    .bottom() - currentY,
-                iconHeight);
+            int payloadHeight = payloadBounds.height();
+            int rowHeight = Math.max(payloadHeight, iconHeight);
             if (rowHeight <= 0) {
                 rowHeight = 1;
             }
+            centerRowChild(row.payload, rowHeight, payloadHeight);
+            if (row.iconBlock != null) {
+                centerRowChild(row.iconBlock, rowHeight, iconHeight);
+            }
             row.rowY = currentY;
             row.rowHeight = rowHeight;
-            row.connectorY = currentY + Math.max(0, firstRowHeight - CONNECTOR_THICKNESS) / 2;
             currentY += rowHeight;
             totalHeight += rowHeight;
             if (i < rows.size() - 1) {
@@ -161,7 +147,6 @@ public class LytFileTree extends LytBlock {
     protected void onLayoutMoved(int deltaX, int deltaY) {
         for (Row row : rows) {
             row.rowY += deltaY;
-            row.connectorY += deltaY;
             if (row.iconBlock != null) {
                 row.iconBlock.moveLayoutPos(deltaX, deltaY);
             }
@@ -184,25 +169,35 @@ public class LytFileTree extends LytBlock {
         int baseX = bounds.x();
         // Resolve symbolic color once per frame instead of on every fillRect.
         int connectorColor = context.resolveColor(ColorUtils.TABLE_BORDER);
+        int halfIndent = indentPx / 2;
         for (Row row : rows) {
             int rowY = row.rowY;
             int rowHeight = row.rowHeight;
-            int rowMidY = row.connectorY;
+            int rowMidY = rowY + Math.max(0, rowHeight - CONNECTOR_THICKNESS) / 2;
             int rowBottomY = rowY + rowHeight + rowGapPx;
             int slotCount = row.slots.size();
-            for (int slotIndex = 0; slotIndex < slotCount; slotIndex++) {
-                int columnCenterX = baseX + Math.round((slotIndex + 0.5f) * layoutIndentPx);
-                int columnEndX = baseX + Math.round((slotIndex + 1) * layoutIndentPx);
+            int columnCenterX = baseX + halfIndent;
+            for (int slotIndex = 0; slotIndex < slotCount; slotIndex++, columnCenterX += indentPx) {
                 SlotKind slot = row.slots.get(slotIndex);
                 switch (slot) {
                     case VERTICAL -> drawVerticalLine(context, columnCenterX, rowY, rowBottomY, connectorColor);
                     case BRANCH -> {
                         drawVerticalLine(context, columnCenterX, rowY, rowBottomY, connectorColor);
-                        drawHorizontalLine(context, columnCenterX, columnEndX, rowMidY, connectorColor);
+                        drawHorizontalLine(
+                            context,
+                            columnCenterX,
+                            columnCenterX - halfIndent + indentPx,
+                            rowMidY,
+                            connectorColor);
                     }
                     case LAST_BRANCH -> {
                         drawVerticalLine(context, columnCenterX, rowY, rowMidY + CONNECTOR_THICKNESS, connectorColor);
-                        drawHorizontalLine(context, columnCenterX, columnEndX, rowMidY, connectorColor);
+                        drawHorizontalLine(
+                            context,
+                            columnCenterX,
+                            columnCenterX - halfIndent + indentPx,
+                            rowMidY,
+                            connectorColor);
                     }
                     case EMPTY -> {
                         // Empty slot draws nothing.
@@ -245,10 +240,9 @@ public class LytFileTree extends LytBlock {
         private final LytParagraph payload;
         private int rowY;
         private int rowHeight;
-        private int connectorY;
 
-        private Row(List<SlotKind> slots, @Nullable LytBlock iconBlock, LytParagraph payload) {
-            this.slots = List.copyOf(slots);
+        Row(List<SlotKind> slots, @Nullable LytBlock iconBlock, LytParagraph payload) {
+            this.slots = slots;
             this.iconBlock = iconBlock;
             this.payload = payload;
         }

@@ -1,5 +1,6 @@
 package com.hfstudio.guidenh.guide.document.block.chart;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
@@ -27,8 +28,7 @@ public class PieInsetSpec {
         RIGHT_OUTSIDE
     }
 
-    private List<PieSlice> slices = List.of();
-    private double total;
+    private final List<PieSlice> slices = new ArrayList<>();
     private int size = 60;
     private Position position = Position.TOP_RIGHT;
     @Setter
@@ -40,11 +40,8 @@ public class PieInsetSpec {
     private int titleColor = ColorUtils.CHART_TITLE.getColor();
 
     public void setSlices(List<PieSlice> newSlices) {
-        slices = newSlices != null ? List.copyOf(newSlices) : List.of();
-        total = 0;
-        for (PieSlice slice : slices) {
-            total += PieChartGeometry.positiveValue(slice.getValue());
-        }
+        slices.clear();
+        if (newSlices != null) slices.addAll(newSlices);
     }
 
     public void setSize(int size) {

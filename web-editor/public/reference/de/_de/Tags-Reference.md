@@ -197,8 +197,6 @@ Groups alternative rich Inhalt under independent tabs. nur direkt `<Tab>` unterg
 
 rendert Eine Verzeichnis-style outline mit real connector Linien drawn von Die prefix glyphs auf jede Zeile. beide Unicode box-drawing (`│ ├ └ ─`) und ASCII (`| +-- \-- ` / four spaces) forms sind accepted und kann sein mixed. Payload Text unterstützt Die usual inline markdown (Links, **fett**, `code`, …), und those Links sind clickable beide in-game und in Die built-in site export. Die gleich Inhalt kann auch sein written als Eine fenced ` ```tree ` or ` ```filetree ` Block.
 
-In schmalen Ansichten wird die Einrückung verkleinert, damit Text lesbar bleibt. Lange Pfade werden bevorzugt nach `/`, `\`, `_` und `-` umgebrochen; durchgehende Namen können zwischen Zeichen umbrechen. Folgezeilen beginnen beim Namen, Symbole und Abzweigungen bleiben an der ersten Zeile ausgerichtet.
-
 ````md
 <FileTree indent="14" gap="0">
 project
@@ -748,16 +746,11 @@ Siehe [GameScene](GameScene) für Szene import/removal behavior und [Annotations
 
 Cartesian charts (Spalte / Bar / Linie / Scatter) additionally accept axis Attribut `xAxisLabel`, `xAxisMin`, `xAxisMax`, `xAxisStep`, `xAxisUnit`, `xAxisTickFormat` und Die passend `yAxis*` Setzen Sie, plus `showXGrid={true}` / `showYGrid={true}` zu toggle gridlines.
 
-Ungültige oder übergroße Zahlenformate verwenden automatisch das Standardformat. Formatzeichenfolgen sind auf 256 Zeichen, Feldbreiten auf 128 und die Genauigkeit auf 20 begrenzt. Überlappende numerische Achsenbeschriftungen werden bei Bedarf ausgelassen; ihre Gitterlinien bleiben erhalten.
-
-`ColumnChart`, `LineChart` und `ScatterChart` zeigen im Diagrammbereich eine horizontale goldene Hilfslinie, auch über freien Flächen; der aktuelle Y-Wert wird links hervorgehoben. `BarChart` zeigt eine vertikale Hilfslinie mit dem X-Wert unterhalb des Diagramms. Die Werte folgen Achsenformat und Einheit. Auf der Linie steht kein Text; außerhalb des Bereichs verschwindet sie. Beide Achsen verwenden blasse, weit auseinanderliegende Striche für das Raster. `showXGrid` und `showYGrid` schalten es getrennt. Extrem kleine positive Schrittweiten werden automatisch vergrößert, um den Zeichenaufwand zu begrenzen.
-
 untergeordnete Elemente:
 
 * `<Series name="..." color="#..." data="10,20,30"/>` für category-based charts (Spalte / Bar / categorical Linie).
 * `<Series name="..." color="#..." points="x:y,x:y,..."/>` für numeric X (Linie `numericX={true}`, Scatter).
 * `<Slice name="..." value="..." color="#..."/>` für `<PieChart>` nur.
-* `<ReferenceLine y="100"/>` zeichnet in `ColumnChart`, `LineChart` und `ScatterChart` eine feste horizontale Linie. `BarChart` verwendet `<ReferenceLine x="100"/>` für eine vertikale Linie und akzeptiert `y` als Alias. Die Koordinate muss endlich sein. Mehrere Linien sind möglich; `color` ersetzt das halbtransparente Grau, das optionale `label` steht innerhalb der Zeichenfläche, ohne die Achsenbeschriftung zu verdecken. Referenzen bleiben ohne Raster sichtbar, erweitern den automatischen Wertebereich nicht und werden außerhalb davon ausgeblendet. `PieChart` unterstützt dieses Tag nicht.
 
 wenn `color` ist omitted auf ein `<Series>` oder `<Slice>`, GuideNH cycles durch Eine built-in 16-Farbe palette.
 
@@ -786,8 +779,6 @@ Extra Attribut: `categories` (X-axis oder Y-axis labels, comma separated), `barW
 
 - `<LineSeries name="…" data="v1,v2,…" color="#rrggbb" icon="…"/>` — drawn als Eine polyline overlay auf oben von Die bars. jede Linie Punkt sits at Die cluster Mitte von Die passend category index; Die overlay shares Die host Diagramm's Wert axis. You kann declare mehrere `<LineSeries>` zu overlay several trends.
 - `<PieInset size="60" position="topRight" title="…" startAngleDeg="-90" direction="clockwise" titleColor="#rrggbb">` — Eine small pie Diagramm drawn innerhalb eins von Die four corners (`topRight`, `topLeft`, `bottomRight`, `bottomLeft`) von Die plot area. seine `<Slice>` untergeordnete Elemente share Die gleich Syntax als in `<PieChart>`.
-
-`PieInset`-Segmente haben beim Überfahren Vorrang vor darunterliegenden Balken und Linien. Der Tooltip zeigt Name, Wert, Prozentanteil und optionalen `tooltip`-Text; Gegenstand-Tooltips bleiben im Spiel erhalten. Dabei verschwindet die Hilfslinie des Hauptdiagramms. Nur das erste eingebettete Kreisdiagramm wird verwendet. `position="rightOutside"` reserviert rechts einen eigenen Bereich. `startAngleDeg="0"`, `direction="counterclockwise"` und ein einzelnes Segment als voller Kreis werden unterstützt.
 
 ```mdx
 <ColumnChart title="Quarterly output" categories="Q1,Q2,Q3,Q4">

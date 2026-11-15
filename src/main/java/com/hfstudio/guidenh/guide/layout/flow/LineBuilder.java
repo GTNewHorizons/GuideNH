@@ -304,7 +304,6 @@ public class LineBuilder implements Consumer<LytFlowContent> {
      */
     private boolean iterateRuns(CharSequence text, ResolvedTextStyle style, char lastChar, LineConsumer consumer) {
         float curLineWidth = 0;
-        int runPadding = style.inlineCode() ? LineTextRun.INLINE_CODE_EXTRA_WIDTH : 0;
 
         lineBuffer.setLength(0);
         lineBufferPrefixWidths[0] = 0f;
@@ -378,7 +377,7 @@ public class LineBuilder implements Consumer<LytFlowContent> {
 
             var advance = context.getRenderedAdvance(codePoint, style, visibleGlyphSeen);
             // Break line if necessary
-            if (curLineWidth + advance + runPadding > remainingLineWidth) {
+            if (curLineWidth + advance > remainingLineWidth) {
                 int precedingBreakOpportunity;
 
                 // BreakIterator will only ever break *AFTER* whitespace, but since we ignore the last break opportunity
@@ -389,12 +388,11 @@ public class LineBuilder implements Consumer<LytFlowContent> {
                     // Find break opportunities and include the current character in it.
                     // Append the char temporarily to avoid a string-concatenation allocation.
                     var breakIterator = LINE_BREAK_ITERATOR.get();
-                    int bufferLength = lineBuffer.length();
-                    lineBuffer.appendCodePoint(codePoint);
+                    lineBuffer.append((char) codePoint);
                     charIterator.reset(lineBuffer);
                     breakIterator.setText(charIterator);
                     precedingBreakOpportunity = breakIterator.preceding(lineBuffer.length());
-                    lineBuffer.setLength(bufferLength);
+                    lineBuffer.setLength(lineBuffer.length() - 1);
                     // An explicit <wbr> later in the word wins over the last natural opportunity.
                     precedingBreakOpportunity = Math.max(precedingBreakOpportunity, wordBreakOffset);
                 }
@@ -402,9 +400,8 @@ public class LineBuilder implements Consumer<LytFlowContent> {
                 // If the preceding text chunk ended on a whitespace, we can break there if the
                 // current word does not offer us any opportunity to.
                 boolean lineBufferHasVisibleGlyph = containsVisibleGlyph(lineBuffer);
-                if (lineBufferHasVisibleGlyph
-                    && (precedingBreakOpportunity > 0 || precedingBreakOpportunity == 0 && openLineElement != null
-                        && (canBreakAtStart || wordBreakOffset == 0))) {
+                if (lineBufferHasVisibleGlyph && (precedingBreakOpportunity > 0
+                    || precedingBreakOpportunity == 0 && (canBreakAtStart || wordBreakOffset == 0))) {
                     // Determine width up until the break opportunity.
                     float widthAtBreakOpportunity = lineBufferPrefixWidths[precedingBreakOpportunity];
 
@@ -430,7 +427,7 @@ public class LineBuilder implements Consumer<LytFlowContent> {
                         // Text glued to an inline image (e.g. punctuation after an item link) takes it along
                         moveGluedTailToNextLine(true);
                     }
-                    ensureTextSpaceIsAvailable(advance + runPadding);
+                    ensureTextSpaceIsAvailable(advance);
 
                     // If no wider lane exists (for example, a genuinely narrow table cell), keep
                     // the glyph in the line rather than emitting an empty line and dropping it.
@@ -441,7 +438,7 @@ public class LineBuilder implements Consumer<LytFlowContent> {
                 } else {
                     // The word touches an inline image at the end of the line (e.g. an item link's icon):
                     // wrap them together instead of splitting the word.
-                    if (moveGluedTailToNextLine(true) && curLineWidth + advance + runPadding <= remainingLineWidth) {
+                    if (moveGluedTailToNextLine(true) && curLineWidth + advance <= remainingLineWidth) {
                         curLineWidth += advance;
                         appendCodePointToLineBuffer(codePoint, advance);
                         visibleGlyphSeen = visibleGlyphSeen || advance > 0f;

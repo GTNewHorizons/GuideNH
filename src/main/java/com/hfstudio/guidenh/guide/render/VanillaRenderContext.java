@@ -627,50 +627,6 @@ public class VanillaRenderContext implements RenderContext {
     }
 
     @Override
-    public void drawDashedLine(float x1, float y1, float x2, float y2, float thickness, float dashLength,
-        float gapLength, int argbColor) {
-        double length = Math.hypot((double) x2 - x1, (double) y2 - y1);
-        double period = (double) dashLength + gapLength;
-        if (!Double.isFinite(length) || length <= 0
-            || !Double.isFinite(period)
-            || dashLength <= 0
-            || gapLength < 0
-            || !Float.isFinite(thickness)
-            || thickness <= 0
-            || argbColor >>> 24 == 0) return;
-        double dx = (x2 - (double) x1) / length;
-        double dy = (y2 - (double) y1) / length;
-        double half = Math.max(0.5, thickness * 0.5);
-        double nx = -dy * half;
-        double ny = dx * half;
-        int count = (int) Math.min(16384, Math.ceil(length / period));
-        double spacing = Math.max(period, length / count);
-        double dash = spacing * (dashLength / period);
-        beginShapeDraw();
-        try {
-            applyArgb(argbColor);
-            var tess = Tessellator.instance;
-            tess.startDrawingQuads();
-            tessColor(tess, argbColor);
-            for (int i = 0; i < count; i++) {
-                double offset = i * spacing;
-                double end = Math.min(offset + dash, length);
-                double startX = x1 + dx * offset;
-                double startY = y1 + dy * offset;
-                double endX = x1 + dx * end;
-                double endY = y1 + dy * end;
-                tess.addVertex(startX - nx, startY - ny, 0);
-                tess.addVertex(endX - nx, endY - ny, 0);
-                tess.addVertex(endX + nx, endY + ny, 0);
-                tess.addVertex(startX + nx, startY + ny, 0);
-            }
-            tess.draw();
-        } finally {
-            endShapeDraw();
-        }
-    }
-
-    @Override
     public void fillTriangle(float x1, float y1, float x2, float y2, float x3, float y3, int argbColor) {
         beginShapeDraw();
         applyArgb(argbColor);

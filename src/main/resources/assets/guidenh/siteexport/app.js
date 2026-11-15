@@ -4,7 +4,6 @@ import { loadSharedText } from "./sharedAssets.js";
 import { rememberSiteLanguage } from "./languagePreference.js";
 import { installGuideItemNavigation } from "./itemNavigation.js";
 import { ensureSiteLanguage, siteText } from "./locale.js";
-import { installChartCursors } from "./chart-cursor.js";
 
 const AMOUNT_UNIT_STORAGE_KEY = "guidenh.amount.fluidUnit";
 let configuredFluidUnit = "mB";
@@ -1593,7 +1592,6 @@ function installMermaidPanZoom(root) {
 }
 
 function installChartHoverTooltips(root) {
-  installChartCursors(root);
   const svgs = root.querySelectorAll("svg.guide-chart, svg.guide-chart-svg, svg.guide-function-graph");
   for (const svg of svgs) {
     const isFunctionGraph = svg.classList.contains("guide-function-graph");

@@ -197,8 +197,6 @@ Groups alternative リッチ コンテンツ under independent tabs. のみ 直�
 
 描画 ディレクトリ-style outline とともに real connector 行 drawn から  prefix glyphs on 各 行. 両方 Unicode box-drawing (`│ ├ └ ─`) と ASCII (`| +-- \-- ` / four spaces) forms です accepted と 可能性があります なる mixed. Payload テキスト 対応します  usual inline Markdown (リンク, **bold**, `code`, …), と those リンク です clickable 両方 で-game と で  built-で site export.  同じ コンテンツ できます も なる written as fenced ` ```tree ` or ` ```filetree ` ブロック.
 
-幅が狭い場合は階層のインデントを縮め、文字の表示領域を確保します。長いパスは `/`、`\`、`_`、`-` の直後を優先して折り返し、区切りのない長い名前は文字間でも折り返します。続きの行は名前の先頭に揃い、アイコンと枝線は最初の行に揃います。
-
 ````md
 <FileTree indent="14" gap="0">
 project
@@ -748,16 +746,11 @@ $$\begin{pmatrix} a & b \\ c & d \end{pmatrix}$$
 
 Cartesian チャート (列 / Bar / 行 / Scatter) additionally 受け付けます axis 属性 `xAxisLabel`, `xAxisMin`, `xAxisMax`, `xAxisStep`, `xAxisUnit`, `xAxisTickFormat` と  一致する `yAxis*` 設定します, plus `showXGrid={true}` / `showYGrid={true}` へ toggle gridlines.
 
-無効または過大な目盛り書式は自動数値書式に戻ります。書式文字列は 256 文字、フィールド幅は 128、精度は 20 が上限です。 数値目盛りが重なる場合は一部のラベルを省略しますが、対応するグリッド線は維持されます。
-
-`ColumnChart`、`LineChart`、`ScatterChart` は、描画領域内の空白部分でも金色の水平補助線を表示し、左の軸に現在の Y 値を強調表示します。`BarChart` は垂直補助線を使い、下側に X 値を表示します。数値は軸の書式と単位に従います。線上には文字を置かず、領域の外では非表示になります。両軸のグリッドは薄く間隔の広い破線で、`showXGrid` と `showYGrid` で個別に切り替えられます。極端に小さい正の目盛間隔は、描画処理を制限するため自動的に広げられます。
-
 子要素:
 
 * `<Series name="..." color="#..." data="10,20,30"/>` 用 category-based チャート (列 / Bar / categorical 行).
 * `<Series name="..." color="#..." points="x:y,x:y,..."/>` 用 numeric X (行 `numericX={true}`, Scatter).
 * `<Slice name="..." value="..." color="#..."/>` 用 `<PieChart>` のみ.
-* `<ReferenceLine y="100"/>` は `ColumnChart`、`LineChart`、`ScatterChart` に固定の水平線を描きます。`BarChart` は `<ReferenceLine x="100"/>` で垂直線を描き、`y` も別名として受け付けます。座標は有限の数値が必要です。複数の線を指定でき、既定の半透明グレーは `color` で変更できます。任意の `label` はプロット内に表示され、軸の目盛りと重なりません。参照線はグリッドの設定に依存せず、自動範囲を広げず、範囲外では表示されません。`PieChart` はこのタグに対応しません。
 
 場合 `color` 省略された場合 on a `<Series>` または `<Slice>`, GuideNH cycles 通じて built-で 16-色 palette.
 
@@ -786,8 +779,6 @@ Extra 属性: `categories` (X-axis または Y-axis labels, comma separated), `b
 
 - `<LineSeries name="…" data="v1,v2,…" color="#rrggbb" icon="…"/>` — drawn as a 折れ線 overlay on 上 of  bars. 各 行 点 sits at  cluster 中央 of  一致する category index;  overlay shares  host チャート's 値 axis. You できます declare 複数の `<LineSeries>` へ overlay several trends.
 - `<PieInset size="60" position="topRight" title="…" startAngleDeg="-90" direction="clockwise" titleColor="#rrggbb">` — small pie チャート drawn 内部 1 つ of  four corners (`topRight`, `topLeft`, `bottomRight`, `bottomLeft`) of  plot area. Its `<Slice>` 子要素 share  同じ 構文 as で `<PieChart>`.
-
-`PieInset` の扇形は下にある棒や折れ線より優先してホバーに反応し、名前、値、割合、任意の `tooltip` を表示します。ゲーム内ではアイテムのツールチップも維持されます。扇形の上では主グラフの補助線が消えます。使用される挿入円グラフは最初の一つだけです。`position="rightOutside"` は右側に専用領域を確保します。`startAngleDeg="0"`、`direction="counterclockwise"`、単一の扇形による完全な円にも対応します。
 
 ```mdx
 <ColumnChart title="Quarterly output" categories="Q1,Q2,Q3,Q4">

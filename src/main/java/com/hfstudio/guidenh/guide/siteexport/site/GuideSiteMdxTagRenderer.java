@@ -44,7 +44,6 @@ import com.hfstudio.guidenh.guide.compiler.tags.ItemImageCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.KeyBindTagCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.MdxAttrs;
 import com.hfstudio.guidenh.guide.compiler.tags.chart.ChartAttrParser;
-import com.hfstudio.guidenh.guide.compiler.tags.chart.ChartChildParser;
 import com.hfstudio.guidenh.guide.compiler.tags.functiongraph.FunctionGraphAttrs;
 import com.hfstudio.guidenh.guide.document.block.LytStructureView;
 import com.hfstudio.guidenh.guide.document.block.chart.ChartLabelPosition;
@@ -65,6 +64,7 @@ import com.hfstudio.guidenh.guide.internal.markdown.FileTreeParser;
 import com.hfstudio.guidenh.guide.internal.markdown.FileTreeParser.FileTreeEntry;
 import com.hfstudio.guidenh.guide.internal.markdown.FileTreeParser.FileTreeIcon;
 import com.hfstudio.guidenh.guide.internal.markdown.FileTreeParser.FileTreeModel;
+import com.hfstudio.guidenh.guide.internal.markdown.FileTreeParser.SlotKind;
 import com.hfstudio.guidenh.guide.internal.markdown.MarkdownRuntimeBlocks;
 import com.hfstudio.guidenh.guide.internal.markdown.MarkdownRuntimeBlocks.QuoteIconSpec;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidDiagramType;
@@ -92,8 +92,6 @@ import com.hfstudio.guidenh.guide.mediawiki.MediaWikiSpecialPageResult;
 import com.hfstudio.guidenh.guide.navigation.NavigationNode;
 import com.hfstudio.guidenh.guide.navigation.NavigationTree;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
-import com.hfstudio.guidenh.guide.siteexport.site.GuideSiteGraphRenderer.PieInsetData;
-import com.hfstudio.guidenh.guide.siteexport.site.GuideSiteGraphRenderer.SliceData;
 import com.hfstudio.guidenh.guide.sound.GuideSoundSpec;
 import com.hfstudio.guidenh.guide.sound.GuideSoundTrigger;
 import com.hfstudio.guidenh.guide.units.AmountFormatter;
@@ -109,7 +107,6 @@ import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxFlowElement;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstAnyContent;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstBreak;
-import com.hfstudio.guidenh.libs.mdast.model.MdAstFlowContent;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstLiteral;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstParent;
 
@@ -326,19 +323,19 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             return renderCsvTable(element, currentPageId);
         }
         if ("ColumnChart".equals(name)) {
-            return renderColumnChart(normalizeChartChildren(element, currentPageId));
+            return renderColumnChart(element);
         }
         if ("BarChart".equals(name)) {
-            return renderBarChart(normalizeChartChildren(element, currentPageId));
+            return renderBarChart(element);
         }
         if ("LineChart".equals(name)) {
-            return renderLineChart(normalizeChartChildren(element, currentPageId));
+            return renderLineChart(element);
         }
         if ("PieChart".equals(name)) {
-            return renderPieChart(normalizeChartChildren(element, currentPageId));
+            return renderPieChart(element);
         }
         if ("ScatterChart".equals(name)) {
-            return renderScatterChart(normalizeChartChildren(element, currentPageId));
+            return renderScatterChart(element);
         }
         if ("FunctionGraph".equals(name) || "Function".equals(name)) {
             return renderFunctionGraphTag(element, defaultNamespace, currentPageId, templates, sceneResolver, compiler);
@@ -1634,48 +1631,19 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         GuideSiteHtmlCompiler.SceneResolver sceneResolver, GuideSiteHtmlCompiler compiler) {
         StringBuilder text = new StringBuilder();
         collectStructureText(text, element.children());
-        int indent = readInt(element, "indent", 14);
-        int gap = Math.max(0, readInt(element, "gap", 0));
-        return renderFileTree(
-            text.toString(),
-            defaultNamespace,
-            currentPageId,
-            templates,
-            sceneResolver,
-            compiler,
-            indent > 0 ? indent : 14,
-            gap);
+        return renderFileTree(text.toString(), defaultNamespace, currentPageId, templates, sceneResolver, compiler);
     }
 
     @Override
     public String renderFileTree(String source, String defaultNamespace, @Nullable ResourceLocation currentPageId,
         GuideSiteTemplateRegistry templates, GuideSiteHtmlCompiler.SceneResolver sceneResolver,
         GuideSiteHtmlCompiler compiler) {
-        return renderFileTree(source, defaultNamespace, currentPageId, templates, sceneResolver, compiler, 14, 0);
-    }
-
-    private String renderFileTree(String source, String defaultNamespace, @Nullable ResourceLocation currentPageId,
-        GuideSiteTemplateRegistry templates, GuideSiteHtmlCompiler.SceneResolver sceneResolver,
-        GuideSiteHtmlCompiler compiler, int indent, int gap) {
         FileTreeModel model = FileTreeParser.parse(source.trim());
         StringBuilder html = new StringBuilder();
-        html.append("<div class=\"guide-file-tree\" style=\"--tree-max-depth:")
-            .append(
-                Math.max(
-                    1,
-                    model.entries()
-                        .stream()
-                        .mapToInt(FileTreeEntry::depth)
-                        .max()
-                        .orElse(1)))
-            .append(";--tree-indent:")
-            .append(indent)
-            .append("px;--tree-gap:")
-            .append(gap)
-            .append("px\">");
+        html.append("<div class=\"guide-file-tree\">");
         for (FileTreeEntry entry : model.entries()) {
             html.append("<div class=\"guide-file-tree-row\">");
-            html.append(GuideSiteGraphRenderer.renderFileTreePrefix(entry.slots()));
+            appendFileTreePrefix(html, entry.slots());
             appendFileTreeIcon(html, entry.icon(), defaultNamespace, currentPageId, templates, sceneResolver);
             html.append("<span class=\"guide-file-tree-name\">")
                 .append(
@@ -1726,6 +1694,32 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
 
     private boolean isFloatWrapMode(@Nullable String wrap) {
         return "square".equalsIgnoreCase(wrap) || "tight".equalsIgnoreCase(wrap) || "through".equalsIgnoreCase(wrap);
+    }
+
+    private void appendFileTreePrefix(StringBuilder html, List<SlotKind> slots) {
+        if (slots.isEmpty()) {
+            return;
+        }
+        StringBuilder prefix = new StringBuilder();
+        for (SlotKind slot : slots) {
+            switch (slot) {
+                case VERTICAL:
+                    prefix.append("|   ");
+                    break;
+                case BRANCH:
+                    prefix.append("|-- ");
+                    break;
+                case LAST_BRANCH:
+                    prefix.append("`-- ");
+                    break;
+                case EMPTY:
+                    prefix.append("    ");
+                    break;
+            }
+        }
+        html.append("<span class=\"guide-file-tree-prefix\">")
+            .append(escapeHtml(prefix.toString()))
+            .append("</span>");
     }
 
     private void appendFileTreeIcon(StringBuilder html, @Nullable FileTreeIcon icon, String defaultNamespace,
@@ -2065,26 +2059,10 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         return readBoolean(element, "showLegend", true) ? ChartLegendPosition.TOP : ChartLegendPosition.NONE;
     }
 
-    private MdxJsxElementFields normalizeChartChildren(MdxJsxElementFields element,
-        @Nullable ResourceLocation currentPageId) {
-        ParsedGuidePage source = resolveFragmentSource(currentPageId);
-        String body = source != null ? MdxBlockTagSourceExtractor.extractRawBody(element, source.getSource()) : null;
-        if (body == null || body.isBlank()) return element;
-        ParsedGuidePage parsed = PageCompiler
-            .parse(source.getSourcePack(), source.getLanguage(), source.getId(), DetailsContentExtractor.dedent(body));
-        MdxJsxFlowElement normalized = new MdxJsxFlowElement(element.name(), new ArrayList<>(element.attributes()));
-        for (var child : parsed.getAstRoot()
-            .children()) {
-            if (child instanceof MdAstFlowContent flow) normalized.children()
-                .add(flow);
-        }
-        return normalized;
-    }
-
     private String renderColumnChart(MdxJsxElementFields element) {
         String yAxisUnit = readOptional(element, "yAxisUnit");
         List<GuideSiteGraphRenderer.SeriesData> series = parseSeriesChildren(element);
-        PieInsetData pieInset = parsePieInsetChildren(element);
+        GuideSiteGraphRenderer.PieInsetData pieInset = parsePieInsetChildren(element);
         return GuideSiteGraphRenderer.renderColumnChart(
             resolveChartStyle(element),
             ChartAttrParser.parseStringArray(readOptional(element, "categories")),
@@ -2097,8 +2075,7 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         return GuideSiteGraphRenderer.renderBarChart(
             resolveChartStyle(element),
             ChartAttrParser.parseStringArray(readOptional(element, "categories")),
-            parseSeriesChildren(element),
-            parsePieInsetChildren(element));
+            parseSeriesChildren(element));
     }
 
     private String renderLineChart(MdxJsxElementFields element) {
@@ -2130,7 +2107,7 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
     }
 
     private String renderPieChart(MdxJsxElementFields element) {
-        List<SliceData> slices = parseSliceChildren(element);
+        List<GuideSiteGraphRenderer.SliceData> slices = parseSliceChildren(element);
         return GuideSiteGraphRenderer.renderPieChart(resolveChartStyle(element), slices);
     }
 
@@ -2331,7 +2308,10 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
     private List<GuideSiteGraphRenderer.SeriesData> parseSeriesChildren(MdxJsxElementFields element) {
         List<GuideSiteGraphRenderer.SeriesData> result = new ArrayList<>();
         int idx = 0;
-        for (var c : ChartChildParser.childElements(element)) {
+        for (MdAstAnyContent child : element.children()) {
+            if (!(child instanceof MdxJsxElementFields c)) {
+                continue;
+            }
             boolean isSeries = "Series".equals(c.name());
             boolean isLineSeries = "LineSeries".equals(c.name());
             if (!isSeries && !isLineSeries) {
@@ -2373,8 +2353,8 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
     private double[][] parseSeriesChildPoints(MdxJsxElementFields seriesEl) {
         List<Double> xs = new ArrayList<>();
         List<Double> ys = new ArrayList<>();
-        for (var pointEl : ChartChildParser.childElements(seriesEl)) {
-            if (!"Point".equals(pointEl.name())) {
+        for (MdAstAnyContent child : seriesEl.children()) {
+            if (!(child instanceof MdxJsxElementFields pointEl) || !"Point".equals(pointEl.name())) {
                 continue;
             }
             String xsStr = readOptional(pointEl, "x");
@@ -2383,12 +2363,8 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
                 continue;
             }
             try {
-                double x = Double.parseDouble(xsStr.trim());
-                double y = Double.parseDouble(ysStr.trim());
-                if (Double.isFinite(x) && Double.isFinite(y)) {
-                    xs.add(x);
-                    ys.add(y);
-                }
+                xs.add(Double.parseDouble(xsStr.trim()));
+                ys.add(Double.parseDouble(ysStr.trim()));
             } catch (NumberFormatException ignored) {}
         }
         double[] xArr = new double[xs.size()];
@@ -2405,26 +2381,19 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
      * Returns {@code null} if no such child is present.
      */
     @Nullable
-    private PieInsetData parsePieInsetChildren(MdxJsxElementFields element) {
-        for (var c : ChartChildParser.childElements(element)) {
+    private GuideSiteGraphRenderer.PieInsetData parsePieInsetChildren(MdxJsxElementFields element) {
+        for (MdAstAnyContent child : element.children()) {
+            if (!(child instanceof MdxJsxElementFields c)) {
+                continue;
+            }
             if (!"PieInset".equals(c.name())) {
                 continue;
             }
-            int size = readInt(c, "size", 60);
+            int size = readInt(c, "size", 80);
             String position = readOptional(c, "position");
             String insetTitle = readOptional(c, "title");
-            List<SliceData> slices = parseSliceChildren(c);
-            String direction = readOptional(c, "direction");
-            if (direction != null) direction = direction.trim();
-            boolean clockwise = !"counterclockwise".equalsIgnoreCase(direction) && !"ccw".equalsIgnoreCase(direction);
-            return new PieInsetData(
-                slices,
-                size,
-                position,
-                insetTitle,
-                (float) parseDoubleAttr(c, "startAngleDeg", -90),
-                clockwise,
-                parseArgbAttr(c, "titleColor", ColorUtils.CHART_TITLE.getColor()));
+            List<GuideSiteGraphRenderer.SliceData> slices = parseSliceChildren(c);
+            return new GuideSiteGraphRenderer.PieInsetData(slices, size, position, insetTitle);
         }
         return null;
     }
@@ -2435,7 +2404,10 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
     private List<GuideSiteGraphRenderer.SeriesData> parseScatterSeriesChildren(MdxJsxElementFields element) {
         List<GuideSiteGraphRenderer.SeriesData> result = new ArrayList<>();
         int idx = 0;
-        for (var c : ChartChildParser.childElements(element)) {
+        for (MdAstAnyContent child : element.children()) {
+            if (!(child instanceof MdxJsxElementFields c)) {
+                continue;
+            }
             if (!"Series".equals(c.name())) {
                 continue;
             }
@@ -2458,18 +2430,21 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
     /**
      * Parse {@code <Slice name="..." value="0.5" color="...">} children for pie chart.
      */
-    private List<SliceData> parseSliceChildren(MdxJsxElementFields element) {
-        List<SliceData> result = new ArrayList<>();
+    private List<GuideSiteGraphRenderer.SliceData> parseSliceChildren(MdxJsxElementFields element) {
+        List<GuideSiteGraphRenderer.SliceData> result = new ArrayList<>();
         int idx = 0;
-        for (var c : ChartChildParser.childElements(element)) {
+        for (MdAstAnyContent child : element.children()) {
+            if (!(child instanceof MdxJsxElementFields c)) {
+                continue;
+            }
             if (!"Slice".equals(c.name())) {
                 continue;
             }
             String label = readOptional(c, "name");
             if (label == null) label = "";
-            double value = parseDoubleAttr(c, "value", 0);
+            double value = parseDoubleAttr(c, "value", 1.0);
             int color = parseArgbAttr(c, "color", ChartAttrParser.paletteColor(idx));
-            result.add(new SliceData(label, value, color, readOptional(c, "tooltip")));
+            result.add(new GuideSiteGraphRenderer.SliceData(label, value, color));
             idx++;
         }
         return result;

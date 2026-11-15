@@ -197,8 +197,6 @@ Groups alternative enriquecido contenido under independent tabs. solo directo `<
 
 renderiza Un directorio-style outline con real conector líneas drawn de El prefix glyphs on cada fila. ambos Unicode box-drawing (`│ ├ └ ─`) y ASCII (`| +-- \-- ` / four spaces) forms son accepted y puede ser mixed. Payload texto admite El usual inline markdown (enlaces, **bold**, `code`, …), y those enlaces son clickable ambos en-game y en El built-en site export. El mismo contenido puede también ser escrito as Un fenced ` ```tree ` or ` ```filetree ` bloque.
 
-En espacios estrechos se reduce la sangría para dejar espacio al texto. Las rutas largas se dividen preferentemente después de `/`, `\`, `_` y `-`; los nombres sin separadores pueden dividirse entre caracteres. Las líneas siguientes se alinean con el nombre, y los iconos y las ramas con la primera línea.
-
 ````md
 <FileTree indent="14" gap="0">
 project
@@ -748,16 +746,11 @@ Consulta [GameScene](GameScene) para escena import/removal comportamiento y [Ann
 
 Cartesian charts (columna / Bar / línea / Scatter) additionally aceptan eje atributos `xAxisLabel`, `xAxisMin`, `xAxisMax`, `xAxisStep`, `xAxisUnit`, `xAxisTickFormat` y El coincidente `yAxis*` Establezca, plus `showXGrid={true}` / `showYGrid={true}` Un toggle gridlines.
 
-Los formatos de escala no válidos o demasiado grandes usan el formato numérico automático. El límite es de 256 caracteres, 128 para la anchura del campo y 20 para la precisión. Las etiquetas numéricas que se superponen se omiten cuando es necesario, sin eliminar sus líneas de cuadrícula.
-
-`ColumnChart`, `LineChart` y `ScatterChart` muestran una guía horizontal dorada dentro del área de trazado, incluso en zonas vacías, y resaltan el valor Y a la izquierda. `BarChart` muestra una guía vertical y el valor X debajo. Los valores respetan el formato y la unidad del eje. La línea no lleva texto y desaparece al salir del área. Ambos ejes usan cuadrículas tenues de trazos espaciados, controladas por separado mediante `showXGrid` y `showYGrid`. Los pasos positivos extremadamente pequeños se amplían automáticamente para limitar el trabajo de dibujo.
-
 hijos:
 
 * `<Series name="..." color="#..." data="10,20,30"/>` para category-based charts (columna / Bar / categorical línea).
 * `<Series name="..." color="#..." points="x:y,x:y,..."/>` para numeric X (línea `numericX={true}`, Scatter).
 * `<Slice name="..." value="..." color="#..."/>` para `<PieChart>` solo.
-* `<ReferenceLine y="100"/>` dibuja una línea horizontal fija en `ColumnChart`, `LineChart` y `ScatterChart`. `BarChart` usa `<ReferenceLine x="100"/>` para una línea vertical y acepta `y` como alias. La coordenada debe ser finita. Se permiten varias líneas; `color` cambia el gris semitransparente y `label`, opcional, aparece dentro del gráfico sin tapar las etiquetas del eje. Las referencias no dependen de la cuadrícula, no amplían el rango automático y se ocultan fuera de él. `PieChart` no admite esta etiqueta.
 
 cuando `color` es omitido on a `<Series>` o `<Slice>`, GuideNH cycles a través de Un built-en 16-color palette.
 
@@ -786,8 +779,6 @@ Extra atributos: `categories` (X-eje o Y-eje labels, comma separated), `barWidth
 
 - `<LineSeries name="…" data="v1,v2,…" color="#rrggbb" icon="…"/>` — drawn as Un polyline overlay on arriba of El bars. cada línea punto sits at El cluster centro of El coincidente category index; El overlay shares El host gráfico's valor eje. You puede declare varios `<LineSeries>` Un overlay several trends.
 - `<PieInset size="60" position="topRight" title="…" startAngleDeg="-90" direction="clockwise" titleColor="#rrggbb">` — Un small pie gráfico drawn dentro de uno of El four corners (`topRight`, `topLeft`, `bottomRight`, `bottomLeft`) of El plot area. su `<Slice>` hijos share El mismo sintaxis as en `<PieChart>`.
-
-Los sectores de `PieInset` tienen prioridad sobre las barras y líneas inferiores al pasar el puntero: muestran nombre, valor, porcentaje y el texto opcional `tooltip`; en el juego se conservan las descripciones de objetos. La guía principal se oculta sobre un sector. Solo se utiliza el primer gráfico insertado. `position="rightOutside"` reserva un área a la derecha. Se admiten `startAngleDeg="0"`, `direction="counterclockwise"` y un único sector que forma el círculo completo.
 
 ```mdx
 <ColumnChart title="Quarterly output" categories="Q1,Q2,Q3,Q4">

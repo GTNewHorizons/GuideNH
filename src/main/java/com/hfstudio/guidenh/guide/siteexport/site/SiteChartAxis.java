@@ -1,17 +1,13 @@
 package com.hfstudio.guidenh.guide.siteexport.site;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.IllegalFormatException;
+import java.util.Locale;
 
 import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.compiler.tags.MdxAttrs;
 import com.hfstudio.guidenh.guide.compiler.tags.chart.ChartAttrParser;
-import com.hfstudio.guidenh.guide.compiler.tags.chart.ChartChildParser;
-import com.hfstudio.guidenh.guide.document.block.chart.AxisRange;
 import com.hfstudio.guidenh.guide.document.block.chart.ChartAxisOptions;
-import com.hfstudio.guidenh.guide.document.block.chart.ChartNumberFormat;
-import com.hfstudio.guidenh.guide.document.block.chart.ChartReferenceLine;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 
 public class SiteChartAxis {
@@ -30,11 +26,9 @@ public class SiteChartAxis {
     private final String unit;
     private final boolean gridVisible;
     private final int gridColor;
-    private final List<ChartReferenceLine> referenceLines;
 
     private SiteChartAxis(@Nullable String label, @Nullable Double min, @Nullable Double max, @Nullable Double step,
-        @Nullable String tickFormat, @Nullable String unit, boolean gridVisible, int gridColor,
-        List<ChartReferenceLine> referenceLines) {
+        @Nullable String tickFormat, @Nullable String unit, boolean gridVisible, int gridColor) {
         this.label = label;
         this.min = min;
         this.max = max;
@@ -43,7 +37,6 @@ public class SiteChartAxis {
         this.unit = unit;
         this.gridVisible = gridVisible;
         this.gridColor = gridColor;
-        this.referenceLines = List.copyOf(referenceLines);
     }
 
     public static SiteChartAxis read(MdxJsxElementFields el, String prefix, String gridFlagAttr, String gridColorAttr,
@@ -61,26 +54,11 @@ public class SiteChartAxis {
             MdxAttrs.getString(el, prefix + "TickFormat", null),
             MdxAttrs.getString(el, prefix + "Unit", null),
             MdxAttrs.getBoolean(el, gridFlagAttr, true),
-            gridColor,
-            readReferenceLines(el, prefix));
-    }
-
-    private static List<ChartReferenceLine> readReferenceLines(MdxJsxElementFields el, String prefix) {
-        boolean bar = "BarChart".equals(el.name());
-        if ((bar ? "xAxis" : "yAxis").equals(prefix)) {
-            List<ChartReferenceLine> lines = new ArrayList<>();
-            for (var childEl : ChartChildParser.childElements(el)) {
-                if (!"ReferenceLine".equals(childEl.name())) continue;
-                var line = ChartChildParser.readReferenceLine(childEl, bar ? "x" : "y");
-                if (line != null) lines.add(line);
-            }
-            return lines;
-        }
-        return List.of();
+            gridColor);
     }
 
     public static SiteChartAxis automatic(int defaultGridColor) {
-        return new SiteChartAxis(null, null, null, null, null, null, true, defaultGridColor, List.of());
+        return new SiteChartAxis(null, null, null, null, null, null, true, defaultGridColor);
     }
 
     public static SiteChartAxis from(ChartAxisOptions axis, int defaultGridColor) {
@@ -95,27 +73,12 @@ public class SiteChartAxis {
             axis.getTickFormat(),
             axis.getUnit(),
             axis.isGridVisible(),
-            axis.getGridColor(),
-            axis.getReferenceLines());
-    }
-
-    public List<ChartReferenceLine> referenceLines() {
-        return referenceLines;
+            axis.getGridColor());
     }
 
     @Nullable
     public String label() {
         return label;
-    }
-
-    @Nullable
-    public String unit() {
-        return unit;
-    }
-
-    @Nullable
-    public String tickFormat() {
-        return tickFormat;
     }
 
     @Nullable
@@ -149,11 +112,25 @@ public class SiteChartAxis {
     }
 
     public double[] rangeFor(double dataMin, double dataMax, double dataStep) {
-        AxisRange range = AxisRange.compute(min, max, dataStep, dataMin, dataMax);
-        return new double[] { range.min, range.max };
+        double low = min != null ? min : Math.floor(dataMin / dataStep) * dataStep;
+        double high = max != null ? max : Math.ceil(dataMax / dataStep) * dataStep;
+        if (low == high) {
+            high = low + dataStep;
+        }
+        return new double[] { low, high };
     }
 
     public String formatTick(double value) {
-        return ChartNumberFormat.format(value, tickFormat, unit);
+        String text;
+        if (tickFormat != null && !tickFormat.isEmpty()) {
+            try {
+                text = String.format(Locale.ROOT, tickFormat, value);
+            } catch (IllegalFormatException e) {
+                text = GuideSiteGraphRenderer.formatChartValue(value);
+            }
+        } else {
+            text = GuideSiteGraphRenderer.formatChartValue(value);
+        }
+        return unit != null && !unit.isEmpty() ? text + unit : text;
     }
 }

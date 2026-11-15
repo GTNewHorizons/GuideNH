@@ -56,13 +56,12 @@ public class LytPieChart extends LytChartBase implements DebugComponent {
 
     @Override
     protected void renderChart(RenderContext context, LytRect plotRect) {
-        totalCache = 0;
         if (slices.isEmpty()) return;
         double total = 0d;
         for (PieSlice s : slices) {
-            total += PieChartGeometry.positiveValue(s.getValue());
+            total += Math.max(0d, s.getValue());
         }
-        if (!Double.isFinite(total) || total <= 0d) return;
+        if (total <= 0d) return;
         totalCache = total;
 
         float cx = plotRect.x() + plotRect.width() / 2f;
@@ -74,13 +73,11 @@ public class LytPieChart extends LytChartBase implements DebugComponent {
 
         ResolvedTextStyle labelStyle = textStyle(getLabelColor());
         int lh = context.getLineHeight(labelStyle);
-        double angle = PieChartGeometry.startAngle(startAngleDeg);
+        double angle = Math.toRadians(startAngleDeg);
         double dir = clockwise ? 1d : -1d;
         for (int i = 0; i < slices.size(); i++) {
             PieSlice slice = slices.get(i);
-            double value = PieChartGeometry.positiveValue(slice.getValue());
-            if (value == 0) continue;
-            double sweep = (value / total) * Math.PI * 2d * dir;
+            double sweep = (slice.getValue() / total) * Math.PI * 2d * dir;
             double mid = angle + sweep / 2d;
             boolean hovered = i == hoveredKey;
             // Hovered slice keeps its apex at (cx, cy); only the outer arc bulges outward by
@@ -126,19 +123,19 @@ public class LytPieChart extends LytChartBase implements DebugComponent {
 
     @Override
     protected int hitTest(float x, float y) {
-        if (!Float.isFinite(x) || !Float.isFinite(y) || radiusCache <= 0f || totalCache <= 0d) return -1;
+        if (radiusCache <= 0f || totalCache <= 0d) return -1;
         float dx = x - cxCache;
         float dy = y - cyCache;
         float dist = (float) Math.sqrt(dx * dx + dy * dy);
         // Allow slightly more than the radius to cover the hover offset.
         if (dist > radiusCache + HOVER_OFFSET) return -1;
         double pointAngle = Math.atan2(dy, dx);
-        double startAngle = PieChartGeometry.startAngle(startAngleDeg);
+        double startAngle = Math.toRadians(startAngleDeg);
         double dir = clockwise ? 1d : -1d;
         double angle = startAngle;
         for (int i = 0; i < slices.size(); i++) {
             PieSlice slice = slices.get(i);
-            double sweep = (PieChartGeometry.positiveValue(slice.getValue()) / totalCache) * Math.PI * 2d * dir;
+            double sweep = (slice.getValue() / totalCache) * Math.PI * 2d * dir;
             if (angleIsBetween(pointAngle, angle, angle + sweep)) {
                 return i;
             }
@@ -151,7 +148,22 @@ public class LytPieChart extends LytChartBase implements DebugComponent {
      * Tests whether {@code angle} lies on the arc (from, to) (in the direction from -> to).
      */
     public static boolean angleIsBetween(double angle, double from, double to) {
-        return PieChartGeometry.containsAngle(angle, from, to);
+        // Normalize all angles to the same cycle as `from`: bring `angle` into [from, from + 2π).
+        double twoPi = Math.PI * 2d;
+        if (Math.abs(to - from) < 1e-9) return false;
+        double sweep = to - from;
+        // Move `angle` to the right side of `from` (along the sweep direction).
+        double rel = angle - from;
+        if (sweep > 0) {
+            while (rel < 0) rel += twoPi;
+            while (rel >= twoPi) rel -= twoPi;
+            return rel >= 0 && rel < sweep;
+        } else {
+            // Reverse: along the decreasing direction.
+            while (rel > 0) rel -= twoPi;
+            while (rel <= -twoPi) rel += twoPi;
+            return rel <= 0 && rel > sweep;
+        }
     }
 
     @Override
@@ -198,11 +210,12 @@ public class LytPieChart extends LytChartBase implements DebugComponent {
         }
 
         // Use precise sector hit-testing for each slice
+        double angle = Math.toRadians(startAngleDeg);
         double dir = clockwise ? 1d : -1d;
 
         for (int i = 0; i < slices.size(); i++) {
             PieSlice slice = slices.get(i);
-            if (PieChartGeometry.positiveValue(slice.getValue()) == 0) continue;
+            double sweep = (slice.getValue() / totalCache) * Math.PI * 2d * dir;
 
             // Create a custom ComponentEntry that uses sector hit-testing
             int sliceIndex = i;
@@ -220,19 +233,17 @@ public class LytPieChart extends LytChartBase implements DebugComponent {
                 @Override
                 public LytRect getBounds() {
                     // Return bounding box of the sector
-                    double startAngle = PieChartGeometry.startAngle(startAngleDeg);
+                    double startAngle = Math.toRadians(startAngleDeg);
                     double currentAngle = startAngle;
                     for (int j = 0; j < sliceIndex; j++) {
-                        currentAngle += (PieChartGeometry.positiveValue(
-                            slices.get(j)
-                                .getValue())
-                            / totalCache) * Math.PI * 2d * dir;
+                        currentAngle += (slices.get(j)
+                            .getValue() / totalCache) * Math.PI * 2d * dir;
                     }
                     double sweepLocal = (slice.getValue() / totalCache) * Math.PI * 2d * dir;
 
                     // Calculate bounding box of sector
                     float minX = Float.MAX_VALUE, minY = Float.MAX_VALUE;
-                    float maxX = -Float.MAX_VALUE, maxY = -Float.MAX_VALUE;
+                    float maxX = Float.MIN_VALUE, maxY = Float.MIN_VALUE;
 
                     // Include center point
                     minX = Math.min(minX, cxCache);
@@ -280,6 +291,7 @@ public class LytPieChart extends LytChartBase implements DebugComponent {
             };
 
             components.add(sliceEntry);
+            angle += sweep;
         }
 
         return components;

@@ -22,44 +22,31 @@ public class AxisRange {
         double dataMax) {
         double dMin = dataMin;
         double dMax = dataMax;
-        if (!Double.isFinite(dMin) || !Double.isFinite(dMax) || dMin > dMax) {
+        if (!(dMin <= dMax)) {
             dMin = 0d;
             dMax = 1d;
         }
-        if (dMax == dMin) {
-            if (dMin == 0) {
+        if (Math.abs(dMax - dMin) < 1e-9) {
+            if (Math.abs(dMin) < 1e-9) {
                 dMin = 0d;
                 dMax = 1d;
             } else {
-                double pad = Math.max(Math.abs(dMin) * 0.5, Math.ulp(dMin));
-                if (Double.isFinite(dMin - pad)) dMin -= pad;
-                if (Double.isFinite(dMax + pad)) dMax += pad;
+                double pad = Math.abs(dMin) * 0.5;
+                dMin = dMin - pad;
+                dMax = dMax + pad;
             }
         }
-        boolean hasMin = explicitMin != null && Double.isFinite(explicitMin);
-        boolean hasMax = explicitMax != null && Double.isFinite(explicitMax);
-        double low = hasMin ? explicitMin : dMin;
-        double high = hasMax ? explicitMax : dMax;
-        double range = niceNumber(high - low, false);
+        double range = niceNumber(dMax - dMin, false);
         double step;
-        if (explicitStep != null && Double.isFinite(explicitStep) && explicitStep > 0) {
+        if (explicitStep != null && explicitStep > 0) {
             step = explicitStep;
         } else {
-            step = niceNumber(Double.isFinite(range) ? range / 5d : high / 5d - low / 5d, true);
+            step = niceNumber(range / 5d, true);
         }
-        double niceMin = hasMin ? low : Math.floor(low / step) * step;
-        double niceMax = hasMax ? high : Math.ceil(high / step) * step;
-        if (!Double.isFinite(niceMin)) niceMin = low;
-        if (!Double.isFinite(niceMax)) niceMax = high;
+        double niceMin = explicitMin != null ? explicitMin : Math.floor(dMin / step) * step;
+        double niceMax = explicitMax != null ? explicitMax : Math.ceil(dMax / step) * step;
         if (niceMax <= niceMin) {
             niceMax = niceMin + step;
-            if (!Double.isFinite(niceMax) || niceMax <= niceMin) {
-                niceMax = Math.nextUp(niceMin);
-                if (!Double.isFinite(niceMax)) {
-                    niceMax = niceMin;
-                    niceMin = Math.nextDown(niceMin);
-                }
-            }
         }
         return new AxisRange(niceMin, niceMax, step);
     }
@@ -69,9 +56,7 @@ public class AxisRange {
             return 1d;
         }
         double exp = Math.floor(Math.log10(value));
-        double scale = Math.pow(10d, exp);
-        if (scale == 0 || !Double.isFinite(scale)) return value;
-        double frac = value / scale;
+        double frac = value / Math.pow(10d, exp);
         double nf;
         if (round) {
             if (frac < 1.5) {
@@ -94,17 +79,14 @@ public class AxisRange {
                 nf = 10d;
             }
         }
-        double result = nf * scale;
-        return Double.isFinite(result) ? result : value;
+        return nf * Math.pow(10d, exp);
     }
 
     public double normalize(double v) {
-        return normalize(v, min, max);
-    }
-
-    public static double normalize(double value, double min, double max) {
         double span = max - min;
-        if (!(max > min)) return 0;
-        return Double.isFinite(span) ? (value - min) / span : (value / 2 - min / 2) / (max / 2 - min / 2);
+        if (Math.abs(span) < 1e-12) {
+            return 0d;
+        }
+        return (v - min) / span;
     }
 }
