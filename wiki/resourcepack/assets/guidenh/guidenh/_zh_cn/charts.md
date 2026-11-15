@@ -20,6 +20,8 @@ GuideNH 内置五种交互式图表标签：`<ColumnChart>`（竖柱）、`<BarC
 - `cornerLegend`：折线图与散点图的图内图例位置，`none`、`topRight`、`topLeft`、`bottomRight` 或 `bottomLeft`。
 - `width` / `height`：画布尺寸（像素），默认为图表类型的合理默认值。
 
+固定参考线使用半透明灰色；本页第一个示例固定在 `y=100`。横、竖轴的刻度网格使用更淡、更稀疏的虚线，便于对齐 50、100 等数值；可通过 `showXGrid` / `showYGrid` 分别开关。
+
 ## ColumnChart
 
 <ColumnChart
@@ -27,12 +29,20 @@ GuideNH 内置五种交互式图表标签：`<ColumnChart>`（竖柱）、`<BarC
   categories="Q1,Q2,Q3,Q4"
   width="400"
   height="240"
+  yAxisMin="0"
+  yAxisMax="250"
+  yAxisStep="50"
 >
   <Series name="铁" color="#888888" data="120,200,150,80" />
   <Series name="金" color="#FFAA00" data="30,50,90,70" />
+  <ReferenceLine y="100" />
 </ColumnChart>
 
+图中的灰色水平虚线固定在 `y=100`；关闭网格后参考线仍会显示。
+
 ## BarChart
+
+横条图使用灰色固定竖线表示参考值；横、竖刻度网格仍为淡虚线。
 
 <BarChart
   title="模组下载量 (万)"
@@ -41,6 +51,7 @@ GuideNH 内置五种交互式图表标签：`<ColumnChart>`（竖柱）、`<BarC
   height="240"
 >
   <Series name="2024" color="#4488ff" data="350,180,210,90" />
+  <ReferenceLine x="200" />
 </BarChart>
 
 ## LineChart

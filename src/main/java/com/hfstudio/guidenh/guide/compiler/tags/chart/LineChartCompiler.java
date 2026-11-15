@@ -44,6 +44,7 @@ public class LineChartCompiler extends BlockTagCompiler {
         boolean showPoints = MdxAttrs.getBoolean(compiler, parent, el, "showPoints", true);
         chart.setShowPoints(showPoints);
         List<? extends MdAstAnyContent> children = ChartChildParser.childElements(compiler, el);
+        yAxis.setReferenceLines(ChartChildParser.parseReferenceLines(compiler, parent, children));
 
         if (numericX) {
             chart.setSeries(ChartChildParser.parsePointSeries(compiler, parent, children));

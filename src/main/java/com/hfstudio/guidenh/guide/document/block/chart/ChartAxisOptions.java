@@ -1,6 +1,7 @@
 package com.hfstudio.guidenh.guide.document.block.chart;
 
 import java.util.IllegalFormatException;
+import java.util.List;
 
 import com.hfstudio.guidenh.guide.color.ColorUtils;
 
@@ -24,6 +25,7 @@ public class ChartAxisOptions {
     private int gridColor = ColorUtils.ARGB_33FFFFFF.getColor();
     private int axisColor = ColorUtils.ARGB_FF7A7A7A.getColor();
     private int labelColor = ColorUtils.ARGB_FFCCCCCC.getColor();
+    private List<ChartReferenceLine> referenceLines = List.of();
 
     /**
      * Format a numeric value using the configured tickFormat and unit; when tickFormat is unspecified,

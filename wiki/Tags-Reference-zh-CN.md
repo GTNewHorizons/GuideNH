@@ -703,11 +703,14 @@ $$\begin{pmatrix} a & b \\ c & d \end{pmatrix}$$
 
 笛卡尔系图表（柱形/条形/折线/散点）支持坐标轴属性 `xAxisLabel`、`xAxisMin`、`xAxisMax`、`xAxisStep`、`xAxisUnit`、`xAxisTickFormat`，以及对应的 `yAxis*`，外加 `showXGrid={true}` 与 `showYGrid={true}` 控制网格线。
 
+刻度网格在横、竖方向使用淡而稀疏的虚线（短线段与大间隔），与坐标刻度对齐；两轴网格可分别关闭。
+
 子元素：
 
 * `<Series name="..." color="#..." data="10,20,30"/>` — 用于按类别取值的图表（柱形/条形/类别 X 折线）。
 * `<Series name="..." color="#..." points="x:y,x:y,..."/>` — 用于数值 X（折线 `numericX={true}`、散点）。
 * `<Slice name="..." value="..." color="#..."/>` — 仅 `<PieChart>` 使用。
+* `<ReferenceLine y="100"/>` — 在 `<ColumnChart>`、`<LineChart>`、`<ScatterChart>` 的指定 Y 值绘制固定水平虚线；`<BarChart>` 使用 `<ReferenceLine x="100"/>` 绘制固定竖线，也兼容 `y` 写法。默认使用半透明灰色。可添加多条，也可用 `color` 自定义颜色；默认不添加文字，可选 `label` 仅显示在对应数值轴外。参考线独立于网格开关，不扩展自动坐标范围，范围外不显示；饼图不支持此标签。
 
 未指定 `color` 时按内置 16 色调色板循环分配。
 
