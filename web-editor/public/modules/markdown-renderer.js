@@ -2,6 +2,7 @@ import { attr, booleanAttr, colorValue, cssLength, escapeHtml, numberAttr, parse
 import { renderChart, renderFunctionGraph, renderMermaidDiagram } from "./visual-renderers.js";
 import { translatedString } from "./language.js";
 import { fluidDescription, fluidScale, renderFluidIcon, fluidTooltipVisible, fluidIconSourceConflict, renderFluidLabel } from "./fluid-presentation.js";
+import { advanceCodeFence, stripMdxComments } from "./markdown-source.js";
 
 function copy(context, key) { return escapeHtml(translatedString(context?.locale || "en_us", key)); }
 
@@ -78,7 +79,11 @@ function extractReferences(source) {
   const footnotes = new Map();
   const kept = [];
   const lines = String(source ?? "").split("\n");
+  let fence = null;
   for (let index = 0; index < lines.length; index += 1) {
+    const previousFence = fence;
+    fence = advanceCodeFence(lines[index], fence);
+    if (previousFence || fence || /^(?: {4}|\t)/.test(lines[index])) { kept.push(lines[index]); continue; }
     const footnote = lines[index].match(/^\[\^([^\]]+)\]:\s*(.*)$/);
     if (footnote) {
       const body = [footnote[2]];
@@ -103,7 +108,7 @@ function normalizeNestedMarkdown(source) {
 }
 
 export function renderMarkdown(source, context = {}) {
-  const withoutComments = String(source ?? "").replace(/\{\/\*[\s\S]*?\*\/\}/g, "");
+  const withoutComments = stripMdxComments(source);
   const parsed = parseFrontmatter(withoutComments);
   const ctx = { ...context, ...parsed, footnoteOrder: [], depth: context.depth || 0 };
   let html = renderBlocks(parsed.body, ctx);
@@ -163,7 +168,7 @@ function renderBlocks(source, context) {
       const heading = line.match(/^\s*(#{1,6})\s+(.+?)\s*#*\s*$/);
       const text = heading?.[2] || "";
       const level = heading?.[1].length || 1;
-      const id = slugify(stripMarkdown(text));
+      const id = markdownHeadingId(text);
       output.push(`<h${level} id="${escapeHtml(id)}">${renderInline(text, context)}</h${level}>`);
       index += 1;
       continue;
@@ -1306,6 +1311,11 @@ function renderImage(alt, source, title, context) {
 
 function stripMarkdown(value) {
   return String(value ?? "").replace(/<[^>]+>/g, "").replace(/[\*_`~]/g, "");
+}
+
+export function markdownHeadingId(value) {
+  const literalCode = String(value ?? "").replace(/(`+)(.*?)\1/g, (_, marker, text) => text.replace(/[<>]/g, ""));
+  return slugify(stripMarkdown(literalCode).replace(/\[([^\]]+)\]\([^)]*\)/g, "$1"));
 }
 
 function slugify(value) {

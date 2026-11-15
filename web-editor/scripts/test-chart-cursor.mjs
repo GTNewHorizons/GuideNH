@@ -17,10 +17,24 @@ class Element {
 
 function fixture(vertical = false) {
   const svg = new Element("svg");
+  const frames = new Map();
+  let nextFrame = 0;
+  const flushFrames = () => {
+    const pending = [...frames.values()];
+    frames.clear();
+    for (const callback of pending) callback();
+  };
   const meta = new Element("metadata");
   for (const [name, value] of Object.entries({ "plot-left": 70, "plot-right": 300, "plot-top": 20, "plot-bottom": 160, "y-min": -100, "y-max": 100, "y-unit": "EU/t", "y-format": "%.1f" })) meta.setAttribute(`data-${name}`, value);
   if (vertical) for (const [name, value] of Object.entries({ "cursor-orientation": "vertical", "x-min": -100, "x-max": 100, "x-unit": "EU/t", "x-format": "%.1f" })) meta.setAttribute(`data-${name}`, value);
-  svg.ownerDocument = { createElementNS: (_namespace, tag) => new Element(tag) };
+  svg.isConnected = true;
+  svg.ownerDocument = {
+    createElementNS: (_namespace, tag) => new Element(tag),
+    defaultView: {
+      requestAnimationFrame(callback) { frames.set(++nextFrame, callback); return nextFrame; },
+      cancelAnimationFrame(frame) { frames.delete(frame); },
+    },
+  };
   svg.querySelector = (selector) => selector === "metadata[data-chart-cursor-domain]" ? meta : null;
   svg.getBoundingClientRect = () => ({ left: 20, top: 30, width: 640, height: 400 });
   svg.viewBox = { baseVal: { width: 320, height: 200 } };
@@ -30,7 +44,10 @@ function fixture(vertical = false) {
   installChartCursors(root);
   const overlay = svg.children[0];
   const [line, badge, text] = overlay.children;
-  return { root, svg, overlay, line, badge, text, move: (x, y, target) => svg.dispatch("mousemove", { clientX: 20 + x * 2, clientY: 30 + y * 2, target }) };
+  return { root, svg, overlay, line, badge, text, flushFrames, move: (x, y, target) => {
+    svg.dispatch("mousemove", { clientX: 20 + x * 2, clientY: 30 + y * 2, target });
+    flushFrames();
+  } };
 }
 
 for (const name of ["ColumnChart", "LineChart", "ScatterChart"]) {
@@ -131,6 +148,7 @@ test("cursor coordinates respect SVG letterboxing from a minimum CSS height", ()
   f.svg.getBoundingClientRect = () => ({ left: 20, top: 30, width: 640, height: 500 });
   f.svg.getScreenCTM = () => ({ inverse: () => ({ left: 20, top: 80, scale: 2 }) });
   f.svg.dispatch("mousemove", { clientX: 380, clientY: 260 });
+  f.flushFrames();
   assert.equal(f.line.getAttribute("y1"), "90");
   assert.equal(f.text.textContent, "0.0EU/t");
 });
