@@ -70,15 +70,9 @@ public class LytSlot extends LytBlock implements InteractiveElement {
     public void render(RenderContext context) {
         var x = bounds.x();
         var y = bounds.y();
-        int w = bounds.width();
-        int h = bounds.height();
 
         if (renderSlotBackground) {
-            context.fillRect(x, y, w, 1, SLOT_BORDER_DARK);
-            context.fillRect(x, y, 1, h, SLOT_BORDER_DARK);
-            context.fillRect(x, y + h - 1, w, 1, SLOT_BORDER_LIGHT);
-            context.fillRect(x + w - 1, y, 1, h, SLOT_BORDER_LIGHT);
-            context.fillRect(x + 1, y + 1, w - 2, h - 2, SLOT_INNER_BG);
+            drawSlotBackground(context, bounds);
         }
 
         var padding = largeSlot ? LARGE_PADDING : PADDING;
@@ -99,6 +93,18 @@ public class LytSlot extends LytBlock implements InteractiveElement {
             GuideDisplayItemStacks.warnRenderFailure("LytSlot", stack, t);
             context.restoreExternalRenderState();
         }
+    }
+
+    public static void drawSlotBackground(RenderContext context, LytRect bounds) {
+        int x = bounds.x();
+        int y = bounds.y();
+        int width = bounds.width();
+        int height = bounds.height();
+        context.fillRect(x, y, width, 1, SLOT_BORDER_DARK);
+        context.fillRect(x, y, 1, height, SLOT_BORDER_DARK);
+        context.fillRect(x, y + height - 1, width, 1, SLOT_BORDER_LIGHT);
+        context.fillRect(x + width - 1, y, 1, height, SLOT_BORDER_LIGHT);
+        context.fillRect(x + 1, y + 1, width - 2, height - 2, SLOT_INNER_BG);
     }
 
     public Optional<GuideTooltip> getTooltip(float x, float y) {
