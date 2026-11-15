@@ -24,16 +24,19 @@ GuideNH ships with five interactive chart tags: `<ColumnChart>` clustered column
 
 Color formats: `#RGB`, `#RRGGBB`, `#AARRGGBB`, `0x...`.
 
+Column, line, and scatter charts show a gold horizontal guide anywhere inside the plot, with the current value and axis unit highlighted on the left. Bar charts use a vertical guide with the X value below. The guide disappears outside the plot or over a pie-inset slice.
+
+
 ## ColumnChart
 
 ```mdx
-<ColumnChart title="Quarterly Output" categories="Q1,Q2,Q3,Q4" yAxisUnit="t" labelPosition="above">
+<ColumnChart title="Quarterly Output" categories="Q1,Q2,Q3,Q4" yAxisMin="0" yAxisMax="250" yAxisStep="50" yAxisUnit="t" labelPosition="above">
   <Series name="Iron" data="120,180,150,210" color="#4E79A7"/>
   <Series name="Gold" data="30,42,55,48" color="#F28E2B"/>
 </ColumnChart>
 ```
 
-<ColumnChart title="Quarterly Output" categories="Q1,Q2,Q3,Q4" yAxisUnit="t" labelPosition="above">
+<ColumnChart title="Quarterly Output" categories="Q1,Q2,Q3,Q4" yAxisMin="0" yAxisMax="250" yAxisStep="50" yAxisUnit="t" labelPosition="above">
   <Series name="Iron" data="120,180,150,210" color="#4E79A7"/>
   <Series name="Gold" data="30,42,55,48" color="#F28E2B"/>
 </ColumnChart>
@@ -128,6 +131,8 @@ The pie inset's `position` attribute accepts `topRight` / `topLeft` / `bottomRig
 
 Line overlays share hover/tooltip behavior with the underlying columns/bars: hovering a line point thickens its adjacent segments, enlarges the point, and shows a tooltip with the series name and value.
 
+Pie-inset slices take hover priority and show their name, value, percentage, and optional `tooltip` text. Item tooltips remain available in game. The main guide is hidden over a slice, including in an inset outside the plot.
+
 ```mdx
 <ColumnChart title="Quarterly Output" categories="Q1,Q2,Q3,Q4" yAxisUnit="t" labelPosition="above">
   <Series name="Iron"  data="40,60,55,70"  color="#a0a0a0"/>
@@ -138,6 +143,7 @@ Line overlays share hover/tooltip behavior with the underlying columns/bars: hov
     <Slice name="Gold" value="110" color="#e0c060"/>
   </PieInset>
 </ColumnChart>
+
 ```
 
 <ColumnChart title="Quarterly Output" categories="Q1,Q2,Q3,Q4" yAxisUnit="t" labelPosition="above">
@@ -147,5 +153,50 @@ Line overlays share hover/tooltip behavior with the underlying columns/bars: hov
   <PieInset size="60" position="right" title="Total share">
     <Slice name="Iron" value="225" color="#a0a0a0"/>
     <Slice name="Gold" value="110" color="#e0c060"/>
+  </PieInset>
+</ColumnChart>
+
+## Negative values and axis units
+
+Move over the empty plot area to see signed values formatted with the axis unit.
+
+<LineChart width="360" height="200" categories="A,B,C,D" yAxisMin="-100" yAxisMax="100" yAxisStep="50" yAxisUnit="EU/t" legend="none">
+  <Series name="Energy change" data="-80,40,-20,90" color="#6cadc8" />
+</LineChart>
+
+## Bar chart with a pie inset
+
+The gold vertical guide follows horizontal pointer movement. Hover the blue or yellow slice to see its name, value, percentage, and additional description; moving back to the main plot restores the guide.
+
+<BarChart width="360" height="220" categories="LV,MV,HV,EV" xAxisMin="0" xAxisMax="200" xAxisStep="50" xAxisUnit="items/t" legend="none">
+  <Series name="Output" data="60,90,130,170" color="#6cadc8" />
+  <PieInset position="topRight" size="64" title="Output share">
+    <Slice name="Main product" value="70" color="#6cadc8" tooltip="Main product: sent for further processing" />
+    <Slice name="Byproduct" value="30" color="#f2c14e" tooltip="Byproduct: sent to the recycling line" />
+  </PieInset>
+</BarChart>
+
+## Combined columns and an outside pie
+
+The pie occupies a separate area on the right and remains interactive outside the main plot.
+
+<ColumnChart width="300" height="220" categories="LV,MV,HV,EV" yAxisMin="0" yAxisMax="200" yAxisStep="50" legend="none">
+  <Series name="Output" data="60,90,130,170" color="#6cadc8" />
+  <LineSeries name="Target" data="70,100,140,180" color="#e09070" />
+  <PieInset position="rightOutside" size="64" title="Output share" direction="counterclockwise">
+    <Slice name="Main product" value="70" color="#6cadc8" tooltip="Main product: sent for further processing" />
+    <Slice name="Byproduct" value="30" color="#f2c14e" tooltip="Byproduct: sent to the recycling line" />
+  </PieInset>
+</ColumnChart>
+
+## A full-circle inset starting at zero degrees
+
+The single positive slice fills the circle, while its tooltip reports 100%. Zero-valued slices have no hover target.
+
+<ColumnChart categories="A,B" width="320" height="220" legend="none">
+  <Series name="Output" data="20,40" />
+  <PieInset size="64" title="Complete" startAngleDeg="0" direction="counterclockwise">
+    <Slice name="Finished" value="100" tooltip="All output is complete" />
+    <Slice name="Pending" value="0" />
   </PieInset>
 </ColumnChart>

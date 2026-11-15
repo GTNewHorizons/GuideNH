@@ -748,6 +748,10 @@ See [GameScene](GameScene) voor scène import/removal behavior en [Annotations](
 
 Cartesian Grafieken (kolom / Bar / regel / Scatter) additionally accept axis attributen `xAxisLabel`, `xAxisMin`, `xAxisMax`, `xAxisStep`, `xAxisUnit`, `xAxisTickFormat` en De matching `yAxis*` Stel in, plus `showXGrid={true}` / `showYGrid={true}` naar toggle gridlines.
 
+Ongeldige of te grote getalformaten vallen terug op automatische opmaak. De limieten zijn 256 tekens, een veldbreedte van 128 en een precisie van 20. Overlappende numerieke aslabels worden waar nodig weggelaten, terwijl de bijbehorende rasterlijnen behouden blijven.
+
+`ColumnChart`, `LineChart` en `ScatterChart` tonen binnen het tekengebied een horizontale gouden hulplijn, ook boven lege ruimte, met de Y-waarde links gemarkeerd. `BarChart` gebruikt een verticale hulplijn met de X-waarde onderaan. Waarden volgen de asopmaak en eenheid. De lijn bevat geen tekst en verdwijnt buiten het tekengebied. Zeer kleine positieve stapgroottes worden automatisch vergroot om het tekenwerk te begrenzen.
+
 kinderen:
 
 * `<Series name="..." color="#..." data="10,20,30"/>` voor category-based Grafieken (kolom / Bar / categorical regel).
@@ -781,6 +785,8 @@ Extra attributen: `categories` (X-axis of Y-axis labels, comma separated), `barW
 
 - `<LineSeries name="…" data="v1,v2,…" color="#rrggbb" icon="…"/>` — drawn as Een polylijn overlay on top of De bars. elke regel punt sits at De cluster center of De matching category index; De overlay shares De host chart's waarde axis. You kan declare meerdere `<LineSeries>` naar overlay several trends.
 - `<PieInset size="60" position="topRight" title="…" startAngleDeg="-90" direction="clockwise" titleColor="#rrggbb">` — Een small pie chart drawn binnen one of De four corners (`topRight`, `topLeft`, `bottomRight`, `bottomLeft`) of De plot area. Its `<Slice>` kinderen share De zelfde syntaxis as in `<PieChart>`.
+
+Segmenten van `PieInset` krijgen bij aanwijzen voorrang op onderliggende balken en lijnen: de tooltip toont naam, waarde, percentage en optionele `tooltip`-tekst. Itemtooltips blijven in het spel behouden. De hoofdhulplijn verdwijnt boven een segment. Alleen het eerste ingevoegde cirkeldiagram wordt gebruikt. `position="rightOutside"` reserveert rechts een apart gebied. `startAngleDeg="0"`, `direction="counterclockwise"` en één segment als volledige cirkel worden ondersteund.
 
 ```mdx
 <ColumnChart title="Quarterly output" categories="Q1,Q2,Q3,Q4">
