@@ -200,3 +200,17 @@ The single positive slice fills the circle, while its tooltip reports 100%. Zero
     <Slice name="Pending" value="0" />
   </PieInset>
 </ColumnChart>
+
+## Fixed references and sparse grids
+
+References remain visible when the grid is hidden. Column, line and scatter charts use Y; bar charts use X, with Y accepted as an alias. Values must be finite and stay within the current axis range.
+
+<ColumnChart categories="A,B,C" yAxisMin="0" yAxisMax="200" yAxisStep="50" showYGrid={false}>
+  <Series name="Output" data="60,140,180" />
+  <ReferenceLine y={100} label="Target" />
+</ColumnChart>
+
+<BarChart categories="A,B,C" xAxisMin="-100" xAxisMax="200" xAxisStep="50">
+  <Series name="Output" data="-60,140,180" />
+  <ReferenceLine x={100} label="Target" />
+</BarChart>

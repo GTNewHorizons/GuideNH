@@ -750,13 +750,14 @@ Cartesian Grafieken (kolom / Bar / regel / Scatter) additionally accept axis att
 
 Ongeldige of te grote getalformaten vallen terug op automatische opmaak. De limieten zijn 256 tekens, een veldbreedte van 128 en een precisie van 20. Overlappende numerieke aslabels worden waar nodig weggelaten, terwijl de bijbehorende rasterlijnen behouden blijven.
 
-`ColumnChart`, `LineChart` en `ScatterChart` tonen binnen het tekengebied een horizontale gouden hulplijn, ook boven lege ruimte, met de Y-waarde links gemarkeerd. `BarChart` gebruikt een verticale hulplijn met de X-waarde onderaan. Waarden volgen de asopmaak en eenheid. De lijn bevat geen tekst en verdwijnt buiten het tekengebied. Zeer kleine positieve stapgroottes worden automatisch vergroot om het tekenwerk te begrenzen.
+`ColumnChart`, `LineChart` en `ScatterChart` tonen binnen het tekengebied een horizontale gouden hulplijn, ook boven lege ruimte, met de Y-waarde links gemarkeerd. `BarChart` gebruikt een verticale hulplijn met de X-waarde onderaan. Waarden volgen de asopmaak en eenheid. De lijn bevat geen tekst en verdwijnt buiten het tekengebied. Beide assen gebruiken lichte rasterlijnen met ruime streepjesafstand; `showXGrid` en `showYGrid` regelen ze afzonderlijk. Zeer kleine positieve stapgroottes worden automatisch vergroot om het tekenwerk te begrenzen.
 
 kinderen:
 
 * `<Series name="..." color="#..." data="10,20,30"/>` voor category-based Grafieken (kolom / Bar / categorical regel).
 * `<Series name="..." color="#..." points="x:y,x:y,..."/>` voor numeric X (regel `numericX={true}`, Scatter).
 * `<Slice name="..." value="..." color="#..."/>` voor `<PieChart>` alleen.
+* `<ReferenceLine y="100"/>` tekent een vaste horizontale lijn in `ColumnChart`, `LineChart` en `ScatterChart`. `BarChart` gebruikt `<ReferenceLine x="100"/>` voor een verticale lijn en accepteert `y` als alias. De coördinaat moet eindig zijn. Meerdere lijnen zijn toegestaan; `color` vervangt het halftransparante grijs en het optionele `label` staat binnen het diagram zonder de aslabels te bedekken. Referenties blijven zichtbaar zonder raster, vergroten het automatische bereik niet en verdwijnen buiten dat bereik. `PieChart` ondersteunt deze tag niet.
 
 wanneer `color` wordt weggelaten on a `<Series>` of `<Slice>`, GuideNH cycles through Een built-in 16-kleur palette.
 

@@ -750,13 +750,14 @@ Cartesian charts (Spalte / Bar / Linie / Scatter) additionally accept axis Attri
 
 Ungültige oder übergroße Zahlenformate verwenden automatisch das Standardformat. Formatzeichenfolgen sind auf 256 Zeichen, Feldbreiten auf 128 und die Genauigkeit auf 20 begrenzt. Überlappende numerische Achsenbeschriftungen werden bei Bedarf ausgelassen; ihre Gitterlinien bleiben erhalten.
 
-`ColumnChart`, `LineChart` und `ScatterChart` zeigen im Diagrammbereich eine horizontale goldene Hilfslinie, auch über freien Flächen; der aktuelle Y-Wert wird links hervorgehoben. `BarChart` zeigt eine vertikale Hilfslinie mit dem X-Wert unterhalb des Diagramms. Die Werte folgen Achsenformat und Einheit. Auf der Linie steht kein Text; außerhalb des Bereichs verschwindet sie. Beide Achsen verwenden blasse, weit auseinanderliegende Striche für das Raster. Extrem kleine positive Schrittweiten werden automatisch vergrößert, um den Zeichenaufwand zu begrenzen.
+`ColumnChart`, `LineChart` und `ScatterChart` zeigen im Diagrammbereich eine horizontale goldene Hilfslinie, auch über freien Flächen; der aktuelle Y-Wert wird links hervorgehoben. `BarChart` zeigt eine vertikale Hilfslinie mit dem X-Wert unterhalb des Diagramms. Die Werte folgen Achsenformat und Einheit. Auf der Linie steht kein Text; außerhalb des Bereichs verschwindet sie. Beide Achsen verwenden blasse, weit auseinanderliegende Striche für das Raster. `showXGrid` und `showYGrid` schalten es getrennt. Extrem kleine positive Schrittweiten werden automatisch vergrößert, um den Zeichenaufwand zu begrenzen.
 
 untergeordnete Elemente:
 
 * `<Series name="..." color="#..." data="10,20,30"/>` für category-based charts (Spalte / Bar / categorical Linie).
 * `<Series name="..." color="#..." points="x:y,x:y,..."/>` für numeric X (Linie `numericX={true}`, Scatter).
 * `<Slice name="..." value="..." color="#..."/>` für `<PieChart>` nur.
+* `<ReferenceLine y="100"/>` zeichnet in `ColumnChart`, `LineChart` und `ScatterChart` eine feste horizontale Linie. `BarChart` verwendet `<ReferenceLine x="100"/>` für eine vertikale Linie und akzeptiert `y` als Alias. Die Koordinate muss endlich sein. Mehrere Linien sind möglich; `color` ersetzt das halbtransparente Grau, das optionale `label` steht innerhalb der Zeichenfläche, ohne die Achsenbeschriftung zu verdecken. Referenzen bleiben ohne Raster sichtbar, erweitern den automatischen Wertebereich nicht und werden außerhalb davon ausgeblendet. `PieChart` unterstützt dieses Tag nicht.
 
 wenn `color` ist omitted auf ein `<Series>` oder `<Slice>`, GuideNH cycles durch Eine built-in 16-Farbe palette.
 

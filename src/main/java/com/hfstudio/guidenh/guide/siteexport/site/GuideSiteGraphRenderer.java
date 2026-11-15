@@ -708,6 +708,7 @@ public class GuideSiteGraphRenderer {
 
         svg.append("</svg>");
 
+        appendReferenceLines(svg, left, right, top, bottom, yMin, yMax, yAxis);
         appendCursorDomain(svg, left, right, top, bottom, yMin, yMax, yAxis);
         appendPieInset(svg, pieInset, w, bgColor, left, right, top, bottom, plotH);
 
@@ -997,6 +998,7 @@ public class GuideSiteGraphRenderer {
                 svg.append("</svg>");
             }
         }
+        appendReferenceLines(svg, left, right, top, bottom, xMin, xMax, barValueAxis, true);
         appendCursorDomain(svg, left, right, top, bottom, xMin, xMax, barValueAxis, true);
         appendPieInset(svg, pieInset, w, bgColor, left, right, top, bottom, plotH);
 
@@ -1229,6 +1231,7 @@ public class GuideSiteGraphRenderer {
             }
         }
 
+        appendReferenceLines(svg, left, right, top, bottom, yMin, yMax, lineYAxis);
         appendCursorDomain(svg, left, right, top, bottom, yMin, yMax, lineYAxis);
         appendYAxis(svg, left, top, bottom);
         appendXAxis(svg, left, right, bottom);
@@ -1489,6 +1492,7 @@ public class GuideSiteGraphRenderer {
             }
         }
 
+        appendReferenceLines(svg, left, right, top, bottom, yMin, yMax, scatterYAxis);
         appendCursorDomain(svg, left, right, top, bottom, yMin, yMax, scatterYAxis);
         appendYAxis(svg, left, top, bottom);
         appendXAxis(svg, left, right, bottom);
@@ -2741,7 +2745,54 @@ public class GuideSiteGraphRenderer {
             .append(fmtD(y2))
             .append("\" stroke=\"")
             .append(argbToRgba(color))
-            .append("\" stroke-width=\"1\"/>");
+            .append("\" stroke-width=\"1\" stroke-dasharray=\"1 9\" stroke-opacity=\"0.55\"/>");
+    }
+
+    private static void appendReferenceLines(StringBuilder svg, int left, int right, int top, int bottom, double min,
+        double max, SiteChartAxis axis) {
+        appendReferenceLines(svg, left, right, top, bottom, min, max, axis, false);
+    }
+
+    private static void appendReferenceLines(StringBuilder svg, int left, int right, int top, int bottom, double min,
+        double max, SiteChartAxis axis, boolean vertical) {
+        if (axis.referenceLines()
+            .isEmpty()) return;
+        appendPlotViewport(svg, left, top, right - left, bottom - top);
+        for (var line : axis.referenceLines()) {
+            if (line.value() < min || line.value() > max || line.color() >>> 24 == 0) continue;
+            double fraction = AxisRange.normalize(line.value(), min, max);
+            double y = bottom - fraction * (bottom - top);
+            double x = left + fraction * (right - left);
+            String color = argbToRgba(line.color());
+            svg.append("<line class=\"guide-chart-reference\" x1=\"")
+                .append(fmtD(vertical ? x : left))
+                .append("\" y1=\"")
+                .append(fmtD(vertical ? top : y))
+                .append("\" x2=\"")
+                .append(fmtD(vertical ? x : right))
+                .append("\" y2=\"")
+                .append(fmtD(vertical ? bottom : y))
+                .append("\" stroke=\"")
+                .append(color)
+                .append("\" stroke-width=\"1\" stroke-dasharray=\"4 3\"/>");
+            if (line.label()
+                .isEmpty()) continue;
+            svg.append("<text class=\"guide-chart-reference-label\" x=\"")
+                .append(
+                    fmtD(
+                        vertical ? Math.max(left + 4, Math.min(x + 4, right - approximateTextWidth(line.label()) - 4))
+                            : left + 4))
+                .append("\" y=\"")
+                .append(fmtD(vertical ? top + 11 : Math.max(top + 10, y - 3)))
+                .append("\" text-anchor=\"")
+                .append("start")
+                .append("\" font-size=\"8\" fill=\"")
+                .append(color)
+                .append("\">")
+                .append(esc(line.label()))
+                .append("</text>");
+        }
+        svg.append("</svg>");
     }
 
     private static void appendPlotViewport(StringBuilder svg, int left, int top, int width, int height) {

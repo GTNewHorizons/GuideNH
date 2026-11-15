@@ -245,7 +245,7 @@ public class LytColumnChart extends LytChartBase implements DebugComponent {
         }
 
         // Pie inset (if configured) goes after columns + lines so it sits on top.
-
+        CartesianChartRenderer.drawReferenceLines(context, inner, yAxis, yRange);
         drawPieInset(context, inner, pieArea, pieInset);
         drawHoverCursor(context, inner, yAxis, yRange);
     }
