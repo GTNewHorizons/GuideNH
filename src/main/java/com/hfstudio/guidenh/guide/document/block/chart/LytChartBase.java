@@ -82,6 +82,9 @@ public abstract class LytChartBase extends LytBlock implements InteractiveElemen
      * Currently hovered hit key; {@code -1} means none. The exact semantics is decided by each subclass.
      */
     protected int hoveredKey = -1;
+    private float hoverX = Float.NaN;
+    private float hoverY = Float.NaN;
+    private PieInsetRenderer.Layout pieInsetLayout;
 
     public void setExplicitSize(int width, int height) {
         this.explicitWidth = width > 0 ? width : -1;
@@ -147,7 +150,10 @@ public abstract class LytChartBase extends LytBlock implements InteractiveElemen
     }
 
     @Override
-    protected void onLayoutMoved(int deltaX, int deltaY) {}
+    protected void onLayoutMoved(int deltaX, int deltaY) {
+        onMouseLeave();
+        pieInsetLayout = null;
+    }
 
     @Override
     public final void render(RenderContext context) {
@@ -182,6 +188,7 @@ public abstract class LytChartBase extends LytBlock implements InteractiveElemen
         }
         LytRect plotRect = new LytRect(plotLeft, plotTop, plotRight - plotLeft, plotBottom - plotTop);
 
+        pieInsetLayout = null;
         renderChart(context, plotRect);
         CornerLegendRenderer.render(
             context,
@@ -211,14 +218,32 @@ public abstract class LytChartBase extends LytBlock implements InteractiveElemen
 
     @Override
     public final Optional<GuideTooltip> getTooltip(float x, float y) {
+        hoverX = x;
+        hoverY = y;
+        int insetHit = pieInsetLayout != null ? pieInsetLayout.hitTest(x, y) : -1;
+        if (insetHit >= 0) {
+            hoveredKey = -1;
+            PieSlice slice = pieInsetLayout.slices()
+                .get(insetHit);
+            String text = (slice.getLabel()
+                .isEmpty() ? "" : slice.getLabel() + '\n') + formatValue(slice.getValue())
+                + '\n'
+                + formatPercent(slice.getValue() / pieInsetLayout.total());
+            ChartIcon icon = slice.getIcon();
+            return createTooltip(
+                text,
+                slice.getTooltipExtra(),
+                icon != null && icon.hasItemStack() ? icon.getStack() : null);
+        }
         int hit = hitTest(x, y);
         hoveredKey = hit;
         if (hit < 0) {
             return Optional.empty();
         }
-        String text = describeHit(hit);
-        String extra = getHitExtraTooltip(hit);
-        ItemStack stack = getHitItemStack(hit);
+        return createTooltip(describeHit(hit), getHitExtraTooltip(hit), getHitItemStack(hit));
+    }
+
+    private static Optional<GuideTooltip> createTooltip(String text, String extra, ItemStack stack) {
         if (stack != null) {
             List<String> extraLines = new ArrayList<>();
             appendNonEmptyLines(extraLines, text);
@@ -239,6 +264,33 @@ public abstract class LytChartBase extends LytBlock implements InteractiveElemen
             return Optional.empty();
         }
         return Optional.of(new TextTooltip(sb.toString()));
+    }
+
+    @Override
+    public void onMouseLeave() {
+        hoveredKey = -1;
+        hoverX = Float.NaN;
+        hoverY = Float.NaN;
+    }
+
+    protected final void drawHoverCursor(RenderContext context, LytRect plot, ChartAxisOptions axis, AxisRange range) {
+        if (isHoveringPieInset()) return;
+        CartesianChartRenderer.drawHoverCursor(context, plot, axis, range, hoverX, hoverY);
+    }
+
+    protected final void drawVerticalHoverCursor(RenderContext context, LytRect plot, ChartAxisOptions axis,
+        AxisRange range) {
+        if (isHoveringPieInset()) return;
+        CartesianChartRenderer.drawVerticalHoverCursor(context, plot, axis, range, hoverX, hoverY);
+    }
+
+    protected final void drawPieInset(RenderContext context, LytRect plot, LytRect outsideArea, PieInsetSpec spec) {
+        pieInsetLayout = outsideArea != null ? PieInsetRenderer.drawAt(context, outsideArea, spec, hoverX, hoverY)
+            : PieInsetRenderer.draw(context, plot, spec, hoverX, hoverY);
+    }
+
+    private boolean isHoveringPieInset() {
+        return pieInsetLayout != null && pieInsetLayout.hitTest(hoverX, hoverY) >= 0;
     }
 
     private static void appendNonEmptyLines(List<String> sink, String text) {

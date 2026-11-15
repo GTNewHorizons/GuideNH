@@ -703,6 +703,10 @@ $$\begin{pmatrix} a & b \\ c & d \end{pmatrix}$$
 
 笛卡尔系图表（柱形/条形/折线/散点）支持坐标轴属性 `xAxisLabel`、`xAxisMin`、`xAxisMax`、`xAxisStep`、`xAxisUnit`、`xAxisTickFormat`，以及对应的 `yAxis*`，外加 `showXGrid={true}` 与 `showYGrid={true}` 控制网格线。
 
+`<ColumnChart>`、`<LineChart>` 和 `<ScatterChart>` 在鼠标进入绘图区后自动显示水平辅助虚线，随鼠标的高度移动，并在左侧坐标轴以金色底高亮当前数值和单位。虚线上不放文字；空白处也生效，移出绘图区后隐藏，无需添加子标签。
+
+`<BarChart>` 的数值轴为 X 轴，因此使用竖向金色跟随虚线，随鼠标左右移动，仅在底部坐标轴高亮数值与单位。
+
 子元素：
 
 * `<Series name="..." color="#..." data="10,20,30"/>` — 用于按类别取值的图表（柱形/条形/类别 X 折线）。
@@ -736,6 +740,8 @@ $$\begin{pmatrix} a & b \\ c & d \end{pmatrix}$$
 
 - `<LineSeries name="…" data="v1,v2,…" color="#rrggbb" icon="…"/>` — 在柱簇上方再叠加一条折线。每个折点位于对应类别簇中心，与宿主图共享数值轴；可同时声明多条 `<LineSeries>`。
 - `<PieInset size="60" position="topRight" title="…" startAngleDeg="-90" direction="clockwise" titleColor="#rrggbb">` — 在绘图区四角之一（`topRight`/`topLeft`/`bottomRight`/`bottomLeft`）绘制小型饼图，内部 `<Slice>` 子元素与 `<PieChart>` 一致。
+
+混合图表中的 `PieInset` 支持独立扇区悬停：显示名称、数值、占比及 `tooltip` 附加说明，有物品图标时保留物品提示。扇区识别优先于底层柱条和折线；悬停饼图时隐藏主图的鼠标辅助线。
 
 ```mdx
 <ColumnChart title="季度产量" categories="Q1,Q2,Q3,Q4">

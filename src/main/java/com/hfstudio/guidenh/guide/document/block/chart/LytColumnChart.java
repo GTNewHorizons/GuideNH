@@ -240,11 +240,8 @@ public class LytColumnChart extends LytChartBase implements DebugComponent {
         }
 
         // Pie inset (if configured) goes after columns + lines so it sits on top.
-        if (pieArea != null) {
-            PieInsetRenderer.drawAt(context, pieArea, pieInset);
-        } else {
-            PieInsetRenderer.draw(context, inner, pieInset);
-        }
+        drawPieInset(context, inner, pieArea, pieInset);
+        drawHoverCursor(context, inner, yAxis, yRange);
     }
 
     private void drawValueLabel(RenderContext context, ResolvedTextStyle style, double value, LytRect bar,

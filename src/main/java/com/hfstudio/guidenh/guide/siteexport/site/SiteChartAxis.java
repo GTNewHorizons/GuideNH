@@ -81,6 +81,14 @@ public class SiteChartAxis {
         return label;
     }
 
+    public String unit() {
+        return unit;
+    }
+
+    public String tickFormat() {
+        return tickFormat;
+    }
+
     @Nullable
     public Double min() {
         return min;

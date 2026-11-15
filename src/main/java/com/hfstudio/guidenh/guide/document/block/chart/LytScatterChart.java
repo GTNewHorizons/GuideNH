@@ -144,6 +144,7 @@ public class LytScatterChart extends LytChartBase {
                 }
             }
         }
+        drawHoverCursor(context, inner, yAxis, yRange);
     }
 
     private static int brighten(int argb) {

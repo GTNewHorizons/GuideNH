@@ -1206,7 +1206,8 @@ public class GuideSiteTooltipRenderer {
         return GuideSiteGraphRenderer.renderBarChart(
             chartStyle(chart, chart.getXAxis(), chart.getYAxis(), chart.getBarWidthRatio(), -90f, true),
             categories(chart.getCategories()),
-            seriesData(chart.getSeries()));
+            seriesData(chart.getSeries()),
+            chart.getPieInset() != null ? pieInsetData(chart.getPieInset()) : null);
     }
 
     private String renderLineChart(LytLineChart chart) {

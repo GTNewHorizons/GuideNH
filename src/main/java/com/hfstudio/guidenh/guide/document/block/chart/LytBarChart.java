@@ -264,11 +264,8 @@ public class LytBarChart extends LytChartBase implements DebugComponent {
             }
         }
 
-        if (pieArea != null) {
-            PieInsetRenderer.drawAt(context, pieArea, pieInset);
-        } else {
-            PieInsetRenderer.draw(context, inner, pieInset);
-        }
+        drawPieInset(context, inner, pieArea, pieInset);
+        drawVerticalHoverCursor(context, inner, xAxis, xRange);
     }
 
     private void drawValueLabel(RenderContext context, ResolvedTextStyle style, double value, LytRect bar, float endX) {

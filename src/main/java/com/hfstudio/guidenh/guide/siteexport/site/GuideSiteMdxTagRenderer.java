@@ -2075,7 +2075,8 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         return GuideSiteGraphRenderer.renderBarChart(
             resolveChartStyle(element),
             ChartAttrParser.parseStringArray(readOptional(element, "categories")),
-            parseSeriesChildren(element));
+            parseSeriesChildren(element),
+            parsePieInsetChildren(element));
     }
 
     private String renderLineChart(MdxJsxElementFields element) {

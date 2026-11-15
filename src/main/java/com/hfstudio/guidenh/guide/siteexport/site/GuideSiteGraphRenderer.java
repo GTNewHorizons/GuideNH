@@ -696,6 +696,20 @@ public class GuideSiteGraphRenderer {
             }
         }
 
+        appendCursorDomain(svg, left, right, top, bottom, yMin, yMax, yAxis);
+        appendPieInset(svg, pieInset, w, bgColor, left, right, top, bottom, plotH);
+
+        appendYAxis(svg, left, top, bottom);
+        appendXAxis(svg, left, right, bottom);
+        if (legend.width() > 0) {
+            renderLegend(svg, series, legend.x(), legend.y(), legend.width(), legend.limit(), legend.cols());
+        }
+        return svg.append("</svg></div>")
+            .toString();
+    }
+
+    private static void appendPieInset(StringBuilder svg, @Nullable PieInsetData pieInset, int w, int bgColor, int left,
+        int right, int top, int bottom, int plotH) {
         // Pie inset overlay
         if (pieInset != null && !pieInset.slices.isEmpty()) {
             double total = 0;
@@ -747,7 +761,7 @@ public class GuideSiteGraphRenderer {
                 double y2 = pcy + pr * Math.sin(ea);
                 int la = sweep > Math.PI ? 1 : 0;
                 double pct = (sl.value / total) * 100.0;
-                svg.append("<path class=\"guide-chart-shape\" d=\"M ")
+                svg.append("<path class=\"guide-chart-shape guide-chart-pie-slice\" d=\"M ")
                     .append(pcx)
                     .append(" ")
                     .append(pcy)
@@ -793,14 +807,6 @@ public class GuideSiteGraphRenderer {
                     .append("</text>");
             }
         }
-
-        appendYAxis(svg, left, top, bottom);
-        appendXAxis(svg, left, right, bottom);
-        if (legend.width() > 0) {
-            renderLegend(svg, series, legend.x(), legend.y(), legend.width(), legend.limit(), legend.cols());
-        }
-        return svg.append("</svg></div>")
-            .toString();
     }
 
     private static boolean isPieInsetRightOutside(@Nullable String position) {
@@ -831,6 +837,11 @@ public class GuideSiteGraphRenderer {
     }
 
     public static String renderBarChart(ChartStyle style, String[] categories, List<SeriesData> series) {
+        return renderBarChart(style, categories, series, null);
+    }
+
+    public static String renderBarChart(ChartStyle style, String[] categories, List<SeriesData> series,
+        @Nullable PieInsetData pieInset) {
         int w = style.layoutWidth();
         int h = style.layoutHeight();
         String title = style.title();
@@ -878,7 +889,8 @@ public class GuideSiteGraphRenderer {
             style,
             seriesNames(series),
             PADDING + 36,
-            w - PADDING,
+            w - PADDING
+                - (pieInset != null && isPieInsetRightOutside(pieInset.position) ? pieInset.size + PIE_OUTSIDE_GAP : 0),
             titleBottom,
             h - PADDING - AXIS_PAD_BOTTOM);
         int left = legend.left();
@@ -994,6 +1006,9 @@ public class GuideSiteGraphRenderer {
                 }
             }
         }
+
+        appendCursorDomain(svg, left, right, top, bottom, xMin, xMax, barValueAxis, true);
+        appendPieInset(svg, pieInset, w, bgColor, left, right, top, bottom, plotH);
 
         // Axis lines
         svg.append("<line x1=\"")
@@ -1269,6 +1284,7 @@ public class GuideSiteGraphRenderer {
             }
         }
 
+        appendCursorDomain(svg, left, right, top, bottom, yMin, yMax, lineYAxis);
         appendYAxis(svg, left, top, bottom);
         appendXAxis(svg, left, right, bottom);
         renderChartCornerLegend(
@@ -1602,6 +1618,7 @@ public class GuideSiteGraphRenderer {
             }
         }
 
+        appendCursorDomain(svg, left, right, top, bottom, yMin, yMax, scatterYAxis);
         appendYAxis(svg, left, top, bottom);
         appendXAxis(svg, left, right, bottom);
         renderChartCornerLegend(
@@ -2734,6 +2751,43 @@ public class GuideSiteGraphRenderer {
                 .append(esc(categories[ci]))
                 .append("</text>");
         }
+    }
+
+    private static void appendCursorDomain(StringBuilder svg, int left, int right, int top, int bottom, double min,
+        double max, SiteChartAxis axis) {
+        appendCursorDomain(svg, left, right, top, bottom, min, max, axis, false);
+    }
+
+    private static void appendCursorDomain(StringBuilder svg, int left, int right, int top, int bottom, double min,
+        double max, SiteChartAxis axis, boolean vertical) {
+        String coordinate = vertical ? "x" : "y";
+        svg.append("<metadata data-chart-cursor-domain data-plot-left=\"")
+            .append(left)
+            .append("\" data-plot-right=\"")
+            .append(right)
+            .append("\" data-plot-top=\"")
+            .append(top)
+            .append("\" data-plot-bottom=\"")
+            .append(bottom)
+            .append("\" data-cursor-orientation=\"")
+            .append(vertical ? "vertical" : "horizontal")
+            .append("\" data-")
+            .append(coordinate)
+            .append("-min=\"")
+            .append(min)
+            .append("\" data-")
+            .append(coordinate)
+            .append("-max=\"")
+            .append(max)
+            .append("\" data-")
+            .append(coordinate)
+            .append("-unit=\"")
+            .append(esc(axis.unit() == null ? "" : axis.unit()))
+            .append("\" data-")
+            .append(coordinate)
+            .append("-format=\"")
+            .append(esc(axis.tickFormat() == null ? "" : axis.tickFormat()))
+            .append("\"/>");
     }
 
     private static void appendYAxis(StringBuilder svg, int left, int top, int bottom) {

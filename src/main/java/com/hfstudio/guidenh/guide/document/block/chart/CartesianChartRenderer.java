@@ -32,7 +32,11 @@ public class CartesianChartRenderer {
                     maxLabel = w;
                 }
             }
-            left = Math.max(left, maxLabel + 6);
+            // Leave room for fractional cursor values as well as the regular ticks.
+            double offset = (yRange.max - yRange.min) * 0.0001;
+            maxLabel = Math.max(maxLabel, context.getStringWidth(yAxis.formatTick(yRange.min + offset), style));
+            maxLabel = Math.max(maxLabel, context.getStringWidth(yAxis.formatTick(yRange.max - offset), style));
+            left = Math.max(left, maxLabel + 10);
             // Y-axis title is drawn horizontally above the plot's top-left corner; reserve a row.
             if (yAxis.getLabel() != null && !yAxis.getLabel()
                 .isEmpty()) {
@@ -77,6 +81,53 @@ public class CartesianChartRenderer {
     public static float mapY(double value, AxisRange range, LytRect plotRect) {
         double t = range.normalize(value);
         return (float) (plotRect.bottom() - t * plotRect.height());
+    }
+
+    public static void drawHoverCursor(RenderContext context, LytRect plot, ChartAxisOptions axis, AxisRange range,
+        float mouseX, float mouseY) {
+        if (!Float.isFinite(mouseX) || !Float.isFinite(mouseY)
+            || plot.isEmpty()
+            || mouseX < plot.x()
+            || mouseX > plot.right()
+            || mouseY < plot.y()
+            || mouseY > plot.bottom()) return;
+        int accent = 0xFFF2C14E;
+        for (int x = plot.x(); x < plot.right(); x += 7) {
+            context.drawLine(x, mouseY, Math.min(x + 4, plot.right()), mouseY, 1f, accent);
+        }
+        double value = range.max - (mouseY - plot.y()) / plot.height() * (range.max - range.min);
+        String label = axis.formatTick(value);
+        ResolvedTextStyle style = LytChartBase.textStyle(0xFF161A22);
+        int textWidth = context.getStringWidth(label, style);
+        int lineHeight = context.getLineHeight(style);
+        int right = plot.x() - 1;
+        int top = Math.round(mouseY) - lineHeight / 2 - 2;
+        context.fillRect(new LytRect(right - textWidth - 8, top, textWidth + 8, lineHeight + 4), accent);
+        context.drawText(label, right - textWidth - 4, top + 2, style);
+    }
+
+    public static void drawVerticalHoverCursor(RenderContext context, LytRect plot, ChartAxisOptions axis,
+        AxisRange range, float mouseX, float mouseY) {
+        if (!Float.isFinite(mouseX) || !Float.isFinite(mouseY)
+            || plot.isEmpty()
+            || mouseX < plot.x()
+            || mouseX > plot.right()
+            || mouseY < plot.y()
+            || mouseY > plot.bottom()) return;
+        int accent = 0xFFF2C14E;
+        for (int y = plot.y(); y < plot.bottom(); y += 7) {
+            context.drawLine(mouseX, y, mouseX, Math.min(y + 4, plot.bottom()), 1f, accent);
+        }
+        double value = range.min + (mouseX - plot.x()) / plot.width() * (range.max - range.min);
+        String label = axis.formatTick(value);
+        ResolvedTextStyle style = LytChartBase.textStyle(0xFF161A22);
+        int textWidth = context.getStringWidth(label, style);
+        int lineHeight = context.getLineHeight(style);
+        int left = Math.round(mouseX) - textWidth / 2 - 4;
+        left = Math.max(plot.x() - 4, Math.min(plot.right() - textWidth - 4, left));
+        int top = plot.bottom() + 1;
+        context.fillRect(new LytRect(left, top, textWidth + 8, lineHeight + 4), accent);
+        context.drawText(label, left + 4, top + 2, style);
     }
 
     /**
