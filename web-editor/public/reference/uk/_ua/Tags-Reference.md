@@ -197,6 +197,8 @@ Groups alternative розширений вміст under independent tabs. ли�
 
 Renders каталог-style outline з real з’єднувач рядки drawn з  prefix glyphs on кожен рядок. Both Unicode box-drawing (`│ ├ └ ─`) і ASCII (`| +-- \-- ` / four spaces) forms є accepted і може be mixed. Payload текст підтримує  usual inline Markdown (links, **bold**, `code`, …), і those links є clickable both in-game і in  built-in site export.  той самий вміст може також be записаний as fenced ` ```tree ` or ` ```filetree ` блок.
 
+У вузькому вікні відступи рівнів зменшуються, залишаючи місце для тексту. Довгі шляхи переважно переносяться після `/`, `\`, `_` і `-`; назви без роздільників можуть переноситися між символами. Продовження рядка вирівнюється за початком назви, а значки та відгалуження — за першим рядком.
+
 ````md
 <FileTree indent="14" gap="0">
 project

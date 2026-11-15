@@ -197,6 +197,8 @@ Groups alternative rico conteúdo under independent tabs. somente direto `<Tab>`
 
 Renders Uma diretório-style outline com real connector linhas drawn de O prefix glyphs on cada linha. ambos Unicode box-drawing (`│ ├ └ ─`) e ASCII (`| +-- \-- ` / four spaces) forms são accepted e pode ser mixed. Payload texto suporta O usual inline Markdown (links, **bold**, `code`, …), e those links são clickable ambos em-game e em O built-em site export. O mesmo conteúdo pode também ser written as Uma fenced ` ```tree ` or ` ```filetree ` bloco.
 
+Em espaços estreitos, a indentação diminui para reservar espaço ao texto. Caminhos longos quebram preferencialmente após `/`, `\`, `_` e `-`; nomes sem separadores podem quebrar entre caracteres. As linhas seguintes se alinham ao nome, enquanto ícones e ramificações ficam alinhados à primeira linha.
+
 ````md
 <FileTree indent="14" gap="0">
 project
