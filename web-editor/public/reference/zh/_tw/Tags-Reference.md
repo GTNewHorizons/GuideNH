@@ -34,6 +34,7 @@
 | `<KeyBind>` | 插入按鍵綁定顯示名 | `id` 或 `action` |
 | `<ItemImage>` | 行內物品圖標 | `id`, `ore`, `nbt`, `scale`, `noTooltip`, `showTooltip`, `showIcon`, `label`, `format`, `yOffset`, `labelYOffset` |
 | `<ItemLink>` | 物品 tooltip + 可選導航鏈接 | `id` 或 `ore`，`linksTo`，`showTooltip`，`noTooltip`，`showIcon` |
+| `<FluidImage>` / `<FluidLink>` | 原生流体图标与页面导航 | `id`, `amount`, `nbt`, `scale`, `showTooltip`, `noTooltip`, `showIcon`, `label`, `linksTo` |
 | `<CommandLink>` | 可點擊的聊天命令鏈接 | `command`, `title`, `close` |
 | `<Latex>` | LaTeX 數學公​​式；在流式上下文中行內渲染，在區塊級上下文中居中顯示為獨立公式區塊 | `formula`, `color`, `scale`, `sourceScale`, `tooltip`, `showTooltip` |
 | `<QuestLink>` | BetterQuesting 任務鏈接，按任務狀態自動調整樣式（相容標籤，僅當 BetterQuesting 已加載時註冊） | `id`, `text`, `show_tooltip` |
@@ -50,14 +51,14 @@
 | 標籤 | 用途 | 關鍵屬性 |
 | --- | --- | --- |
 | `<div>` | 透傳塊包裝器 | 無 |
-| `<ContentTabs>` | 將可取代的富內容分組到獨立標籤頁中 | `title`、`color`、`background`、`icon`、`iconPng`、`icon_png`、`iconItem`、`icon_item`、`default`、`defaultIndex` |
+| `<ContentTabs>` | 將可取代的富內容分組到獨立標籤頁中 | `title`、`color`、`background`、`icon`、`iconPng`、`icon_png`、`iconItem`、`icon_item`, `iconFluid`, `icon_fluid`、`default`、`defaultIndex` |
 | `<Tab>` | `<ContentTabs>` 內的單一內容面板 | `title` |
 | `<details>` | 可折疊運行時區塊 | `open`、`width`、`height`、`wrap`、`align` |
 | `<FileTree>` | 目錄樹式大綱（附連接線） | `indent`、`gap` |
 | `<Row>` | 橫向 flex 佈局 | `gap`, `alignItems`, `fullWidth`, `width` |
 | `<Column>` | 縱向 flex 佈局 | `gap`, `alignItems`, `fullWidth`, `width` |
 | `<FootnoteList>` | 運行時 Markdown 腳註使用的限寬腳註容器 | `width` |
-| `<ItemGrid>` | 緊湊物品圖示網格 | 子元素必須是 `<ItemIcon id="..."/>` 或 `<ItemIcon ore="..."/>` |
+| `<ItemGrid>` | 物品与流体图标的紧凑网格 | 支持 `<ItemIcon id="..."/>`、`<ItemIcon ore="..."/>` 和 `<FluidIcon id="..."/>` 混排 |
 | `<BlockImage>` | 非交互式的 3D 单方块预览 | `id`, `ore`, `meta`, `nbt`, `scale`, `width`, `height`, `perspective`, `wrap`, `align` |
 | `<FloatingImage>` | 支援浮動或真正行內放置的裁切圖片區塊 | `src`, `x`, `y`, `width` / `w`, `height` / `h`, `scaleX`, `scaleY`, `displayWidth`, `displayHeight`, `wrap`, `align`, `title` |
 | `<SubPages>` | 導覽子頁面列表 | `id`, `alphabetical` |
@@ -445,6 +446,37 @@ GuideNH 也會忽略明確 `<Comment>` 標籤：
 <ItemLink id="minecraft:compass" linksTo="#usage" />
 ````
 
+### `<FluidImage>`、`<FluidLink>` 与 `<FluidIcon>`
+
+原生流体图标通过完整的 Forge 流体注册名查找，例如 `water`、`steam`、`molten.iron`。文档必须保存注册名，不能保存数字流体 ID 或 NEI 展示物品的元数据。渲染直接使用 Forge 流体纹理与染色，不依赖 NEI。
+
+ExportSite 的物品数量和流体数量使用网站自带的 Pixeloid Mono 字体，以网页文字覆盖在图标上；物品耐久条保留在图标图片中。
+
+| 属性 | 规则 |
+| --- | --- |
+| `id` | 必填的完整流体注册名，不补命名空间，也不解析物品元数据 |
+| `amount` | 可选的非负整数，最大 2147483647；GTNH 将原始流体单位显示为 L；零数量仍可表示有效流体 |
+| `nbt` | 可选 SNBT，应用到独立的 FluidStack 标签 |
+| `showTooltip`、`noTooltip` | 提示可见性优先级与物品图标相同；关闭提示不会关闭 G 导航 |
+| `scale`、`showIcon`、`label`、`format`、`yOffset`、`labelYOffset` | FluidImage 沿用 ItemImage 的显示参数；缩放必须有限且大于零 |
+| `showIcon`、`showText`、`linksTo` | FluidLink 沿用 ItemLink 的标签、图标位置和显式页面/锚点规则 |
+
+`FluidIcon` 只能作为 ItemGrid 子标签，接受 `id`、`amount`、`nbt`、`showTooltip`、`noTooltip`。同一个 ItemGrid 可以按原始顺序混排 ItemIcon 与 FluidIcon，不存在独立的 FluidGrid。`ore` 与物品元数据不能用于选择流体。
+
+```mdx
+<FluidImage id="water" amount={1000} scale="2" label="right" />
+<FluidLink id="steam" showIcon="left">蒸汽</FluidLink>
+<ItemGrid>
+  <ItemIcon id="minecraft:bucket" />
+  <FluidIcon id="water" amount={1000} />
+  <FluidIcon id="steam" />
+</ItemGrid>
+```
+
+页面通过 `fluid_id` / `fluid_ids` 绑定。鼠标停在原生流体图标或支持的容器/展示对象上，长按可改键的打开指南快捷键（默认 G）；单个目标直接打开，多个目标显示选择列表，先列流体页面，再列容器页面。数量和 NBT 影响显示实例，页面绑定只匹配注册名。空容器保留普通物品导航；没有悬停数据接口的流体 GUI 需要注册适配器。
+
+导航使用 `navigation.icon_fluid` / `icon_fluids` 设置静态/轮换页面图标；ContentTabs、FileTree 指令、引用指令和图表 Series / LineSeries / Slice 使用 `iconFluid`。流体图标不能与物品、PNG 或文本图标同时配置。六种 Recipe/Usage 标签支持 `fluid`、`inputFluid`、`outputFluid`；InputAnnotation 支持 `fluid`、`amount`、`nbt`。完整规则见配方、页面格式和注解文档。
+
 ### `<CommandLink>`
 
 點選後發送聊天指令。
@@ -503,7 +535,7 @@ GuideNH 會在運行時 Markdown 腳註展開後內部使用這個區塊標籤�
 
 ### `<ItemGrid>`
 
-渲染緊湊的物品圖示網格。其子元素必須是原始 `<ItemIcon>` 元素，由網格編譯器直接解析。每個子元素都可以使用 `id` 或 `ore`。
+渲染紧凑图标网格。网格编译器直接解析 ItemIcon 与 FluidIcon，并保留混排顺序；物品选择使用 `id` 或 `ore`，流体选择使用注册名 `id`，可选数量与 NBT。
 
 ````md
 <ItemGrid>

@@ -35,6 +35,7 @@ GuideNH の構文と実行時機能を説明します。コード、タグ、パ
 | `<KeyBind>` | inserts keybinding 表示 名前 | `id` または `action` |
 | `<ItemImage>` | inline アイテム icon | `id`, `ore`, `nbt`, `scale`, `noTooltip`, `showTooltip`, `showIcon`, `label`, `format`, `yOffset`, `labelYOffset` |
 | `<ItemLink>` | アイテム ツールチップ + 任意の ナビゲーション リンク | `id` または `ore`, `linksTo`, `showTooltip`, `noTooltip`, `showIcon` |
+| `<FluidImage>` / `<FluidLink>` | native fluid icon and page navigation | `id`, `amount`, `nbt`, `scale`, `showTooltip`, `noTooltip`, `showIcon`, `label`, `linksTo` |
 | `<CommandLink>` | clickable chat command リンク | `command`, `title`, `close` |
 | `<Latex>` | LaTeX math 数式; inline で flow context, centered 表示 ブロック で ブロック context | `formula`, `color`, `scale`, `sourceScale`, `tooltip`, `showTooltip` |
 | `<QuestLink>` | BetterQuesting quest リンク とともに 状態-aware styling (compat タグ, のみ 登録済み 場合 BetterQuesting です 読み込み済み) | `id`, `text`, `show_tooltip` |
@@ -51,14 +52,14 @@ Inline Markdown も 対応します action リンク 用 sound playback:
 | タグ | Purpose | キー 属性 |
 | --- | --- | --- |
 | `<div>` | pass-通じて ブロック wrapper | none |
-| `<ContentTabs>` | groups alternative リッチ コンテンツ under independent tabs | `title`, `color`, `background`, `icon`, `iconPng`, `icon_png`, `iconItem`, `icon_item`, `default`, `defaultIndex` |
+| `<ContentTabs>` | groups alternative リッチ コンテンツ under independent tabs | `title`, `color`, `background`, `icon`, `iconPng`, `icon_png`, `iconItem`, `icon_item`, `iconFluid`, `icon_fluid`, `default`, `defaultIndex` |
 | `<Tab>` | 1 つ コンテンツ panel 内部 `<ContentTabs>` | `title` |
 | `<details>` | collapsible 実行時 ブロック | `open`, `width`, `height`, `wrap`, `align` |
 | `<FileTree>` | ディレクトリ-style outline とともに connector 行 | `indent`, `gap` |
 | `<Row>` | horizontal flex レイアウト | `gap`, `alignItems`, `fullWidth`, `width` |
 | `<Column>` | vertical flex レイアウト | `gap`, `alignItems`, `fullWidth`, `width` |
 | `<FootnoteList>` | 幅-constrained footnote container 使用されます by 実行時 Markdown footnotes | `width` |
-| `<ItemGrid>` | compact grid of アイテム icons | 子要素 必要があります なる `<ItemIcon id="..."/>` または `<ItemIcon ore="..."/>` |
+| `<ItemGrid>` | compact grid of item and fluid icons | mix `<ItemIcon id="..."/>`, `<ItemIcon ore="..."/>`, and `<FluidIcon id="..."/>` |
 | `<BlockImage>` | non-インタラクティブ 3D 単一の-ブロック プレビュー | `id`, `ore`, `meta`, `nbt`, `scale`, `width`, `height`, `perspective`, `wrap`, `align` |
 | `<FloatingImage>` | cropped 画像 ブロック とともに 浮動小数点数 または true inline placement | `src`, `x`, `y`, `width` / `w`, `height` / `h`, `scaleX`, `scaleY`, `displayWidth`, `displayHeight`, `wrap`, `align`, `title` |
 | `<SubPages>` | ナビゲーション 子 listing | `id`, `alphabetical` |
@@ -449,6 +450,37 @@ Shows inline アイテム icon.
 <ItemLink id="minecraft:compass" linksTo="#usage" />
 ````
 
+### `<FluidImage>`, `<FluidLink>`, and `<FluidIcon>`
+
+Native fluid icons resolve the exact Forge fluid registry name, such as `water`, `steam`, or `molten.iron`. Persist names, never numeric fluid IDs or NEI display-item metadata. Rendering uses the Forge fluid texture and tint and does not require NEI.
+
+ExportSite displays item counts and fluid amounts as text overlays using its bundled Pixeloid Mono font. Item durability bars remain part of the icon image.
+
+| Attribute | Contract |
+| --- | --- |
+| `id` | Required complete fluid registry name; no implicit namespace or item metadata |
+| `amount` | Optional nonnegative integer up to 2147483647; raw fluid units shown as L in GTNH; zero remains a valid fluid |
+| `nbt` | Optional SNBT describing a private fluid stack tag |
+| `showTooltip`, `noTooltip` | Same visibility precedence as item icons; hiding a tooltip does not disable G navigation |
+| `scale`, `showIcon`, `label`, `format`, `yOffset`, `labelYOffset` | FluidImage shares ItemImage presentation options; scale must be finite and positive |
+| `showIcon`, `showText`, `linksTo` | FluidLink shares ItemLink label, icon-side, and explicit page/anchor behavior |
+
+`FluidIcon` is an ItemGrid child and accepts only `id`, `amount`, `nbt`, `showTooltip`, and `noTooltip`. A single ItemGrid may mix ItemIcon and FluidIcon children in source order. There is no separate FluidGrid. `ore` and item metadata are not fluid selectors.
+
+```mdx
+<FluidImage id="water" amount={1000} scale="2" label="right" />
+<FluidLink id="steam" showIcon="left">Steam</FluidLink>
+<ItemGrid>
+  <ItemIcon id="minecraft:bucket" />
+  <FluidIcon id="water" amount={1000} />
+  <FluidIcon id="steam" />
+</ItemGrid>
+```
+
+Bind pages with `fluid_id` / `fluid_ids`. Hold the remappable open-guide key (G by default) over native fluid icons or supported container/display representations. One match opens directly; multiple matches show a chooser with fluid pages before container pages. Amount and NBT affect display, while bindings match the registry name. Empty containers retain ordinary item navigation. Unrecognized fluid GUIs require a registered hover provider.
+
+Use `navigation.icon_fluid` / `icon_fluids` for single/cycling page icons, and `iconFluid` in ContentTabs, FileTree directives, quote directives, chart Series / LineSeries / Slice. Fluid icon sources must not be combined with item, PNG, or text icon sources. Six Recipe/Usage tags accept `fluid`, `inputFluid`, and `outputFluid`; InputAnnotation accepts `fluid`, `amount`, and `nbt`. See Recipes, Guide Page Format, and Annotations for the remaining contracts.
+
 ### `<CommandLink>`
 
 Sends chat command 場合 clicked.
@@ -507,7 +539,7 @@ GuideNH 使用します この ブロック タグ internally 場合 実行時 M
 
 ### `<ItemGrid>`
 
-描画 compact アイテム grid. 子要素 必要があります なる 未加工 `<ItemIcon>` elements, これらは です 解析済み directly by  grid コンパイラー. 各 子 できます 使用 いずれか `id` または `ore`.
+Renders a compact icon grid. The grid compiler parses raw ItemIcon and FluidIcon children in source order. Item children select `id` or `ore`; fluid children select a registry-name `id` with optional amount and NBT.
 
 ````md
 <ItemGrid>

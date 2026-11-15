@@ -12,6 +12,12 @@ categories:
 
 GuideNH ships with five interactive chart tags: `<ColumnChart>` clustered columns, `<BarChart>` horizontal bars, `<LineChart>` line, `<PieChart>` pie, and `<ScatterChart>` XY scatter. All charts show value + percentage tooltips on hover, and highlight the hovered element (column/bar grows, line points pop along the normal, pie slices pop outward, scatter points enlarge).
 
+## Native fluid series icons
+
+<ColumnChart title="Fluids" categories="Water,Steam">
+  <Series name="Flow" values="1000,1600" iconFluid="water" />
+</ColumnChart>
+
 ## Common Attributes
 
 * `title`

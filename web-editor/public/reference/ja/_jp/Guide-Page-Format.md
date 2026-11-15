@@ -285,6 +285,22 @@ More visible text.
 | `zoom` | 正の浮動小数点数 | ページごとのコンテンツ倍率 |
 | その他 | YAML 値 | `additionalProperties` に保持 |
 
+### Native fluid bindings and navigation icons
+
+`fluid_id` accepts one registry-name binding. `fluid_ids` accepts a string list. Both may coexist and are merged without duplicate destinations. Append `#anchor` to target a section; distinct anchors remain distinct. Bindings use exact names and ignore displayed amount and NBT.
+
+```yaml
+fluid_id: water
+fluid_ids:
+  - water#coolant
+  - steam#uses
+navigation:
+  title: Fluid handling
+  icon_fluid: water
+```
+
+`navigation.icon_fluid` accepts one fluid registry name; `icon_fluids` accepts a nonempty name list cycling once per second and takes precedence over the single field. These presentation fields do not create page bindings. Do not combine them with item or texture icon sources. Fluid availability is checked in the running game; disconnected editors must not report registry-name existence errors.
+
 ### `navigation`
 
 `title` は必須です。`keyword`、`keywords`、`parent`、`position`、`priority`、`icon`、`icons`、`icon_texture`、`icon_textures`、`required_mod`、`required_mods`、`excluded_mod`、`excluded_mods` を指定できます。

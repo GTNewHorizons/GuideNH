@@ -292,6 +292,19 @@ gdy `x`, `y`, i `z` są provided,  sound volume is attenuated in ekran przestrze
 projected scena współrzędna do  kliknięcie punkt lub scena środek. `radius` domyślne do 75% of 
 shorter scena strona, i `minVolume` domyślne do `0.15`.
 
+## `<InputAnnotation>` fluid targets
+
+InputAnnotation accepts either `item` or `fluid`, never both. A fluid target also accepts optional `amount` (nonnegative integer) and `nbt` (SNBT). Amount and NBT require `fluid`. Existing position, inputType, modifier, and StructureLib visibility conditions remain available.
+
+```mdx
+<GameScene width="180" height="120">
+  <Block x="0" y="0" z="0" id="minecraft:stone" />
+  <InputAnnotation pos="0.5 1.5 0.5" inputType="rmb" fluid="water" amount={1000} />
+</GameScene>
+```
+
+The annotation displays an interaction icon and fluid information. It does not fill a tank or change the scene world. Editing, saving, reloading, and export retain the fluid registry name, amount, and NBT. Fluid blocks still use real block IDs in Block / PlaceBlock.
+
 ## `<BlockStats>` i `<BlockStat>`
 
 Declares lub customizes Nakładka statystyk bloków. sceny z bloki enable  automatyczny toggle

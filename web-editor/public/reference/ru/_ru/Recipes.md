@@ -13,6 +13,20 @@ GuideNH может отображать рецепты крафта и реце�
 
 Все эти теги используют один и тот же компилятор и набор атрибутов.
 
+## Native fluid recipe targets and filters
+
+Exactly one of `id` and `fluid` selects the target of Recipe, Usage, RecipeFor, RecipeUsage, RecipesFor, or RecipesUsage. `fluid` is an exact Forge registry name. Existing handler, index, limit, fallback, and layout options apply.
+
+`inputFluid` / `outputFluid` accept registry-name expressions with OR (`,`), AND (`&`), and NOT (`!`). Names remain case-sensitive. Every supplied item and fluid filter must pass; malformed fluid filters are errors and never weaken the query. Amount/NBT are not part of these name filters. Fluid output checks include auxiliary output slots as well as the primary result.
+
+```mdx
+<RecipeFor fluid="steam" fallbackText="No steam recipe provider is available." />
+<RecipesUsage fluid="water" inputFluid="water&!lava" limit="3" />
+<RecipesFor id="minecraft:iron_ingot" outputFluid="steam,water" />
+```
+
+Forge has no universal fluid machine-recipe registry. Optional providers supply those recipes; without a provider, fallbackText or a diagnostic is shown. NEI may create a temporary display item for its backend query, but numeric display IDs never enter guide sources. Real filled containers remain item ingredients. Only explicitly typed fluid slots or recognized fluid-display substitutes render as native fluid ingredients.
+
 ## Семантика тегов
 
 | Тег              | Поведение                                               |
