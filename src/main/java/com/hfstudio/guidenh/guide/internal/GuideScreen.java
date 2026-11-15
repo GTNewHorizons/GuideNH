@@ -3417,6 +3417,7 @@ public class GuideScreen extends GuiContainer
             return;
         }
         if (guideMouseEventButton <= 2 && !Mouse.isButtonDown(guideMouseEventButton)) {
+            autocompleteController.handleMouseReleased(guideMouseEventButton);
             return;
         }
         long heldTime = Minecraft.getSystemTime() - guideLastMouseEvent;
@@ -6598,6 +6599,9 @@ public class GuideScreen extends GuiContainer
     protected void mouseClickMove(int mouseX, int mouseY, int clickedMouseButton, long timeSinceLastClick) {
         lastMouseX = mouseX;
         lastMouseY = mouseY;
+        if (autocompleteController.handleMouseDragged(mouseX, mouseY, clickedMouseButton)) {
+            return;
+        }
         if (handleNavigationResize(mouseX, clickedMouseButton)) {
             return;
         }
@@ -6654,6 +6658,9 @@ public class GuideScreen extends GuiContainer
     protected void mouseMovedOrUp(int mouseX, int mouseY, int state) {
         lastMouseX = mouseX;
         lastMouseY = mouseY;
+        if (autocompleteController.handleMouseReleased(state)) {
+            return;
+        }
         if (state == 0) {
             handleNavigationResize(mouseX, state);
         }
@@ -7096,6 +7103,7 @@ public class GuideScreen extends GuiContainer
 
     @Override
     public void onGuiClosed() {
+        autocompleteController.handleMouseReleased(0);
         OpenGuideHotkey.resetResourceHover();
         if (navBar.releaseResize(0)) {
             ModConfig.save();
