@@ -20,24 +20,38 @@ public class PieInsetRenderer {
     public record Layout(float cx, float cy, float radius, double total, double startAngle, boolean clockwise,
         List<PieSlice> slices) {
 
+        public Layout {
+            slices = List.copyOf(slices);
+        }
+
         public int hitTest(float x, float y) {
-            if (!Float.isFinite(x) || !Float.isFinite(y) || Math.hypot(x - cx, y - cy) > radius) return -1;
+            double dx = (double) x - cx;
+            double dy = (double) y - cy;
+            if (!Float.isFinite(x) || !Float.isFinite(y)
+                || !Float.isFinite(radius)
+                || radius <= 0
+                || !Double.isFinite(total)
+                || total <= 0
+                || dx * dx + dy * dy > (double) radius * radius) return -1;
             double pointAngle = Math.atan2(y - cy, x - cx);
             double angle = startAngle;
             for (int i = 0; i < slices.size(); i++) {
-                double sweep = Math.max(
-                    0,
+                double sweep = PieChartGeometry.positiveValue(
                     slices.get(i)
                         .getValue())
                     / total
                     * Math.PI
                     * 2
                     * (clockwise ? 1 : -1);
-                if (LytPieChart.angleIsBetween(pointAngle, angle, angle + sweep)) return i;
+                if (PieChartGeometry.containsAngle(pointAngle, angle, angle + sweep)) return i;
                 angle += sweep;
             }
             return -1;
         }
+    }
+
+    public static void draw(RenderContext context, LytRect plotRect, PieInsetSpec spec) {
+        draw(context, plotRect, spec, Float.NaN, Float.NaN);
     }
 
     public static Layout draw(RenderContext context, LytRect plotRect, PieInsetSpec spec, float mouseX, float mouseY) {
@@ -78,6 +92,10 @@ public class PieInsetRenderer {
      * Draw the pie inset filling the provided rectangle entirely; used when the host chart reserves a
      * dedicated outside area (e.g. {@link PieInsetSpec.Position#RIGHT_OUTSIDE}).
      */
+    public static void drawAt(RenderContext context, LytRect area, PieInsetSpec spec) {
+        drawAt(context, area, spec, Float.NaN, Float.NaN);
+    }
+
     public static Layout drawAt(RenderContext context, LytRect area, PieInsetSpec spec, float mouseX, float mouseY) {
         if (spec == null || area == null || area.width() <= 16 || area.height() <= 16) {
             return null;
@@ -94,11 +112,8 @@ public class PieInsetRenderer {
 
     private static Layout drawInternal(RenderContext context, PieInsetSpec spec, int areaX, int areaY, int size,
         float mouseX, float mouseY) {
-        double total = 0d;
-        for (PieSlice slice : spec.getSlices()) {
-            total += Math.max(0d, slice.getValue());
-        }
-        if (total <= 0d) return null;
+        double total = spec.getTotal();
+        if (!Double.isFinite(total) || total <= 0d) return null;
 
         // Optional title above the pie.
         ResolvedTextStyle titleStyle = textStyle(spec.getTitleColor());
@@ -120,15 +135,15 @@ public class PieInsetRenderer {
         float cy = areaY + titleHeight + pieSize / 2f;
         float radius = pieSize / 2f - 1f;
 
-        double angle = Math.toRadians(spec.getStartAngleDeg());
-        Layout layout = new Layout(cx, cy, radius, total, angle, spec.isClockwise(), List.copyOf(spec.getSlices()));
+        double angle = PieChartGeometry.startAngle(spec.getStartAngleDeg());
+        Layout layout = new Layout(cx, cy, radius, total, angle, spec.isClockwise(), spec.getSlices());
         int hovered = layout.hitTest(mouseX, mouseY);
         double dir = spec.isClockwise() ? 1d : -1d;
         for (int i = 0; i < spec.getSlices()
             .size(); i++) {
             PieSlice slice = spec.getSlices()
                 .get(i);
-            double sweep = (Math.max(0, slice.getValue()) / total) * Math.PI * 2d * dir;
+            double sweep = (PieChartGeometry.positiveValue(slice.getValue()) / total) * Math.PI * 2d * dir;
             drawSlice(context, cx, cy, i == hovered ? radius + 2 : radius, angle, sweep, slice.getColor());
             angle += sweep;
         }

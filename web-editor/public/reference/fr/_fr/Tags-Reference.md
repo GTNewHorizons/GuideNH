@@ -746,6 +746,10 @@ Voir [GameScene](GameScene) pour scène import/removal behavior et [Annotations]
 
 Cartesian charts (colonne / Bar / ligne / Scatter) additionally acceptent axis attributs `xAxisLabel`, `xAxisMin`, `xAxisMax`, `xAxisStep`, `xAxisUnit`, `xAxisTickFormat` et Le correspondant `yAxis*` Définissez, plus `showXGrid={true}` / `showYGrid={true}` vers toggle gridlines.
 
+Les formats de graduation invalides ou trop grands utilisent le format numérique automatique. La limite est de 256 caractères, de 128 pour la largeur du champ et de 20 pour la précision. Les graduations numériques qui se chevauchent sont masquées au besoin, sans supprimer leurs lignes de grille.
+
+`ColumnChart`, `LineChart` et `ScatterChart` affichent un repère horizontal doré dans la zone de tracé, même dans les espaces vides, et mettent la valeur Y en évidence à gauche. `BarChart` utilise un repère vertical avec la valeur X en bas. Les valeurs suivent le format et l’unité de l’axe. La ligne ne porte aucun texte et disparaît en dehors du tracé. Les pas positifs extrêmement petits sont automatiquement augmentés pour limiter le travail de rendu.
+
 enfants:
 
 * `<Series name="..." color="#..." data="10,20,30"/>` pour category-based charts (colonne / Bar / categorical ligne).
@@ -779,6 +783,8 @@ Extra attributs: `categories` (X-axis ou Y-axis labels, comma separated), `barWi
 
 - `<LineSeries name="…" data="v1,v2,…" color="#rrggbb" icon="…"/>` — drawn as Un polyline overlay on haut of Le bars. chaque ligne point sits at Le cluster centre of Le correspondant category index; Le overlay shares Le host graphique's valeur axis. You peut declare plusieurs `<LineSeries>` vers overlay several trends.
 - `<PieInset size="60" position="topRight" title="…" startAngleDeg="-90" direction="clockwise" titleColor="#rrggbb">` — Un small pie graphique drawn dans un of Le four corners (`topRight`, `topLeft`, `bottomRight`, `bottomLeft`) of Le plot area. son `<Slice>` enfants share Le même syntaxe as dans `<PieChart>`.
+
+Les secteurs de `PieInset` sont prioritaires au survol par rapport aux barres et lignes situées dessous : l’infobulle affiche le nom, la valeur, le pourcentage et le texte facultatif `tooltip`. Les infobulles d’objets sont conservées en jeu. Le repère principal disparaît au survol d’un secteur. Seul le premier camembert intégré est utilisé. `position="rightOutside"` réserve une zone à droite. `startAngleDeg="0"`, `direction="counterclockwise"` et un secteur unique formant un cercle complet sont pris en charge.
 
 ```mdx
 <ColumnChart title="Quarterly output" categories="Q1,Q2,Q3,Q4">

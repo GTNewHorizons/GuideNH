@@ -56,6 +56,9 @@ public class GuideSiteWriter {
         writeResource(outDir.resolve("_site/app.css"), "/assets/guidenh/siteexport/app.css");
         writeResource(outDir.resolve("_site/app.js"), "/assets/guidenh/siteexport/app.js");
         writeResource(outDir.resolve("_site/chart-cursor.js"), "/assets/guidenh/siteexport/chart-cursor.js");
+        writeResource(
+            outDir.resolve("_site/chart-number-format.js"),
+            "/assets/guidenh/siteexport/chart-number-format.js");
         writeResource(outDir.resolve("_site/locale.js"), "/assets/guidenh/siteexport/locale.js");
         writeResource(outDir.resolve("_site/languageMatching.js"), "/assets/guidenh/siteexport/languageMatching.js");
         String localeRoot = "/assets/guidenh/siteexport/lang/";

@@ -1,7 +1,5 @@
 package com.hfstudio.guidenh.guide.document.block.chart;
 
-import java.util.IllegalFormatException;
-
 import com.hfstudio.guidenh.guide.color.ColorUtils;
 
 import lombok.Getter;
@@ -30,26 +28,7 @@ public class ChartAxisOptions {
      * automatically choose between integer / one-decimal formatting.
      */
     public String formatTick(double value) {
-        String text;
-        if (tickFormat != null && !tickFormat.isEmpty()) {
-            try {
-                text = String.format(tickFormat, value);
-            } catch (IllegalFormatException ex) {
-                text = defaultFormat(value);
-            }
-        } else {
-            text = defaultFormat(value);
-        }
-        if (unit != null && !unit.isEmpty()) {
-            text = text + unit;
-        }
-        return text;
+        return ChartNumberFormat.format(value, tickFormat, unit);
     }
 
-    private static String defaultFormat(double value) {
-        if (Math.abs(value - Math.rint(value)) < 1e-6) {
-            return Long.toString((long) Math.rint(value));
-        }
-        return String.format("%.2f", value);
-    }
 }

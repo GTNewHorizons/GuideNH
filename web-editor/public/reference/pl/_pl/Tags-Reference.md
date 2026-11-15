@@ -746,6 +746,10 @@ Zobacz [GameScene](GameScene) dla scena import/removal zachowanie i [Annotations
 
 Cartesian Wykresy (kolumna / Bar / wiersz / Scatter) additionally akceptują oś atrybuty `xAxisLabel`, `xAxisMin`, `xAxisMax`, `xAxisStep`, `xAxisUnit`, `xAxisTickFormat` i  pasujący `yAxis*` Ustaw, plus `showXGrid={true}` / `showYGrid={true}` do toggle gridlines.
 
+Nieprawidłowe lub zbyt duże formaty podziałki używają automatycznego formatowania liczb. Limity wynoszą 256 znaków, 128 dla szerokości pola i 20 dla precyzji. Nakładające się etykiety liczbowe są w razie potrzeby pomijane, a odpowiadające im linie siatki pozostają bez zmian.
+
+`ColumnChart`, `LineChart` i `ScatterChart` pokazują w obszarze wykresu poziomą złotą linię pomocniczą, również nad pustym miejscem, i wyróżniają wartość Y po lewej stronie. `BarChart` używa pionowej linii z wartością X na dole. Wartości zachowują format i jednostkę osi. Na samej linii nie ma tekstu; poza wykresem znika. Bardzo małe dodatnie odstępy podziałki są automatycznie zwiększane, aby ograniczyć koszt renderowania.
+
 elementy podrzędne:
 
 * `<Series name="..." color="#..." data="10,20,30"/>` dla category-based Wykresy (kolumna / Bar / categorical wiersz).
@@ -779,6 +783,8 @@ Extra atrybuty: `categories` (X-oś lub Y-oś labels, comma separated), `barWidt
 
 - `<LineSeries name="…" data="v1,v2,…" color="#rrggbb" icon="…"/>` — drawn as polilinia overlay on góra of  bars. każdy wiersz punkt sits at  cluster środek of  pasujący category index;  overlay shares  host wykres's wartość oś. You może declare wiele `<LineSeries>` do overlay several trends.
 - `<PieInset size="60" position="topRight" title="…" startAngleDeg="-90" direction="clockwise" titleColor="#rrggbb">` — small pie wykres drawn wewnątrz jeden of  four corners (`topRight`, `topLeft`, `bottomRight`, `bottomLeft`) of  plot area. jego `<Slice>` elementy podrzędne share  ten sam składnia as in `<PieChart>`.
+
+Sektory `PieInset` mają przy wskazywaniu pierwszeństwo przed słupkami i liniami pod nimi: podpowiedź pokazuje nazwę, wartość, procent i opcjonalny tekst `tooltip`. W grze zachowane są podpowiedzi przedmiotów. Nad sektorem znika główna linia pomocnicza. Używany jest tylko pierwszy wykres wstawiony. `position="rightOutside"` rezerwuje osobne miejsce po prawej. Obsługiwane są `startAngleDeg="0"`, `direction="counterclockwise"` oraz pojedynczy sektor tworzący pełne koło.
 
 ```mdx
 <ColumnChart title="Quarterly output" categories="Q1,Q2,Q3,Q4">

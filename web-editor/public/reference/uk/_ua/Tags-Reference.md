@@ -746,6 +746,10 @@ $$\begin{pmatrix} a & b \\ c & d \end{pmatrix}$$
 
 Cartesian Діаграми (стовпець / Bar / рядок / Scatter) additionally приймають вісь атрибути `xAxisLabel`, `xAxisMin`, `xAxisMax`, `xAxisStep`, `xAxisUnit`, `xAxisTickFormat` і  відповідний `yAxis*` Установіть, plus `showXGrid={true}` / `showYGrid={true}` до toggle gridlines.
 
+Неправильні або завеликі формати поділок замінюються автоматичним форматуванням чисел. Обмеження: 256 символів, ширина поля 128 і точність 20. Якщо числові підписи перекриваються, частина з них приховується, а відповідні лінії сітки зберігаються.
+
+`ColumnChart`, `LineChart` і `ScatterChart` показують золоту горизонтальну допоміжну лінію в області побудови, зокрема над порожніми місцями, та виділяють поточне значення Y ліворуч. `BarChart` використовує вертикальну лінію зі значенням X унизу. Значення відповідають формату й одиницям осі. На самій лінії тексту немає; поза областю вона зникає. Надто малий додатний крок поділок автоматично збільшується, щоб обмежити обсяг відтворення.
+
 дочірні елементи:
 
 * `<Series name="..." color="#..." data="10,20,30"/>` для category-based Діаграми (стовпець / Bar / categorical рядок).
@@ -779,6 +783,8 @@ Extra атрибути: `categories` (X-вісь або Y-вісь labels, comma
 
 - `<LineSeries name="…" data="v1,v2,…" color="#rrggbb" icon="…"/>` — drawn as a ламана overlay on угорі of  bars. кожен рядок точка sits at  cluster центр of  відповідний category index;  overlay shares  host діаграма's значення вісь. You може declare кілька `<LineSeries>` до overlay several trends.
 - `<PieInset size="60" position="topRight" title="…" startAngleDeg="-90" direction="clockwise" titleColor="#rrggbb">` — small pie діаграма drawn усередині один of  four corners (`topRight`, `topLeft`, `bottomRight`, `bottomLeft`) of  plot area. його `<Slice>` дочірні елементи share  той самий синтаксис as in `<PieChart>`.
+
+Сектори `PieInset` мають пріоритет під час наведення над стовпчиками й лініями під ними: підказка містить назву, значення, відсоток і додатковий текст `tooltip`. У грі зберігаються підказки предметів. Над сектором основна допоміжна лінія зникає. Використовується лише перша вставлена діаграма. `position="rightOutside"` виділяє окрему область праворуч. Підтримуються `startAngleDeg="0"`, `direction="counterclockwise"` та один сектор у вигляді повного кола.
 
 ```mdx
 <ColumnChart title="Quarterly output" categories="Q1,Q2,Q3,Q4">

@@ -2,6 +2,7 @@ package com.hfstudio.guidenh.guide.document.block.chart;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 
 import net.minecraft.item.ItemStack;
@@ -11,6 +12,7 @@ import com.hfstudio.guidenh.guide.color.ConstantColor;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.block.LytBlock;
 import com.hfstudio.guidenh.guide.document.block.ResponsiveVisualSizing;
+import com.hfstudio.guidenh.guide.document.block.chart.PieInsetRenderer.Layout;
 import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;
 import com.hfstudio.guidenh.guide.document.interaction.TextTooltip;
@@ -84,7 +86,7 @@ public abstract class LytChartBase extends LytBlock implements InteractiveElemen
     protected int hoveredKey = -1;
     private float hoverX = Float.NaN;
     private float hoverY = Float.NaN;
-    private PieInsetRenderer.Layout pieInsetLayout;
+    private Layout pieInsetLayout;
 
     public void setExplicitSize(int width, int height) {
         this.explicitWidth = width > 0 ? width : -1;
@@ -110,6 +112,8 @@ public abstract class LytChartBase extends LytBlock implements InteractiveElemen
 
     @Override
     protected LytRect computeLayout(LayoutContext context, int x, int y, int availableWidth) {
+        onMouseLeave();
+        pieInsetLayout = null;
         int width = preferredWidth();
         width = ResponsiveVisualSizing.scaleWidth(width, context.getVisualScale(), 64);
         int height = explicitHeight > 0 ? explicitHeight : DEFAULT_HEIGHT;
@@ -157,6 +161,7 @@ public abstract class LytChartBase extends LytBlock implements InteractiveElemen
 
     @Override
     public final void render(RenderContext context) {
+        pieInsetLayout = null;
         context.fillRect(bounds, backgroundColor);
         context.drawBorder(bounds, borderColor, 1);
 
@@ -188,7 +193,6 @@ public abstract class LytChartBase extends LytBlock implements InteractiveElemen
         }
         LytRect plotRect = new LytRect(plotLeft, plotTop, plotRight - plotLeft, plotBottom - plotTop);
 
-        pieInsetLayout = null;
         renderChart(context, plotRect);
         CornerLegendRenderer.render(
             context,
@@ -218,6 +222,10 @@ public abstract class LytChartBase extends LytBlock implements InteractiveElemen
 
     @Override
     public final Optional<GuideTooltip> getTooltip(float x, float y) {
+        if (!Float.isFinite(x) || !Float.isFinite(y) || !bounds.contains((int) x, (int) y)) {
+            onMouseLeave();
+            return Optional.empty();
+        }
         hoverX = x;
         hoverY = y;
         int insetHit = pieInsetLayout != null ? pieInsetLayout.hitTest(x, y) : -1;
@@ -353,13 +361,10 @@ public abstract class LytChartBase extends LytBlock implements InteractiveElemen
         if (Double.isNaN(ratio) || Double.isInfinite(ratio)) {
             return "0%";
         }
-        return String.format("%.1f%%", ratio * 100d);
+        return String.format(Locale.ROOT, "%.1f%%", ratio * 100d);
     }
 
     public static String formatValue(double value) {
-        if (Math.abs(value - Math.rint(value)) < 1e-6) {
-            return Long.toString((long) Math.rint(value));
-        }
-        return String.format("%.2f", value);
+        return ChartNumberFormat.formatValue(value);
     }
 }

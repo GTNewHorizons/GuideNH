@@ -22,6 +22,7 @@ GuideNH 内置五种交互式图表标签：`<ColumnChart>`（竖柱）、`<BarC
 
 柱形图、折线图和散点图默认提供鼠标水平辅助线：将鼠标移入绘图区，金色横虚线跟随鼠标高度，左侧坐标轴以金色底突出显示对应数值和单位。虚线上不显示文字，无需命中数据点；移出绘图区后自动隐藏。
 
+
 ## ColumnChart
 
 <ColumnChart
@@ -29,6 +30,9 @@ GuideNH 内置五种交互式图表标签：`<ColumnChart>`（竖柱）、`<BarC
   categories="Q1,Q2,Q3,Q4"
   width="400"
   height="240"
+  yAxisMin="0"
+  yAxisMax="250"
+  yAxisStep="50"
 >
   <Series name="铁" color="#888888" data="120,200,150,80" />
   <Series name="金" color="#FFAA00" data="30,50,90,70" />
@@ -36,9 +40,11 @@ GuideNH 内置五种交互式图表标签：`<ColumnChart>`（竖柱）、`<BarC
 
 把鼠标移到柱子之间的空白处，或沿绘图区上下移动，可观察辅助线与左侧高亮数值的变化。
 
+
 ## BarChart
 
 横条图使用竖向金色鼠标辅助线，左右移动鼠标时在底部数值轴高亮当前值。
+
 
 <BarChart
   title="模组下载量 (万)"
@@ -183,5 +189,17 @@ GuideNH 内置五种交互式图表标签：`<ColumnChart>`（竖柱）、`<BarC
   <PieInset position="rightOutside" size="64" title="产物占比" direction="counterclockwise">
     <Slice name="主产物" value="70" color="#6cadc8" tooltip="主产物：用于后续加工" />
     <Slice name="副产物" value="30" color="#f2c14e" tooltip="副产物：进入回收生产线" />
+  </PieInset>
+</ColumnChart>
+
+## 零度起始的完整圆形内嵌饼图
+
+唯一的正值扇区填满整个圆形，提示显示 100%；零值扇区不参与悬停。
+
+<ColumnChart categories="A,B" width="320" height="220" legend="none">
+  <Series name="产量" data="20,40" />
+  <PieInset size="64" title="完成情况" startAngleDeg="0" direction="counterclockwise">
+    <Slice name="已完成" value="100" tooltip="全部产量已完成" />
+    <Slice name="待完成" value="0" />
   </PieInset>
 </ColumnChart>
