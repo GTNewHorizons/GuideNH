@@ -1,6 +1,6 @@
 # Tags Reference
 
-This page lists the built-in runtime tags registered by `DefaultExtensions`.
+This page describes the built-in tags available to guide authors.
 
 ## Usage Rules
 
@@ -11,7 +11,6 @@ This page lists the built-in runtime tags registered by `DefaultExtensions`.
   - [Recipes](Recipes)
   - [GameScene](GameScene)
   - [Annotations](Annotations)
-- Cross-renderer changes to `ContentTabs` should follow the [maintenance checklist](ContentTabs-Maintenance).
 
 ## Inline And Flow Tags
 
@@ -457,7 +456,7 @@ ExportSite displays item counts and fluid amounts as text overlays using its bun
 | Attribute | Contract |
 | --- | --- |
 | `id` | Required complete fluid registry name; no implicit namespace or item metadata |
-| `amount` | Optional nonnegative integer up to 2147483647; raw fluid units shown as L in GTNH; zero remains a valid fluid |
+| `amount` | Optional integer amount; display follows the selected fluid unit |
 | `nbt` | Optional SNBT describing a private fluid stack tag |
 | `showTooltip`, `noTooltip` | Same visibility precedence as item icons; hiding a tooltip does not disable G navigation |
 | `scale`, `showIcon`, `label`, `format`, `yOffset`, `labelYOffset` | FluidImage shares ItemImage presentation options; scale must be finite and positive |
@@ -492,7 +491,7 @@ Sends a chat command when clicked.
 Example:
 
 ````md
-<CommandLink command="/tp @s 0 90 0" title="Teleport">Teleport!</CommandLink>
+<CommandLink command="/tp @p 0 90 0" title="Teleport">Teleport!</CommandLink>
 ````
 
 ### `<Row>` And `<Column>`
@@ -537,7 +536,7 @@ GuideNH uses this block tag internally when runtime markdown footnotes are expan
 
 ### `<ItemGrid>`
 
-Renders a compact icon grid. The grid compiler parses raw ItemIcon and FluidIcon children in source order. Item children select `id` or `ore`; fluid children select a registry-name `id` with optional amount and NBT.
+Renders a compact icon grid. ItemIcon and FluidIcon children appear in source order. Item children select `id` or `ore`; fluid children select a registry-name `id` with optional amount and NBT.
 
 ````md
 <ItemGrid>

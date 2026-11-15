@@ -4,7 +4,7 @@
 
 ## 我应该在哪里编辑内置运行时指南？
 
-在 `wiki/resourcepack/` 下。旧的 `src/main/resources/assets/...` 松散源树已经不再是运行时指南页面的编写真源。
+编辑 `wiki/resourcepack/assets/` 下的 UTF-8 页面。单独加载示例资源包，或使用 [实时预览](Live-Preview-zh-CN)；构建模组不会自动打包这些文件。
 
 ## 如果我想放一个不会打包进 jar 的客户端本地指南，应该放在哪里？
 
@@ -20,5 +20,4 @@
 
 ## 我怎样才能快速预览指南改动？
 
-使用 [实时预览](Live-Preview-zh-CN) 中说明的专用 live preview 运行任务。在本仓库里，`runGuide`
-会在启动时自动接入内置示例指南源目录，并直接打开指南。
+在游戏启动配置中添加 [实时预览](Live-Preview-zh-CN) 说明的 JVM 参数，然后编辑配置的源目录。需要自动打开指南时，再设置 `guideme.showOnStartup`。

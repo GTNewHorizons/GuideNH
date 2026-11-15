@@ -2,90 +2,42 @@
 
 # GuideNH
 
-GuideNH is an in-game guide framework for GTNH-era Minecraft mods. This wiki documents how the project is organized, how the runtime guide format works, and how to author pages, assets, recipes, scenes, and annotations without mixing game-only syntax into the GitHub Wiki itself.
+GuideNH supports reading and authoring guides in Minecraft 1.7.10. This reference covers pages, assets, recipes, scenes and localization for guide authors.
 
-## Start Here
+## Author reference
 
 - [Installation](Installation)
 - [Getting Started](Getting-Started)
-- [Live Preview](Live-Preview)
 - [Guide Page Format](Guide-Page-Format)
+- [Syntax Completion](Syntax-Completion)
+- [Tags Reference](Tags-Reference)
 - [Navigation](Navigation)
 - [Search](Search)
 - [Images And Assets](Images-And-Assets)
-- [Tags Reference](Tags-Reference)
-- [GameScene](GameScene)
-- [Structure Export](Structure-Export)
-- [Annotations](Annotations)
 - [Recipes](Recipes)
+- [GameScene](GameScene)
+- [Annotations](Annotations)
+- [Ponder](Ponder)
+- [Structure Export](Structure-Export)
+- [Templates](Templates)
 - [Localization](Localization)
+- [Mod Compatibility](Mod-Compatibility)
 - [Examples](Examples)
 - [FAQ](FAQ)
-- [Server Integration](Server-Integration)
 
-## Repository Layout
+## Where to write
 
 | Path | Purpose |
 | --- | --- |
-| `wiki/` | Human-facing GitHub Wiki pages such as this one |
-| `wiki/resourcepack/` | Runtime guide source tree used by the mod at build time |
-| `wiki/resourcepack/assets/guidenh/guidenh/` | Example built-in guide pages and assets |
-| `build/resources/main/assets/` | Gradle output where the runtime guide assets are copied for development runs |
-| `config/guidenh/DefaultGuide/` | Client-local runtime guide directory created automatically at startup |
+| `config/guidenh/DefaultGuide/<modid>/guidenh/` | Client-local guides; UTF-8 Markdown belongs in language folders |
+| `wiki/resourcepack/assets/<modid>/guidenh/` | Repository example resource pack; load it separately or use live preview |
+| `wiki/*.md` | GitHub Wiki documentation; show game syntax in code fences |
 
-## Two Markdown Layers
+Create your first page with [Getting Started](Getting-Started). The example `index.md` lists examples by category; `scene-import.md` demonstrates structure imports.
 
-GuideNH intentionally uses two different authoring layers:
+## Development and deployment
 
-- GitHub Wiki markdown in `wiki/*.md` is for repository documentation and should stay plain GitHub Wiki markdown.
-- Runtime guide markdown in `wiki/resourcepack/...` is for the in-game renderer and may use YAML frontmatter plus GuideNH-specific MDX tags such as `<GameScene>`, `<RecipeFor>`, and `<Tooltip>`.
-
-The wiki explains the runtime syntax, but it does not use the runtime tags directly outside fenced code blocks.
-
-## Quick Authoring Checklist
-
-1. Put client-local runtime guide files under `config/guidenh/DefaultGuide/<modid>/guidenh/` when you want a normal loaded local guide source.
-2. Use `_en_us/` and `_zh_cn/` language folders in that runtime directory.
-3. Put markdown pages inside those language folders.
-4. Declare navigation metadata in frontmatter when you want a page to appear in the sidebar.
-5. Use relative asset paths for page-local files and rooted `/...` paths for guide-root assets.
-6. Use `wiki/resourcepack/assets/<modid>/guidenh/` when editing the repository example pack that is bundled into the jar.
-7. For 3D scenes, compose `<GameScene>` with `<ImportStructure>`, `<ImportStructureLib>`, `<RemoveBlocks>`, and `<BlockAnnotationTemplate>` as needed.
-
-## Fast Iteration
-
-For the built-in example guide, use the dedicated live preview flow documented in [Live Preview](Live-Preview). It
-launches the client with a development source folder and opens the guide directly on startup.
-
-## Scene Authoring Highlights
-
-- `<ImportStructure>` imports external SNBT/NBT structures into a scene.
-- `<ImportStructureLib>` imports StructureLib multiblocks by controller id using GTNH-style `modid:block[:meta]`.
-- `/exportStructure` exports StructureLib previews or loaded GameScene blocks to PNG screenshots for documentation workflows.
-- `<RemoveBlocks>` trims already-placed helper blocks after imports without changing neighboring states.
-- `<BlockAnnotationTemplate>` copies the same child annotations onto every matching block that already exists in the scene.
-- Interactive scenes can automatically expose layer sliders, StructureLib channel sliders, hatch highlight buttons, and rich hover tooltips when the underlying scene data provides them.
-
-## Runtime Example Sources
-
-The bundled example guide currently lives here:
-
-- `wiki/resourcepack/assets/guidenh/guidenh/_en_us/index.md`
-- `wiki/resourcepack/assets/guidenh/guidenh/_zh_cn/index.md`
-- `wiki/resourcepack/assets/guidenh/guidenh/_en_us/markdown.md`
-- `wiki/resourcepack/assets/guidenh/guidenh/_en_us/rendering.md`
-- `wiki/resourcepack/assets/guidenh/guidenh/_en_us/structure.md`
-- `wiki/resourcepack/assets/guidenh/guidenh/assets/example_structure.snbt`
-
-Those files are the best place to inspect real, running examples while reading this wiki. The two `index.md` pages now include mixed scene samples for `ImportStructureLib`, `RemoveBlocks`, and `BlockAnnotationTemplate`.
-
-Use `DefaultGuide` for local runtime content with the native namespace-root layout:
-
-```text
-config/guidenh/DefaultGuide/
-`-- <modid>/
-    `-- guidenh/
-        |-- _en_us/
-        |-- _zh_cn/
-        `-- assets/
-```
+- [Live Preview](Live-Preview)
+- [Debug Mode](Debug-Mode)
+- [Server Integration](Server-Integration)
+- [Developer Integration](Developer-Integration)

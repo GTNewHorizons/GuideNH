@@ -18,8 +18,8 @@ GuideNH の実行時ページは Markdown ファイルです。標準 Markdown �
 
 ````md
 ```lua
-ローカル 値 = 42
-print(値)
+local value = 42
+print(value)
 ```
 
 ```
@@ -97,7 +97,7 @@ mindmap
 </NodeContent>
 
 <NodeContent id="export">
-![Machine Diagram](./resourcepack/assets/guidenh/guidenh/_en_us/test1.png)
+![Machine Diagram](./test1.png)
 </NodeContent>
 </Mermaid>
 ````
@@ -278,16 +278,17 @@ More visible text.
 | `navigation` | map | ページをナビゲーションツリーへ追加 |
 | `categories` | 文字列リスト | MediaWiki 形式カテゴリへ追加 |
 | `item_id` / `item_ids` | アイテムフィルター式 | `<ItemLink>` から発見可能にする |
+| `fluid_id` / `fluid_ids` | 登録名 / 登録名リスト | 流体からページへ移動。`#anchor` に対応 |
 | `ore_ids` | 鉱石辞書名リスト | 鉱石辞書アイテムから発見可能にする |
 | `quest_ids` | BetterQuesting ID リスト | `<QuestLink>`/`<QuestCard>` とキー操作に対応 |
 | `author` / `authors` | 文字列またはリスト | 下部バーに作者を表示 |
 | `date` / `updated` | 文字列または日付 | 作成日/更新日を表示 |
 | `zoom` | 正の浮動小数点数 | ページごとのコンテンツ倍率 |
-| その他 | YAML 値 | `additionalProperties` に保持 |
+| その他 | YAML 値 | 拡張機能や編集ツールで利用可能 |
 
-### Native fluid bindings and navigation icons
+### 流体のバインドとアイコン
 
-`fluid_id` accepts one registry-name binding. `fluid_ids` accepts a string list. Both may coexist and are merged without duplicate destinations. Append `#anchor` to target a section; distinct anchors remain distinct. Bindings use exact names and ignore displayed amount and NBT.
+`fluid_id` は登録名を 1 つ、`fluid_ids` は登録名のリストを受け取ります。両方を併用でき、`#anchor` でページ内の節へ移動できます。数量や NBT は照合しません。
 
 ```yaml
 fluid_id: water
@@ -299,45 +300,25 @@ navigation:
   icon_fluid: water
 ```
 
-`navigation.icon_fluid` accepts one fluid registry name; `icon_fluids` accepts a nonempty name list cycling once per second and takes precedence over the single field. These presentation fields do not create page bindings. Do not combine them with item or texture icon sources. Fluid availability is checked in the running game; disconnected editors must not report registry-name existence errors.
+ページアイコンは `navigation.icon_fluid` または `icon_fluids` で指定します。両方の併用やアイテム/テクスチャーアイコンとの併用は不可です。`icon_fluids` は空でないリストで、1 秒ごとに切り替わります。アイコンの設定はページをバインドしません。流体の存在は実行中のゲームで確認してください。
 
 ### `navigation`
 
-`title` は必須です。`keyword`、`keywords`、`parent`、`position`、`priority`、`icon`、`icons`、`icon_texture`、`icon_textures`、`required_mod`、`required_mods`、`excluded_mod`、`excluded_mods` を指定できます。
+`title` は必須です。`keyword`、`keywords`、`parent`、`position`、`recommend`、`priority`、`icon`、`icons`、`icon_texture`、`icon_textures`、`icon_fluid`、`icon_fluids`、`required_mod`、`required_mods`、`excluded_mod`、`excluded_mods` を指定できます。
 
 ```yaml
-item_id: minecraft:potion 16384-16462,!16386
 item_ids:
-  - ae2:white_paint_ball:*
-  - "<minecraft:wool:14>"
+  - minecraft:book
+fluid_id: water#coolant
 navigation:
-  title: Root
+  title: Guide Overview
   parent: index.md
   position: 10
-  priority: 0
-  icon: minecraft:book:0:{display:{Name:"My Custom Book"}}
-  # Use meta/damage to select a specific subtype:
-  # icon: minecraft:wool:1       (orange wool, colon form)
-  # Cycling icons list — cycles one per second:
-  # icons:
-  #   - minecraft:wool:1
-  #   - minecraft:wool:4:{display:{Name:"Custom Green Wool"}}
-  #   - minecraft:wool:14
-
-  icon_texture: test1.png
-  # Cycling textures:
-  # icon_textures:
-  #   - test1.png
-  #   - test2.png
+  recommend: 0
+  icon: minecraft:book
 categories:
   - basics
-  - examples|Examples Overview
-ore_ids:
-  - ingotIron
-  - oreCopper
-quest_ids:
-  - 01234567-89ab-cdef-0123-456789abcdef
-  - AAAAAAAAAAAAAAAAAAAMug==
+  - examples|Overview
 author: ExampleAuthor
 date: 2024-01-15
 updated: 2024-06-01

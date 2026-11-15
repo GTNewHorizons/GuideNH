@@ -1,8 +1,6 @@
-[English](Tags-Reference)
-
 # 标签参考
 
-本页列出由 `DefaultExtensions` 注册的内置运行时标签。
+本页说明指南作者可使用的内置标签。
 
 ## 使用规则
 
@@ -65,7 +63,7 @@
 | `<Category>` | 分类页面列表 | `name`, `rows` |
 | `<Special>` | 内置 MediaWiki 特殊页面列表 | `name`, `rows` |
 | `<Structure>` | 2.5D 等轴方块布局预览 | `width`, `height` |
-| `<Mermaid>` | 运行时 Mermaid 图导入/内联 | `src`, `width`, `height` |
+| `<Mermaid>` | 运行时 Mermaid 图导入/内联 | `src` |
 | `<CsvTable>` | 运行时 CSV 文件导入表格 | `src`, `header`, `widths` |
 | `<ColumnChart>` | 簇状柱形图 | `categories`, `barWidthRatio`, `xAxis*`, `yAxis*`, `legend`, `labelPosition` |
 | `<BarChart>` | 横向条形图 | 同 `<ColumnChart>` |
@@ -185,7 +183,7 @@ Water is H<sub>2</sub>O and x<sup>2</sup> is a square.
 - `default` 会匹配第一个 `title` 完全相同的标签页
 - `defaultIndex` 使用从 `0` 开始的下标，并且在同时出现时优先级高于 `default`
 - `color` 可选，用 `#RRGGBB` 或 `#AARRGGBB` 覆盖左侧强调线与选中标签的高亮颜色
-- background — 可选，用 #RRGGBB、#AARRGGBB 或 transparent 覆盖标签容器背景；省略时保留默认灰色背景
+- `background` 可选，用 `#RRGGBB`、`#AARRGGBB` 或 `transparent` 覆盖标签容器背景；省略时保留默认灰色引用块背景
 - `title` 会在标签栏上方增加一个可选的纯文本标题
 - `icon`、`iconPng` / `icon_png`、`iconItem` / `icon_item` 与 Markdown 标记/引用块标题的图标语义完全一致
 - 非法子节点或非法默认值会渲染为面向作者的可见错误
@@ -226,32 +224,6 @@ world
 
 - `indent` — 每层缩进像素数（默认 `14`）
 - `gap` — 行间额外像素数（默认 `0`）
-
-### 运行时引用块
-
-普通 Markdown 引用块在运行时会显示左侧强调线，并支持 GitHub 提示语法：
-
-````md
-> [!NOTE]
-> 提示内容
-````
-
-也支持仅运行时使用的自定义指令，必须写在引用块的第一行：
-
-````md
-> {: title="自定义引用" color="#638ef1" icon="i" }
-> 正文
-````
-
-支持的指令键：
-
-- `title`
-- `color`
-- `icon`：普通文本符号
-- `iconItem`：物品堆 ID
-- `iconPng`：指南资源中的 PNG 路径
-
-三种图标来源只能选择一种。
 
 ### `<Color>`
 
@@ -362,7 +334,7 @@ Press <KeyBind id="key.jump" /> to jump.
 GuideNH 会忽略页面内容里的 MDX 注释：
 
 ````md
-可见文本。{/* 隐藏的行内注释 */}
+Visible text. {/* hidden inline comment */}
 
 {/*
 multiline comment
@@ -455,7 +427,7 @@ ExportSite 的物品数量和流体数量使用网站自带的 Pixeloid Mono 字
 | 属性 | 规则 |
 | --- | --- |
 | `id` | 必填的完整流体注册名，不补命名空间，也不解析物品元数据 |
-| `amount` | 可选的非负整数，最大 2147483647；GTNH 将原始流体单位显示为 L；零数量仍可表示有效流体 |
+| `amount` | 可选整数数量，按流体单位设置显示|
 | `nbt` | 可选 SNBT，应用到独立的 FluidStack 标签 |
 | `showTooltip`、`noTooltip` | 提示可见性优先级与物品图标相同；关闭提示不会关闭 G 导航 |
 | `scale`、`showIcon`、`label`、`format`、`yOffset`、`labelYOffset` | FluidImage 沿用 ItemImage 的显示参数；缩放必须有限且大于零 |
@@ -490,7 +462,7 @@ ExportSite 的物品数量和流体数量使用网站自带的 Pixeloid Mono 字
 示例：
 
 ````md
-<CommandLink command="/tp @s 0 90 0" title="Teleport">Teleport!</CommandLink>
+<CommandLink command="/tp @p 0 90 0" title="Teleport">Teleport!</CommandLink>
 ````
 
 ### `<Row>` 与 `<Column>`
@@ -600,31 +572,6 @@ GuideNH 会在运行时 Markdown 脚注展开后内部使用这个块标签。�
 
 当你在静态结构预览和完整 3D 游戏场景之间做选择时，可结合 [示例](Examples) 和 [游戏场景](GameScene) 参考。
 
-### `<Mermaid>`
-
-用于运行时 Mermaid 内容。目前运行时重点支持 `mindmap`，既可以直接内嵌，也可以通过相对于页面的 `src` 导入：
-
-````md
-<Mermaid src="./markdown-mindmap.mmd" />
-
-<Mermaid width="340" height="240">
-mindmap
-  root["**GuideNH** [索引](./index.md)"]
-    runtime["运行时方块"]
-
-<NodeContent id="runtime">
-运行时节点可以嵌入普通方块。
-
-<ItemImage id="minecraft:diamond" />
-</NodeContent>
-</Mermaid>
-````
-
-- `width` 和 `height` 约束运行时视口尺寸
-- 在视口内拖动可平移，滚轮可缩放
-- 带引号的 Mermaid 标签可以使用 `**粗体**` 和页面链接等富行内 Markdown
-- 可以在 `<Mermaid>` 内加入 `<NodeContent id="...">...</NodeContent>`，用任意运行时方块替换节点正文
-
 ### `<CsvTable>`
 
 用于在运行时把 CSV 文件解析成表格：
@@ -657,6 +604,19 @@ name,value
 iron,42
 gold,17
 ```
+````
+
+### HTML `<table>`
+
+GuideNH 页面支持原生 HTML 表格标签。使用 `<caption>`、`<colgroup>` / `<col>` 以及 `<thead>` / `<tbody>` / `<tfoot>` 描述表格结构。单元格支持 `colspan`、`rowspan`、`align`、`valign`；表头单元格还支持 `scope`、`abbr` 和 `headers`。表格 `align` 包含逗号时（例如 `left,center,right`）表示逐列对齐；单独的 `left`、`center` 或 `right` 会调整整个表格的位置。游戏内渲染和站点导出都支持 `width`、`border`、`cellpadding` 和 `cellspacing`。Markdown 表格仍支持 `{: widths="130,70,150" }` 这类 kramdown 元数据。
+
+````md
+<table width="100%" cellpadding="2">
+  <caption>燃料速率</caption>
+  <colgroup><col width="40%" /><col width="60%" /></colgroup>
+  <thead><tr><th scope="col">燃料</th><th scope="col">速率</th></tr></thead>
+  <tbody><tr><td>煤炭</td><td align="right">42</td></tr></tbody>
+</table>
 ````
 
 ### `<Latex>`

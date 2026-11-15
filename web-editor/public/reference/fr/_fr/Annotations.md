@@ -1,20 +1,19 @@
-# annotations
+# Annotations
 
+La référence détaillée de cette page est disponible en anglais. Les noms des balises, attributs, identifiants et chemins s’utilisent sans traduction.
 
-Cette documentation décrit la syntaxe et les fonctions d’exécution de GuideNH. Le code, les balises, les chemins, les identifiants et les valeurs d’attributs restent inchangés.
+GuideNH scene annotations are child tags inside `<GameScene>` / `<Scene>`. They render in world space and may contain child markdown/tag content that becomes a rich tooltip.
 
-GuideNH scène annotations sont enfant balises dans `<GameScene>` / `<Scene>`. Elles rendent dans monde espace et peut contenir enfant markdown/balise contenu que devient Un riche tooltip.
+## General Rules
 
-## Règles générales
+- annotations only work inside a scene
+- child content becomes the tooltip body
+- annotations can be hidden with the scene UI toggle
+- `alwaysOnTop` draws above scene geometry when supported by the annotation type
+- all scene annotations also accept optional `showWhenStructure`, `showWhenTier`, and `showWhenChannels` gates when the scene uses `<ImportStructureLib>`
+- Game and Site Export use the same rainbow gradient and cycle duration.
 
-- annotations seulement fonctionnent dans Un scène
-- enfant contenu devient Le tooltip corps
-- annotations peut être masquées avec Le scène UI toggle
-- `alwaysOnTop` dessine au-dessus de scène géométrie lorsque Pris en charge by Le annotation type
-- tous scène annotations aussi acceptent facultatif `showWhenStructure`, `showWhenTier`, et `showWhenChannels` conditions lorsque Le scène utilise `<ImportStructureLib>`
-- Le jeu et Site Export utilisent le même dégradé arc-en-ciel et la même durée du cycle.
-
-## Pris en charge annotation balises
+## Supported Annotation Tags
 
 - `<BlockAnnotation>`
 - `<BoxAnnotation>`
@@ -22,28 +21,29 @@ GuideNH scène annotations sont enfant balises dans `<GameScene>` / `<Scene>`. E
 - `<DiamondAnnotation>`
 - `<OutlineAnnotation>`
 - `<TextAnnotation>`
+- `<InputAnnotation>`
 
-GuideNH aussi prend en charge `<BlockAnnotationTemplate>`, qui s’applique son enfant annotations vers chaque déjà-placed correspondant bloc dans Le actuel scène.
+GuideNH also supports `<BlockAnnotationTemplate>`, which applies its child annotations to every already-placed matching block in the current scene.
 
-## StructureLib conditions
+## StructureLib Conditions
 
-lorsque Un scène contient `<ImportStructureLib>`, chaque annotation balise peut restrict son visibilité vers Un spécifique
-StructureLib état:
+When a scene contains `<ImportStructureLib>`, every annotation tag may restrict its visibility to a specific
+StructureLib state:
 
-| attribut | Meaning |
+| Attribute | Meaning |
 | --- | --- |
-| `showWhenStructure` | bind Le annotation vers Un named `<ImportStructureLib name="...">`; omit it lorsque Le scène seulement imports un StructureLib structure |
-| `showWhenTier` | tier filtre comme `2`, `1..3`, `!2`, ou `1..5,!3` |
-| `showWhenChannels` | per-channel filtre comme `input:1..3, casing:!2, fluid:4` |
+| `showWhenStructure` | bind the annotation to a named `<ImportStructureLib name="...">`; omit it when the scene only imports one StructureLib structure |
+| `showWhenTier` | tier filter such as `2`, `1..3`, `!2`, or `1..5,!3` |
+| `showWhenChannels` | per-channel filter such as `input:1..3, casing:!2, fluid:4` |
 
-Règles:
+Rules:
 
-- `showWhenTier` et `showWhenChannels` sont combined avec logical et
-- `showWhenChannels` peut mention plusieurs channels dans un attribut
-- negated-seulement clauses like `!2` mean "quelconque valeur except 2"
-- Le même attributs sont aussi Pris en charge by `<PlaySound>` et `<BlockAnnotationTemplate>` enfant annotations
+- `showWhenTier` and `showWhenChannels` are combined with logical AND
+- `showWhenChannels` may mention multiple channels in one attribute
+- negated-only clauses like `!2` mean "any value except 2"
+- the same attributes are also supported by `<PlaySound>` and `<BlockAnnotationTemplate>` child annotations
 
-Exemple:
+Example:
 
 ````md
 <GameScene interactive={true}>
@@ -56,91 +56,91 @@ Exemple:
     showWhenTier="2..4,!3"
     showWhenChannels="input:1..3, casing:!2"
   >
-    Visible uniquement pour l’état StructureLib sélectionné.
+    Only visible for the selected StructureLib state.
   </BlockAnnotation>
 </GameScene>
 ````
 
 ## `<BlockAnnotation>`
 
-Met en surbrillance un volume de bloc 1x1x1 unique.
+Highlights a single 1x1x1 block volume.
 
-| attribut | obligatoire | Meaning |
+| Attribute | Required | Meaning |
 | --- | --- | --- |
-| `pos` | oui | `x y z` vector |
-| `color` | non | `#RRGGBB`, `#AARRGGBB`, ou `transparent` |
-| `colorMode` | non | `solid` (par défaut) ou `rainbow` ; l’arc-en-ciel tourne à 360° autour du centre projeté, remplace RGB et conserve l’alpha de `color` |
-| `colorPeriod` | non | période positive et finie de l’arc-en-ciel en secondes ; défaut `2.4` ; une valeur invalide produit une erreur de page |
-| `thickness` | non | ligne thickness flottant |
-| `alwaysOnTop` | non | booléen expression |
+| `pos` | yes | `x y z` vector |
+| `color` | no | `#RRGGBB`, `#AARRGGBB`, or `transparent` |
+| `colorMode` | no | `solid` (default) or `rainbow`; rainbow rotates through 360 degrees around the projected annotation center, replacing RGB while preserving the alpha of `color` |
+| `colorPeriod` | no | positive finite rainbow cycle period in seconds; default `2.4`; invalid values produce a page error |
+| `thickness` | no | line thickness float |
+| `alwaysOnTop` | no | boolean expression |
 
 
-Exemple:
+Example:
 
 ````md
 <BlockAnnotation pos="2 0 2" color="#33DDEE" alwaysOnTop={true}>
-  Met le bloc contrôleur en surbrillance.
+  Highlights the controller block.
 </BlockAnnotation>
 <BlockAnnotation pos="4 0 2" color="#80FFFFFF" colorMode="rainbow" colorPeriod="4.8" />
 ````
 
 ## `<BoxAnnotation>`
 
-Met en surbrillance une boîte arbitraire alignée sur les axes.
+Highlights an arbitrary axis-aligned box.
 
-| attribut | obligatoire | Meaning |
+| Attribute | Required | Meaning |
 | --- | --- | --- |
-| `min` | oui | `x y z` minimum vector |
-| `max` | oui | `x y z` maximum vector |
-| `color` | non | annotation couleur |
-| `colorMode` | non | `solid` (par défaut) ou `rainbow` ; l’arc-en-ciel tourne à 360° autour du centre projeté, remplace RGB et conserve l’alpha de `color` |
-| `colorPeriod` | non | période positive et finie de l’arc-en-ciel en secondes ; défaut `2.4` ; une valeur invalide produit une erreur de page |
-| `thickness` | non | ligne thickness flottant |
-| `alwaysOnTop` | non | booléen expression |
+| `min` | yes | `x y z` minimum vector |
+| `max` | yes | `x y z` maximum vector |
+| `color` | no | annotation color |
+| `colorMode` | no | `solid` (default) or `rainbow`; rainbow rotates through 360 degrees around the projected annotation center, replacing RGB while preserving the alpha of `color` |
+| `colorPeriod` | no | positive finite rainbow cycle period in seconds; default `2.4`; invalid values produce a page error |
+| `thickness` | no | line thickness float |
+| `alwaysOnTop` | no | boolean expression |
 
 
-GuideNH automatiquement swaps min/max coordonnées per axis lorsque Elles sont fourni dans reverse ordre.
+GuideNH automatically swaps min/max coordinates per axis when they are provided in reverse order.
 
-Exemple:
+Example:
 
 ````md
 <BoxAnnotation min="0 1 0" max="1 1.6 0.6" color="#EE3333" thickness="0.04">
-  Surlignage sur une demi-hauteur.
+  Half-height area highlight.
 </BoxAnnotation>
 <BoxAnnotation min="2 0 0" max="4 1.5 0.5" color="#80FFFFFF" colorMode="rainbow" colorPeriod="2.4" />
 ````
 
 ## `<LineAnnotation>`
 
-dessine Un ligne segment ou polyline dans monde espace.
+Draws a line segment or polyline in world space.
 
-| attribut | obligatoire | Meaning |
+| Attribute | Required | Meaning |
 | --- | --- | --- |
-| `from` | oui, sauf `points` est Définissez | `x y z` début vector |
-| `to` | oui, sauf `points` est Définissez | `x y z` fin vector |
-| `points` | non | Semicolon-separated `x y z` points pour Un polyline; remplace `from` / `to` |
-| `color` | non | annotation couleur |
-| `thickness` | non | ligne thickness flottant |
-| `alwaysOnTop` | non | booléen expression |
-| `arrow` | non | `start` ou `end`; omitted signifie non arrow |
-| `showPoints` | non | booléen expression; affiche chaque point as Un small cube |
-| `pointColor` | non | par défaut cube couleur; omitted utilise Le ligne couleur |
-| `pointSize` | non | par défaut cube taille; omitted utilise Un valeur slightly larger que `thickness` |
+| `from` | yes, unless `points` is set | `x y z` start vector |
+| `to` | yes, unless `points` is set | `x y z` end vector |
+| `points` | no | Semicolon-separated `x y z` points for a polyline; overrides `from` / `to` |
+| `color` | no | annotation color |
+| `thickness` | no | line thickness float |
+| `alwaysOnTop` | no | boolean expression |
+| `arrow` | no | `start` or `end`; omitted means no arrow |
+| `showPoints` | no | boolean expression; shows every point as a small cube |
+| `pointColor` | no | default cube color; omitted uses the line color |
+| `pointSize` | no | default cube size; omitted uses a value slightly larger than `thickness` |
 
-`LineAnnotation` peut contenir `<LinePoint>` enfants vers remplacer point marker styling. `LinePoint`
-utilise `index`, facultatif `show`, facultatif `color`, et facultatif `size`. points sont zero-indexed.
-Arrows peut seulement être placed on Le début ou fin of Le ligne; intermediate polyline points ne peut pas carry
+`LineAnnotation` may contain `<LinePoint>` children to override point marker styling. `LinePoint`
+uses `index`, optional `show`, optional `color`, and optional `size`. Points are zero-indexed.
+Arrows can only be placed on the start or end of the line; intermediate polyline points cannot carry
 arrows.
 
-Exemple:
+Example:
 
 ````md
 <LineAnnotation from="0.5 1.2 0.5" to="2.5 1.2 2.5" color="#FFD24C" thickness="0.08">
-  Chemin du signal.
+  Signal path.
 </LineAnnotation>
 ````
 
-Polyline avec Un 3D endpoint arrow et sélectionné point markers:
+Polyline with a 3D endpoint arrow and selected point markers:
 
 ````md
 <LineAnnotation
@@ -151,20 +151,20 @@ Polyline avec Un 3D endpoint arrow et sélectionné point markers:
 >
   <LinePoint index="0" show color="#66CCFF" />
   <LinePoint index="1" show color="#FF8844" size="0.12" />
-  Chemin du signal avec un coude.
+  Signal path through a bend.
 </LineAnnotation>
 ````
 
 ## `<DiamondAnnotation>`
 
-Places Un écran-facing diamond marker at Un monde position.
+Places a screen-facing diamond marker at a world position.
 
-| attribut | obligatoire | Meaning |
+| Attribute | Required | Meaning |
 | --- | --- | --- |
-| `pos` | oui | `x y z` marker position |
-| `color` | non | tint couleur; omitted defaults vers bright green |
+| `pos` | yes | `x y z` marker position |
+| `color` | no | tint color; omitted defaults to bright green |
 
-Exemple:
+Example:
 
 ````md
 <DiamondAnnotation pos="0.5 2.2 0.5" color="#FFD24C">
@@ -175,43 +175,43 @@ Exemple:
 
 ## `<OutlineAnnotation>`
 
-Dessine un contour de silhouette lumineux autour des blocs et des entités, comme l'effet Surbrillance. Le contour suit la forme rendue de chaque cible, reste visible à travers les blocs et entités placés devant et fusionne avec les contours qui le touchent en une seule forme.
+Draws a glow-style silhouette outline around blocks and entities, like the Glowing effect. The contour follows the rendered shape of every target, stays visible through blocks and entities in front of it, and merges with touching outlines into one shape.
 
-| attribut | obligatoire | Meaning |
+| Attribute | Required | Meaning |
 | --- | --- | --- |
-| `pos` | non | bloc `x y z` à entourer ; `0 0 0` par défaut, le bloc correspondant dans `<BlockAnnotationTemplate>` |
-| `min` / `max` | non | coins de bloc inclusifs d'une région ; chaque bloc qu'elle contient est entouré |
-| `entity` | non | `sceneEntityId` d'une `<Entity>` à entourer |
-| `target` | non | `blocks` (par défaut), `entities` ou `all` : ce qui est entouré dans la région ; `entities` sans région entoure toutes les entités |
-| `mode` | non | `auto` (par défaut), `geometry`, `cutout` ou `bounds` |
-| `color` | non | couleur du contour ; blanc si omis, ou la couleur d'équipe du tableau des scores pour les entités |
-| `colorMode` | non | `solid` (par défaut) ou `rainbow` ; l’arc-en-ciel tourne à 360° autour du centre projeté, remplace RGB et conserve l’alpha de `color` |
-| `colorPeriod` | non | période positive et finie de l’arc-en-ciel en secondes ; défaut `2.4` ; une valeur invalide produit une erreur de page |
-| `thickness` | non | largeur du contour en pixels d'interface, de `0.25` à `8`, `1` par défaut |
-| `alwaysOnTop` | non | expression booléenne ; les parties masquées gardent leur pleine luminosité au lieu d'être assombries |
-| `pulse` | non | expression booléenne ; fait respirer le contour |
-| `pulsePeriod` | non | période de respiration en secondes, `2` par défaut |
+| `pos` | no | `x y z` block to outline; defaults to `0 0 0`, the matched block inside `<BlockAnnotationTemplate>` |
+| `min` / `max` | no | inclusive block corners of a region; every block inside it is outlined |
+| `entity` | no | `sceneEntityId` of an `<Entity>` to outline |
+| `target` | no | `blocks` (default), `entities`, or `all`: what is outlined inside the region; `entities` without a region outlines every entity |
+| `mode` | no | `auto` (default), `geometry`, `cutout`, or `bounds` |
+| `color` | no | outline color; omitted uses white, or the scoreboard team color for entities |
+| `colorMode` | no | `solid` (default) or `rainbow`; rainbow rotates through 360 degrees around the projected annotation center, replacing RGB while preserving the alpha of `color` |
+| `colorPeriod` | no | positive finite rainbow cycle period in seconds; default `2.4`; invalid values produce a page error |
+| `thickness` | no | outline width in GUI pixels, `0.25` to `8`, default `1` |
+| `alwaysOnTop` | no | boolean expression; occluded parts keep full brightness instead of being dimmed |
+| `pulse` | no | boolean expression; makes the outline breathe |
+| `pulsePeriod` | no | breathing period in seconds, default `2` |
 
 
-Modes de silhouette :
+Silhouette modes:
 
-- `auto` choisit pour chaque cible. Les modèles fermés (cubes, verre, glace, fluides, vitres, blocs multipart et câbles, modèles OBJ et TESR) utilisent leur géométrie, donc les textures transparentes comme le verre entourent tout le bloc et non le cadre du verre. Les rendus de type sprite (fleurs, pousses, cultures, torches, rails, échelles, lianes, redstone) et les entités utilisent l'alpha de la texture, donc le contour suit la forme dessinée et non les quads. Les blocs qui ne rendent rien utilisent leur boîte de sélection.
-- `geometry` utilise toujours la géométrie rendue.
-- `cutout` utilise toujours l'alpha de la texture.
-- `bounds` entoure les boîtes de sélection des blocs et les boîtes de collision des entités.
+- `auto` decides per target. Closed models (cubes, glass, ice, fluids, panes, multipart and cable blocks, OBJ and TESR models) use their geometry, so see-through textures such as glass outline the whole block instead of the glass frame. Sprite-like renders (flowers, saplings, crops, torches, rails, ladders, vines, redstone) and entities use texture alpha, so the outline follows the drawn shape instead of the quads. Blocks that render nothing use their selection box.
+- `geometry` always uses the rendered geometry.
+- `cutout` always uses texture alpha.
+- `bounds` outlines the selection boxes of blocks and the bounding boxes of entities.
 
-Règles :
+Rules:
 
-- le contour n'est dessiné qu'à l'extérieur de la silhouette ; la cible elle-même n'est pas teintée
-- les parties masquées par d'autres blocs ou entités restent visibles et sont assombries comme les autres annotations masquées ; `alwaysOnTop` les garde à pleine luminosité
-- les entités invisibles reçoivent aussi un contour
-- les contours qui se touchent ou se chevauchent fusionnent en un seul, y compris entre annotations différentes
-- les couleurs translucides et le bord adouci sont mélangés avec la scène, le bord ne devient jamais noir
-- le contenu enfant devient l'infobulle ; elle s'affiche au survol de tout bloc ou entité entouré
-- dans `<BlockAnnotationTemplate>`, `pos` est relatif à chaque bloc correspondant et les contours de toutes les correspondances fusionnent en une forme
-- les sites exportés dessinent le même contour avec WebGL
+- the contour is drawn outside the silhouette only; the target itself is not tinted
+- parts hidden behind other blocks or entities stay visible and are dimmed like other occluded annotations; `alwaysOnTop` keeps them at full brightness
+- invisible entities still get an outline
+- touching or overlapping outlines merge into one contour, also across different annotations
+- translucent colors and the soft edge are blended with the scene, so the edge never turns black
+- child content becomes the tooltip; hovering any outlined block or entity shows it
+- inside `<BlockAnnotationTemplate>`, `pos` is relative to each matched block and the outlines of all matches merge into one shape
+- exported sites draw the same outline with WebGL
 
-Exemple :
+Example:
 
 ````md
 <GameScene zoom={3} interactive={true}>
@@ -219,14 +219,14 @@ Exemple :
   <Block id="minecraft:red_flower" x="2" />
   <Entity id="minecraft:sheep" sceneEntityId="sheep" x="1.5" z="2.5" />
   <OutlineAnnotation pos="0 0 0" color="#55FFFF">
-    Le verre est entouré comme un cube complet.
+    Glass is outlined as a full cube.
   </OutlineAnnotation>
   <OutlineAnnotation pos="2 0 0" color="#80FFFFFF" colorMode="rainbow" colorPeriod="2.4" thickness="1.5" />
   <OutlineAnnotation entity="sheep" color="#FFAA00" alwaysOnTop={true} pulse={true} />
 </GameScene>
 ````
 
-Entourer tous les blocs correspondants d'une structure :
+Outline every matching block of a structure:
 
 ````md
 <BlockAnnotationTemplate id="minecraft:glass">
@@ -236,34 +236,34 @@ Entourer tous les blocs correspondants d'une structure :
 
 ## `<TextAnnotation>`
 
-dessine Un speech-bubble texte étiquette sur Le scène. It peut l’un ou l’autre follow Un monde-espace anchor point ou
-stay fixe relatif vers Le scène centre. Unlike Le autre annotation balises, son enfant contenu est Le
-bubble texte itself rather que Un survol tooltip.
+Draws a speech-bubble text label over the scene. It can either follow a world-space anchor point or
+stay fixed relative to the scene center. Unlike the other annotation tags, its child content is the
+bubble text itself rather than a hover tooltip.
 
-| attribut | obligatoire | Meaning |
+| Attribute | Required | Meaning |
 | --- | --- | --- |
-| `pos` | non | `x y z` monde-espace anchor vector |
-| `x`, `y`, `z` | non | Alternative monde-espace anchor components lorsque `pos` est omitted |
-| `text` | non | Bubble texte; enfant markdown est utilisé lorsque omitted |
-| `textKey` | non | traduction clé résolu depuis ressource-pack `lang` files avant falling back vers `text` ou enfant markdown |
-| `color` | non | Bubble bordure couleur; defaults vers light grey |
-| `backgroundAlpha` | non | arrière-plan opacity depuis `0` vers `255`; defaults vers `204` |
-| `maxWidth` | non | Wrap largeur dans pixels; `0` keeps Un unique ligne |
-| `independent` | non | `true` keeps Le bubble fixe dans écran espace |
-| `yOffset` | non | Pixel offset depuis Le scène centre lorsque `independent={true}` |
-| `connectorSide` | non | `bottom`, `top`, `left`, `right`, ou `none`; defaults vers `bottom` |
-| `connectorOffset` | non | Pixel offset along Le bubble edge; positive moves droite pour haut/bas et down pour gauche/droite |
-| `connectorLength` | non | Pixel length of Le connector ligne; defaults vers `6` |
-| `hlMinX/Y/Z`, `hlMaxX/Y/Z` | non | facultatif companion surligner box bounds |
-| `highlightColor` | non | facultatif surligner box couleur |
+| `pos` | no | `x y z` world-space anchor vector |
+| `x`, `y`, `z` | no | Alternative world-space anchor components when `pos` is omitted |
+| `text` | no | Bubble text; child markdown is used when omitted |
+| `textKey` | no | Translation key resolved from resource-pack `lang` files before falling back to `text` or child markdown |
+| `color` | no | Bubble border color; defaults to light grey |
+| `backgroundAlpha` | no | Background opacity from `0` to `255`; defaults to `204` |
+| `maxWidth` | no | Wrap width in pixels; `0` keeps a single line |
+| `independent` | no | `true` keeps the bubble fixed in screen space |
+| `yOffset` | no | Pixel offset from the scene center when `independent={true}` |
+| `connectorSide` | no | `bottom`, `top`, `left`, `right`, or `none`; defaults to `bottom` |
+| `connectorOffset` | no | Pixel offset along the bubble edge; positive moves right for top/bottom and down for left/right |
+| `connectorLength` | no | Pixel length of the connector line; defaults to `6` |
+| `hlMinX/Y/Z`, `hlMaxX/Y/Z` | no | Optional companion highlight box bounds |
+| `highlightColor` | no | Optional highlight box color |
 
-monde-anchored bubbles dessiner Un connector ligne vers leurs anchor. utiliser `connectorSide` vers choisir qui
-edge of Le bubble points at Le anchor, `connectorOffset` vers move Le attachment point along que
-edge, et `connectorLength` vers control Le gap entre Le bubble et anchor. Independent bubbles
-sont centered horizontally dans Le scène et utiliser `yOffset` pour vertical placement. Elles do ne dessiner a
-connector. Le même exécution annotation est aussi utilisé lorsque importing Ponder `text` annotations.
+World-anchored bubbles draw a connector line to their anchor. Use `connectorSide` to choose which
+edge of the bubble points at the anchor, `connectorOffset` to move the attachment point along that
+edge, and `connectorLength` to control the gap between the bubble and anchor. Independent bubbles
+are centered horizontally in the scene and use `yOffset` for vertical placement. They do not draw a
+connector. The same runtime annotation is also used when importing Ponder `text` annotations.
 
-Exemple:
+Example:
 
 ````md
 <TextAnnotation
@@ -276,11 +276,11 @@ Exemple:
   connectorOffset={8}
   connectorLength={12}
 >
-  Insérez les objets ici avec une **priorité**.
+  Insert items here with **priority**.
 </TextAnnotation>
 ````
 
-fixe écran-espace Exemple:
+Fixed screen-space example:
 
 ````md
 <TextAnnotation independent={true} yOffset={40} color="#FFFFCC00" backgroundAlpha={140}>
@@ -288,16 +288,16 @@ fixe écran-espace Exemple:
 </TextAnnotation>
 ````
 
-## riche Tooltip contenu
+## Rich Tooltip Content
 
-annotation enfants sont compilé as normal GuideNH contenu, so tooltips peut contenir:
+Annotation children are compiled as normal GuideNH content, so tooltips may contain:
 
-- markdown paragraphs et headings
-- élément/bloc images
+- markdown paragraphs and headings
+- item/block images
 - recipes
-- nested non-interactive scènes
+- nested non-interactive scenes
 
-Exemple:
+Example:
 
 ````md
 <DiamondAnnotation pos="0.5 1.5 0.5">
@@ -308,7 +308,7 @@ Exemple:
 
 ## `<InputAnnotation>` fluid targets
 
-InputAnnotation accepts either `item` or `fluid`, never both. A fluid target also accepts optional `amount` (nonnegative integer) and `nbt` (SNBT). Amount and NBT require `fluid`. Existing position, inputType, modifier, and StructureLib visibility conditions remain available.
+InputAnnotation accepts either `item` or `fluid`, never both. A fluid target also accepts optional `amount` (integer) and `nbt` (SNBT). Amount and NBT require `fluid`. Existing position, inputType, modifier, and StructureLib visibility conditions remain available.
 
 ```mdx
 <GameScene width="180" height="120">
@@ -317,30 +317,30 @@ InputAnnotation accepts either `item` or `fluid`, never both. A fluid target als
 </GameScene>
 ```
 
-The annotation displays an interaction icon and fluid information. It does not fill a tank or change the scene world. Editing, saving, reloading, and export retain the fluid registry name, amount, and NBT. Fluid blocks still use real block IDs in Block / PlaceBlock.
+The annotation displays an interaction icon and fluid information. It does not fill a tank or change the scene world. Fluid blocks still use real block IDs in Block / PlaceBlock.
 
 ## `<BlockAnnotationTemplate>`
 
-utiliser it lorsque you want vers stamp Le même annotation onto chaque correspondant bloc.
+Use it when you want to stamp the same annotation onto every matching block.
 
-| attribut | obligatoire | Meaning |
+| Attribute | Required | Meaning |
 | --- | --- | --- |
-| `id` | oui | bloc matcher dans `modid:block[:meta]` form |
+| `id` | yes | block matcher in `modid:block[:meta]` form |
 
-Règles:
+Rules:
 
-- Le template seulement sees blocs que déjà exist lorsque it est analysé
-- placer it après `<Block>`, `<ImportStructure>`, ou `<ImportStructureLib>` balises que devrait feed it
-- enfant annotations utiliser local coordonnées relatif vers chaque correspondant bloc
+- the template only sees blocks that already exist when it is parsed
+- place it after `<Block>`, `<ImportStructure>`, or `<ImportStructureLib>` tags that should feed it
+- child annotations use local coordinates relative to each matched block
 
-Exemple:
+Example:
 
 ````md
 <GameScene zoom={2}>
   <ImportStructure src="/assets/example_structure.snbt" />
   <BlockAnnotationTemplate id="minecraft:log">
     <DiamondAnnotation pos="0.5 0.5 0.5" color="#ff0000">
-      Infobulle générée par le modèle
+      Template-generated tooltip
     </DiamondAnnotation>
   </BlockAnnotationTemplate>
 </GameScene>

@@ -19,6 +19,7 @@ GuideNH scene annotations are child tags inside `<GameScene>` / `<Scene>`. They 
 - `<DiamondAnnotation>`
 - `<OutlineAnnotation>`
 - `<TextAnnotation>`
+- `<InputAnnotation>`
 
 GuideNH also supports `<BlockAnnotationTemplate>`, which applies its child annotations to every already-placed matching block in the current scene.
 
@@ -305,7 +306,7 @@ Example:
 
 ## `<InputAnnotation>` fluid targets
 
-InputAnnotation accepts either `item` or `fluid`, never both. A fluid target also accepts optional `amount` (nonnegative integer) and `nbt` (SNBT). Amount and NBT require `fluid`. Existing position, inputType, modifier, and StructureLib visibility conditions remain available.
+InputAnnotation accepts either `item` or `fluid`, never both. A fluid target also accepts optional `amount` (integer) and `nbt` (SNBT). Amount and NBT require `fluid`. Existing position, inputType, modifier, and StructureLib visibility conditions remain available.
 
 ```mdx
 <GameScene width="180" height="120">
@@ -314,7 +315,7 @@ InputAnnotation accepts either `item` or `fluid`, never both. A fluid target als
 </GameScene>
 ```
 
-The annotation displays an interaction icon and fluid information. It does not fill a tank or change the scene world. Editing, saving, reloading, and export retain the fluid registry name, amount, and NBT. Fluid blocks still use real block IDs in Block / PlaceBlock.
+The annotation displays an interaction icon and fluid information. It does not fill a tank or change the scene world. Fluid blocks still use real block IDs in Block / PlaceBlock.
 
 ## `<BlockAnnotationTemplate>`
 

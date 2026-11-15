@@ -21,6 +21,7 @@ GuideNH 的场景注解是放在游戏场景（`<GameScene>` / `<Scene>`）内�
 - `<DiamondAnnotation>`
 - `<OutlineAnnotation>`
 - `<TextAnnotation>`
+- `<InputAnnotation>`
 
 GuideNH 还支持 `<BlockAnnotationTemplate>`，它会把自己的子注解应用到当前场景里所有已经存在且匹配的方块上。
 

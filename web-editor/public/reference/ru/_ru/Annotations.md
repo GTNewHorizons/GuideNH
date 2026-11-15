@@ -19,6 +19,7 @@
 - `<DiamondAnnotation>`
 - `<OutlineAnnotation>`
 - `<TextAnnotation>`
+- `<InputAnnotation>`
 
 GuideNH также поддерживает `<BlockAnnotationTemplate>`, применяющий свои дочерние аннотации к каждому уже размещённому подходящему блоку текущей сцены.
 
@@ -302,18 +303,18 @@ GuideNH автоматически меняет местами минималь�
 </DiamondAnnotation>
 ````
 
-## `<InputAnnotation>` fluid targets
+## Жидкости в `<InputAnnotation>`
 
-InputAnnotation accepts either `item` or `fluid`, never both. A fluid target also accepts optional `amount` (nonnegative integer) and `nbt` (SNBT). Amount and NBT require `fluid`. Existing position, inputType, modifier, and StructureLib visibility conditions remain available.
+Укажите `item` или `fluid`, но не оба. Для жидкости доступны необязательные `amount` (целое число) и `nbt` (SNBT); они требуют `fluid`. Положение, `inputType`, модификаторы и условия видимости StructureLib остаются доступными.
 
-```mdx
-<GameScene width="180" height="120">
-  <Block x="0" y="0" z="0" id="minecraft:stone" />
+```md
+<GameScene>
+  <Block id="minecraft:glass" />
   <InputAnnotation pos="0.5 1.5 0.5" inputType="rmb" fluid="water" amount={1000} />
 </GameScene>
 ```
 
-The annotation displays an interaction icon and fluid information. It does not fill a tank or change the scene world. Editing, saving, reloading, and export retain the fluid registry name, amount, and NBT. Fluid blocks still use real block IDs in Block / PlaceBlock.
+Аннотация показывает значок взаимодействия и информацию о жидкости, не заполняя резервуар. Для жидкостных блоков используйте реальные ID блоков в `Block` / `PlaceBlock`.
 
 ## `<BlockAnnotationTemplate>`
 

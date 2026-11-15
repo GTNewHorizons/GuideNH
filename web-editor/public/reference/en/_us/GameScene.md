@@ -27,9 +27,7 @@
 ## Block Statistics Overlay
 
 Scenes that contain blocks enable the block-stat toggle button by default. Add a `<BlockStats>`
-child when you want to override its mode, placement, filters, visibility, or size. The list is
-cached and only rebuilt when the scene blocks, Ponder timeline state, StructureLib selection, or
-block-stat settings change; normal rendering reuses the prepared rows. Long lists are clipped to
+child when you want to override its mode, placement, filters, visibility, or size. Long lists are clipped to
 `maxWidth` and `maxHeight`; if those are omitted, each is the larger of the fixed `224` by `96` pixels and
 40% of the scene size.
 Overflow receives draggable scrollbars, and the mouse wheel scrolls the list while the cursor is
@@ -291,7 +289,7 @@ shorter scene side, and `minVolume` defaults to `0.15`.
 
 ## `<InputAnnotation>` fluid targets
 
-InputAnnotation accepts either `item` or `fluid`, never both. A fluid target also accepts optional `amount` (nonnegative integer) and `nbt` (SNBT). Amount and NBT require `fluid`. Existing position, inputType, modifier, and StructureLib visibility conditions remain available.
+InputAnnotation accepts either `item` or `fluid`, never both. A fluid target also accepts optional `amount` (integer) and `nbt` (SNBT). Amount and NBT require `fluid`. Existing position, inputType, modifier, and StructureLib visibility conditions remain available.
 
 ```mdx
 <GameScene width="180" height="120">
@@ -300,7 +298,7 @@ InputAnnotation accepts either `item` or `fluid`, never both. A fluid target als
 </GameScene>
 ```
 
-The annotation displays an interaction icon and fluid information. It does not fill a tank or change the scene world. Editing, saving, reloading, and export retain the fluid registry name, amount, and NBT. Fluid blocks still use real block IDs in Block / PlaceBlock.
+The annotation displays an interaction icon and fluid information. It does not fill a tank or change the scene world. Fluid blocks still use real block IDs in Block / PlaceBlock.
 
 ## `<BlockStats>` and `<BlockStat>`
 
@@ -437,7 +435,7 @@ Notes:
 - controller matching supports the GTNH-style `modid:block:meta` form
 - use `name` when the scene contains multiple StructureLib imports and another tag needs to target one specific structure state
 - `facing`, `rotation`, and `flip` use the same orientation vocabulary as StructureLib export; when a requested combination is not allowed by the controller, GuideNH falls back to the first valid alignment automatically
-- GregTech controller previews now default to the controller's opposite horizontal facing from the older preview orientation, rotating the preview front by 180 degrees around the Y axis
+- GregTech controller previews use the opposite horizontal facing by default
 - set `formed={false}` when the imported controller should remain visibly unformed; this is the supported alternative to shipping intentionally broken NBT
 
 Example:
@@ -494,9 +492,7 @@ channel sliders.
 | `<GregTechActiveController />` | GregTech only: render the controller with its active texture when possible. |
 | `<GregTechPlaceHatches />` | GregTech only: place normal GT hatches for hatch-only preview positions. Without this, GT previews still use survival construct for hatch-aware machines, but empty hatch positions fall back to casing blocks. |
 
-For GregTech controllers, GuideNH now uses the same StructureLib survival-preview path as the
-export command. This fixes hatch-only positions that normal `construct()` cannot populate while
-keeping fallback casings by default.
+GregTech hatch-aware previews use fallback casings unless `<GregTechPlaceHatches>` is enabled.
 
 ````md
 <GameScene width="384" height="256" zoom={4} interactive={true}>

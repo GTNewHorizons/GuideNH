@@ -146,7 +146,7 @@ mindmap
 </NodeContent>
 
 <NodeContent id="export">
-![Machine Diagram](./resourcepack/assets/guidenh/guidenh/_en_us/test1.png)
+![Machine Diagram](./test1.png)
 </NodeContent>
 </Mermaid>
 ````
@@ -340,9 +340,9 @@ GuideNH считывает первый блок заголовка YAML и ан
 | `zoom` | положительное плавающее число | Множитель масштабирования контента для каждой страницы (например, `1.5` = 150 %). Умножается на глобальную настройку `contentZoom` в ModConfig. По умолчанию `1.0`. |
 | любая другая клавиша | любое значение YAML. | Сохранено в `additionalProperties` для расширений или инструментов. |
 
-### Native fluid bindings and navigation icons
+### Привязки жидкостей и значки
 
-`fluid_id` accepts one registry-name binding. `fluid_ids` accepts a string list. Both may coexist and are merged without duplicate destinations. Append `#anchor` to target a section; distinct anchors remain distinct. Bindings use exact names and ignore displayed amount and NBT.
+`fluid_id` принимает одно имя реестра, а `fluid_ids` — список. Их можно использовать вместе. Суффикс `#anchor` открывает раздел страницы. Количество и NBT не участвуют в сопоставлении.
 
 ```yaml
 fluid_id: water
@@ -354,7 +354,7 @@ navigation:
   icon_fluid: water
 ```
 
-`navigation.icon_fluid` accepts one fluid registry name; `icon_fluids` accepts a nonempty name list cycling once per second and takes precedence over the single field. These presentation fields do not create page bindings. Do not combine them with item or texture icon sources. Fluid availability is checked in the running game; disconnected editors must not report registry-name existence errors.
+Для значка страницы выберите `navigation.icon_fluid` или `icon_fluids`. Эти поля несовместимы друг с другом и со значками предметов/текстур. `icon_fluids` — непустой список с переключением раз в секунду. Значок сам по себе не создаёт привязку страницы. Наличие жидкости проверяйте в запущенной игре.
 
 ### `navigation`
 
@@ -365,11 +365,14 @@ navigation:
 | `keywords` | нет | список строк | Дополнительные ключевые слова или псевдонимы для поиска; значения объединяются и дедуплицируются |
 | `parent` | нет | идентификатор страницы | Идентификатор родительской страницы; опущено, означает узел верхнего уровня |
 | `position` | нет | целое число | порядок сортировки одноуровневых элементов; по умолчанию `0`, большие значения появляются раньше |
+| `recommend` | нет | integer | Приоритет рекомендации на главной; отображается только при заданном значении |
 | `priority` | нет | целое число | приоритет загрузки для переопределений страниц с тем же путем; по умолчанию `0`, более высокие выигрыши, равный приоритет позволяет более поздней записи пакета ресурсов выиграть |
 | `icon` | нет | идентификатор элемента | Значок элемента, отображаемый в навигации/поиске. Принимает `modid:name`, `modid:name:meta` или `modid:name:meta:{snbt}`. Встроенный хвост SNBT — это предпочтительный способ присоединения NBT, например, пользовательского отображаемого имени. |
 | `icons` | нет | список идентификаторов элементов. | Список значков предметов для анимированной езды на велосипеде (по одному в секунду). Каждая запись использует тот же синтаксис, что и `icon`, включая встроенные хвосты `:{snbt}`. При наличии имеет приоритет над `icon`. |
 | `icon_texture` | нет | путь к активу | Путь к значку текстуры разрешен, как и к любой другой ссылке на ресурс. |
 | `icon_textures` | нет | список путей к активам. | Список значков текстур для анимированной езды на велосипеде (по одному в секунду). При наличии имеет приоритет над `icon_texture`. |
+| `icon_fluid` | нет | string | Имя жидкости для значка; несовместим с `icon_fluids` и предметами/текстурами |
+| `icon_fluids` | нет | Список строк | Непустой список имён с переключением раз в секунду; несовместим с `icon_fluid` и предметами/текстурами |
 | `required_mod` | нет | идентификатор мода | Скрывает страницу, если этот мод не загружен. |
 | `required_mods` | нет | список идентификаторов модов. | скрывает страницу, пока не загружен каждый указанный мод. |
 | `excluded_mod` | нет | идентификатор мода | Скрывает страницу при загрузке этого мода. |
@@ -378,38 +381,18 @@ navigation:
 ### Пример оформления
 
 ```yaml
-item_id: minecraft:potion 16384-16462,!16386
 item_ids:
-  - ae2:white_paint_ball:*
-  - "<minecraft:wool:14>"
+  - minecraft:book
+fluid_id: water#coolant
 navigation:
-  title: Root
+  title: Guide Overview
   parent: index.md
   position: 10
-  priority: 0
-  icon: minecraft:book:0:{display:{Name:"My Custom Book"}}
-  # Use meta/damage to select a specific subtype:
-  # icon: minecraft:wool:1       (orange wool, colon form)
-  # Cycling icons list — cycles one per second:
-  # icons:
-  #   - minecraft:wool:1
-  #   - minecraft:wool:4:{display:{Name:"Custom Green Wool"}}
-  #   - minecraft:wool:14
-
-  icon_texture: test1.png
-  # Cycling textures:
-  # icon_textures:
-  #   - test1.png
-  #   - test2.png
+  recommend: 0
+  icon: minecraft:book
 categories:
   - basics
-  - examples|Examples Overview
-ore_ids:
-  - ingotIron
-  - oreCopper
-quest_ids:
-  - 01234567-89ab-cdef-0123-456789abcdef
-  - AAAAAAAAAAAAAAAAAAAMug==
+  - examples|Overview
 author: ExampleAuthor
 date: 2024-01-15
 updated: 2024-06-01

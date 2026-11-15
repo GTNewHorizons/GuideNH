@@ -1,6 +1,6 @@
 # Tags Reference
 
-This page lists the built-in runtime tags registered by `DefaultExtensions`.
+This page describes the built-in tags available to guide authors.
 
 ## Usage Rules
 
@@ -186,7 +186,7 @@ Groups alternative rich content under independent tabs. Only direct `<Tab>` chil
 - `default` matches the first tab whose `title` matches exactly
 - `defaultIndex` is zero-based and wins over `default` when both are present
 - `color` optionally overrides the left accent line and selected-tab highlight with `#RRGGBB` or `#AARRGGBB`
-- background — optionally overrides the tab container background with #RRGGBB, #AARRGGBB, or transparent; omitted keeps the default gray background
+- `background` optionally overrides the tab container background with `#RRGGBB`, `#AARRGGBB`, or `transparent`; the default keeps the normal gray callout background
 - `title` adds an optional plain-text heading above the tab strip
 - `icon`, `iconPng` / `icon_png`, and `iconItem` / `icon_item` use the same heading icon semantics as markdown quote-style callouts
 - invalid children or invalid defaults render visible author-facing errors
@@ -456,7 +456,7 @@ ExportSite displays item counts and fluid amounts as text overlays using its bun
 | Attribute | Contract |
 | --- | --- |
 | `id` | Required complete fluid registry name; no implicit namespace or item metadata |
-| `amount` | Optional nonnegative integer up to 2147483647; raw fluid units shown as L in GTNH; zero remains a valid fluid |
+| `amount` | Optional integer amount; display follows the selected fluid unit |
 | `nbt` | Optional SNBT describing a private fluid stack tag |
 | `showTooltip`, `noTooltip` | Same visibility precedence as item icons; hiding a tooltip does not disable G navigation |
 | `scale`, `showIcon`, `label`, `format`, `yOffset`, `labelYOffset` | FluidImage shares ItemImage presentation options; scale must be finite and positive |
@@ -491,7 +491,7 @@ Sends a chat command when clicked.
 Example:
 
 ````md
-<CommandLink command="/tp @s 0 90 0" title="Teleport">Teleport!</CommandLink>
+<CommandLink command="/tp @p 0 90 0" title="Teleport">Teleport!</CommandLink>
 ````
 
 ### `<Row>` And `<Column>`
@@ -536,7 +536,7 @@ GuideNH uses this block tag internally when runtime markdown footnotes are expan
 
 ### `<ItemGrid>`
 
-Renders a compact icon grid. The grid compiler parses raw ItemIcon and FluidIcon children in source order. Item children select `id` or `ore`; fluid children select a registry-name `id` with optional amount and NBT.
+Renders a compact icon grid. ItemIcon and FluidIcon children appear in source order. Item children select `id` or `ore`; fluid children select a registry-name `id` with optional amount and NBT.
 
 ````md
 <ItemGrid>
@@ -660,6 +660,19 @@ name,value
 iron,42
 gold,17
 ```
+````
+
+### HTML `<table>`
+
+The native HTML table tags are supported in GuideNH pages. Use `<caption>`, `<colgroup>` / `<col>`, and `<thead>` / `<tbody>` / `<tfoot>` to describe the table structure. Cells support `colspan`, `rowspan`, `align`, and `valign`; header cells additionally support `scope`, `abbr`, and `headers`. A table `align` value with commas (for example `left,center,right`) is retained as a per-column alignment extension; a single `left`, `center`, or `right` value positions the complete table. `width`, `border`, `cellpadding`, and `cellspacing` are supported in the game renderer and site export. The kramdown metadata line `{: widths="130,70,150" }` remains supported for Markdown tables.
+
+````md
+<table width="100%" cellpadding="2">
+  <caption>Fuel rates</caption>
+  <colgroup><col width="40%" /><col width="60%" /></colgroup>
+  <thead><tr><th scope="col">Fuel</th><th scope="col">Rate</th></tr></thead>
+  <tbody><tr><td>Coal</td><td align="right">42</td></tr></tbody>
+</table>
 ````
 
 ### `<Latex>`

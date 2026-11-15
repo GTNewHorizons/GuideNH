@@ -24,10 +24,10 @@ GuideNH renders an interactive progress bar with play/pause controls below the 3
 Ponder JSON files follow the same resource-pack path rules as SNBT structures:
 
 ```
-assets/<modid>/guidebooks/
-  pages/machines/my_machine.mdx       <- guide page
-  pages/machines/my_machine.snbt      <- structure data
-  pages/machines/my_machine.json      <- Ponder JSON
+assets/<modid>/guidenh/
+  _en_us/machines/my_machine.md       <- guide page
+  _en_us/machines/my_machine.snbt      <- structure data
+  _en_us/machines/my_machine.json      <- Ponder JSON
 ```
 
 The `src` attribute accepts both relative and absolute IDs:
@@ -35,7 +35,7 @@ The `src` attribute accepts both relative and absolute IDs:
 | Example | Resolved as |
 |---------|-------------|
 | `src="my_machine.json"` | Relative to the current page's directory |
-| `src="mymod:guidebooks/pages/machines/my_machine.json"` | Absolute (`mymod` namespace) |
+| `src="mymod:guidenh/_en_us/machines/my_machine.json"` | Absolute (`mymod` namespace) |
 
 ## JSON Format
 
@@ -792,9 +792,9 @@ The following example demonstrates every annotation type across a four-keyframe 
 
 ```
 assets/mymod/guidebooks/
-  pages/machines/grinder.mdx
-  pages/machines/grinder.snbt
-  pages/machines/grinder.json
+  _en_us/machines/grinder.md
+  _en_us/machines/grinder.snbt
+  _en_us/machines/grinder.json
 ```
 
 ### `grinder.json`
@@ -904,10 +904,9 @@ assets/mymod/guidebooks/
 
 ### `grinder.snbt`
 
-A standard NBT structure file (created with the `/structure save` command or a tool such as
-Litematica). See [Getting Started](Getting-Started.md) for the full SNBT format reference.
+Use an SNBT/NBT structure accepted by `<ImportStructure>`. See [GameScene](GameScene#importstructure) for supported formats.
 
-### `grinder.mdx`
+### `grinder.md`
 
 ```mdx
 # Grinder
@@ -948,4 +947,3 @@ The Grinder turns ores into doubled dust. Press **Play** to see the animated wal
   `{id:"minecraft:iron_ingot",Count:8b}`.
 - `modifyTileNBT` and `modifyEntityNBT` values are SNBT values, not JSON values. For a string
   value, escape the SNBT quotes inside JSON: `"value": "\"hello\""`.
-

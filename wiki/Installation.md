@@ -1,37 +1,12 @@
+[中文](Installation-zh-CN)
+
 # Installation
 
-This page covers the repository layout and the development flow for the built-in tutorial guide shipped by GuideNH.
+Install GuideNH for Minecraft 1.7.10 and GTNHLib in the client's `mods/` directory. World structure placement and administrator commands also require GuideNH on the server; see [Server Integration](Server-Integration).
 
-## Runtime Guide Source
+## Adding a local guide
 
-GuideNH also creates `config/guidenh/DefaultGuide/` on the client as an empty runtime-loaded directory for your own
-guide content.
-
-GuideNH also accepts `config/guidenh/DefaultGuide.zip` as a normal full resource pack. If both the zip and the
-directory exist, the zip is preferred.
-
-The runtime guide is authored from `wiki/resourcepack/`, not from `src/main/resources/assets/...`.
-
-The built-in example guide now lives directly under:
-
-- `wiki/resourcepack/assets/guidenh/guidenh/`
-
-The example guide content then continues inside language folders such as:
-
-- `wiki/resourcepack/assets/guidenh/guidenh/_en_us/`
-- `wiki/resourcepack/assets/guidenh/guidenh/_zh_cn/`
-
-## Build Output
-
-During `processResources`, the project copies everything under `wiki/resourcepack/assets/` directly into the mod jar resource tree. The bundled guide therefore ships inside the jar as normal mod resources such as:
-
-- `assets/guidenh/guidenh/_en_us/index.md`
-- `assets/guidenh/guidenh/_zh_cn/index.md`
-- `assets/guidenh/guidenh/assets/example_structure.snbt`
-
-## DefaultGuide Layout
-
-`DefaultGuide` uses a native namespace-root layout instead of an outer `assets/` directory:
+The client creates an empty `config/guidenh/DefaultGuide/` directory at startup. Put UTF-8 pages in language folders and shared resources in the guide's `assets/` folder:
 
 ```text
 config/guidenh/DefaultGuide/
@@ -45,10 +20,11 @@ config/guidenh/DefaultGuide/
             `-- index.md
 ```
 
-Use `DefaultGuide` for client-local runtime content. Use `wiki/resourcepack/` when editing the repository example pack
-that gets bundled into the jar.
+Press `G` to open the guide and `F3+T` to reload added or edited resources. See [Getting Started](Getting-Started) for a first page.
 
-`DefaultGuide.zip` uses the standard full resource-pack layout with an outer `assets/` directory:
+## Using resource packs
+
+Normal resource packs use `assets/<modid>/guidenh/`. `config/guidenh/DefaultGuide.zip` accepts the same full resource-pack layout and takes precedence when the directory and ZIP both exist:
 
 ```text
 config/guidenh/DefaultGuide.zip
@@ -63,22 +39,6 @@ config/guidenh/DefaultGuide.zip
                 `-- index.md
 ```
 
-## Development Loop
+## Editing repository examples
 
-1. Edit runtime pages and assets under `wiki/resourcepack/`.
-2. Edit human documentation under `wiki/*.md`.
-3. For fast guide-content iteration, use the live preview flow from [Live Preview](Live-Preview).
-4. Rebuild resources or rerun the client when you are not using live preview, or when you changed code/build logic.
-
-## What Not To Do
-
-- Do not put in-game MDX tags directly into the GitHub Wiki pages unless they are inside fenced code blocks.
-- Do not add new built-in guide source files directly under `src/main/resources/assets/...`; author them from `wiki/resourcepack/assets/...`.
-- Do not reintroduce `_manifest.json` or resource-pack zip wrapping for runtime guide pages; the loader now scans the resource tree directly.
-
-## Related Pages
-
-- [Getting Started](Getting-Started)
-- [Live Preview](Live-Preview)
-- [Guide Page Format](Guide-Page-Format)
-- [Examples](Examples)
+Example pages are in `wiki/resourcepack/assets/`. Load `wiki/resourcepack/` as a resource pack, or use the JVM arguments in [Live Preview](Live-Preview) to load that folder directly. Building the mod does not bundle these examples.

@@ -9,11 +9,11 @@ categories:
 
 # Recipes
 
-`<Recipe>`, `<RecipeFor>`, and `<RecipesFor>` widget tests.
+Examples show recipes, usages and filters for items and fluids.
 
 > Recipe boxes are rendered by NEI's native handlers — crafting table, furnace, brewing stand, etc. all show their own background/animation. Without NEI, we fall back to a built-in 3x3 crafting display.
 
-The small icon in the top-left shows which "recipe pool" the entry belongs to (sourced from `GuiRecipeTab.handlerMap`).
+The small icon in the top-left shows which "recipe pool" the entry belongs to.
 
 ## Native fluid recipes
 

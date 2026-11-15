@@ -15,7 +15,7 @@ GuideNH ships with five interactive chart tags: `<ColumnChart>` clustered column
 ## Native fluid series icons
 
 <ColumnChart title="Fluids" categories="Water,Steam">
-  <Series name="Flow" values="1000,1600" iconFluid="water" />
+  <Series name="Flow" data="1000,1600" iconFluid="water" />
 </ColumnChart>
 
 ## Common Attributes

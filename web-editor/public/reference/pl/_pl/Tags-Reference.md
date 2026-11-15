@@ -1,94 +1,93 @@
-# Opis tagów
+# Dokumentacja tagów
 
-Ta dokumentacja opisuje składnię i funkcje czasu wykonania GuideNH. Kod, tagi, ścieżki, identyfikatory i wartości atrybutów pozostają bez zmian.
+Szczegółowa dokumentacja na tej stronie jest dostępna po angielsku. Nazwy tagów, atrybuty, identyfikatory i ścieżki należy stosować bez tłumaczenia.
 
+This page describes the built-in tags available to guide authors.
 
-Ten strona lists  built-in czas wykonania tagi zarejestrowany by `DefaultExtensions`.
+## Usage Rules
 
-## Zasady użycia
-
-- tagi może appear either in blok context lub inline context depending on  kompilator.
-- MDX comments używając `{/* ... */}` są Obsługiwane in strona treść i są ignored by  czas wykonania parser.
-- nieprawidłowy tagi lub nieprawidłowy atrybuty renderować przewodnik errors inline zamiast tego of silently failing.
-- Large feature tagi takie jak Receptury i 3D sceny są documented in ich własny strony:
+- Tags can appear either in block context or inline context depending on the compiler.
+- MDX comments using `{/* ... */}` are supported in page content and are ignored by the runtime parser.
+- Invalid tags or invalid attributes render guide errors inline instead of silently failing.
+- Large feature tags such as recipes and 3D scenes are documented in their own pages:
   - [Recipes](Recipes)
   - [GameScene](GameScene)
   - [Annotations](Annotations)
 
-## Tagi inline i przepływu
+## Inline And Flow Tags
 
-| tag | Purpose | klucz atrybuty |
+| Tag | Purpose | Key attributes |
 | --- | --- | --- |
-| `<a>` | wewnętrzny/zewnętrzny odnośnik i opcjonalny kotwica nazwa | `href`, `title`, `name` |
-| `<br>` | wiersz break | `clear="none\|left\|right\|all"` |
-| `<wbr>` | opcjonalne miejsce łamania wiersza wewnątrz słowa | brak |
+| `<a>` | internal/external link and optional anchor name | `href`, `title`, `name` |
+| `<br>` | line break | `clear="none\|left\|right\|all"` |
+| `<wbr>` | optional line-break point inside a word | none |
 | `<kbd>` | keyboard-style inline emphasis | none |
-| `<sub>` | smaller inline subscript-style tekst | none |
-| `<sup>` | smaller inline superscript-style tekst | none |
-| `<Color>` | colored inline tekst | `id` lub `color` |
-| `<Amount>` | formatowanie wartości liczbowej | `value`, `unit`, `format`, `decimals` |
-| `<Spoiler>` | ukryty inline tekst revealed on najechanie | none |
-| `<Tooltip>` | bogata najechanie podpowiedź z Markdown/tag elementy podrzędne | `label` |
-| `<SoundLink>` | clickable bogata-tekst sound trigger | `sound` lub `src`, `volume`, `pitch`, `cooldown` |
-| `<mark>` | inline highlighted tekst; equivalent do `==text==` z opcjonalny kolor control | `color` |
-| `<PlayerName>` | inserts bieżący gracz username | none |
-| `<KeyBind>` | inserts keybinding wyświetlać nazwa | `id` lub `action` |
-| `<ItemImage>` | inline element icon | `id`, `ore`, `nbt`, `scale`, `noTooltip`, `showTooltip`, `showIcon`, `label`, `format`, `yOffset`, `labelYOffset` |
-| `<ItemLink>` | element podpowiedź + opcjonalny Nawigacja odnośnik | `id` lub `ore`, `linksTo`, `showTooltip`, `noTooltip`, `showIcon` |
+| `<sub>` | smaller inline subscript-style text | none |
+| `<sup>` | smaller inline superscript-style text | none |
+| `<Color>` | colored inline text | `id` or `color` |
+| `<Amount>` | format a numeric quantity | `value`, `unit`, `format`, `decimals` |
+| `<Spoiler>` | hidden inline text revealed on hover | none |
+| `<Tooltip>` | rich hover tooltip with markdown/tag children | `label` |
+| `<SoundLink>` | clickable rich-text sound trigger | `sound` or `src`, `volume`, `pitch`, `cooldown` |
+| `<mark>` | inline highlighted text; equivalent to `==text==` with optional color control | `color` |
+| `<PlayerName>` | inserts current player username | none |
+| `<KeyBind>` | inserts keybinding display name | `id` or `action` |
+| `<ItemImage>` | inline item icon | `id`, `ore`, `nbt`, `scale`, `noTooltip`, `showTooltip`, `showIcon`, `label`, `format`, `yOffset`, `labelYOffset` |
+| `<ItemLink>` | item tooltip + optional navigation link | `id` or `ore`, `linksTo`, `showTooltip`, `noTooltip`, `showIcon` |
 | `<FluidImage>` / `<FluidLink>` | native fluid icon and page navigation | `id`, `amount`, `nbt`, `scale`, `showTooltip`, `noTooltip`, `showIcon`, `label`, `linksTo` |
-| `<CommandLink>` | clickable chat command odnośnik | `command`, `title`, `close` |
-| `<Latex>` | LaTeX math formula; inline in flow context, centered wyświetlać blok in blok context | `formula`, `color`, `scale`, `sourceScale`, `tooltip`, `showTooltip` |
-| `<QuestLink>` | BetterQuesting quest odnośnik z stan-aware styling (compat tag, tylko zarejestrowany gdy BetterQuesting is załadowany) | `id`, `text`, `show_tooltip` |
+| `<CommandLink>` | clickable chat command link | `command`, `title`, `close` |
+| `<Latex>` | LaTeX math formula; inline in flow context, centered display block in block context | `formula`, `color`, `scale`, `sourceScale`, `tooltip`, `showTooltip` |
+| `<QuestLink>` | BetterQuesting quest link with state-aware styling (compat tag, only registered when BetterQuesting is loaded) | `id`, `text`, `show_tooltip` |
 
-Inline Markdown także obsługuje action links dla sound playback:
+Inline markdown also supports action links for sound playback:
 
 ````md
 &[Start machine](sound:guidenh:machine.start)
 &[Play file-backed sound](sound-src:guidenh:sounds/machine/start.ogg?volume=0.8&pitch=1.1)
 ````
 
-## Tagi blokowe
+## Block Tags
 
-| tag | Purpose | klucz atrybuty |
+| Tag | Purpose | Key attributes |
 | --- | --- | --- |
-| `<div>` | pass-through blok wrapper | none |
-| `<ContentTabs>` | groups alternative bogata treść under independent tabs | `title`, `color`, `background`, `icon`, `iconPng`, `icon_png`, `iconItem`, `icon_item`, `iconFluid`, `icon_fluid`, `default`, `defaultIndex` |
-| `<Tab>` | jeden treść panel wewnątrz `<ContentTabs>` | `title` |
-| `<details>` | collapsible czas wykonania blok | `open`, `width`, `height`, `wrap`, `align` |
-| `<FileTree>` | katalog-style outline z łącznik wiersze | `indent`, `gap` |
-| `<Row>` | horizontal flex układ | `gap`, `alignItems`, `fullWidth`, `width` |
-| `<Column>` | vertical flex układ | `gap`, `alignItems`, `fullWidth`, `width` |
-| `<FootnoteList>` | szerokość-constrained footnote container używany by czas wykonania Markdown footnotes | `width` |
+| `<div>` | pass-through block wrapper | none |
+| `<ContentTabs>` | groups alternative rich content under independent tabs | `title`, `color`, `background`, `icon`, `iconPng`, `icon_png`, `iconItem`, `icon_item`, `iconFluid`, `icon_fluid`, `default`, `defaultIndex` |
+| `<Tab>` | one content panel inside `<ContentTabs>` | `title` |
+| `<details>` | collapsible runtime block | `open`, `width`, `height`, `wrap`, `align` |
+| `<FileTree>` | directory-style outline with connector lines | `indent`, `gap` |
+| `<Row>` | horizontal flex layout | `gap`, `alignItems`, `fullWidth`, `width` |
+| `<Column>` | vertical flex layout | `gap`, `alignItems`, `fullWidth`, `width` |
+| `<FootnoteList>` | width-constrained footnote container used by runtime markdown footnotes | `width` |
 | `<ItemGrid>` | compact grid of item and fluid icons | mix `<ItemIcon id="..."/>`, `<ItemIcon ore="..."/>`, and `<FluidIcon id="..."/>` |
-| `<BlockImage>` | non-interaktywny 3D pojedynczy-blok podgląd | `id`, `ore`, `meta`, `nbt`, `scale`, `width`, `height`, `perspective`, `wrap`, `align` |
-| `<FloatingImage>` | cropped obraz blok z liczba zmiennoprzecinkowa lub true inline placement | `src`, `x`, `y`, `width` / `w`, `height` / `h`, `scaleX`, `scaleY`, `displayWidth`, `displayHeight`, `wrap`, `align`, `title` |
-| `<SubPages>` | Nawigacja element podrzędny listing | `id`, `alphabetical` |
-| `<Category>` | lista strony z category | `name`, `rows` |
-| `<Special>` | lista built-in MediaWiki special strony | `name`, `rows` |
-| `<Structure>` | 2.5D isometric blok układ widok | `width`, `height` |
-| `<Mermaid>` | czas wykonania Mermaid wykres import/inline | `src`, `width`, `height` |
-| `<CsvTable>` | czas wykonania CSV plik import tabela | `src`, `header`, `widths` |
-| `<ColumnChart>` | clustered kolumna wykres | `categories`, `barWidthRatio`, `xAxis*`, `yAxis*`, `legend`, `labelPosition` |
-| `<BarChart>` | horizontal bar wykres | ten sam as `<ColumnChart>` |
-| `<LineChart>` | wiersz wykres z categorical lub numeric X | `categories`, `numericX`, `showPoints`, `xAxis*`, `yAxis*` |
-| `<PieChart>` | pie wykres | `startAngle`, `clockwise`, `legend`, `labelPosition` |
-| `<ScatterChart>` | XY scatter wykres | `xAxis*`, `yAxis*`, `legend`, `labelPosition` |
-| `<FunctionGraph>` | Desmos-style multi-curve function wykres | `width`, `height`, `xRange` / `yRange`, `quadrants`, `showGrid`, `showAxes` |
-| `<Function>` | pojedynczy-curve shorthand dla `<FunctionGraph>` | `expr`, plus wszystkie `<FunctionGraph>` panel atrybuty |
-| `<Recipe>`, `<RecipeFor>`, `<RecipesFor>` | recipe renderers | Zobacz [Recipes](Recipes) |
-| `<GameScene>`, `<Scene>` | 3D przewodnik scena | Zobacz [GameScene](GameScene) |
-| `<QuestCard>` | blok-level BetterQuesting quest summary card (compat tag, tylko zarejestrowany gdy BetterQuesting is załadowany) | `id`, `show_desc`, `show_tooltip` |
+| `<BlockImage>` | non-interactive 3D single-block preview | `id`, `ore`, `meta`, `nbt`, `scale`, `width`, `height`, `perspective`, `wrap`, `align` |
+| `<FloatingImage>` | cropped image block with float or true inline placement | `src`, `x`, `y`, `width` / `w`, `height` / `h`, `scaleX`, `scaleY`, `displayWidth`, `displayHeight`, `wrap`, `align`, `title` |
+| `<SubPages>` | navigation child listing | `id`, `alphabetical` |
+| `<Category>` | list pages from a category | `name`, `rows` |
+| `<Special>` | list built-in MediaWiki special pages | `name`, `rows` |
+| `<Structure>` | 2.5D isometric block layout view | `width`, `height` |
+| `<Mermaid>` | runtime Mermaid graph import/inline | `src`, `width`, `height` |
+| `<CsvTable>` | runtime CSV file import table | `src`, `header`, `widths` |
+| `<ColumnChart>` | clustered column chart | `categories`, `barWidthRatio`, `xAxis*`, `yAxis*`, `legend`, `labelPosition` |
+| `<BarChart>` | horizontal bar chart | same as `<ColumnChart>` |
+| `<LineChart>` | line chart with categorical or numeric X | `categories`, `numericX`, `showPoints`, `xAxis*`, `yAxis*` |
+| `<PieChart>` | pie chart | `startAngle`, `clockwise`, `legend`, `labelPosition` |
+| `<ScatterChart>` | XY scatter chart | `xAxis*`, `yAxis*`, `legend`, `labelPosition` |
+| `<FunctionGraph>` | Desmos-style multi-curve function graph | `width`, `height`, `xRange` / `yRange`, `quadrants`, `showGrid`, `showAxes` |
+| `<Function>` | single-curve shorthand for `<FunctionGraph>` | `expr`, plus all `<FunctionGraph>` panel attributes |
+| `<Recipe>`, `<RecipeFor>`, `<RecipesFor>` | recipe renderers | see [Recipes](Recipes) |
+| `<GameScene>`, `<Scene>` | 3D guide scene | see [GameScene](GameScene) |
+| `<QuestCard>` | block-level BetterQuesting quest summary card (compat tag, only registered when BetterQuesting is loaded) | `id`, `show_desc`, `show_tooltip` |
 
-`<ImportStructureLib>` is a `<GameScene>` element podrzędny tag. It accepts `controller`, `piece`, `facing`,
-`rotation`, `flip`, i `tier`, `channel`, `channelName`, `value`, `locked` atrybuty, i także obsługuje StructureLib Domyślne element podrzędny tagi:
+`<ImportStructureLib>` is a `<GameScene>` child tag. It accepts `controller`, `piece`, `facing`,
+`rotation`, `flip`, `tier`, `channel`, `channelName`, `value`, and `locked` attributes, and also supports StructureLib default child tags:
 `<Tier>`, `<Channel>`, `<Facing>`, `<Rotation>`, `<Flip>`, `<Orientation>`,
-`<GregTechActiveController>`, i `<GregTechPlaceHatches>`.
+`<GregTechActiveController>`, and `<GregTechPlaceHatches>`.
 
-## Szczegóły tagów
+## Tag Details
 
 ### `<a>`
 
-Acts like HTML-style kotwica tag:
+Acts like an HTML-style anchor tag:
 
 ````md
 <a href="subpage.md" title="Go to subpage">Open Subpage</a>
@@ -96,19 +95,19 @@ Acts like HTML-style kotwica tag:
 <a name="details" />
 ````
 
-- `href` może be względny, rooted, jawny `modid:path`, lub HTTP/HTTPS
-- `title` staje się  podpowiedź
-- `name` inserts strona kotwica cel
+- `href` can be relative, rooted, explicit `modid:path`, or HTTP/HTTPS
+- `title` becomes the tooltip
+- `name` inserts a page anchor target
 
 ### `<br>`
 
-GuideNH także obsługuje MDX break tag z liczba zmiennoprzecinkowa clearing:
+GuideNH also supports an MDX break tag with float clearing:
 
 ````md
 Text before.<br clear="all" />Text after.
 ````
 
-Accepted `clear` wartości:
+Accepted `clear` values:
 
 - `none`
 - `left`
@@ -117,7 +116,7 @@ Accepted `clear` wartości:
 
 ### `<wbr>`
 
-Oznacza opcjonalne miejsce łamania wiersza wewnątrz słowa, tak jak element HTML `<wbr>`. Niczego nie wyświetla i nie zajmuje szerokości: wiersz łamie się w tym miejscu tylko wtedy, gdy całe słowo się nie mieści, na przykład długa nazwa lub liczba w wąskiej komórce tabeli przy niskiej rozdzielczości.
+Marks an optional line-break point inside a word, like the HTML `<wbr>` element. It renders nothing and takes no width: the line only breaks there when the whole word does not fit, such as a long name or number in a narrow table cell at a low resolution.
 
 ````md
 | Block | Rate |
@@ -125,11 +124,11 @@ Oznacza opcjonalne miejsce łamania wiersza wewnątrz słowa, tak jak element HT
 | Cobble<wbr>stone/s | 11,<wbr>520 |
 ````
 
-Akceptowane są zarówno `<wbr>`, jak i `<wbr />`; znacznik nie ma atrybutów. W przeciwieństwie do spacji nie zostawia przerwy, gdy słowo się mieści. Site Export i Web Editor generują natywny `<wbr>`.
+`<wbr>` and `<wbr />` are both accepted and the tag takes no attributes. Unlike a space, it never shows up as a gap when the word fits. Site Export and the Web Editor output a native `<wbr>`.
 
-### `<kbd>`, `<sub>`, i `<sup>`
+### `<kbd>`, `<sub>`, And `<sup>`
 
-GuideNH czas wykonania obsługuje focused subset of lowercase documentation tagi dla inline używać:
+GuideNH runtime supports a focused subset of lowercase documentation tags for inline use:
 
 ````md
 Press <kbd>Shift</kbd> + <sub>1</sub>
@@ -138,34 +137,34 @@ Water is H<sub>2</sub>O and x<sup>2</sup> is a square.
 
 ### `<details>`
 
-Creates collapsible czas wykonania blok z summary wiersz.  `<summary>` wiersz obsługuje normal
-inline Markdown/tag treść, i  body może hold ordinary tekst plus arbitrary Tagi blokowe takie jak
-`<BlockImage>`, `<FloatingImage>`, `<GameScene>`, tabele, Wykresy, i układ containers.
-gdy `height` is Ustaw, tylko  body scrolls;  summary wiersz i outer frame pozostają stały.
+Creates a collapsible runtime block with a summary row. The `<summary>` line supports normal
+inline markdown/tag content, and the body can hold ordinary text plus arbitrary block tags such as
+`<BlockImage>`, `<FloatingImage>`, `<GameScene>`, tables, charts, and layout containers.
+When `height` is set, only the body scrolls; the summary row and outer frame stay fixed.
 
-Puste wiersze między `<summary>`, treścią i `</details>` są opcjonalne. Używaj znacznika w liczbie mnogiej `<details>`; `<detail>` nie jest obsługiwany. Zarówno podsumowanie, jak i treść obsługują Markdown w wierszu, `<ItemLink>`, `<ItemImage>` oraz inne znaczniki wierszowe. Kolejne bloki `<details>` pozostają niezależne.
+Blank lines between `<summary>`, the body, and `</details>` are optional. Use the plural tag `<details>`; `<detail>` is not supported. Both the summary and body support inline Markdown, `<ItemLink>`, `<ItemImage>`, and other inline tags. Consecutive `<details>` blocks remain independent.
 
 ````md
 <details open width="220" height="140" wrap="square" align="right">
 <summary>More <ItemImage id="minecraft:diamond" /></summary>
 
-Domyślnie ukryty tekst z [normalnym odnośnikiem do strony](./index.md).
+Hidden-by-default body text with a [normal page link](./index.md).
 
 <BlockImage id="minecraft:diamond_block" align="center" scale={2} />
 </details>
 ````
 
-atrybuty:
+Attributes:
 
-- `open` — starts expanded gdy present
-- `width` — preferowany outer szerokość in piksele
-- `height` — preferowany body viewport wysokość in piksele; overflow staje się scrollable in-game i in site export
-- `wrap` — obsługuje  usual blok embedding modes takie jak `square`, `tight`, i `through`
-- `align` — `left`, `center`, lub `right`; gdy combined z floating zawijanie tryb,  whole details blok floats
+- `open` — starts expanded when present
+- `width` — preferred outer width in pixels
+- `height` — preferred body viewport height in pixels; overflow becomes scrollable in-game and in site export
+- `wrap` — supports the usual block embedding modes such as `square`, `tight`, and `through`
+- `align` — `left`, `center`, or `right`; when combined with a floating wrap mode, the whole details block floats
 
 ### `<ContentTabs>`
 
-Groups alternative bogata treść under independent tabs. tylko bezpośredni `<Tab>` elementy podrzędne są prawidłowy.  container itself może także renderować quote-style heading wiersz nad  tabs, pasujący  visual język of Markdown callouts.
+Groups alternative rich content under independent tabs. Only direct `<Tab>` children are valid. The container itself can also render a quote-style heading row above the tabs, matching the visual language of markdown callouts.
 
 ````mdx
 <ContentTabs
@@ -186,19 +185,19 @@ Groups alternative bogata treść under independent tabs. tylko bezpośredni `<T
 </ContentTabs>
 ````
 
-- `default` pasuje  pierwszy tab whose `title` pasuje exactly
-- `defaultIndex` is zero-based i wins over `default` gdy both są present
-- `color` optionally overrides  lewo accent wiersz i wybrany-tab wyróżniać z `#RRGGBB` lub `#AARRGGBB`
-- background — opcjonalnie zmienia tło kontenera kart na #RRGGBB, #AARRGGBB lub transparent; pominięcie zachowuje domyślne szare tło
-- `title` dodaje opcjonalny plain-tekst heading nad  tab strip
-- `icon`, `iconPng` / `icon_png`, i `iconItem` / `icon_item` używać  ten sam heading icon semantics as Markdown quote-style callouts
-- nieprawidłowy elementy podrzędne lub nieprawidłowy domyślne renderować widoczny autor-facing errors
+- `default` matches the first tab whose `title` matches exactly
+- `defaultIndex` is zero-based and wins over `default` when both are present
+- `color` optionally overrides the left accent line and selected-tab highlight with `#RRGGBB` or `#AARRGGBB`
+- `background` optionally overrides the tab container background with `#RRGGBB`, `#AARRGGBB`, or `transparent`; the default keeps the normal gray callout background
+- `title` adds an optional plain-text heading above the tab strip
+- `icon`, `iconPng` / `icon_png`, and `iconItem` / `icon_item` use the same heading icon semantics as markdown quote-style callouts
+- invalid children or invalid defaults render visible author-facing errors
 
 ### `<FileTree>`
 
-Renders katalog-style outline z real łącznik wiersze drawn z  prefix glyphs on każdy wiersz. Both Unicode box-drawing (`│ ├ └ ─`) i ASCII (`| +-- \-- ` / four spaces) forms są accepted i może be mixed. Payload tekst obsługuje  usual inline Markdown (links, **bold**, `code`, …), i those links są clickable both in-game i in  built-in site export.  ten sam treść może także be zapisany as fenced ` ```tree ` or ` ```filetree ` blok.
+Renders a directory-style outline with real connector lines drawn from the prefix glyphs on each row. Both Unicode box-drawing (`│ ├ └ ─`) and ASCII (`| +-- \-- ` / four spaces) forms are accepted and may be mixed. Payload text supports the usual inline markdown (links, **bold**, `code`, …), and those links are clickable both in-game and in the built-in site export. The same content can also be written as a fenced ` ```tree ` or ` ```filetree ` block.
 
-W wąskim widoku wcięcia są zmniejszane, aby zachować miejsce na tekst. Długie ścieżki są dzielone przede wszystkim po `/`, `\`, `_` i `-`; nazwy bez separatorów mogą być łamane między znakami. Kolejne wiersze wyrównują się do początku nazwy, a ikony i rozgałęzienia do pierwszego wiersza.
+Narrow layouts reduce the indentation to leave room for text. Long paths prefer breaks after `/`, `\`, `_`, and `-`; unbroken names can wrap between characters. Continuation lines align with the name, while icons and branch connectors stay aligned with the first line.
 
 ````md
 <FileTree indent="14" gap="0">
@@ -211,55 +210,55 @@ project
 </FileTree>
 ````
 
-opcjonalny per-wiersz icons są introduced by leading directive on  payload:
+Optional per-row icons are introduced by a leading directive on the payload:
 
-- `{:icon=Text}` — short tekst etykieta (pojedynczy lub double quotes opcjonalny)
-- `{:iconPng=path/to/file.png}` — PNG zasób rozwiązany against  bieżący strona
-- `{:iconItem=modid:item_id[:meta][:{snbt}]}` — Minecraft element icon.  opcjonalny `meta` segment is damage wartość (lub `*` dla wildcard); opcjonalny trailing `:{snbt}` blok carries SNBT do attach do  stos.
+- `{:icon=Text}` — short text label (single or double quotes optional)
+- `{:iconPng=path/to/file.png}` — PNG asset resolved against the current page
+- `{:iconItem=modid:item_id[:meta][:{snbt}]}` — Minecraft item icon. The optional `meta` segment is a damage value (or `*` for a wildcard); an optional trailing `:{snbt}` block carries SNBT to attach to the stack.
 
 ````md
 ```filetree
-świat
+world
 |-- {:iconItem=minecraft:grass} grass biome
 |   \-- {:icon=Tree} oak forest
-\-- {:iconPng=test1.png} sample zasób
+\-- {:iconPng=test1.png} sample asset
 ```
 ````
 
-atrybuty:
+Attributes:
 
-- `indent` — piksele per depth level (Domyślne `14`)
-- `gap` — extra piksele between wiersze (Domyślne `0`)
+- `indent` — pixels per depth level (default `14`)
+- `gap` — extra pixels between rows (default `0`)
 
-### Cytaty czasu wykonania
+### Runtime Blockquotes
 
-Normal Markdown blockquotes renderować at czas wykonania z lewo accent wiersz. GitHub alert składnia is Obsługiwane:
+Normal markdown blockquotes render at runtime with a left accent line. GitHub alert syntax is supported:
 
 ````md
 > [!NOTE]
 > Alert body
 ````
 
-GuideNH także obsługuje czas wykonania-tylko niestandardowy directive on  pierwszy quoted wiersz:
+GuideNH also supports a runtime-only custom directive on the first quoted line:
 
 ````md
 > {: title="Custom Quote" color="#638ef1" icon="i" }
 > Body text
 ````
 
-Obsługiwane directive klucze:
+Supported directive keys:
 
 - `title`
 - `color`
-- `icon` dla plain tekst symbols
-- `iconItem` dla an `ItemStack` id
-- `iconPng` dla przewodnik zasób png ścieżka
+- `icon` for plain text symbols
+- `iconItem` for an `ItemStack` id
+- `iconPng` for a guide asset png path
 
-tylko jeden icon source powinien be provided.
+Only one icon source should be provided.
 
 ### `<Color>`
 
-używać either symbolic kolor id lub jawny hex wartość:
+Use either a symbolic color id or an explicit hex value:
 
 ````md
 <Color id="RED">Symbolic red</Color>
@@ -271,20 +270,20 @@ Use `<Spoiler>` for inline hidden text. The content stays rich-text aware, so ne
 such as `<Color>` still render correctly after reveal.
 
 ```mdx
-<Spoiler>ukryty **bold** tekst z <Color color="#55ccff">tint</Color>.</Spoiler>
-<Spoiler>[Anchor Link](#headings) nadal behaves like normal hoverable odnośnik gdy revealed.</Spoiler>
+<Spoiler>Hidden **bold** text with <Color color="#55ccff">tint</Color>.</Spoiler>
+<Spoiler>[Anchor Link](#headings) still behaves like a normal hoverable link when revealed.</Spoiler>
 ```
 
 ````
 
-Zasady:
+Rules:
 
-- `id` i `color` są mutually exclusive in practice; zapewniać jeden
-- `color` accepts `#RRGGBB`, `#AARRGGBB`, lub `transparent`
+- `id` and `color` are mutually exclusive in practice; provide one
+- `color` accepts `#RRGGBB`, `#AARRGGBB`, or `transparent`
 
 ### `<Tooltip>`
 
-Creates underlined tekst który opens bogata treść podpowiedź on najechanie.
+Creates underlined text that opens a rich content tooltip on hover.
 
 ````md
 <Tooltip label="Hover me">
@@ -293,12 +292,12 @@ Creates underlined tekst który opens bogata treść podpowiedź on najechanie.
 </Tooltip>
 ````
 
-Jeśli `label` is pominięty,  trigger tekst domyślne do `tooltip`.
+If `label` is omitted, the trigger text defaults to `tooltip`.
 
-### `<SoundLink>` i Sound Action Links
+### `<SoundLink>` And Sound Action Links
 
-`<SoundLink>` renders bogata inline treść który plays sound gdy clicked. It nie navigate,
-i jego niestandardowy kliknięcie sound replaces  normal przewodnik kliknięcie sound dla który kliknięcie.
+`<SoundLink>` renders rich inline content that plays a sound when clicked. It does not navigate,
+and its custom click sound replaces the normal guide click sound for that click.
 
 ````md
 <SoundLink sound="guidenh:machine.start" volume="0.8" pitch="1.0">
@@ -309,27 +308,27 @@ i jego niestandardowy kliknięcie sound replaces  normal przewodnik kliknięcie 
 &[Use a sound file](sound-src:guidenh:sounds/machine/start.ogg)
 ````
 
-Sound atrybuty:
+Sound attributes:
 
-- `sound` is sound event id takie jak `modid:event.name`
-- `src` punkty at an `.ogg` plik; `modid:sounds/machine/start.ogg` staje się `modid:machine.start`
-- `volume` domyślne do `1.0`
-- `pitch` domyślne do `1.0`
-- `cooldown` is milliseconds between repeated plays, Domyślne `250`
-- `radius` i `minVolume` control przestrzeń ekranu attenuation gdy używany in sceny
+- `sound` is a sound event id such as `modid:event.name`
+- `src` points at an `.ogg` file; `modid:sounds/machine/start.ogg` becomes `modid:machine.start`
+- `volume` defaults to `1.0`
+- `pitch` defaults to `1.0`
+- `cooldown` is milliseconds between repeated plays, default `250`
+- `radius` and `minVolume` control screen-space attenuation when used in scenes
 
 ### `<Amount>`
 
-`<Amount>` formatuje liczbę. Pominięcie `unit` (lub `unit="none"`) wyświetla tylko liczbę. `unit="item"` również nie dodaje przyrostka. `unit="fluid"` korzysta z preferencji płynów GTNHLib i wyświetla `mB` albo `L`. `format` może mieć wartość `default`, `plain`, `compact` lub `scientific`, a `decimals` ogranicza część ułamkową. Jednostki szybkości, takie jak `L/s`, zapisuj poza tagiem.
+`<Amount>` formats a numeric amount. Omitting `unit` (or using `unit="none"`) displays only the number. `unit="item"` is also suffix-free. `unit="fluid"` follows the GTNHLib fluid preference and displays `mB` or `L`. The optional `format` is `default`, `plain`, `compact`, or `scientific`; `decimals` limits fractional digits. Keep rate suffixes such as `/s` outside the tag.
 
-| Atrybut | Znaczenie |
+| Attribute | Meaning |
 | --- | --- |
-| `value` | wymagana skończona liczba dziesiętna |
-| `unit` | opcjonalne `none`, `item` lub `fluid`; domyślnie `none` |
-| `format` | opcjonalny format liczby; domyślnie `default` |
-| `decimals` | opcjonalna nieujemna maksymalna liczba miejsc dziesiętnych |
+| `value` | required finite decimal value |
+| `unit` | optional `none`, `item`, or `fluid`; defaults to `none` |
+| `format` | optional number format; defaults to `default` |
+| `decimals` | optional non-negative maximum fractional digits |
 
-Przykład:
+Example:
 
 ````md
 <Amount value="250" />
@@ -339,7 +338,7 @@ Przykład:
 
 ### `<PlayerName>`
 
-Inserts  bieżący Minecraft session username:
+Inserts the current Minecraft session username:
 
 ````md
 Welcome, <PlayerName />!
@@ -347,14 +346,14 @@ Welcome, <PlayerName />!
 
 ### `<KeyBind>`
 
-Looks up keybinding by id lub action i renders  gracz's bieżący bound klucz nazwa.
+Looks up a keybinding by id or action and renders the player's current bound key name.
 
 Accepted ids:
 
--  binding opis id, takie jak `key.jump` lub `key.guidenh.open_guide`
--  legacy `category.description` form, takie jak `key.categories.movement.key.jump`
+- the binding description id, such as `key.jump` or `key.guidenh.open_guide`
+- the legacy `category.description` form, such as `key.categories.movement.key.jump`
 
-Przykład:
+Example:
 
 ````md
 Press <KeyBind id="key.jump" /> to jump.
@@ -363,10 +362,10 @@ Attack with <KeyBind action="key.attack" />.
 
 ### MDX Comments
 
-GuideNH ignores MDX comments in strona treść:
+GuideNH ignores MDX comments in page content:
 
 ````md
-Widoczny tekst. {/* ukryty komentarz wbudowany */}
+Visible text. {/* hidden inline comment */}
 
 {/*
 multiline comment
@@ -375,39 +374,39 @@ multiline comment
 More visible text.
 ````
 
-GuideNH także ignores jawny `<Comment>` tagi:
+GuideNH also ignores explicit `<Comment>` tags:
 
 ````md
-Widoczny tekst. <Comment>To nie jest renderowane.</Comment> Nadal widoczny.
+Visible text. <Comment>This does not render.</Comment> Still visible.
 ````
 
 ### `<ItemImage>`
 
-Shows inline element icon.
+Shows an inline item icon.
 
-| Atrybut | Znaczenie |
+| Attribute | Meaning |
 | --- | --- |
-| `ore` | opcjonalny selektor słownika rud; podaj również `id` |
-| `id` | wymagana referencja przedmiotu, również przy `ore` |
-| `nbt` | opcjonalny SNBT element dane; merged onto any inline SNBT in `id` |
-| `scale` | liczba zmiennoprzecinkowa, Domyślne `1` |
-| `noTooltip` | truthy ciąg znaków lub empty Atrybut suppresses podpowiedź (legacy; prefer `showTooltip`) |
-| `showTooltip` | wartość logiczna, Domyślne `true`; `false` suppresses  najechanie podpowiedź |
-| `showIcon` | wartość logiczna, Domyślne `true`; `false` hides  element icon graphic |
-| `label` | `left` lub `right` — shows  element wyświetlać nazwa as tekst on  specified strona of  icon; omit dla no etykieta |
-| `format` | format pattern dla  etykieta tekst; obsługuje Markdown-style wrappers (`**bold**`, `*italic*`, `~~strike~~`, `__underline__`, `^^wavy^^`, `::dotted::`) z opcjonalny `%s` placeholder dla  element nazwa; Domyślne (no Atrybut) renders  nazwa in italic |
-| `yOffset` | przesunięcie pionowe w wierszu przy `scale=1`; domyślnie `0`; dodatnie w dół |
-| `labelYOffset` | przesunięcie pionowe samej etykiety przy `scale=1`; domyślnie `0` |
+| `ore` | optional ore-dictionary selector; provide `id` as well |
+| `id` | required item reference, including when `ore` is used |
+| `nbt` | optional SNBT item data; merged onto any inline SNBT in `id` |
+| `scale` | float, default `1` |
+| `noTooltip` | truthy string or empty attribute suppresses tooltip (legacy; prefer `showTooltip`) |
+| `showTooltip` | boolean, default `true`; `false` suppresses the hover tooltip |
+| `showIcon` | boolean, default `true`; `false` hides the item icon graphic |
+| `label` | `left` or `right` — shows the item display name as text on the specified side of the icon; omit for no label |
+| `format` | format pattern for the label text; supports Markdown-style wrappers (`**bold**`, `*italic*`, `~~strike~~`, `__underline__`, `^^wavy^^`, `::dotted::`) with optional `%s` placeholder for the item name; default (no attribute) renders the name in italic |
+| `yOffset` | inline vertical offset at scale `1`; default `0`; positive moves down |
+| `labelYOffset` | label-only vertical offset at scale `1`; default `0` |
 
-Uwagi:
+Notes:
 
-- `ore` takes precedence over `id` gdy both są provided
-- Jeśli GregTech is installed,  wybrany ore pasować is passed through `GTOreDictUnificator.setStack(...)`
-- `label` requires at least jeden of `showIcon` lub `label` do produce widoczny wyjście; setting both `showIcon="false"` i omitting `label` renders nothing
-- `format` tylko stosuje gdy `label` is Ustaw; Jeśli `format` ma no `%s`,  literal format tekst is używany as  etykieta
-- inline SNBT in `id` remains Obsługiwane; gdy both forms są present,  standalone `nbt` Atrybut is merged ostatni i overrides conflicting klucze
+- `ore` takes precedence over `id` when both are provided
+- if GregTech is installed, the selected ore match is passed through `GTOreDictUnificator.setStack(...)`
+- `label` requires at least one of `showIcon` or `label` to produce visible output; setting both `showIcon="false"` and omitting `label` renders nothing
+- `format` only applies when `label` is set; if `format` has no `%s`, the literal format text is used as the label
+- inline SNBT in `id` remains supported; when both forms are present, the standalone `nbt` attribute is merged last and overrides conflicting keys
 
-Przykład:
+Example:
 
 ````md
 <ItemImage id="minecraft:diamond" scale="2" />
@@ -427,18 +426,18 @@ Przykład:
 
 ### `<ItemLink>`
 
-Creates tekst odnośnik używając  element's wyświetlać nazwa i element podpowiedź. Jeśli `item_ids` punkty do strona przewodnika, kliknięcie navigates do it. `ore` może be używany do rozwiązać  wyświetlać stos z  pierwszy ore dictionary pasować zamiast tego of stały registry id.
+Creates a text link using the item's display name and item tooltip. If `item_ids` points to a guide page, clicking navigates to it. `ore` can be used to resolve the display stack from the first ore dictionary match instead of a fixed registry id.
 
-| Atrybut | Domyślne | Znaczenie |
+| Attribute | Default | Meaning |
 | --- | --- | --- |
-| `id` | — | element registry id, e.g. `minecraft:compass` lub `minecraft:wool:1` |
-| `ore` | — | ore-dictionary nazwa; używa  pierwszy pasujący element stos |
-| `linksTo` | *(auto)* | overrides  odnośnik cel; accepts ID strony z opcjonalny `#anchor`, e.g. `./crafting.md#usage` lub `#usage`; gdy pominięty  cel is rozwiązany z `item_ids` / `ore_ids` index |
-| `showTooltip` | `true` | Ustaw do `false` do suppress  najechanie podpowiedź; `noTooltip` is legacy alias |
-| `showIcon` | *(none)* | `left` lub `right` (lub any truthy wartość → prawo) — renders  element icon beside  odnośnik tekst; omit do pokazywać tekst tylko |
-| `scale` | `1.0` | wyświetlać scale dla  opcjonalny element icon; ma no effect gdy `showIcon` is pominięty |
+| `id` | — | item registry id, e.g. `minecraft:compass` or `minecraft:wool:1` |
+| `ore` | — | ore-dictionary name; uses the first matching item stack |
+| `linksTo` | *(auto)* | overrides the link target; accepts a page id with optional `#anchor`, e.g. `./crafting.md#usage` or `#usage`; when omitted the target is resolved from `item_ids` / `ore_ids` index |
+| `showTooltip` | `true` | set to `false` to suppress the hover tooltip; `noTooltip` is a legacy alias |
+| `showIcon` | *(none)* | `left` or `right` (or any truthy value → right) — renders the item icon beside the link text; omit to show text only |
+| `scale` | `1.0` | display scale for the optional item icon; has no effect when `showIcon` is omitted |
 
-Przykłady:
+Examples:
 
 ````md
 <ItemLink id="appliedenergistics2:tile.BlockSkyChest" />
@@ -459,7 +458,7 @@ ExportSite displays item counts and fluid amounts as text overlays using its bun
 | Attribute | Contract |
 | --- | --- |
 | `id` | Required complete fluid registry name; no implicit namespace or item metadata |
-| `amount` | Optional nonnegative integer up to 2147483647; raw fluid units shown as L in GTNH; zero remains a valid fluid |
+| `amount` | Optional integer amount; display follows the selected fluid unit |
 | `nbt` | Optional SNBT describing a private fluid stack tag |
 | `showTooltip`, `noTooltip` | Same visibility precedence as item icons; hiding a tooltip does not disable G navigation |
 | `scale`, `showIcon`, `label`, `format`, `yOffset`, `labelYOffset` | FluidImage shares ItemImage presentation options; scale must be finite and positive |
@@ -483,32 +482,32 @@ Use `navigation.icon_fluid` / `icon_fluids` for single/cycling page icons, and `
 
 ### `<CommandLink>`
 
-Sends chat command gdy clicked.
+Sends a chat command when clicked.
 
-| Atrybut | Znaczenie |
+| Attribute | Meaning |
 | --- | --- |
-| `command` | Wymagane, musi początek z `/` |
-| `title` | opcjonalny podpowiedź heading |
-| `close` | przeanalizowany wartość logiczna Atrybut; obecnie przeanalizowany but nie używany do close  przewodnik |
+| `command` | required, must start with `/` |
+| `title` | optional tooltip heading |
+| `close` | parsed boolean attribute; currently parsed but not used to close the guide |
 
-Przykład:
+Example:
 
 ````md
-<CommandLink command="/tp @s 0 90 0" title="Teleport">Teleport!</CommandLink>
+<CommandLink command="/tp @p 0 90 0" title="Teleport">Teleport!</CommandLink>
 ````
 
-### `<Row>` i `<Column>`
+### `<Row>` And `<Column>`
 
-Flex-style containers dla blok treść.
+Flex-style containers for block content.
 
-| Atrybut | Znaczenie |
+| Attribute | Meaning |
 | --- | --- |
-| `gap` | liczba całkowita gap between elementy podrzędne, Domyślne `5` |
+| `gap` | integer gap between children, default `5` |
 | `alignItems` | `start`, `center`, `end` |
-| `fullWidth` | wartość logiczna wyrażenie, Domyślne `false` |
-| `width` | liczba całkowita preferowany szerokość; useful dla constraining lista wiersz szerokość |
+| `fullWidth` | boolean expression, default `false` |
+| `width` | integer preferred width; useful for constraining list line width |
 
-Przykład:
+Example:
 
 ````md
 <Row gap="8" alignItems="center">
@@ -517,7 +516,7 @@ Przykład:
 </Row>
 ````
 
-do constrain  szerokość of normal Markdown lists, zawijanie ich in container:
+To constrain the width of normal markdown lists, wrap them in a container:
 
 ````md
 <Column width="220">
@@ -528,7 +527,7 @@ do constrain  szerokość of normal Markdown lists, zawijanie ich in container:
 
 ### `<FootnoteList>`
 
-GuideNH używa Ten blok tag internally gdy czas wykonania Markdown footnotes są expanded. It może także be zapisany ręcznie Jeśli needed.
+GuideNH uses this block tag internally when runtime markdown footnotes are expanded. It can also be written manually if needed.
 
 ````md
 <FootnoteList width="220">
@@ -539,7 +538,7 @@ GuideNH używa Ten blok tag internally gdy czas wykonania Markdown footnotes są
 
 ### `<ItemGrid>`
 
-Renders a compact icon grid. The grid compiler parses raw ItemIcon and FluidIcon children in source order. Item children select `id` or `ore`; fluid children select a registry-name `id` with optional amount and NBT.
+Renders a compact icon grid. ItemIcon and FluidIcon children appear in source order. Item children select `id` or `ore`; fluid children select a registry-name `id` with optional amount and NBT.
 
 ````md
 <ItemGrid>
@@ -552,31 +551,31 @@ Renders a compact icon grid. The grid compiler parses raw ItemIcon and FluidIcon
 
 ### `<BlockImage>`
 
-Renders non-interaktywny 3D pojedynczy-blok scena.  podgląd ma no scena tło, no scena
-buttons, no layer controls, i no adnotacja features, but najechanie  blok nadal shows 
-wybór outline i podpowiedź. `ore` musi rozwiązać do blok element stos.
+Renders a non-interactive 3D single-block scene. The preview has no scene background, no scene
+buttons, no layer controls, and no annotation features, but hovering the block still shows the
+selection outline and tooltip. `ore` must resolve to a block item stack.
 
-| Atrybut | Znaczenie |
+| Attribute | Meaning |
 | --- | --- |
-| `id` | blok id; obsługuje  normal `modid:block[:meta][:{snbt}]` spelling |
-| `ore` | ore dictionary lookup;  pierwszy pasujący blok element wins |
-| `scale` | kamera powiększenie multiplier, Domyślne `4` |
-| `meta` | metadane bloku; zastępują metadane w `id` |
-| `width` / `height` | wymiary podglądu w pikselach; domyślnie `128` każdy |
-| `wrap` | zawijanie tekstu; domyślnie `inline` |
-| `align` | wyrównanie poziome: `left` (domyślnie), `center` lub `right` |
-| `float` | legacy flow liczba zmiennoprzecinkowa obsługa: `left` lub `right` |
-| `perspective` | `isometric-north-east` (Domyślne), `isometric-north-west`, lub `up` |
-| `nbt` | opcjonalny SNBT blok-byt dane merged onto any inline SNBT z `id` |
+| `id` | block id; supports the normal `modid:block[:meta][:{snbt}]` spelling |
+| `ore` | ore dictionary lookup; the first matching block item wins |
+| `scale` | camera zoom multiplier, default `4` |
+| `meta` | block metadata; overrides metadata in `id` |
+| `width` / `height` | preview viewport in pixels; default `128` for each dimension |
+| `wrap` | text wrapping mode; default `inline` |
+| `align` | horizontal alignment: `left` (default), `center`, or `right` |
+| `float` | legacy flow float support: `left` or `right` |
+| `perspective` | `isometric-north-east` (default), `isometric-north-west`, or `up` |
+| `nbt` | optional SNBT tile-entity data merged onto any inline SNBT from `id` |
 
-Uwagi:
+Notes:
 
-- inline SNBT wewnątrz `id` is nadal accepted dla compatibility, but `nbt="..."` is  preferowany
+- inline SNBT inside `id` is still accepted for compatibility, but `nbt="..."` is the preferred
   authoring form
-- gdy both inline SNBT i `nbt` są present,  `nbt` Atrybut is merged ostatni i dlatego
-  overrides conflicting klucze
-- GuideNH 1.7.10 nie obsługa modern blok-stan właściwość składnia here, so GuideME-style
-  `p:<state>` atrybuty są intentionally nie Obsługiwane
+- when both inline SNBT and `nbt` are present, the `nbt` attribute is merged last and therefore
+  overrides conflicting keys
+- GuideNH 1.7.10 does not support modern block-state property syntax here, so GuideME-style
+  `p:<state>` attributes are intentionally not supported
 
 ````md
 <BlockImage id="minecraft:crafting_table" scale="3" />
@@ -590,7 +589,7 @@ Uwagi:
 
 ### `<FloatingImage>`
 
-Zobacz [Images And Assets](Images-And-Assets) dla  full zachowanie.
+See [Images And Assets](Images-And-Assets) for the full behavior.
 
 ```mdx
 <FloatingImage src="test1.png" displayWidth="128" wrap="inline" />
@@ -598,17 +597,17 @@ Zobacz [Images And Assets](Images-And-Assets) dla  full zachowanie.
 <FloatingImage src="test1.png" x="8" y="8" width="16" height="16" displayWidth="128" wrap="inline" />
 ```
 
-### `<SubPages>`, `<Category>`, i `<Special>`
+### `<SubPages>`, `<Category>`, And `<Special>`
 
-Zobacz [Navigation](Navigation) dla full Nawigacja zachowanie.
+See [Navigation](Navigation) for full navigation behavior.
 
 ### `<Structure>`
 
-Zobacz [Examples](Examples) i [GameScene](GameScene) gdy deciding whether do używać static struktura podgląd lub full 3D scena.
+See [Examples](Examples) and [GameScene](GameScene) when deciding whether to use a static structure preview or a full 3D scene.
 
 ### `<Mermaid>`
 
-używany dla czas wykonania Mermaid treść. bieżący czas wykonania obsługa is focused on `mindmap`, either inline lub through strona-względny `src` import:
+Used for runtime Mermaid content. Current runtime support is focused on `mindmap`, either inline or through a page-relative `src` import:
 
 ````md
 <Mermaid src="./markdown-mindmap.mmd" />
@@ -619,69 +618,82 @@ mindmap
     runtime["Runtime blocks"]
 
 <NodeContent id="runtime">
-Węzły czasu wykonywania mogą osadzać zwykłe bloki.
+Runtime nodes can embed normal blocks.
 
 <ItemImage id="minecraft:diamond" />
 </NodeContent>
 </Mermaid>
 ```
 
-- `width` i `height` constrain  czas wykonania viewport box
-- wewnątrz  viewport, przeciąganie pans i  mouse wheel zooms
-- quoted Mermaid labels może używać bogata inline Markdown takie jak `**bold**` i strona links
-- `<NodeContent id="...">...</NodeContent>` może be added as elementy podrzędne of `<Mermaid>` do zastąpić node body z arbitrary czas wykonania bloki
+- `width` and `height` constrain the runtime viewport box
+- inside the viewport, drag pans and the mouse wheel zooms
+- quoted Mermaid labels may use rich inline markdown such as `**bold**` and page links
+- `<NodeContent id="...">...</NodeContent>` can be added as children of `<Mermaid>` to replace a node body with arbitrary runtime blocks
 
 ### `<CsvTable>`
 
-używany do analizować CSV plik do czas wykonania tabela:
+Used to parse a CSV file into a runtime table:
 
 ````md
 <CsvTable src="./markdown-table.csv" />
 ```
 
-`src` resolves względny do  bieżący strona,  ten sam way scena importy i normal zasób links do.
+`src` resolves relative to the current page, the same way scene imports and normal asset links do.
 
-opcjonalny atrybuty:
+Optional attributes:
 
 - `header`
-  domyślne do `true`; Ustaw `header={false}` do Zachowaj  pierwszy wiersz unbolded
+  Defaults to `true`; set `header={false}` to keep the first row unbolded
 - `widths`
-  Comma-separated liczba całkowita szerokość hints takie jak `widths="120,80"`
+  Comma-separated integer width hints such as `widths="120,80"`
 
-Przykłady:
+Examples:
 
 ````md
 <CsvTable src="./markdown-table.csv" widths="120,80" />
 <CsvTable src="./markdown-table.csv" header={false} />
 ```
 
- related fenced czas wykonania CSV form także obsługuje pasujący metadane:
+The related fenced runtime CSV form also supports matching metadata:
 
 ````md
 ```csv widths="120,80" header=false
-nazwa,wartość
+name,value
 iron,42
 gold,17
 ```
 ````
 
+### HTML `<table>`
+
+The native HTML table tags are supported in GuideNH pages. Use `<caption>`, `<colgroup>` / `<col>`, and `<thead>` / `<tbody>` / `<tfoot>` to describe the table structure. Cells support `colspan`, `rowspan`, `align`, and `valign`; header cells additionally support `scope`, `abbr`, and `headers`. A table `align` value with commas (for example `left,center,right`) is retained as a per-column alignment extension; a single `left`, `center`, or `right` value positions the complete table. `width`, `border`, `cellpadding`, and `cellspacing` are supported in the game renderer and site export. The kramdown metadata line `{: widths="130,70,150" }` remains supported for Markdown tables.
+
+````md
+<table width="100%" cellpadding="2">
+  <caption>Fuel rates</caption>
+  <colgroup><col width="40%" /><col width="60%" /></colgroup>
+  <thead><tr><th scope="col">Fuel</th><th scope="col">Rate</th></tr></thead>
+  <tbody><tr><td>Coal</td><td align="right">42</td></tr></tbody>
+</table>
+````
+
 ### `<Latex>`
 
-Renders LaTeX math formula używając jlatexmath. gdy używany inline (wewnątrz paragraph lub tekst flow), it renders as scaled glyph który expands  wiersz wysokość do fit  formula. gdy zapisany as jego własny paragraph (blok context), it renders centered as wyświetlać-tryb formula.
+Renders a LaTeX math formula using jlatexmath. When used inline (inside a paragraph or text flow), it renders as a scaled glyph that expands the line height to fit the formula. When written as its own paragraph (block context), it renders centered as a display-mode formula.
 
-| Atrybut | Typ | Domyślne | opis |
+| Attribute | Type | Default | Description |
 | --- | --- | --- | --- |
-| `formula` | ciąg znaków | *(Wymagane)* | LaTeX source ciąg znaków |
-| `color` | `#RRGGBB` lub `#AARRGGBB` | `#FFFFFF` | Glyph fill colour |
-| `scale` | liczba zmiennoprzecinkowa | `1.0` | wyświetlać rozmiar multiplier applied on góra of  automatyczny wiersz-wysokość scaling |
-| `sourceScale` | liczba zmiennoprzecinkowa | `100.0` | jlatexmath wewnętrzny renderować resolution; higher wartości improve quality at large sizes |
-| `tooltip` | ciąg znaków | *(none)* | Plain podpowiedź tekst wyświetlany on najechanie |
-| `showTooltip` | wartość logiczna | `false` | pokazywać  raw LaTeX source as podpowiedź on najechanie |
-| `valign` | `baseline` / `top` / `center` / `bottom` | `baseline` | Inline-tylko. Vertical alignment wewnątrz  tekst wiersz: `baseline` (Domyślne) aligns  formula's math baseline z  tekst baseline; `top` aligns  formula góra z  wiersz góra; `center` centers it on  tekst; `bottom` aligns  formula dół z  tekst dół |
-| `offsetX` | int | `0` | Horizontal piksel offset applied po alignment (positive = prawo) |
-| `offsetY` | int | `0` | Vertical piksel offset applied po alignment (positive = down) |
+| `formula` | string | *(required)* | LaTeX source string |
+| `color` | `#RRGGBB` or `#AARRGGBB` | `#FFFFFF` | Glyph fill colour |
+| `scale` | float | `1.0` | Display size multiplier applied on top of the automatic line-height scaling |
+| `sourceScale` | float | `100.0` | jlatexmath layout size used as the measuring reference. In game the formula is always rasterized at the actual screen resolution; in site export it sets the PNG resolution |
+| `tooltip` | string | *(none)* | Plain tooltip text shown on hover |
+| `showTooltip` | boolean | `false` | Show the raw LaTeX source as a tooltip on hover |
+| `valign` | `baseline` / `top` / `center` / `bottom` | `baseline` | Inline-only. Vertical alignment within the text line: `baseline` (default) aligns the formula's math baseline with the text baseline; `top` aligns the formula top with the line top; `center` centers it on the text; `bottom` aligns the formula bottom with the text bottom |
+| `offsetX` | int | `0` | Horizontal pixel offset applied after alignment (positive = right) |
+| `offsetY` | int | `0` | Vertical pixel offset applied after alignment (positive = down) |
 
-Przykłady:
+Examples:
 
 ````md
 Inline: <Latex formula="E=mc^2" />
@@ -717,11 +729,11 @@ Top-aligned with an upward nudge: <Latex formula="x^2" valign="top" offsetY="-1"
 
 #### `$$formula$$` shorthand
 
-As convenience you może zapisywać `$$formula$$` directly in Markdown bez używając  `<Latex>` tag.
-wszystkie renderowanie parametry używać ich domyślne (white colour, scale 1.0, no podpowiedź, baseline-aligned).
+As a convenience you can write `$$formula$$` directly in Markdown without using the `<Latex>` tag.
+All rendering parameters use their defaults (white colour, scale 1.0, no tooltip, baseline-aligned).
 
-- **Inline**: `$$formula$$` embedded wewnątrz paragraph renders as inline formula.
-- **wyświetlać**: paragraph whose entire treść is `$$formula$$` (z opcjonalny surrounding whitespace) renders as centred wyświetlać-tryb blok.
+- **Inline**: `$$formula$$` embedded inside a paragraph renders as an inline formula.
+- **Display**: a paragraph whose entire content is `$$formula$$` (with optional surrounding whitespace) renders as a centred display-mode block.
 
 ````md
 Inline shorthand: $$E=mc^2$$ and $$a^2+b^2=c^2$$
@@ -733,73 +745,73 @@ $$\int_0^\infty e^{-x^2}\,dx = \frac{\sqrt{\pi}}{2}$$
 $$\begin{pmatrix} a & b \\ c & d \end{pmatrix}$$
 ````
 
-Uwagi:
+Notes:
 
--  formula wysokość is calibrated do  bieżący wiersz tekst wysokość. prosty formulas renderować at tekst wysokość; taller formulas (fractions, summations, integrals, etc.) expand  enclosing wiersz wysokość automatycznie.
-- `valign` tylko stosuje do inline formulas. wyświetlać-tryb (blok-level) formulas są zawsze centered horizontally; używać `offsetY` do shift ich vertically wewnątrz  blok.
-- `color` domyślne do white (`#FFFFFF`). używać `#AARRGGBB` format dla semi-przezroczysty fill.
-- `sourceScale` tylko affects renderować sharpness, nie  displayed rozmiar. wartości below `16` są clamped do `16`.
-- podpowiedź priority is: bogata element podrzędny Markdown treść, następnie `tooltip="..."`, następnie `showTooltip={true}` raw source awaryjny.
-- element podrzędny podpowiedź treść is skompilowany as regular przewodnik Markdown, so it może uwzględniać bold tekst, lists, links, element tagi, i nested `<Latex>` formulas.
--  `$$formula$$` shorthand zawsze używa Domyślne parametry. używać  `<Latex>` tag dla niestandardowy colour, scale, alignment lub podpowiedź.
+- The formula height is calibrated to the current line text height. Simple formulas render at text height; taller formulas (fractions, summations, integrals, etc.) expand the enclosing line height automatically.
+- `valign` only applies to inline formulas. Display-mode (block-level) formulas are always centered horizontally; use `offsetY` to shift them vertically within the block.
+- `color` defaults to white (`#FFFFFF`). Use `#AARRGGBB` format for a semi-transparent fill.
+- `sourceScale` does not change the displayed size. In game, formulas are rasterized at the on-screen pixel size (GUI scale aware), so thin strokes such as fraction bars and minus signs stay visible on low-resolution displays; `sourceScale` only affects the site-export PNG resolution. Values below `16` are clamped to `16`.
+- Tooltip priority is: rich child Markdown content, then `tooltip="..."`, then `showTooltip={true}` raw source fallback.
+- Child tooltip content is compiled as regular guide Markdown, so it can include bold text, lists, links, item tags, and nested `<Latex>` formulas.
+- The `$$formula$$` shorthand always uses default parameters. Use the `<Latex>` tag for custom colour, scale, alignment or tooltip.
 
-### scena czas wykonania tagi
+### Scene Runtime Tags
 
-Te tagi tylko działa wewnątrz `<GameScene>` / `<Scene>`:
+These tags only work inside `<GameScene>` / `<Scene>`:
 
-| tag | Purpose | klucz atrybuty |
+| Tag | Purpose | Key attributes |
 | --- | --- | --- |
-| `<ImportStructure>` | import zewnętrzny SNBT/NBT struktura zasób | `src`, `x`, `y`, `z`, `offsetX`, `offsetY`, `offsetZ`, `formed` |
-| `<ImportStructureLib>` | import StructureLib multiblock by controller id | `controller`, `name`, `piece`, `facing`, `rotation`, `flip`, `tier`, `channel`, `channelName`, `value`, `locked`, `offsetX`, `offsetY`, `offsetZ`, `formed` |
-| `<RemoveBlocks>` | usuwać już-umieszczony bloki który pasować blok matcher | `id` |
-| `<BlockAnnotation>` | wyróżnienie jednego bloku | `pos`, `color`, `colorMode`, `colorPeriod`, `thickness`, `alwaysOnTop` |
-| `<BoxAnnotation>` | wyróżnienie dowolnego prostopadłościanu równoległego do osi | `min`, `max`, `color`, `colorMode`, `colorPeriod`, `thickness`, `alwaysOnTop` |
-| `<OutlineAnnotation>` | obrysowanie renderowanej sylwetki bloków lub encji | `pos`, `min`, `max`, `entity`, `target`, `mode`, `color`, `colorMode`, `colorPeriod`, `thickness`, `alwaysOnTop`, `pulse`, `pulsePeriod` |
-| `<BlockAnnotationTemplate>` | stamp  ten sam element podrzędny Adnotacje onto każdy pasujący umieszczony blok | `id` |
+| `<ImportStructure>` | import an external SNBT/NBT structure asset | `src`, `x`, `y`, `z`, `offsetX`, `offsetY`, `offsetZ`, `formed` |
+| `<ImportStructureLib>` | import a StructureLib multiblock by controller id | `controller`, `name`, `piece`, `facing`, `rotation`, `flip`, `tier`, `channel`, `channelName`, `value`, `locked`, `offsetX`, `offsetY`, `offsetZ`, `formed` |
+| `<RemoveBlocks>` | remove already-placed blocks that match a block matcher | `id` |
+| `<BlockAnnotation>` | highlight one block | `pos`, `color`, `colorMode`, `colorPeriod`, `thickness`, `alwaysOnTop` |
+| `<BoxAnnotation>` | highlight an arbitrary axis-aligned box | `min`, `max`, `color`, `colorMode`, `colorPeriod`, `thickness`, `alwaysOnTop` |
+| `<OutlineAnnotation>` | outline the rendered silhouette of blocks or entities | `pos`, `min`, `max`, `entity`, `target`, `mode`, `color`, `colorMode`, `colorPeriod`, `thickness`, `alwaysOnTop`, `pulse`, `pulsePeriod` |
+| `<BlockAnnotationTemplate>` | stamp the same child annotations onto every matching placed block | `id` |
 
-`colorMode`: `solid` (domyślnie) lub `rainbow`; tęcza obraca się o 360° wokół rzutowanego środka, zastępuje RGB i zachowuje alfę `color`. `colorPeriod`: dodatni, skończony okres tęczy w sekundach; domyślnie `2.4`; błędne wartości powodują błąd strony. Gra i Site Export używają tego samego gradientu tęczy i czasu cyklu.
+`colorMode`: `solid` (default) or `rainbow`; rainbow rotates through 360 degrees around the projected annotation center, replacing RGB while preserving the alpha of `color`. `colorPeriod`: positive finite rainbow cycle period in seconds; default `2.4`; invalid values produce a page error. Game and Site Export use the same rainbow gradient and cycle duration.
 
-Zobacz [GameScene](GameScene) dla scena import/removal zachowanie i [Annotations](Annotations) dla adnotacja template Zasady.
+See [GameScene](GameScene) for scene import/removal behavior and [Annotations](Annotations) for annotation template rules.
 
 
-## Wykresy
+## Charts
 
-`<ColumnChart>`, `<BarChart>`, `<LineChart>`, `<PieChart>`, i `<ScatterChart>` są interaktywny wykres bloki. wszystkie Wykresy share  following wspólny atrybuty:
+`<ColumnChart>`, `<BarChart>`, `<LineChart>`, `<PieChart>`, and `<ScatterChart>` are interactive chart blocks. All charts share the following common attributes:
 
-| Atrybut | opis | Domyślne |
+| Attribute | Description | Default |
 | --- | --- | --- |
-| `title` | wykres tytuł | none |
-| `width` / `height` | jawny rozmiar | 320 / 200 |
-| `background` / `border` | tło i obramowanie colors (`#RGB`, `#RRGGBB`, `#AARRGGBB`, `0x...`) | dark grey |
-| `titleColor` / `labelColor` | tytuł i wartość-etykieta colors | light grey |
-| `legend` | legenda pozycja: `none` / `top` / `bottom` / `left` / `right` | `top` |
-| `labelPosition` | wartość-etykieta pozycja: `none` / `inside` / `outside` / `above` / `below` / `center` | `none` |
-| `cornerLegend` | wewnętrzny plot legenda pozycja: `none` / `topRight` / `topLeft` / `bottomRight` / `bottomLeft` | `none` |
-| `cornerLegendWidth` / `cornerLegendHeight` | Maximum wewnętrzny legenda box rozmiar | `120` / `64` |
-| `cornerLegendBackground` | wewnętrzny legenda tło kolor | `#AA111922` |
+| `title` | Chart title | none |
+| `width` / `height` | Explicit size | 320 / 200 |
+| `background` / `border` | Background and border colors (`#RGB`, `#RRGGBB`, `#AARRGGBB`, `0x...`) | dark grey |
+| `titleColor` / `labelColor` | Title and value-label colors | light grey |
+| `legend` | Legend position: `none` / `top` / `bottom` / `left` / `right` | `top` |
+| `labelPosition` | Value-label position: `none` / `inside` / `outside` / `above` / `below` / `center` | `none` |
+| `cornerLegend` | Internal plot legend position: `none` / `topRight` / `topLeft` / `bottomRight` / `bottomLeft` | `none` |
+| `cornerLegendWidth` / `cornerLegendHeight` | Maximum internal legend box size | `120` / `64` |
+| `cornerLegendBackground` | Internal legend background color | `#AA111922` |
 
-Cartesian Wykresy (kolumna / Bar / wiersz / Scatter) additionally akceptują oś atrybuty `xAxisLabel`, `xAxisMin`, `xAxisMax`, `xAxisStep`, `xAxisUnit`, `xAxisTickFormat` i  pasujący `yAxis*` Ustaw, plus `showXGrid={true}` / `showYGrid={true}` do toggle gridlines.
+Cartesian charts (Column / Bar / Line / Scatter) additionally accept axis attributes `xAxisLabel`, `xAxisMin`, `xAxisMax`, `xAxisStep`, `xAxisUnit`, `xAxisTickFormat` and the matching `yAxis*` set, plus `showXGrid={true}` / `showYGrid={true}` to toggle gridlines.
 
-Nieprawidłowe lub zbyt duże formaty podziałki używają automatycznego formatowania liczb. Limity wynoszą 256 znaków, 128 dla szerokości pola i 20 dla precyzji. Nakładające się etykiety liczbowe są w razie potrzeby pomijane, a odpowiadające im linie siatki pozostają bez zmian.
+Invalid or oversized tick formats fall back to automatic number formatting. Format strings are limited to 256 characters, field widths to 128, and precision to 20. Overlapping numeric tick labels are omitted as needed without removing their grid lines.
 
-`ColumnChart`, `LineChart` i `ScatterChart` pokazują w obszarze wykresu poziomą złotą linię pomocniczą, również nad pustym miejscem, i wyróżniają wartość Y po lewej stronie. `BarChart` używa pionowej linii z wartością X na dole. Wartości zachowują format i jednostkę osi. Na samej linii nie ma tekstu; poza wykresem znika. Obie osie używają delikatnej siatki z rzadko rozmieszczonych kresek, sterowanej osobno przez `showXGrid` i `showYGrid`. Bardzo małe dodatnie odstępy podziałki są automatycznie zwiększane, aby ograniczyć koszt renderowania.
+`ColumnChart`, `LineChart`, and `ScatterChart` show a horizontal gold dashed guide while the pointer is inside the plot, including empty space; the current Y value is highlighted beside the left axis. `BarChart` uses a vertical guide and highlights the X value below the plot. Labels follow the axis tick format and unit. The guide has no text on the line and disappears outside the plot. Both axes use faint, sparse dashed grids; `showXGrid` and `showYGrid` control them independently. Extremely small positive tick steps are coarsened automatically to bound rendering work.
 
-elementy podrzędne:
+Children:
 
-* `<Series name="..." color="#..." data="10,20,30"/>` dla category-based Wykresy (kolumna / Bar / categorical wiersz).
-* `<Series name="..." color="#..." points="x:y,x:y,..."/>` dla numeric X (wiersz `numericX={true}`, Scatter).
-* `<Slice name="..." value="..." color="#..."/>` dla `<PieChart>` tylko.
-* `<ReferenceLine y="100"/>` rysuje stałą linię poziomą w `ColumnChart`, `LineChart` i `ScatterChart`. `BarChart` używa `<ReferenceLine x="100"/>` dla linii pionowej i przyjmuje `y` jako alias. Współrzędna musi być skończona. Można dodać wiele linii; `color` zastępuje półprzezroczysty szary kolor, a opcjonalny `label` pojawia się wewnątrz wykresu, nie zasłaniając etykiet osi. Linie odniesienia działają bez siatki, nie rozszerzają automatycznego zakresu i są ukrywane poza nim. `PieChart` nie obsługuje tego znacznika.
+* `<Series name="..." color="#..." data="10,20,30"/>` for category-based charts (Column / Bar / categorical Line).
+* `<Series name="..." color="#..." points="x:y,x:y,..."/>` for numeric X (Line `numericX={true}`, Scatter).
+* `<Slice name="..." value="..." color="#..."/>` for `<PieChart>` only.
+* `<ReferenceLine y="100"/>` draws a fixed horizontal line in `ColumnChart`, `LineChart`, and `ScatterChart`. `BarChart` uses `<ReferenceLine x="100"/>` for a vertical line, with `y` accepted as an alias. The coordinate must be finite. Multiple lines are allowed; `color` overrides the translucent gray default and optional `label` appears inside the plot without covering axis tick labels. References remain visible when grids are disabled, do not expand the automatic range, and are hidden outside it. `PieChart` does not support this tag.
 
-gdy `color` is pominięty on a `<Series>` lub `<Slice>`, GuideNH cycles through built-in 16-kolor palette.
+When `color` is omitted on a `<Series>` or `<Slice>`, GuideNH cycles through a built-in 16-color palette.
 
-`<Series>` i `<Slice>` także akceptują  following opcjonalny icon / podpowiedź atrybuty:
+`<Series>` and `<Slice>` also accept the following optional icon / tooltip attributes:
 
-* `icon="modid:item"` (ten sam składnia as `<ItemImage>`'s `id`, może uwzględniać `@meta` i inline NBT JSON) — binds an `ItemStack` do  wpis;  legenda swatch staje się  element icon i najechanie  dane punkt shows  vanilla element podpowiedź z  wykres opis appended at  koniec.
-* `iconImage="images/foo.png"` — używać PNG zasób as  legenda swatch (overridden by `icon`).
-* `tooltip="..."` — extra free-form tekst appended do  podpowiedź (używać `\n` dla multi-wiersz).
+* `icon="modid:item"` (same syntax as `<ItemImage>`'s `id`, may include `@meta` and inline NBT JSON) — binds an `ItemStack` to the entry; the legend swatch becomes the item icon and hovering the data point shows the vanilla item tooltip with the chart description appended at the end.
+* `iconImage="images/foo.png"` — use a PNG asset as the legend swatch (overridden by `icon`).
+* `tooltip="..."` — extra free-form text appended to the tooltip (use `\n` for multi-line).
 
-Przykład:
+Example:
 
 ```mdx
 <PieChart title="Output share">
@@ -810,16 +822,16 @@ Przykład:
 
 ### `<ColumnChart>` / `<BarChart>`
 
-Extra atrybuty: `categories` (X-oś lub Y-oś labels, comma separated), `barWidthRatio` (Domyślne 0.7). `<BarChart>` puts  categories on  Y-oś i wartości on  X-oś.
+Extra attributes: `categories` (X-axis or Y-axis labels, comma separated), `barWidthRatio` (default 0.7). `<BarChart>` puts the categories on the Y-axis and values on the X-axis.
 
 #### Combo extensions
 
-`<ColumnChart>` i `<BarChart>` akceptują dwa extra element podrzędny element types so wiele wykres styles może share jeden plot area:
+`<ColumnChart>` and `<BarChart>` accept two extra child element types so multiple chart styles can share one plot area:
 
-- `<LineSeries name="…" data="v1,v2,…" color="#rrggbb" icon="…"/>` — drawn as polilinia overlay on góra of  bars. każdy wiersz punkt sits at  cluster środek of  pasujący category index;  overlay shares  host wykres's wartość oś. You może declare wiele `<LineSeries>` do overlay several trends.
-- `<PieInset size="60" position="topRight" title="…" startAngleDeg="-90" direction="clockwise" titleColor="#rrggbb">` — small pie wykres drawn wewnątrz jeden of  four corners (`topRight`, `topLeft`, `bottomRight`, `bottomLeft`) of  plot area. jego `<Slice>` elementy podrzędne share  ten sam składnia as in `<PieChart>`.
+- `<LineSeries name="…" data="v1,v2,…" color="#rrggbb" icon="…"/>` — drawn as a polyline overlay on top of the bars. Each line point sits at the cluster center of the matching category index; the overlay shares the host chart's value axis. You can declare multiple `<LineSeries>` to overlay several trends.
+- `<PieInset size="60" position="topRight" title="…" startAngleDeg="-90" direction="clockwise" titleColor="#rrggbb">` — a small pie chart drawn inside one of the four corners (`topRight`, `topLeft`, `bottomRight`, `bottomLeft`) of the plot area. Its `<Slice>` children share the same syntax as in `<PieChart>`.
 
-Sektory `PieInset` mają przy wskazywaniu pierwszeństwo przed słupkami i liniami pod nimi: podpowiedź pokazuje nazwę, wartość, procent i opcjonalny tekst `tooltip`. W grze zachowane są podpowiedzi przedmiotów. Nad sektorem znika główna linia pomocnicza. Używany jest tylko pierwszy wykres wstawiony. `position="rightOutside"` rezerwuje osobne miejsce po prawej. Obsługiwane są `startAngleDeg="0"`, `direction="counterclockwise"` oraz pojedynczy sektor tworzący pełne koło.
+`PieInset` slices take hover priority over the bars and lines below them: tooltips show the name, value, percentage, and optional `tooltip` text; in-game item tooltips are retained when an item icon is present. The main guide is hidden while a slice is hovered. Only the first inset is used. `position="rightOutside"` reserves a separate area on the right. `startAngleDeg="0"`, `direction="counterclockwise"`, and a single full-circle slice are supported.
 
 ```mdx
 <ColumnChart title="Quarterly output" categories="Q1,Q2,Q3,Q4">
@@ -835,74 +847,74 @@ Sektory `PieInset` mają przy wskazywaniu pierwszeństwo przed słupkami i linia
 
 ### `<LineChart>`
 
-Extra atrybuty: `numericX={true}` do enable numeric X-oś (elementy podrzędne musi używać `points`); `showPoints={false}` hides punkt znaczniki.  hovered punkt is pushed outward by 2px wzdłuż  curve normal, enlarged, i outlined;  adjacent wiersz segments thicken by 1px.
+Extra attributes: `numericX={true}` to enable a numeric X-axis (children must use `points`); `showPoints={false}` hides point markers. The hovered point is pushed outward by 2px along the curve normal, enlarged, and outlined; the adjacent line segments thicken by 1px.
 
-`<LineChart>` i `<ScatterChart>` może pokazywać compact legenda wewnątrz  plot area z `cornerLegend="topRight"` lub another corner. wpisy używać existing seria names i colors.
+`<LineChart>` and `<ScatterChart>` can show a compact legend inside the plot area with `cornerLegend="topRight"` or another corner. Entries use existing series names and colors.
 
 ### `<PieChart>`
 
-Extra atrybuty: `startAngle` (Domyślne `-90`, i.e. 12 o'clock); `clockwise={false}` do reverse direction.  hovered slice pops outward 4px wzdłuż jego bisector.
+Extra attributes: `startAngle` (default `-90`, i.e. 12 o'clock); `clockwise={false}` to reverse direction. The hovered slice pops outward 4px along its bisector.
 
 ### `<ScatterChart>`
 
-Renders punkty tylko; `<Series>` musi używać `points`.  X-oś is zawsze numeric.
+Renders points only; `<Series>` must use `points`. The X-axis is always numeric.
 
-## Wykresy funkcji
+## Function Graphs
 
-`<FunctionGraph>` i  pojedynczy-curve shorthand `<Function>` renderować interaktywny Desmos-style panel.  ten sam panel is także dostępny through a ` ```funcgraph ` fenced blok kodu; Zobacz  czas wykonania [Markdown sample](resourcepack/assets/guidenh/guidenh/_en_us/markdown.md) dla full walkthrough.
+`<FunctionGraph>` and the single-curve shorthand `<Function>` render an interactive Desmos-style panel. The same panel is also available through a ` ```funcgraph ` fenced code block; see the runtime [Markdown sample](resourcepack/assets/guidenh/guidenh/_en_us/markdown.md) for a full walkthrough.
 
-Panel atrybuty (accepted by  container,  shorthand, i  fence header alike):
+Panel attributes (accepted by the container, the shorthand, and the fence header alike):
 
-- `width` / `height` (domyślne `320` x `220`)
+- `width` / `height` (defaults `320` x `220`)
 - `title`, `background`, `border`, `axisColor`, `gridColor`
-- `showGrid` / `showAxes` (Domyślne `true`)
-- `xRange="a..b"` (lub `xMin` / `xMax` separately), `xStep` dla tick spacing; ten sam dla  Y oś
-- `xLabel` / `yLabel` Dodaj Excel-style oś titles below i nad  plot respectively. jeden obsługa inline `$$...$$` LaTeX; `domain="a..b"` is legacy alias dla `xRange` gdy no jawny X range is present
-- `quadrants="1,2,3,4"` lub `quadrants="all"` do force  widoczny quadrants; omit do początek in quadrant 1 z auto-expansion gdy sampled `y < 0`
-- `cornerLegend`, `cornerLegendWidth`, `cornerLegendHeight`, i `cornerLegendBackground` pokazywać compact legenda wewnątrz  plot area używając non-empty curve labels
+- `showGrid` / `showAxes` (default `true`)
+- `xRange="a..b"` (or `xMin` / `xMax` separately), `xStep` for tick spacing; same for the Y axis
+- `xLabel` / `yLabel` add Excel-style axis titles below and above the plot respectively. They support inline `$$...$$` LaTeX; `domain="a..b"` is a legacy alias for `xRange` when no explicit X range is present
+- `quadrants="1,2,3,4"` or `quadrants="all"` to force the visible quadrants; omit to start in quadrant 1 with auto-expansion when sampled `y < 0`
+- `cornerLegend`, `cornerLegendWidth`, `cornerLegendHeight`, and `cornerLegendBackground` show a compact legend inside the plot area using non-empty curve labels
 
-Curve elementy podrzędne (`<Plot>` / `<Function>`):
+Curve children (`<Plot>` / `<Function>`):
 
-- `expr="..."` &mdash;  wyrażenie. Operators `+ - * / % ^`, postfix factorial `!` (gamma-extended), `|x|` bezwzględny wartość, `√` / `sqrt` / `∛` / `cbrt`, niejawny multiplication, i  constants `pi`, `tau`, `e`, `phi` są Obsługiwane. Built-in calls cover  standardowy trig/log/exp/rounding family plus dwa-arg `atan2`, `min`, `max`, `pow`, `hypot`, `mod`.
-- `inverse={true}` evaluates  wyrażenie as `x = f(y)` i rotates  curve.
-- `domain="a..b"` (x granice shorthand) lub comma-separated clauses takie jak `x>=0, x<5`.
-- `color`, `label`. Any curve z non-empty etykieta is automatycznie listed in legenda wyrenderowany just below  panel: small kolor swatch followed by  etykieta, z wpisy flowing lewo-do-prawo i wrapping onto nowy wiersz gdy  następny wpis would nie fit.
-- `tooltip` dodaje plain tekst below  computed podpowiedź. `showFunction` i `showValues` Domyślne do `true`; Ustaw either do `false` do ukrywać  wyrenderowany równanie lub live `(x, y)` wartość respectively. A `<Plot>` / nested `<Function>` z `expr` może zawierać Markdown i GuideNH tagi as bogata podpowiedź body.  kolejność is zawsze etykieta, wyrenderowany równanie, live wartości, `tooltip` tekst, następnie bogata element podrzędny treść; pominięty lub wyłączony computed pola są skipped in który kolejność.
-- `pointEveryX="step"` dodaje wygenerowany punkt znaczniki at regular x intervals on który curve.
-- `pointEveryY="step"` dodaje wygenerowany punkt znaczniki where  curve intersects regular y intervals, używając bounded wyszukiwanie.
-- `autoPointLabel="none|x|y|xy"` controls wygenerowany punkt labels; Domyślne is `none`.
-- `autoPointColor="#..."` overrides  wygenerowany punkt kolor; pominięty oznacza inherit  curve kolor.
+- `expr="..."` &mdash; the expression. Operators `+ - * / % ^`, postfix factorial `!` (gamma-extended), `|x|` absolute value, `√` / `sqrt` / `∛` / `cbrt`, implicit multiplication, and the constants `pi`, `tau`, `e`, `phi` are supported. Built-in calls cover the standard trig/log/exp/rounding family plus two-arg `atan2`, `min`, `max`, `pow`, `hypot`, `mod`.
+- `inverse={true}` evaluates the expression as `x = f(y)` and rotates the curve.
+- `domain="a..b"` (x bounds shorthand) or comma-separated clauses such as `x>=0, x<5`.
+- `color`, `label`. Any curve with a non-empty label is automatically listed in a legend rendered just below the panel: a small color swatch followed by the label, with entries flowing left-to-right and wrapping onto a new row when the next entry would not fit.
+- `tooltip` adds plain text below the computed tooltip. `showFunction` and `showValues` default to `true`; set either to `false` to hide the rendered equation or live `(x, y)` value respectively. A `<Plot>` / nested `<Function>` with `expr` may contain Markdown and GuideNH tags as a rich tooltip body. The order is always label, rendered equation, live values, `tooltip` text, then rich child content; omitted or disabled computed fields are skipped in that order.
+- `pointEveryX="step"` adds generated point markers at regular x intervals on that curve.
+- `pointEveryY="step"` adds generated point markers where the curve intersects regular y intervals, using a bounded search.
+- `autoPointLabel="none|x|y|xy"` controls generated point labels; default is `none`.
+- `autoPointColor="#..."` overrides the generated point color; omitted means inherit the curve color.
 
-Marked punkty (`<Point>`):
+Marked points (`<Point>`):
 
-- jawny: `x="..."` i `y="..."`.
-- Plot-anchored: `plot="N"` plus `atX="v"` lub `atY="v"` ( czas wykonania bisects on  plot's x-domain do find  pasujący `x`).
-- opcjonalny `color`, `label`.
+- Explicit: `x="..."` and `y="..."`.
+- Plot-anchored: `plot="N"` plus `atX="v"` or `atY="v"` (the runtime bisects on the plot's x-domain to find the matching `x`).
+- Optional `color`, `label`.
 
-Interaction: najechanie curve do wyróżniać it; press i hold do scrub punkt wzdłuż  curve.  podpowiedź starts z `label` gdy supplied, następnie  równanie i live `(x, y)` wartość unless ich switches są wyłączony; it stays anchored nad  punkt i flips below gdy there is no headroom.
+Interaction: hover a curve to highlight it; press and hold to scrub a point along the curve. The tooltip starts with `label` when supplied, then the equation and live `(x, y)` value unless their switches are disabled; it stays anchored above the point and flips below when there is no headroom.
 
-## BetterQuesting Compatibility tagi
+## BetterQuesting Compatibility Tags
 
-`<QuestLink>` i `<QuestCard>` są tylko zarejestrowany gdy  BetterQuesting mod is załadowany. jeden są documented in detail on  [Mod Compatibility](Mod-Compatibility) strona;  summary below covers  most wspólny usage.
+`<QuestLink>` and `<QuestCard>` are only registered when the BetterQuesting mod is loaded. They are documented in detail on the [Mod Compatibility](Mod-Compatibility) page; the summary below covers the most common usage.
 
 ### `<QuestLink>`
 
-Inline odnośnik do BetterQuesting quest. kliknięcie opens  quest wewnątrz  BetterQuesting GUI, unless  quest id is także present in  bieżący przewodnik's `quest_ids` frontmatter — in który case  odnośnik navigates do który strona zamiast tego.
+Inline link to a BetterQuesting quest. Clicking opens the quest inside the BetterQuesting GUI, unless the quest id is also present in the current guide's `quest_ids` frontmatter — in that case the link navigates to that page instead.
 
-| Atrybut | Znaczenie |
+| Attribute | Meaning |
 | --- | --- |
-| `id` | Wymagane BetterQuesting quest id; accepts canonical UUID strings i compact Base64 ids |
-| `text` | opcjonalny nadpisywać dla  displayed tekst |
-| `show_tooltip` | opcjonalny wartość logiczna (Domyślne `true`); Ustaw do `false` do suppress  quest-opis podpowiedź. `showTooltip` is accepted as alias |
+| `id` | required BetterQuesting quest id; accepts canonical UUID strings and compact Base64 ids |
+| `text` | optional override for the displayed text |
+| `show_tooltip` | optional boolean (default `true`); set to `false` to suppress the quest-description tooltip. `showTooltip` is accepted as an alias |
 
-widoczność zachowanie is decided per gracz at kompilować czas:
+Visibility behavior is decided per player at compile time:
 
-- widoczny / completed quests renderować as clickable odnośnik (completed quests są tinted green i append a `✓` mark)
-- locked but non-ukryty quests nadal renderować as clickable quest links so jeden może open  BetterQuesting quest ekran lub  indexed strona przewodnika
-- ukryty / secret quests renderować as darker italic placeholder używając `guidenh.compat.bq.hidden`
-- nieznany quest ids renderować as red placeholder używając `guidenh.compat.bq.missing`
+- visible / completed quests render as a clickable link (completed quests are tinted green and append a `✓` mark)
+- locked but non-hidden quests still render as clickable quest links so they can open the BetterQuesting quest screen or the indexed guide page
+- hidden / secret quests render as a darker italic placeholder using `guidenh.compat.bq.hidden`
+- unknown quest ids render as a red placeholder using `guidenh.compat.bq.missing`
 
-Przykład:
+Example:
 
 ````md
 See <QuestLink id="01234567-89ab-cdef-0123-456789abcdef" /> for the next step.
@@ -913,17 +925,17 @@ See <QuestLink id="AAAAAAAAAAAAAAAAAAAMug==" text="Compact quest id example" /> 
 
 ### `<QuestCard>`
 
-blok-level summary card dla BetterQuesting quest. Renders  quest tytuł z  ten sam stan-aware styling as `<QuestLink>`, plus  quest opis as body paragraph gdy  quest is widoczny do  gracz.
+Block-level summary card for a BetterQuesting quest. Renders the quest title with the same state-aware styling as `<QuestLink>`, plus the quest description as a body paragraph when the quest is visible to the player.
 
-| Atrybut | Znaczenie |
+| Attribute | Meaning |
 | --- | --- |
-| `id` | Wymagane BetterQuesting quest id; accepts canonical UUID strings i compact Base64 ids |
-| `show_desc` | opcjonalny wartość logiczna (Domyślne `true`); Ustaw do `false` do suppress  opis body |
-| `show_tooltip` | opcjonalny wartość logiczna (Domyślne `true`); Ustaw do `false` do suppress  quest-opis podpowiedź on  clickable tytuł. `showTooltip` is accepted as alias |
+| `id` | required BetterQuesting quest id; accepts canonical UUID strings and compact Base64 ids |
+| `show_desc` | optional boolean (default `true`); set to `false` to suppress the description body |
+| `show_tooltip` | optional boolean (default `true`); set to `false` to suppress the quest-description tooltip on the clickable title. `showTooltip` is accepted as an alias |
 
- accent kolor of  card obramowanie follows  quest stan: green dla completed, gray dla locked / ukryty, red dla missing, i  standardowy odnośnik kolor dla widoczny quests.  tytuł remains clickable dla widoczny, completed, i locked-but-non-ukryty quests.
+The accent color of the card border follows the quest state: green for completed, gray for locked / hidden, red for missing, and the standard link color for visible quests. The title remains clickable for visible, completed, and locked-but-non-hidden quests.
 
-Przykład:
+Example:
 
 ````md
 <QuestCard id="01234567-89ab-cdef-0123-456789abcdef" />

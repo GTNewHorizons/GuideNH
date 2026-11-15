@@ -26,7 +26,7 @@ GuideNH 内置五种交互式图表标签：`<ColumnChart>`（竖柱）、`<BarC
 ## 原生流体系列图标
 
 <ColumnChart title="Fluids" categories="Water,Steam">
-  <Series name="Flow" values="1000,1600" iconFluid="water" />
+  <Series name="Flow" data="1000,1600" iconFluid="water" />
 </ColumnChart>
 
 ## ColumnChart

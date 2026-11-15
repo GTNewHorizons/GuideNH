@@ -2,7 +2,7 @@
 
 # 标签参考
 
-本页列出由 `DefaultExtensions` 注册的内置运行时标签。
+本页说明指南作者可使用的内置标签。
 
 ## 使用规则
 
@@ -13,7 +13,6 @@
   - [配方](Recipes-zh-CN)
   - [游戏场景](GameScene-zh-CN)
   - [注解](Annotations-zh-CN)
-- 修改 `ContentTabs` 时请按照[跨渲染器维护清单](ContentTabs-Maintenance)逐项核对。
 
 ## 行内与流式标签
 
@@ -430,7 +429,7 @@ ExportSite 的物品数量和流体数量使用网站自带的 Pixeloid Mono 字
 | 属性 | 规则 |
 | --- | --- |
 | `id` | 必填的完整流体注册名，不补命名空间，也不解析物品元数据 |
-| `amount` | 可选的非负整数，最大 2147483647；GTNH 将原始流体单位显示为 L；零数量仍可表示有效流体 |
+| `amount` | 可选整数数量，按流体单位设置显示|
 | `nbt` | 可选 SNBT，应用到独立的 FluidStack 标签 |
 | `showTooltip`、`noTooltip` | 提示可见性优先级与物品图标相同；关闭提示不会关闭 G 导航 |
 | `scale`、`showIcon`、`label`、`format`、`yOffset`、`labelYOffset` | FluidImage 沿用 ItemImage 的显示参数；缩放必须有限且大于零 |
@@ -465,7 +464,7 @@ ExportSite 的物品数量和流体数量使用网站自带的 Pixeloid Mono 字
 示例：
 
 ````md
-<CommandLink command="/tp @s 0 90 0" title="Teleport">Teleport!</CommandLink>
+<CommandLink command="/tp @p 0 90 0" title="Teleport">Teleport!</CommandLink>
 ````
 
 ### `<Row>` 与 `<Column>`

@@ -19,6 +19,7 @@ GuideNH のシーン注釈は `<GameScene>` / `<Scene>` 内の子タグです。
 - `<DiamondAnnotation>`
 - `<OutlineAnnotation>`
 - `<TextAnnotation>`
+- `<InputAnnotation>`
 
 `<BlockAnnotationTemplate>` は、現在のシーンにすでに配置された一致ブロックごとに子注釈を適用します。
 
@@ -262,18 +263,18 @@ GuideNH のシーン注釈は `<GameScene>` / `<Scene>` 内の子タグです。
 </DiamondAnnotation>
 ````
 
-## `<InputAnnotation>` fluid targets
+## `<InputAnnotation>` の流体
 
-InputAnnotation accepts either `item` or `fluid`, never both. A fluid target also accepts optional `amount` (nonnegative integer) and `nbt` (SNBT). Amount and NBT require `fluid`. Existing position, inputType, modifier, and StructureLib visibility conditions remain available.
+`item` または `fluid` のどちらか一方を指定します。流体には任意の `amount`（整数）と `nbt`（SNBT）を指定できます。これらは `fluid` がある場合だけ使用できます。位置、`inputType`、修飾キー、StructureLib の表示条件も指定できます。
 
-```mdx
-<GameScene width="180" height="120">
-  <Block x="0" y="0" z="0" id="minecraft:stone" />
+```md
+<GameScene>
+  <Block id="minecraft:glass" />
   <InputAnnotation pos="0.5 1.5 0.5" inputType="rmb" fluid="water" amount={1000} />
 </GameScene>
 ```
 
-The annotation displays an interaction icon and fluid information. It does not fill a tank or change the scene world. Editing, saving, reloading, and export retain the fluid registry name, amount, and NBT. Fluid blocks still use real block IDs in Block / PlaceBlock.
+注釈は操作アイコンと流体情報を表示します。タンクへの注入は行いません。流体ブロックの配置には `Block` / `PlaceBlock` で実際のブロック ID を指定します。
 
 ## `<BlockAnnotationTemplate>`
 

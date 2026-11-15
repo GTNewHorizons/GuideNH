@@ -67,8 +67,8 @@ Both tags accept a BetterQuesting quest id via `id` and decide their appearance 
 | State | Source | Rendering |
 | --- | --- | --- |
 | Visible | quest is unlocked but not completed | clickable link, default style |
-| Completed | `quest.isComplete(player)` returns true | clickable link, green color, trailing `✓` |
-| Locked | quest exists but is not unlocked, visibility ≠ HIDDEN/SECRET | italic gray placeholder, not clickable |
+| Completed | quest is completed | clickable link, green color, trailing `✓` |
+| Locked | quest exists but is not unlocked, visibility ≠ HIDDEN/SECRET | clickable quest link or card title |
 | Hidden | locked plus visibility is HIDDEN or SECRET | italic dark-gray placeholder, no quest details leaked |
 | Missing | quest id does not resolve to any quest in the database | italic red placeholder |
 
@@ -95,7 +95,7 @@ GuideNH never renders the title or description of a quest whose visibility is `H
 Locked quests can still show their description as a hover tooltip on `<QuestLink>` and on the clickable title inside `<QuestCard>`, because BetterQuesting itself reveals the description on locked quest tooltips. Set `show_tooltip="false"` (or `showTooltip={false}`) to suppress that tooltip. Hidden quests do not expose any tooltip.
 
 > [!NOTE]
-> Quest state is resolved at page-compile time using the local player's progress. The compiled page is cached per guide; reopening the guide after completing or unlocking a quest re-evaluates the state.
+> Reopen the guide after completing or unlocking a quest to refresh its displayed state.
 
 ### Open-guide hotkey integration
 
@@ -111,45 +111,7 @@ This path is independent of the inventory item-tooltip path, so hovering items i
 ### Behavior when BetterQuesting is absent
 
 - `<QuestLink>` and `<QuestCard>` are not registered, so pages that use them fall back to the standard "unknown tag" error rendering until you remove the tag.
-- `quest_ids` frontmatter entries are still parsed and stored under `additionalProperties`, but nothing reads them.
-- The hotkey's quest-hover branch becomes a no-op.
-- BetterQuesting `[guide]...[/guide]` description links are never parsed because the BetterQuesting text box and related mixins are not loaded.
+- `quest_ids` does not create quest navigation, and quest-hover shortcuts are unavailable.
+- BetterQuesting description links require BetterQuesting.
 
-## Exporting your tags to the site
-
-The exported site renders the tags that ship with GuideNH. A mod whose tags are compiled by its own
-`TagCompiler` registers a renderer so its tags are exported as well, instead of showing up in the book and
-disappearing from the site:
-
-```java
-public class MyModSiteTagRenderer implements GuideSiteTagRenderer {
-
-    @Override
-    public Set<String> getTagNames() {
-        return Set.of("MyMachine");
-    }
-
-    @Override
-    public String render(GuideSiteTagRenderContext context, MdxJsxElementFields element) {
-        String id = element.getAttributeString("id", "");
-        return "<div class=\"mymod-machine\">" + GuideSiteGraphRenderer.esc(id) + "</div>";
-    }
-}
-```
-
-```java
-GuideNhIntegrationRegistry.global().registerSiteTagRenderer(new MyModSiteTagRenderer());
-Guide.builder(id).extension(GuideSiteTagRenderer.EXTENSION_POINT, new MyModSiteTagRenderer()).build();
-```
-
-Registered renderers are asked before the built-in ones, and the first one that returns markup wins, so a
-renderer only has to handle the tags it declares. Returning `null` leaves the element to the next renderer
-or to the built-in export. A renderer that throws is reported in the log and skipped, so one broken plugin
-cannot fail the export of a page it does not own.
-
-The context carries the page being exported and the shared export services: `defaultNamespace`,
-`currentPageId`, `templates`, `sceneResolver` and `compiler`, the same values the built-in renderers work
-with. Markup you write is inserted into the page as it is, so escape text with
-`GuideSiteGraphRenderer.esc(...)`.
-
-This means a guide that targets BetterQuesting can be authored once and silently degrade in environments where BetterQuesting is not installed.
+For optional BetterQuesting pages, set `navigation.required_mod: betterquesting` to avoid unknown-tag errors when the mod is absent. Mod developers can find tag and site-export extensions in [Developer Integration](Developer-Integration).

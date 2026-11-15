@@ -1,66 +1,51 @@
 # Receptury
 
-Ta dokumentacja opisuje składnię i funkcje czasu wykonania GuideNH. Kod, tagi, ścieżki, identyfikatory i wartości atrybutów pozostają bez zmian.
+Szczegółowa dokumentacja na tej stronie jest dostępna po angielsku. Nazwy tagów, atrybuty, identyfikatory i ścieżki należy stosować bez tłumaczenia.
 
+Use recipe tags to show how an item or fluid is produced or consumed. Machine recipes depend on the installed recipe integrations; vanilla crafting is available without NEI.
 
-GuideNH może renderować crafting i NEI-backed Receptury directly wewnątrz przewodnik strony.
+## Choosing a tag
 
-## Obsługiwane tagi
+| Tag | Query | Default result count |
+| --- | --- | --- |
+| `<Recipe>` / `<RecipeFor>` | Produces the target | One |
+| `<Usage>` / `<RecipeUsage>` | Consumes the target | One |
+| `<RecipesFor>` | Produces the target | All matches |
+| `<RecipesUsage>` | Consumes the target | All matches |
 
-- `<Recipe>`
-- `<Usage>`
-- `<RecipeFor>`
-- `<RecipeUsage>`
-- `<RecipesFor>`
-- `<RecipesUsage>`
+All six tags accept the same attributes. Use `limit` to cap the result count and `recipeIndex` to select a specific recipe.
 
-wszystkie three share  ten sam kompilator i Atrybut Ustaw.
+## Attributes
 
-## Native fluid recipe targets and filters
+Provide exactly one target: `id` for an item or `fluid` for a fluid. Fluid names are exact, case-sensitive Forge registry names such as `water` or `steam`; use registered names rather than temporary numeric display IDs.
 
-Exactly one of `id` and `fluid` selects the target of Recipe, Usage, RecipeFor, RecipeUsage, RecipesFor, or RecipesUsage. `fluid` is an exact Forge registry name. Existing handler, index, limit, fallback, and layout options apply.
+| Attribute | Meaning |
+| --- | --- |
+| `id` | Target item reference; mutually exclusive with `fluid` |
+| `fluid` | Target fluid registry name; mutually exclusive with `id` |
+| `fallbackText` | Text displayed when no usable recipe is found |
+| `handlerName` | Case-insensitive substring of the recipe handler's display name |
+| `handlerId` | Exact overlay/handler ID, case-insensitive; also accepts a substring of the handler's simple class name |
+| `handlerBlacklist` | Comma-separated handlers to exclude |
+| `handlerWhitelist` | Comma-separated handlers to retain despite a blacklist; does not narrow results by itself |
+| `handlerOrder` | Nonnegative, zero-based index into the filtered handler list |
+| `recipeIndex` | Nonnegative, zero-based recipe index |
+| `input` / `output` | Item ingredient/result filter expressions |
+| `inputFluid` / `outputFluid` | Fluid ingredient/result filter expressions |
+| `limit` | Positive integer maximum result count |
 
-`inputFluid` / `outputFluid` accept registry-name expressions with OR (`,`), AND (`&`), and NOT (`!`). Names remain case-sensitive. Every supplied item and fluid filter must pass; malformed fluid filters are errors and never weaken the query. Amount/NBT are not part of these name filters. Fluid output checks include auxiliary output slots as well as the primary result.
-
-```mdx
-<RecipeFor fluid="steam" fallbackText="No steam recipe provider is available." />
+```md
+<RecipeFor id="minecraft:crafting_table" />
+<RecipesFor id="minecraft:torch" limit="3" />
+<RecipeFor fluid="steam" fallbackText="No steam recipe is available." />
 <RecipesUsage fluid="water" inputFluid="water&!lava" limit="3" />
-<RecipesFor id="minecraft:iron_ingot" outputFluid="steam,water" />
 ```
 
-Forge has no universal fluid machine-recipe registry. Optional providers supply those recipes; without a provider, fallbackText or a diagnostic is shown. NEI may create a temporary display item for its backend query, but numeric display IDs never enter guide sources. Real filled containers remain item ingredients. Only explicitly typed fluid slots or recognized fluid-display substitutes render as native fluid ingredients.
+If an optional recipe integration is unavailable, `fallbackText` is displayed; without it, the page shows an authoring error. Filled containers remain item ingredients.
 
-## tag Semantics
+## Item references
 
-| tag              | zachowanie                                               |
-|------------------|--------------------------------------------------------|
-| `<Recipe>`       | renderować pojedynczy recipe dla  cel element             |
-| `<Usage>`        | renderować pojedynczy recipe używając  cel element           |
-| `<RecipeFor>`    | ten sam pojedynczy-recipe zachowanie, more autor-friendly nazwa |
-| `<RecipeUsage>`  | ten sam pojedynczy-recipe zachowanie, more autor-friendly nazwa |
-| `<RecipesFor>`   | renderować wiele pasujący Receptury                       |
-| `<RecipesUsage>` | renderować wiele pasujący Receptury                       |
-
-Jeśli wiele Receptury exist i you używać  pojedynczy-recipe forms, GuideNH renders tylko jeden wynik unless filters narrow it further.
-
-## wspólny atrybuty
-
-| Atrybut      | Wymagane | Znaczenie                                           |
-|----------------|----------|---------------------------------------------------|
-| `id`           | yes      | cel element reference                             |
-| `fallbackText` | no       | tekst wyświetlany gdy no usable recipe is found         |
-| `handlerName`  | no       | case-insensitive substring filtr on handler nazwa |
-| `handlerId`    | no       | exact overlay/handler id filtr, case-insensitive |
-| `handlerBlacklist` | no   | comma-separated handlers do drop z  wyniki |
-| `handlerWhitelist` | no   | comma-separated handlers do Zachowaj, even Jeśli blacklisted |
-| `handlerOrder` | no       | 0-based index po handler filtering             |
-| `input`        | no       | ingredient filtr wyrażenie                      |
-| `output`       | no       | wynik filtr wyrażenie                          |
-| `limit`        | no       | positive liczba całkowita max liczba of wyrenderowany Receptury   |
-
-## element Id składnia
-
- `id`, `input`, i `output` atrybuty wszystkie używać  GuideNH extended element reference format:
+`id`, `input` and `output` accept these forms:
 
 ```text
 modid:name
@@ -68,143 +53,51 @@ modid:name:meta
 modid:name:meta:{snbt}
 ```
 
-Wildcard meta wartości:
-
-- `*`
-- `32767`
-- uppercase tokens takie jak `ANY`
-
-## filtr wyrażenie składnia
-
- `input` i `output` filters obsługa:
-
-- `,` dla lub
-- `&` dla i
-- `!` dla nie
-
-Przykłady:
-
-```text
-minecraft:planks:*
-minecraft:stick&minecraft:redstone
-!minecraft:planks:0
-minecraft:planks:*,minecraft:log:*
-```
-
-NBT może be combined z wszystkie three element-reference atrybuty. Commas i ampersands wewnątrz an
-SNBT compound/lista są kept wewnątrz  reference; tylko góra-level separators split  filtr:
+Wildcard metadata may be written as `*`, `32767` or an uppercase token such as `ANY`.
 
 ```md
 <RecipeFor id='minecraft:written_book:0:{title:TestBook,author:GuideNH}' />
-<RecipesFor
-  id='minecraft:stone:3:{display:{Name:"Special Stone"}}'
-  input='minecraft:chest:0:{Items:[{id:"minecraft:diamond",Count:1b}]}'
-  output='minecraft:diamond:0:{display:{Name:"Reward"}}'
-/>
+<RecipesFor id="minecraft:stick" input="minecraft:planks:*" limit="3" />
 ```
 
-## renderowanie kolejność
+## Ingredient filters
 
-GuideNH tries Receptury in Ten kolejność:
+Both item and fluid filters support `,` for OR, `&` for AND and `!` for NOT. Every supplied input/output filter must match. Commas and ampersands inside an item's SNBT compound or list stay within that reference.
 
-1. NEI native handler renderowanie
-2. NEI slot-dane awaryjny
-3. built-in vanilla crafting awaryjny
+```md
+<RecipesFor id="minecraft:redstone_torch" input="minecraft:stick&minecraft:redstone" limit="1" />
+<RecipesFor id="minecraft:iron_ingot" outputFluid="steam,water" />
+<RecipesUsage fluid="water" inputFluid="water&!lava" limit="3" />
+```
 
-Jeśli nothing pasuje:
+Fluid filters match registry names, including fluids in auxiliary output slots. They do not match amounts or NBT. Invalid filter syntax produces an authoring error.
 
-- `fallbackText` is używany gdy present
-- otherwise inline authoring błąd is wyświetlany
+## Handler selection
 
-## Przykłady
+Use `handlerId` for a known recipe handler, `handlerName` for a display-name match or `handlerOrder` to choose from the filtered list. `recipeIndex` selects a recipe within the query.
 
-### pojedynczy recipe
-
-````md
-<RecipeFor id="minecraft:crafting_table" />
-````
-
-### wiele Receptury
-
-````md
-<RecipesFor id="minecraft:torch" />
-````
-
-### Handler filtering
-
-````md
+```md
 <RecipesFor id="minecraft:iron_pickaxe" handlerId="repair" />
-<RecipesFor id="minecraft:fire_charge" handlerName="shapeless" />
-````
+<RecipesFor id="minecraft:fire_charge" handlerName="shapeless" limit="3" />
+<RecipeFor id="minecraft:torch" recipeIndex="0" />
+```
 
-### Handler blacklist i whitelist
+Blacklist and whitelist entries match handler IDs, overlay IDs and class names as case-insensitive substrings. Page blacklists add to `recipeHandlerBlacklist` in `config/guidenh/guidenh.cfg`. Explicit `handlerId` or `handlerWhitelist` selection can retain a blacklisted handler.
 
-`handlerBlacklist` drops handlers z  wyniki, `handlerWhitelist` puts ich tył. Both take a
-**comma-separated lista**, i wpis pasuje  handler id, jego overlay id lub jego class nazwa,
-case-insensitively i as substring — so jeden wpis może nazwa pojedynczy handler lub whole package.
+```md
+<RecipesFor id="minecraft:planks" handlerBlacklist="fuel,repair" limit="6" />
+<RecipeFor id="minecraft:chest" handlerWhitelist="GTNEIMultiblockHandler,StructureCompatNEIHandler" fallbackText="Multiblock preview unavailable." />
+```
 
-handler is dropped gdy it is named by blacklist **unless**  tag asks dla it: `handlerId`,
-`handlerWhitelist` i lowercased class-nazwa pasować wszystkie Zachowaj it.
-
-**lista, because jeden handler id rarely appears alone.** Planks są both crafting material i fuel, so
-lista  handler ids you do nie want:
-
-````md
-<RecipesFor id="minecraft:planks" handlerBlacklist="fuel,repair" />
-````
-
-**package in jeden wpis.** wpis is substring of  class nazwa too, so mod id covers każdy handler
-który mod registers — handy gdy jeden mod's handlers są wszystkie noise dla Ten element:
-
-````md
-<RecipesFor id="minecraft:chest" handlerBlacklist="gregtech,ic2,railcraft" limit="6" />
-````
-
-**Whitelist, do undo blacklist dla jeden strona.**  configuration hides dwa multiblock handlers on każdy
-strona. whitelist naming ich brings ich tył here, i lista works  ten sam way:
-
-````md
-<Recipe id="minecraft:chest" handlerWhitelist="GTNEIMultiblockHandler,StructureCompatNEIHandler" fallbackText="Multiblock preview unavailable." />
-````
-
-**Whitelist nie filtr on jego własny.** It tylko rescues handlers blacklist would drop; używać
-`handlerId` / `handlerName` / `handlerOrder` do narrow  wynik do jeden handler, i `limit` do cap how
-many są drawn.
-
- configuration plik `config/guidenh/guidenh.cfg` holds `recipeHandlerBlacklist`, który stosuje do każdy
-strona i by Domyślne zawiera:
+The following multiblock handlers are excluded by default because they render a whole structure:
 
 - `blockrenderer6343.integration.gregtech.GTNEIMultiblockHandler`
 - `blockrenderer6343.integration.structurelib.StructureCompatNEIHandler`
 
-strona's własny lista is **added** do  configured jeden, so strona może ukrywać more but nie fewer. Editing 
-configuration zmiany każdy strona; naming handler on tag zmiany tylko który strona.
+Use a whitelist to include them on a page. Use `limit` for broad queries to keep pages readable.
 
-### wejście/wyjście filtering
+## Related references
 
-````md
-<RecipesFor id="minecraft:stick" input="minecraft:planks:*" limit="3" />
-<RecipesFor id="minecraft:stick" output="minecraft:torch" limit="2" />
-<RecipesFor id="minecraft:redstone_torch" input="minecraft:stick&minecraft:redstone" limit="1" />
-````
-
-### awaryjny tekst
-
-````md
-<Recipe id="missingrecipe" fallbackText="This recipe is disabled." />
-````
-
-## Best Practices
-
-- używać `fallbackText` dla opcjonalny-mod integrations
-- używać `handlerId` gdy you know  exact NEI handler you want
-- używać `handlerBlacklist` gdy jeden blok is produced by many handlers i tylko some są worth showing
--  dwa handlers below są ukryty by Domyślne in `config/guidenh/guidenh.cfg` because jeden renderować whole multiblock; nazwa jeden z `handlerId` lub `handlerWhitelist` do pokazywać it
-  - `blockrenderer6343.integration.gregtech.GTNEIMultiblockHandler`
-  - `blockrenderer6343.integration.structurelib.StructureCompatNEIHandler`
-- używać `limit` gdy tag could expand do many Receptury
-- Zachowaj complex filtr logic in comments near  tag dla maintainability
-
-## Live czas wykonania Przykład
-
-Zobacz `wiki/resourcepack/assets/guidenh/guidenh/_en_us/index.md` dla extensive recipe samples, including handler filters i wildcard/NBT element ids.
+- [Tags Reference](Tags-Reference)
+- [Mod Compatibility](Mod-Compatibility)
+- [Examples](Examples)

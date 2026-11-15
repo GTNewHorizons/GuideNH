@@ -145,7 +145,7 @@ mindmap
 </NodeContent>
 
 <NodeContent id="export">
-![Machine Diagram](./resourcepack/assets/guidenh/guidenh/_zh_cn/test1.png)
+![Machine Diagram](./test1.png)
 </NodeContent>
 </Mermaid>
 ````
@@ -344,7 +344,7 @@ GuideNH 会读取第一个 YAML frontmatter 块，并解析这些已知键：
 | `date` | 字符串或 YYYY-MM-DD 日期 | 内容创建日期。显示在底部栏中。 |
 | `updated` | 字符串或 YYYY-MM-DD 日期 | 最后更新日期。显示在底部栏中。 |
 | `zoom` | 正浮点数 | 单页内容缩放倍数（如 `1.5` 表示 150%）。与 ModConfig 中全局 `contentZoom` 设置相乘。默认 `1.0`。 |
-| 其他任意键 | 任意 YAML 值 | 保存在 `additionalProperties` 中，供扩展或工具使用 |
+| 其他任意键 | 任意 YAML 值 | 供扩展或编写工具使用 |
 
 ### 原生流体绑定与导航图标
 
@@ -360,7 +360,7 @@ navigation:
   icon_fluid: water
 ```
 
-`navigation.icon_fluid` 接受单个注册名，`icon_fluids` 接受非空列表并每秒轮换；列表优先于单个图标。这些显示字段不会创建页面绑定，也不能与物品/纹理图标源混用。注册名是否存在由运行中的游戏检查，未连接游戏的编辑器不能误报流体不存在。
+`navigation.icon_fluid` 使用一个注册名，`icon_fluids` 使用非空注册名列表并每秒轮换。两个字段互斥，也不能与物品或纹理图标源混用。它们只设置页面图标，不创建页面绑定。流体是否可用需在运行中的游戏验证，离线预览无法检查注册表。
 
 ### `navigation`
 
@@ -371,11 +371,14 @@ navigation:
 | `keywords` | 否 | string 列表 | 额外的搜索关键词或别名；多个字段会合并并去重 |
 | `parent` | 否 | page id | 父页面 id；省略时为顶级节点 |
 | `position` | 否 | integer | 同级排序顺序，默认 `0`，数值越大越靠前 |
+| `recommend` | 否 | integer | 首页推荐优先级；填写后才显示在推荐面板，数值越大越靠前 |
 | `priority` | 否 | integer | 同路径页面覆盖时的加载优先级；默认 `0`，数值更高者胜出，相同优先级时后处理的资源包条目覆盖先处理的 |
 | `icon` | 否 | item id | 导航和搜索中显示的物品图标。支持 `modid:name`、`modid:name:meta`、`modid:name:meta:{snbt}`。如需附加自定义名称等 NBT，推荐直接写在 `icon` 后面的内联 `:{snbt}` 尾部。 |
 | `icons` | 否 | item id 列表 | 循环轮播的物品图标列表（每秒切换一次）。每一项语法同 `icon`，支持内联 `:{snbt}`。存在时优先于 `icon` 使用。 |
 | `icon_texture` | 否 | asset path | 纹理图标路径，按普通资源路径解析 |
 | `icon_textures` | 否 | asset path 列表 | 循环轮播的纹理图标列表（每秒切换一次）。存在时优先于 `icon_texture` 使用。 |
+| `icon_fluid` | 否 | string | 单个流体注册名，与 `icon_fluids` 和物品/纹理图标源互斥 |
+| `icon_fluids` | 否 | string 列表 | 非空注册名列表，每秒轮换，与 `icon_fluid` 和物品/纹理图标源互斥 |
 | `required_mod` | 否 | 模组 id | 仅在该模组已加载时显示页面。 |
 | `required_mods` | 否 | 模组 id 列表 | 仅在列出的全部模组均已加载时显示页面。 |
 | `excluded_mod` | 否 | 模组 id | 该模组加载时隐藏页面。 |
@@ -384,39 +387,19 @@ navigation:
 ### Frontmatter 示例
 
 ```yaml
-item_id: minecraft:potion 16384-16462,!16386
 item_ids:
-  - ae2:white_paint_ball:*
-  - "<minecraft:wool:14>"
+  - minecraft:book
+fluid_id: water#coolant
 navigation:
-  title: Root
+  title: Guide Overview
   parent: index.md
   position: 10
-  priority: 0
-  icon: minecraft:book:0:{display:{Name:"我的自定义书"}}
-  # 使用 meta/损伤值选择特定子类型：
-  # icon: minecraft:wool:1       （橙色羊毛，冒号写法）
-  # 循环图标列表——每秒切换一次：
-  # icons:
-  #   - minecraft:wool:1
-  #   - minecraft:wool:4:{display:{Name:"自定义绿色羊毛"}}
-  #   - minecraft:wool:14
-
-  icon_texture: test1.png
-  # 循环纹理列表：
-  # icon_textures:
-  #   - test1.png
-  #   - test2.png
+  recommend: 0
+  icon: minecraft:book
 categories:
   - basics
-  - examples|Examples Overview
-ore_ids:
-  - ingotIron
-  - oreCopper
-quest_ids:
-  - 01234567-89ab-cdef-0123-456789abcdef
-  - AAAAAAAAAAAAAAAAAAAMug==
-author: 示例作者
+  - examples|Overview
+author: ExampleAuthor
 date: 2024-01-15
 updated: 2024-06-01
 ```

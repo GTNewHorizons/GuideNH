@@ -1,94 +1,93 @@
 # タグリファレンス
 
-GuideNH の構文と実行時機能を説明します。コード、タグ、パス、ID、属性値は仕様のためそのまま保持しています。
+このページの詳細なリファレンスは英語で提供しています。タグ名、属性、ID、パスは翻訳せずに使用してください。
 
+This page describes the built-in tags available to guide authors.
 
-この ページ lists  built-で 実行時 タグ 登録済み by `DefaultExtensions`.
+## Usage Rules
 
-## 使用規則
-
-- タグ できます appear いずれか で ブロック context または inline context depending on  コンパイラー.
-- MDX コメント using `{/* ... */}` です 対応 で ページ コンテンツ と です ignored by  実行時 parser.
-- 無効 タグ または 無効 属性 描画 ガイド errors inline 代わりに of silently failing.
-- Large feature タグ 例として レシピ と 3D シーン です documented で their 独自の pages:
+- Tags can appear either in block context or inline context depending on the compiler.
+- MDX comments using `{/* ... */}` are supported in page content and are ignored by the runtime parser.
+- Invalid tags or invalid attributes render guide errors inline instead of silently failing.
+- Large feature tags such as recipes and 3D scenes are documented in their own pages:
   - [Recipes](Recipes)
   - [GameScene](GameScene)
   - [Annotations](Annotations)
 
-## インラインタグとフロータグ
+## Inline And Flow Tags
 
-| タグ | Purpose | キー 属性 |
+| Tag | Purpose | Key attributes |
 | --- | --- | --- |
-| `<a>` | 内部/外部 リンク と 任意の anchor 名前 | `href`, `title`, `name` |
-| `<br>` | 行 break | `clear="none\|left\|right\|all"` |
-| `<wbr>` | 単語内の任意改行位置 | なし |
+| `<a>` | internal/external link and optional anchor name | `href`, `title`, `name` |
+| `<br>` | line break | `clear="none\|left\|right\|all"` |
+| `<wbr>` | optional line-break point inside a word | none |
 | `<kbd>` | keyboard-style inline emphasis | none |
-| `<sub>` | smaller inline subscript-style テキスト | none |
-| `<sup>` | smaller inline superscript-style テキスト | none |
-| `<Color>` | colored inline テキスト | `id` または `color` |
-| `<Amount>` | 数値と単位を整形 | `value`, `unit`, `format`, `decimals` |
-| `<Spoiler>` | 非表示 inline テキスト revealed on ホバー | none |
-| `<Tooltip>` | リッチ ホバー ツールチップ とともに Markdown/タグ 子要素 | `label` |
-| `<SoundLink>` | clickable リッチ-テキスト sound trigger | `sound` または `src`, `volume`, `pitch`, `cooldown` |
-| `<mark>` | inline highlighted テキスト; equivalent へ `==text==` とともに 任意の 色 control | `color` |
-| `<PlayerName>` | inserts 現在の player username | none |
-| `<KeyBind>` | inserts keybinding 表示 名前 | `id` または `action` |
-| `<ItemImage>` | inline アイテム icon | `id`, `ore`, `nbt`, `scale`, `noTooltip`, `showTooltip`, `showIcon`, `label`, `format`, `yOffset`, `labelYOffset` |
-| `<ItemLink>` | アイテム ツールチップ + 任意の ナビゲーション リンク | `id` または `ore`, `linksTo`, `showTooltip`, `noTooltip`, `showIcon` |
+| `<sub>` | smaller inline subscript-style text | none |
+| `<sup>` | smaller inline superscript-style text | none |
+| `<Color>` | colored inline text | `id` or `color` |
+| `<Amount>` | format a numeric quantity | `value`, `unit`, `format`, `decimals` |
+| `<Spoiler>` | hidden inline text revealed on hover | none |
+| `<Tooltip>` | rich hover tooltip with markdown/tag children | `label` |
+| `<SoundLink>` | clickable rich-text sound trigger | `sound` or `src`, `volume`, `pitch`, `cooldown` |
+| `<mark>` | inline highlighted text; equivalent to `==text==` with optional color control | `color` |
+| `<PlayerName>` | inserts current player username | none |
+| `<KeyBind>` | inserts keybinding display name | `id` or `action` |
+| `<ItemImage>` | inline item icon | `id`, `ore`, `nbt`, `scale`, `noTooltip`, `showTooltip`, `showIcon`, `label`, `format`, `yOffset`, `labelYOffset` |
+| `<ItemLink>` | item tooltip + optional navigation link | `id` or `ore`, `linksTo`, `showTooltip`, `noTooltip`, `showIcon` |
 | `<FluidImage>` / `<FluidLink>` | native fluid icon and page navigation | `id`, `amount`, `nbt`, `scale`, `showTooltip`, `noTooltip`, `showIcon`, `label`, `linksTo` |
-| `<CommandLink>` | clickable chat command リンク | `command`, `title`, `close` |
-| `<Latex>` | LaTeX math 数式; inline で flow context, centered 表示 ブロック で ブロック context | `formula`, `color`, `scale`, `sourceScale`, `tooltip`, `showTooltip` |
-| `<QuestLink>` | BetterQuesting quest リンク とともに 状態-aware styling (compat タグ, のみ 登録済み 場合 BetterQuesting です 読み込み済み) | `id`, `text`, `show_tooltip` |
+| `<CommandLink>` | clickable chat command link | `command`, `title`, `close` |
+| `<Latex>` | LaTeX math formula; inline in flow context, centered display block in block context | `formula`, `color`, `scale`, `sourceScale`, `tooltip`, `showTooltip` |
+| `<QuestLink>` | BetterQuesting quest link with state-aware styling (compat tag, only registered when BetterQuesting is loaded) | `id`, `text`, `show_tooltip` |
 
-Inline Markdown も 対応します action リンク 用 sound playback:
+Inline markdown also supports action links for sound playback:
 
 ````md
 &[Start machine](sound:guidenh:machine.start)
 &[Play file-backed sound](sound-src:guidenh:sounds/machine/start.ogg?volume=0.8&pitch=1.1)
 ````
 
-## ブロックタグ
+## Block Tags
 
-| タグ | Purpose | キー 属性 |
+| Tag | Purpose | Key attributes |
 | --- | --- | --- |
-| `<div>` | pass-通じて ブロック wrapper | none |
-| `<ContentTabs>` | groups alternative リッチ コンテンツ under independent tabs | `title`, `color`, `background`, `icon`, `iconPng`, `icon_png`, `iconItem`, `icon_item`, `iconFluid`, `icon_fluid`, `default`, `defaultIndex` |
-| `<Tab>` | 1 つ コンテンツ panel 内部 `<ContentTabs>` | `title` |
-| `<details>` | collapsible 実行時 ブロック | `open`, `width`, `height`, `wrap`, `align` |
-| `<FileTree>` | ディレクトリ-style outline とともに connector 行 | `indent`, `gap` |
-| `<Row>` | horizontal flex レイアウト | `gap`, `alignItems`, `fullWidth`, `width` |
-| `<Column>` | vertical flex レイアウト | `gap`, `alignItems`, `fullWidth`, `width` |
-| `<FootnoteList>` | 幅-constrained footnote container 使用されます by 実行時 Markdown footnotes | `width` |
+| `<div>` | pass-through block wrapper | none |
+| `<ContentTabs>` | groups alternative rich content under independent tabs | `title`, `color`, `background`, `icon`, `iconPng`, `icon_png`, `iconItem`, `icon_item`, `iconFluid`, `icon_fluid`, `default`, `defaultIndex` |
+| `<Tab>` | one content panel inside `<ContentTabs>` | `title` |
+| `<details>` | collapsible runtime block | `open`, `width`, `height`, `wrap`, `align` |
+| `<FileTree>` | directory-style outline with connector lines | `indent`, `gap` |
+| `<Row>` | horizontal flex layout | `gap`, `alignItems`, `fullWidth`, `width` |
+| `<Column>` | vertical flex layout | `gap`, `alignItems`, `fullWidth`, `width` |
+| `<FootnoteList>` | width-constrained footnote container used by runtime markdown footnotes | `width` |
 | `<ItemGrid>` | compact grid of item and fluid icons | mix `<ItemIcon id="..."/>`, `<ItemIcon ore="..."/>`, and `<FluidIcon id="..."/>` |
-| `<BlockImage>` | non-インタラクティブ 3D 単一の-ブロック プレビュー | `id`, `ore`, `meta`, `nbt`, `scale`, `width`, `height`, `perspective`, `wrap`, `align` |
-| `<FloatingImage>` | cropped 画像 ブロック とともに 浮動小数点数 または true inline placement | `src`, `x`, `y`, `width` / `w`, `height` / `h`, `scaleX`, `scaleY`, `displayWidth`, `displayHeight`, `wrap`, `align`, `title` |
-| `<SubPages>` | ナビゲーション 子 listing | `id`, `alphabetical` |
-| `<Category>` | 一覧 pages から category | `name`, `rows` |
-| `<Special>` | 一覧 built-で MediaWiki special pages | `name`, `rows` |
-| `<Structure>` | 2.5D isometric ブロック レイアウト view | `width`, `height` |
-| `<Mermaid>` | 実行時 Mermaid グラフ import/inline | `src`, `width`, `height` |
-| `<CsvTable>` | 実行時 CSV ファイル import 表 | `src`, `header`, `widths` |
-| `<ColumnChart>` | clustered 列 チャート | `categories`, `barWidthRatio`, `xAxis*`, `yAxis*`, `legend`, `labelPosition` |
-| `<BarChart>` | horizontal bar チャート | 同じ as `<ColumnChart>` |
-| `<LineChart>` | 行 チャート とともに categorical または numeric X | `categories`, `numericX`, `showPoints`, `xAxis*`, `yAxis*` |
-| `<PieChart>` | pie チャート | `startAngle`, `clockwise`, `legend`, `labelPosition` |
-| `<ScatterChart>` | XY scatter チャート | `xAxis*`, `yAxis*`, `legend`, `labelPosition` |
-| `<FunctionGraph>` | Desmos-style multi-曲線 関数 グラフ | `width`, `height`, `xRange` / `yRange`, `quadrants`, `showGrid`, `showAxes` |
-| `<Function>` | 単一の-曲線 shorthand 用 `<FunctionGraph>` | `expr`, plus すべての `<FunctionGraph>` panel 属性 |
-| `<Recipe>`, `<RecipeFor>`, `<RecipesFor>` | recipe renderers | 参照してください [Recipes](Recipes) |
-| `<GameScene>`, `<Scene>` | 3D ガイド シーン | 参照してください [GameScene](GameScene) |
-| `<QuestCard>` | ブロック-level BetterQuesting quest summary card (compat タグ, のみ 登録済み 場合 BetterQuesting です 読み込み済み) | `id`, `show_desc`, `show_tooltip` |
+| `<BlockImage>` | non-interactive 3D single-block preview | `id`, `ore`, `meta`, `nbt`, `scale`, `width`, `height`, `perspective`, `wrap`, `align` |
+| `<FloatingImage>` | cropped image block with float or true inline placement | `src`, `x`, `y`, `width` / `w`, `height` / `h`, `scaleX`, `scaleY`, `displayWidth`, `displayHeight`, `wrap`, `align`, `title` |
+| `<SubPages>` | navigation child listing | `id`, `alphabetical` |
+| `<Category>` | list pages from a category | `name`, `rows` |
+| `<Special>` | list built-in MediaWiki special pages | `name`, `rows` |
+| `<Structure>` | 2.5D isometric block layout view | `width`, `height` |
+| `<Mermaid>` | runtime Mermaid graph import/inline | `src`, `width`, `height` |
+| `<CsvTable>` | runtime CSV file import table | `src`, `header`, `widths` |
+| `<ColumnChart>` | clustered column chart | `categories`, `barWidthRatio`, `xAxis*`, `yAxis*`, `legend`, `labelPosition` |
+| `<BarChart>` | horizontal bar chart | same as `<ColumnChart>` |
+| `<LineChart>` | line chart with categorical or numeric X | `categories`, `numericX`, `showPoints`, `xAxis*`, `yAxis*` |
+| `<PieChart>` | pie chart | `startAngle`, `clockwise`, `legend`, `labelPosition` |
+| `<ScatterChart>` | XY scatter chart | `xAxis*`, `yAxis*`, `legend`, `labelPosition` |
+| `<FunctionGraph>` | Desmos-style multi-curve function graph | `width`, `height`, `xRange` / `yRange`, `quadrants`, `showGrid`, `showAxes` |
+| `<Function>` | single-curve shorthand for `<FunctionGraph>` | `expr`, plus all `<FunctionGraph>` panel attributes |
+| `<Recipe>`, `<RecipeFor>`, `<RecipesFor>` | recipe renderers | see [Recipes](Recipes) |
+| `<GameScene>`, `<Scene>` | 3D guide scene | see [GameScene](GameScene) |
+| `<QuestCard>` | block-level BetterQuesting quest summary card (compat tag, only registered when BetterQuesting is loaded) | `id`, `show_desc`, `show_tooltip` |
 
-`<ImportStructureLib>` は `<GameScene>` 子 タグ. It accepts `controller`, `piece`, `facing`,
-`rotation`, `flip`, と `tier`, `channel`, `channelName`, `value`, `locked` 属性, と も 対応します StructureLib 既定値 子 タグ:
+`<ImportStructureLib>` is a `<GameScene>` child tag. It accepts `controller`, `piece`, `facing`,
+`rotation`, `flip`, `tier`, `channel`, `channelName`, `value`, and `locked` attributes, and also supports StructureLib default child tags:
 `<Tier>`, `<Channel>`, `<Facing>`, `<Rotation>`, `<Flip>`, `<Orientation>`,
-`<GregTechActiveController>`, と `<GregTechPlaceHatches>`.
+`<GregTechActiveController>`, and `<GregTechPlaceHatches>`.
 
-## タグの詳細
+## Tag Details
 
 ### `<a>`
 
-Acts like HTML-style anchor タグ:
+Acts like an HTML-style anchor tag:
 
 ````md
 <a href="subpage.md" title="Go to subpage">Open Subpage</a>
@@ -96,19 +95,19 @@ Acts like HTML-style anchor タグ:
 <a name="details" />
 ````
 
-- `href` できます なる 相対, rooted, 明示的な `modid:path`, または HTTP/HTTPS
-- `title` になります  ツールチップ
-- `name` inserts a ページ anchor 対象
+- `href` can be relative, rooted, explicit `modid:path`, or HTTP/HTTPS
+- `title` becomes the tooltip
+- `name` inserts a page anchor target
 
 ### `<br>`
 
-GuideNH も 対応します MDX break タグ とともに 浮動小数点数 clearing:
+GuideNH also supports an MDX break tag with float clearing:
 
 ````md
 Text before.<br clear="all" />Text after.
 ````
 
-Accepted `clear` 値:
+Accepted `clear` values:
 
 - `none`
 - `left`
@@ -117,7 +116,7 @@ Accepted `clear` 値:
 
 ### `<wbr>`
 
-HTML の `<wbr>` 要素と同じく、単語の途中に任意の改行位置を指定します。何も表示せず幅も取りません。単語全体が収まらないときだけそこで改行されます。たとえば低解像度で狭い表のセルに入った長い名前や数値などです。
+Marks an optional line-break point inside a word, like the HTML `<wbr>` element. It renders nothing and takes no width: the line only breaks there when the whole word does not fit, such as a long name or number in a narrow table cell at a low resolution.
 
 ````md
 | Block | Rate |
@@ -125,11 +124,11 @@ HTML の `<wbr>` 要素と同じく、単語の途中に任意の改行位置を
 | Cobble<wbr>stone/s | 11,<wbr>520 |
 ````
 
-`<wbr>` と `<wbr />` のどちらも使え、属性はありません。スペースと違い、単語が収まる場合に隙間が空くことはありません。Site Export と Web Editor はネイティブの `<wbr>` を出力します。
+`<wbr>` and `<wbr />` are both accepted and the tag takes no attributes. Unlike a space, it never shows up as a gap when the word fits. Site Export and the Web Editor output a native `<wbr>`.
 
-### `<kbd>`, `<sub>`, と `<sup>`
+### `<kbd>`, `<sub>`, And `<sup>`
 
-GuideNH 実行時 対応します focused subset of lowercase documentation タグ 用 inline 使用:
+GuideNH runtime supports a focused subset of lowercase documentation tags for inline use:
 
 ````md
 Press <kbd>Shift</kbd> + <sub>1</sub>
@@ -138,34 +137,34 @@ Water is H<sub>2</sub>O and x<sup>2</sup> is a square.
 
 ### `<details>`
 
-作成します collapsible 実行時 ブロック とともに summary 行.  `<summary>` 行 対応します 通常
-inline Markdown/タグ コンテンツ, と  本文 できます hold ordinary テキスト plus arbitrary ブロックタグ 例として
-`<BlockImage>`, `<FloatingImage>`, `<GameScene>`, 表, チャート, と レイアウト containers.
-場合 `height` 設定されている場合, のみ  本文 scrolls;  summary 行 と outer frame stay 固定.
+Creates a collapsible runtime block with a summary row. The `<summary>` line supports normal
+inline markdown/tag content, and the body can hold ordinary text plus arbitrary block tags such as
+`<BlockImage>`, `<FloatingImage>`, `<GameScene>`, tables, charts, and layout containers.
+When `height` is set, only the body scrolls; the summary row and outer frame stay fixed.
 
-`<summary>`、本文、`</details>` の間に空行を入れる必要はありません。タグ名は複数形の `<details>` を使用してください。`<detail>` はサポートされていません。見出しと本文の両方で、インライン Markdown、`<ItemLink>`、`<ItemImage>` などのインラインタグを使用できます。連続する `<details>` ブロックはそれぞれ独立しています。
+Blank lines between `<summary>`, the body, and `</details>` are optional. Use the plural tag `<details>`; `<detail>` is not supported. Both the summary and body support inline Markdown, `<ItemLink>`, `<ItemImage>`, and other inline tags. Consecutive `<details>` blocks remain independent.
 
 ````md
 <details open width="220" height="140" wrap="square" align="right">
 <summary>More <ItemImage id="minecraft:diamond" /></summary>
 
-既定で非表示になる本文と[通常のページリンク](./index.md)。
+Hidden-by-default body text with a [normal page link](./index.md).
 
 <BlockImage id="minecraft:diamond_block" align="center" scale={2} />
 </details>
 ````
 
-属性:
+Attributes:
 
-- `open` — starts expanded 場合 present
-- `width` — 推奨 outer 幅 で pixels
-- `height` — 推奨 本文 viewport 高さ で pixels; overflow になります scrollable で-game と で site export
-- `wrap` — 対応します  usual ブロック embedding modes 例として `square`, `tight`, と `through`
-- `align` — `left`, `center`, または `right`; 場合 combined とともに floating wrap モード,  whole details ブロック floats
+- `open` — starts expanded when present
+- `width` — preferred outer width in pixels
+- `height` — preferred body viewport height in pixels; overflow becomes scrollable in-game and in site export
+- `wrap` — supports the usual block embedding modes such as `square`, `tight`, and `through`
+- `align` — `left`, `center`, or `right`; when combined with a floating wrap mode, the whole details block floats
 
 ### `<ContentTabs>`
 
-Groups alternative リッチ コンテンツ under independent tabs. のみ 直接 `<Tab>` 子要素 です 有効.  container itself できます も 描画 quote-style heading 行 上に  tabs, 一致する  visual 言語 of Markdown callouts.
+Groups alternative rich content under independent tabs. Only direct `<Tab>` children are valid. The container itself can also render a quote-style heading row above the tabs, matching the visual language of markdown callouts.
 
 ````mdx
 <ContentTabs
@@ -186,19 +185,19 @@ Groups alternative リッチ コンテンツ under independent tabs. のみ 直�
 </ContentTabs>
 ````
 
-- `default` 一致します  最初の tab whose `title` 一致します 正確に
-- `defaultIndex` です zero-based と wins 上 `default` 場合 両方 です present
-- `color` optionally 上書きします  左 accent 行 と 選択済み-tab 強調表示 とともに `#RRGGBB` または `#AARRGGBB`
-- background — #RRGGBB、#AARRGGBB、transparent でタブコンテナの背景を変更します。省略時は既定の灰色背景を使用します
-- `title` adds an 任意の プレーン-テキスト heading 上に  tab strip
-- `icon`, `iconPng` / `icon_png`, と `iconItem` / `icon_item` 使用  同じ heading icon semantics as Markdown quote-style callouts
-- 無効 子要素 または 無効 defaults 描画 表示 author-facing errors
+- `default` matches the first tab whose `title` matches exactly
+- `defaultIndex` is zero-based and wins over `default` when both are present
+- `color` optionally overrides the left accent line and selected-tab highlight with `#RRGGBB` or `#AARRGGBB`
+- `background` optionally overrides the tab container background with `#RRGGBB`, `#AARRGGBB`, or `transparent`; the default keeps the normal gray callout background
+- `title` adds an optional plain-text heading above the tab strip
+- `icon`, `iconPng` / `icon_png`, and `iconItem` / `icon_item` use the same heading icon semantics as markdown quote-style callouts
+- invalid children or invalid defaults render visible author-facing errors
 
 ### `<FileTree>`
 
-描画 ディレクトリ-style outline とともに real connector 行 drawn から  prefix glyphs on 各 行. 両方 Unicode box-drawing (`│ ├ └ ─`) と ASCII (`| +-- \-- ` / four spaces) forms です accepted と 可能性があります なる mixed. Payload テキスト 対応します  usual inline Markdown (リンク, **bold**, `code`, …), と those リンク です clickable 両方 で-game と で  built-で site export.  同じ コンテンツ できます も なる written as fenced ` ```tree ` or ` ```filetree ` ブロック.
+Renders a directory-style outline with real connector lines drawn from the prefix glyphs on each row. Both Unicode box-drawing (`│ ├ └ ─`) and ASCII (`| +-- \-- ` / four spaces) forms are accepted and may be mixed. Payload text supports the usual inline markdown (links, **bold**, `code`, …), and those links are clickable both in-game and in the built-in site export. The same content can also be written as a fenced ` ```tree ` or ` ```filetree ` block.
 
-幅が狭い場合は階層のインデントを縮め、文字の表示領域を確保します。長いパスは `/`、`\`、`_`、`-` の直後を優先して折り返し、区切りのない長い名前は文字間でも折り返します。続きの行は名前の先頭に揃い、アイコンと枝線は最初の行に揃います。
+Narrow layouts reduce the indentation to leave room for text. Long paths prefer breaks after `/`, `\`, `_`, and `-`; unbroken names can wrap between characters. Continuation lines align with the name, while icons and branch connectors stay aligned with the first line.
 
 ````md
 <FileTree indent="14" gap="0">
@@ -211,55 +210,55 @@ project
 </FileTree>
 ````
 
-任意の per-行 icons です introduced by leading directive on  payload:
+Optional per-row icons are introduced by a leading directive on the payload:
 
-- `{:icon=Text}` — short テキスト ラベル (単一の または double quotes 任意の)
-- `{:iconPng=path/to/file.png}` — PNG アセット 解決された against  現在の ページ
-- `{:iconItem=modid:item_id[:meta][:{snbt}]}` — Minecraft アイテム icon.  任意の `meta` segment は damage 値 (または `*` 用 wildcard); an 任意の trailing `:{snbt}` ブロック carries SNBT へ attach へ  stack.
+- `{:icon=Text}` — short text label (single or double quotes optional)
+- `{:iconPng=path/to/file.png}` — PNG asset resolved against the current page
+- `{:iconItem=modid:item_id[:meta][:{snbt}]}` — Minecraft item icon. The optional `meta` segment is a damage value (or `*` for a wildcard); an optional trailing `:{snbt}` block carries SNBT to attach to the stack.
 
 ````md
 ```filetree
-ワールド
+world
 |-- {:iconItem=minecraft:grass} grass biome
 |   \-- {:icon=Tree} oak forest
-\-- {:iconPng=test1.png} sample アセット
+\-- {:iconPng=test1.png} sample asset
 ```
 ````
 
-属性:
+Attributes:
 
-- `indent` — pixels per depth level (既定値 `14`)
-- `gap` — extra pixels 間 行 (既定値 `0`)
+- `indent` — pixels per depth level (default `14`)
+- `gap` — extra pixels between rows (default `0`)
 
-### 実行時 Blockquotes
+### Runtime Blockquotes
 
-通常 Markdown blockquotes 描画 at 実行時 とともに 左 accent 行. GitHub alert 構文 です 対応:
+Normal markdown blockquotes render at runtime with a left accent line. GitHub alert syntax is supported:
 
 ````md
 > [!NOTE]
 > Alert body
 ````
 
-GuideNH も 対応します a 実行時-のみ カスタム directive on  最初の quoted 行:
+GuideNH also supports a runtime-only custom directive on the first quoted line:
 
 ````md
 > {: title="Custom Quote" color="#638ef1" icon="i" }
 > Body text
 ````
 
-対応 directive キー:
+Supported directive keys:
 
 - `title`
 - `color`
-- `icon` 用 プレーン テキスト symbols
-- `iconItem` 用 an `ItemStack` id
-- `iconPng` 用 a ガイド アセット png パス
+- `icon` for plain text symbols
+- `iconItem` for an `ItemStack` id
+- `iconPng` for a guide asset png path
 
-のみ 1 つ icon ソース する必要があります なる 指定された.
+Only one icon source should be provided.
 
 ### `<Color>`
 
-使用 いずれか symbolic 色 id または 明示的な hex 値:
+Use either a symbolic color id or an explicit hex value:
 
 ````md
 <Color id="RED">Symbolic red</Color>
@@ -271,20 +270,20 @@ Use `<Spoiler>` for inline hidden text. The content stays rich-text aware, so ne
 such as `<Color>` still render correctly after reveal.
 
 ```mdx
-<Spoiler>非表示 **bold** テキスト とともに <Color color="#55ccff">tint</Color>.</Spoiler>
-<Spoiler>[Anchor Link](#headings) 引き続き behaves like 通常 hoverable リンク 場合 revealed.</Spoiler>
+<Spoiler>Hidden **bold** text with <Color color="#55ccff">tint</Color>.</Spoiler>
+<Spoiler>[Anchor Link](#headings) still behaves like a normal hoverable link when revealed.</Spoiler>
 ```
 
 ````
 
-規則:
+Rules:
 
-- `id` と `color` です mutually exclusive で practice; 提供 1 つ
-- `color` accepts `#RRGGBB`, `#AARRGGBB`, または `transparent`
+- `id` and `color` are mutually exclusive in practice; provide one
+- `color` accepts `#RRGGBB`, `#AARRGGBB`, or `transparent`
 
 ### `<Tooltip>`
 
-作成します underlined テキスト that opens リッチ コンテンツ ツールチップ on ホバー.
+Creates underlined text that opens a rich content tooltip on hover.
 
 ````md
 <Tooltip label="Hover me">
@@ -293,12 +292,12 @@ such as `<Color>` still render correctly after reveal.
 </Tooltip>
 ````
 
-もし `label` 省略された場合,  trigger テキスト defaults へ `tooltip`.
+If `label` is omitted, the trigger text defaults to `tooltip`.
 
-### `<SoundLink>` と Sound Action リンク
+### `<SoundLink>` And Sound Action Links
 
-`<SoundLink>` 描画 リッチ inline コンテンツ that plays sound 場合 clicked. It しません navigate,
-と its カスタム クリック sound replaces  通常 ガイド クリック sound 用 that クリック.
+`<SoundLink>` renders rich inline content that plays a sound when clicked. It does not navigate,
+and its custom click sound replaces the normal guide click sound for that click.
 
 ````md
 <SoundLink sound="guidenh:machine.start" volume="0.8" pitch="1.0">
@@ -309,27 +308,27 @@ such as `<Color>` still render correctly after reveal.
 &[Use a sound file](sound-src:guidenh:sounds/machine/start.ogg)
 ````
 
-Sound 属性:
+Sound attributes:
 
-- `sound` は sound event id 例として `modid:event.name`
-- `src` 点 at an `.ogg` ファイル; `modid:sounds/machine/start.ogg` になります `modid:machine.start`
-- `volume` defaults へ `1.0`
-- `pitch` defaults へ `1.0`
-- `cooldown` です milliseconds 間 repeated plays, 既定値 `250`
-- `radius` と `minVolume` control 画面空間 attenuation 場合 使用されます で シーン
+- `sound` is a sound event id such as `modid:event.name`
+- `src` points at an `.ogg` file; `modid:sounds/machine/start.ogg` becomes `modid:machine.start`
+- `volume` defaults to `1.0`
+- `pitch` defaults to `1.0`
+- `cooldown` is milliseconds between repeated plays, default `250`
+- `radius` and `minVolume` control screen-space attenuation when used in scenes
 
 ### `<Amount>`
 
-`<Amount>` は数値の数量を整形します。`unit` を省略するか `unit="none"` にすると数値だけを表示します。`unit="item"` も接尾辞を付けません。`unit="fluid"` は GTNHLib の流体設定に従い、`mB` または `L` を表示します。`format` は `default`、`plain`、`compact`、`scientific`、`decimals` は小数桁の最大値です。`L/s` などの速度単位はタグの外に書きます。
+`<Amount>` formats a numeric amount. Omitting `unit` (or using `unit="none"`) displays only the number. `unit="item"` is also suffix-free. `unit="fluid"` follows the GTNHLib fluid preference and displays `mB` or `L`. The optional `format` is `default`, `plain`, `compact`, or `scientific`; `decimals` limits fractional digits. Keep rate suffixes such as `/s` outside the tag.
 
-| 属性 | 意味 |
+| Attribute | Meaning |
 | --- | --- |
-| `value` | 必須の有限小数値 |
-| `unit` | 任意の `none`、`item`、`fluid`。既定値は `none` |
-| `format` | 任意の数値形式。既定値は `default` |
-| `decimals` | 任意の0以上の最大小数桁数 |
+| `value` | required finite decimal value |
+| `unit` | optional `none`, `item`, or `fluid`; defaults to `none` |
+| `format` | optional number format; defaults to `default` |
+| `decimals` | optional non-negative maximum fractional digits |
 
-例：
+Example:
 
 ````md
 <Amount value="250" />
@@ -339,7 +338,7 @@ Sound 属性:
 
 ### `<PlayerName>`
 
-Inserts  現在の Minecraft session username:
+Inserts the current Minecraft session username:
 
 ````md
 Welcome, <PlayerName />!
@@ -347,26 +346,26 @@ Welcome, <PlayerName />!
 
 ### `<KeyBind>`
 
-Looks up keybinding by id または action と 描画  player's 現在の bound キー 名前.
+Looks up a keybinding by id or action and renders the player's current bound key name.
 
 Accepted ids:
 
--  binding 説明 id, 例として `key.jump` または `key.guidenh.open_guide`
--  legacy `category.description` form, 例として `key.categories.movement.key.jump`
+- the binding description id, such as `key.jump` or `key.guidenh.open_guide`
+- the legacy `category.description` form, such as `key.categories.movement.key.jump`
 
-例:
+Example:
 
 ````md
 Press <KeyBind id="key.jump" /> to jump.
 Attack with <KeyBind action="key.attack" />.
 ````
 
-### MDX コメント
+### MDX Comments
 
-GuideNH ignores MDX コメント で ページ コンテンツ:
+GuideNH ignores MDX comments in page content:
 
 ````md
-表示されるテキスト。{/* 非表示のインラインコメント */}
+Visible text. {/* hidden inline comment */}
 
 {/*
 multiline comment
@@ -375,39 +374,39 @@ multiline comment
 More visible text.
 ````
 
-GuideNH も ignores 明示的な `<Comment>` タグ:
+GuideNH also ignores explicit `<Comment>` tags:
 
 ````md
-表示されるテキスト。<Comment>これは描画されません。</Comment> 引き続き表示されます。
+Visible text. <Comment>This does not render.</Comment> Still visible.
 ````
 
 ### `<ItemImage>`
 
-Shows inline アイテム icon.
+Shows an inline item icon.
 
-| 属性 | 意味 |
+| Attribute | Meaning |
 | --- | --- |
-| `ore` | 任意の鉱石辞書セレクター。`id` も指定 |
-| `id` | 必須のアイテム参照。`ore` 使用時も指定 |
-| `nbt` | 任意の SNBT アイテム データ; merged onto 任意の inline SNBT で `id` |
-| `scale` | 浮動小数点数, 既定値 `1` |
-| `noTooltip` | truthy 文字列 または 空 属性 suppresses ツールチップ (legacy; prefer `showTooltip`) |
-| `showTooltip` | 真偽値, 既定値 `true`; `false` suppresses  ホバー ツールチップ |
-| `showIcon` | 真偽値, 既定値 `true`; `false` hides  アイテム icon graphic |
-| `label` | `left` または `right` — shows  アイテム 表示 名前 as テキスト on  specified 側 of  icon; omit 用 いいえ ラベル |
-| `format` | format pattern 用  ラベル テキスト; 対応します Markdown-style wrappers (`**bold**`, `*italic*`, `~~strike~~`, `__underline__`, `^^wavy^^`, `::dotted::`) とともに 任意の `%s` placeholder 用  アイテム 名前; 既定値 (いいえ 属性) 描画  名前 で italic |
-| `yOffset` | `scale=1` での行内全体の垂直オフセット。既定は `0`。正の値は下方向 |
-| `labelYOffset` | `scale=1` でのラベル文字だけの垂直オフセット。既定は `0` |
+| `ore` | optional ore-dictionary selector; provide `id` as well |
+| `id` | required item reference, including when `ore` is used |
+| `nbt` | optional SNBT item data; merged onto any inline SNBT in `id` |
+| `scale` | float, default `1` |
+| `noTooltip` | truthy string or empty attribute suppresses tooltip (legacy; prefer `showTooltip`) |
+| `showTooltip` | boolean, default `true`; `false` suppresses the hover tooltip |
+| `showIcon` | boolean, default `true`; `false` hides the item icon graphic |
+| `label` | `left` or `right` — shows the item display name as text on the specified side of the icon; omit for no label |
+| `format` | format pattern for the label text; supports Markdown-style wrappers (`**bold**`, `*italic*`, `~~strike~~`, `__underline__`, `^^wavy^^`, `::dotted::`) with optional `%s` placeholder for the item name; default (no attribute) renders the name in italic |
+| `yOffset` | inline vertical offset at scale `1`; default `0`; positive moves down |
+| `labelYOffset` | label-only vertical offset at scale `1`; default `0` |
 
-注記:
+Notes:
 
-- `ore` takes precedence 上 `id` 場合 両方 です 指定された
-- もし GregTech です installed,  選択済み ore 一致 です passed 通じて `GTOreDictUnificator.setStack(...)`
-- `label` requires at least 1 つ of `showIcon` または `label` へ produce 表示 出力; setting 両方 `showIcon="false"` と omitting `label` 描画 nothing
-- `format` のみ 適用します 場合 `label` 設定されている場合; もし `format` has いいえ `%s`,  literal format テキスト です 使用されます as  ラベル
-- inline SNBT で `id` remains 対応; 場合 両方 forms です present,  standalone `nbt` 属性 です merged 最後の と 上書きします conflicting キー
+- `ore` takes precedence over `id` when both are provided
+- if GregTech is installed, the selected ore match is passed through `GTOreDictUnificator.setStack(...)`
+- `label` requires at least one of `showIcon` or `label` to produce visible output; setting both `showIcon="false"` and omitting `label` renders nothing
+- `format` only applies when `label` is set; if `format` has no `%s`, the literal format text is used as the label
+- inline SNBT in `id` remains supported; when both forms are present, the standalone `nbt` attribute is merged last and overrides conflicting keys
 
-例:
+Example:
 
 ````md
 <ItemImage id="minecraft:diamond" scale="2" />
@@ -427,18 +426,18 @@ Shows inline アイテム icon.
 
 ### `<ItemLink>`
 
-作成します a テキスト リンク using  アイテム's 表示 名前 と アイテム ツールチップ. もし `item_ids` 点 へ a ガイドページ, クリック navigates へ it. `ore` できます なる 使用されます へ 解決  表示 stack から  最初の ore dictionary 一致 代わりに of a 固定 registry id.
+Creates a text link using the item's display name and item tooltip. If `item_ids` points to a guide page, clicking navigates to it. `ore` can be used to resolve the display stack from the first ore dictionary match instead of a fixed registry id.
 
-| 属性 | 既定値 | 意味 |
+| Attribute | Default | Meaning |
 | --- | --- | --- |
-| `id` | — | アイテム registry id, e.g. `minecraft:compass` または `minecraft:wool:1` |
-| `ore` | — | ore-dictionary 名前; 使用します  最初の 一致する アイテム stack |
-| `linksTo` | *(auto)* | 上書きします  リンク 対象; accepts a ページ ID とともに 任意の `#anchor`, e.g. `./crafting.md#usage` または `#usage`; 場合 omitted  対象 です 解決された から `item_ids` / `ore_ids` index |
-| `showTooltip` | `true` | 設定します へ `false` へ suppress  ホバー ツールチップ; `noTooltip` は legacy alias |
-| `showIcon` | *(none)* | `left` または `right` (または 任意の truthy 値 → 右) — 描画  アイテム icon beside  リンク テキスト; omit へ 表示 テキスト のみ |
-| `scale` | `1.0` | 表示 scale 用  任意の アイテム icon; has いいえ effect 場合 `showIcon` 省略された場合 |
+| `id` | — | item registry id, e.g. `minecraft:compass` or `minecraft:wool:1` |
+| `ore` | — | ore-dictionary name; uses the first matching item stack |
+| `linksTo` | *(auto)* | overrides the link target; accepts a page id with optional `#anchor`, e.g. `./crafting.md#usage` or `#usage`; when omitted the target is resolved from `item_ids` / `ore_ids` index |
+| `showTooltip` | `true` | set to `false` to suppress the hover tooltip; `noTooltip` is a legacy alias |
+| `showIcon` | *(none)* | `left` or `right` (or any truthy value → right) — renders the item icon beside the link text; omit to show text only |
+| `scale` | `1.0` | display scale for the optional item icon; has no effect when `showIcon` is omitted |
 
-例:
+Examples:
 
 ````md
 <ItemLink id="appliedenergistics2:tile.BlockSkyChest" />
@@ -459,7 +458,7 @@ ExportSite displays item counts and fluid amounts as text overlays using its bun
 | Attribute | Contract |
 | --- | --- |
 | `id` | Required complete fluid registry name; no implicit namespace or item metadata |
-| `amount` | Optional nonnegative integer up to 2147483647; raw fluid units shown as L in GTNH; zero remains a valid fluid |
+| `amount` | Optional integer amount; display follows the selected fluid unit |
 | `nbt` | Optional SNBT describing a private fluid stack tag |
 | `showTooltip`, `noTooltip` | Same visibility precedence as item icons; hiding a tooltip does not disable G navigation |
 | `scale`, `showIcon`, `label`, `format`, `yOffset`, `labelYOffset` | FluidImage shares ItemImage presentation options; scale must be finite and positive |
@@ -483,32 +482,32 @@ Use `navigation.icon_fluid` / `icon_fluids` for single/cycling page icons, and `
 
 ### `<CommandLink>`
 
-Sends chat command 場合 clicked.
+Sends a chat command when clicked.
 
-| 属性 | 意味 |
+| Attribute | Meaning |
 | --- | --- |
-| `command` | 必須, 必要があります 開始 とともに `/` |
-| `title` | 任意の ツールチップ heading |
-| `close` | 解析済み 真偽値 属性; 現在 解析済み but ない 使用されます へ close  ガイド |
+| `command` | required, must start with `/` |
+| `title` | optional tooltip heading |
+| `close` | parsed boolean attribute; currently parsed but not used to close the guide |
 
-例:
+Example:
 
 ````md
-<CommandLink command="/tp @s 0 90 0" title="Teleport">Teleport!</CommandLink>
+<CommandLink command="/tp @p 0 90 0" title="Teleport">Teleport!</CommandLink>
 ````
 
-### `<Row>` と `<Column>`
+### `<Row>` And `<Column>`
 
-Flex-style containers 用 ブロック コンテンツ.
+Flex-style containers for block content.
 
-| 属性 | 意味 |
+| Attribute | Meaning |
 | --- | --- |
-| `gap` | 整数 gap 間 子要素, 既定値 `5` |
+| `gap` | integer gap between children, default `5` |
 | `alignItems` | `start`, `center`, `end` |
-| `fullWidth` | 真偽値 式, 既定値 `false` |
-| `width` | 整数 推奨 幅; useful 用 constraining 一覧 行 幅 |
+| `fullWidth` | boolean expression, default `false` |
+| `width` | integer preferred width; useful for constraining list line width |
 
-例:
+Example:
 
 ````md
 <Row gap="8" alignItems="center">
@@ -517,7 +516,7 @@ Flex-style containers 用 ブロック コンテンツ.
 </Row>
 ````
 
-へ constrain  幅 of 通常 Markdown lists, wrap them で container:
+To constrain the width of normal markdown lists, wrap them in a container:
 
 ````md
 <Column width="220">
@@ -528,7 +527,7 @@ Flex-style containers 用 ブロック コンテンツ.
 
 ### `<FootnoteList>`
 
-GuideNH 使用します この ブロック タグ internally 場合 実行時 Markdown footnotes です expanded. It できます も なる written 手動で もし needed.
+GuideNH uses this block tag internally when runtime markdown footnotes are expanded. It can also be written manually if needed.
 
 ````md
 <FootnoteList width="220">
@@ -539,7 +538,7 @@ GuideNH 使用します この ブロック タグ internally 場合 実行時 M
 
 ### `<ItemGrid>`
 
-Renders a compact icon grid. The grid compiler parses raw ItemIcon and FluidIcon children in source order. Item children select `id` or `ore`; fluid children select a registry-name `id` with optional amount and NBT.
+Renders a compact icon grid. ItemIcon and FluidIcon children appear in source order. Item children select `id` or `ore`; fluid children select a registry-name `id` with optional amount and NBT.
 
 ````md
 <ItemGrid>
@@ -552,31 +551,31 @@ Renders a compact icon grid. The grid compiler parses raw ItemIcon and FluidIcon
 
 ### `<BlockImage>`
 
-描画 non-インタラクティブ 3D 単一の-ブロック シーン.  プレビュー has いいえ シーン 背景, いいえ シーン
-buttons, いいえ layer controls, と いいえ 注釈 features, but ホバーすると  ブロック 引き続き shows 
-選択 outline と ツールチップ. `ore` 必要があります 解決 へ a ブロック アイテム stack.
+Renders a non-interactive 3D single-block scene. The preview has no scene background, no scene
+buttons, no layer controls, and no annotation features, but hovering the block still shows the
+selection outline and tooltip. `ore` must resolve to a block item stack.
 
-| 属性 | 意味 |
+| Attribute | Meaning |
 | --- | --- |
-| `id` | ブロック id; 対応します  通常 `modid:block[:meta][:{snbt}]` spelling |
-| `ore` | ore dictionary lookup;  最初の 一致する ブロック アイテム wins |
-| `scale` | カメラ ズーム multiplier, 既定値 `4` |
-| `meta` | ブロックのメタデータ。`id` の値を上書き |
-| `width` / `height` | プレビューのピクセル寸法。幅と高さはそれぞれ既定 `128` |
-| `wrap` | テキストの回り込み。既定は `inline` |
-| `align` | 水平方向の配置：`left`（既定）、`center`、`right` |
-| `float` | legacy flow 浮動小数点数 対応: `left` または `right` |
-| `perspective` | `isometric-north-east` (既定値), `isometric-north-west`, または `up` |
-| `nbt` | 任意の SNBT tile-entity データ merged onto 任意の inline SNBT から `id` |
+| `id` | block id; supports the normal `modid:block[:meta][:{snbt}]` spelling |
+| `ore` | ore dictionary lookup; the first matching block item wins |
+| `scale` | camera zoom multiplier, default `4` |
+| `meta` | block metadata; overrides metadata in `id` |
+| `width` / `height` | preview viewport in pixels; default `128` for each dimension |
+| `wrap` | text wrapping mode; default `inline` |
+| `align` | horizontal alignment: `left` (default), `center`, or `right` |
+| `float` | legacy flow float support: `left` or `right` |
+| `perspective` | `isometric-north-east` (default), `isometric-north-west`, or `up` |
+| `nbt` | optional SNBT tile-entity data merged onto any inline SNBT from `id` |
 
-注記:
+Notes:
 
-- inline SNBT 内部 `id` です 引き続き accepted 用 compatibility, but `nbt="..."` です  推奨
+- inline SNBT inside `id` is still accepted for compatibility, but `nbt="..."` is the preferred
   authoring form
-- 場合 両方 inline SNBT と `nbt` です present,  `nbt` 属性 です merged 最後の と したがって
-  上書きします conflicting キー
-- GuideNH 1.7.10 しません 対応 modern ブロック-状態 プロパティ 構文 here, so GuideME-style
-  `p:<state>` 属性 です intentionally ない 対応
+- when both inline SNBT and `nbt` are present, the `nbt` attribute is merged last and therefore
+  overrides conflicting keys
+- GuideNH 1.7.10 does not support modern block-state property syntax here, so GuideME-style
+  `p:<state>` attributes are intentionally not supported
 
 ````md
 <BlockImage id="minecraft:crafting_table" scale="3" />
@@ -590,7 +589,7 @@ buttons, いいえ layer controls, と いいえ 注釈 features, but ホバー�
 
 ### `<FloatingImage>`
 
-参照 [Images And Assets](Images-And-Assets) 用  完全な behavior.
+See [Images And Assets](Images-And-Assets) for the full behavior.
 
 ```mdx
 <FloatingImage src="test1.png" displayWidth="128" wrap="inline" />
@@ -598,17 +597,17 @@ buttons, いいえ layer controls, と いいえ 注釈 features, but ホバー�
 <FloatingImage src="test1.png" x="8" y="8" width="16" height="16" displayWidth="128" wrap="inline" />
 ```
 
-### `<SubPages>`, `<Category>`, と `<Special>`
+### `<SubPages>`, `<Category>`, And `<Special>`
 
-参照 [Navigation](Navigation) 用 完全な ナビゲーション behavior.
+See [Navigation](Navigation) for full navigation behavior.
 
 ### `<Structure>`
 
-参照 [例s](例s) と [GameScene](GameScene) 場合 deciding whether へ 使用 static structure プレビュー または 完全な 3D シーン.
+See [Examples](Examples) and [GameScene](GameScene) when deciding whether to use a static structure preview or a full 3D scene.
 
 ### `<Mermaid>`
 
-使用されます 用 実行時 Mermaid コンテンツ. 現在の 実行時 対応 です focused on `mindmap`, いずれか inline または 通じて a ページ-相対 `src` import:
+Used for runtime Mermaid content. Current runtime support is focused on `mindmap`, either inline or through a page-relative `src` import:
 
 ````md
 <Mermaid src="./markdown-mindmap.mmd" />
@@ -619,69 +618,82 @@ mindmap
     runtime["Runtime blocks"]
 
 <NodeContent id="runtime">
-ランタイムノードには通常のブロックを埋め込めます。
+Runtime nodes can embed normal blocks.
 
 <ItemImage id="minecraft:diamond" />
 </NodeContent>
 </Mermaid>
 ```
 
-- `width` と `height` constrain  実行時 viewport box
-- 内部  viewport, ドラッグ pans と  mouse wheel zooms
-- quoted Mermaid labels 可能性があります 使用 リッチ inline Markdown 例として `**bold**` と ページ リンク
-- `<NodeContent id="...">...</NodeContent>` できます なる added as 子要素 of `<Mermaid>` へ 置き換え node 本文 とともに arbitrary 実行時 ブロック
+- `width` and `height` constrain the runtime viewport box
+- inside the viewport, drag pans and the mouse wheel zooms
+- quoted Mermaid labels may use rich inline markdown such as `**bold**` and page links
+- `<NodeContent id="...">...</NodeContent>` can be added as children of `<Mermaid>` to replace a node body with arbitrary runtime blocks
 
 ### `<CsvTable>`
 
-使用されます へ 解析 CSV ファイル into a 実行時 表:
+Used to parse a CSV file into a runtime table:
 
 ````md
 <CsvTable src="./markdown-table.csv" />
 ```
 
-`src` resolves 相対 へ  現在の ページ,  同じ way シーン imports と 通常 アセット リンク do.
+`src` resolves relative to the current page, the same way scene imports and normal asset links do.
 
-任意の 属性:
+Optional attributes:
 
 - `header`
-  Defaults へ `true`; 設定します `header={false}` へ 保持します  最初の 行 unbolded
+  Defaults to `true`; set `header={false}` to keep the first row unbolded
 - `widths`
-  Comma-separated 整数 幅 hints 例として `widths="120,80"`
+  Comma-separated integer width hints such as `widths="120,80"`
 
-例:
+Examples:
 
 ````md
 <CsvTable src="./markdown-table.csv" widths="120,80" />
 <CsvTable src="./markdown-table.csv" header={false} />
 ```
 
- related fenced 実行時 CSV form も 対応します 一致する metadata:
+The related fenced runtime CSV form also supports matching metadata:
 
 ````md
 ```csv widths="120,80" header=false
-名前,値
+name,value
 iron,42
 gold,17
 ```
 ````
 
+### HTML `<table>`
+
+The native HTML table tags are supported in GuideNH pages. Use `<caption>`, `<colgroup>` / `<col>`, and `<thead>` / `<tbody>` / `<tfoot>` to describe the table structure. Cells support `colspan`, `rowspan`, `align`, and `valign`; header cells additionally support `scope`, `abbr`, and `headers`. A table `align` value with commas (for example `left,center,right`) is retained as a per-column alignment extension; a single `left`, `center`, or `right` value positions the complete table. `width`, `border`, `cellpadding`, and `cellspacing` are supported in the game renderer and site export. The kramdown metadata line `{: widths="130,70,150" }` remains supported for Markdown tables.
+
+````md
+<table width="100%" cellpadding="2">
+  <caption>Fuel rates</caption>
+  <colgroup><col width="40%" /><col width="60%" /></colgroup>
+  <thead><tr><th scope="col">Fuel</th><th scope="col">Rate</th></tr></thead>
+  <tbody><tr><td>Coal</td><td align="right">42</td></tr></tbody>
+</table>
+````
+
 ### `<Latex>`
 
-描画 LaTeX math 数式 using jlatexmath. 場合 使用されます inline (内部 paragraph または テキスト flow), it 描画 as scaled glyph that expands  行 高さ へ fit  数式. 場合 written as its 独自の paragraph (ブロック context), it 描画 centered as a 表示-モード 数式.
+Renders a LaTeX math formula using jlatexmath. When used inline (inside a paragraph or text flow), it renders as a scaled glyph that expands the line height to fit the formula. When written as its own paragraph (block context), it renders centered as a display-mode formula.
 
-| 属性 | 型 | 既定値 | 説明 |
+| Attribute | Type | Default | Description |
 | --- | --- | --- | --- |
-| `formula` | 文字列 | *(必須)* | LaTeX ソース 文字列 |
-| `color` | `#RRGGBB` または `#AARRGGBB` | `#FFFFFF` | Glyph fill colour |
-| `scale` | 浮動小数点数 | `1.0` | 表示 サイズ multiplier applied on 上 of  自動 行-高さ scaling |
-| `sourceScale` | 浮動小数点数 | `100.0` | jlatexmath 内部 描画 resolution; higher 値 improve quality at large sizes |
-| `tooltip` | 文字列 | *(none)* | プレーン ツールチップ テキスト 表示される on ホバー |
-| `showTooltip` | 真偽値 | `false` | 表示  未加工 LaTeX ソース as a ツールチップ on ホバー |
-| `valign` | `baseline` / `top` / `center` / `bottom` | `baseline` | Inline-のみ. Vertical alignment 内部で  テキスト 行: `baseline` (既定値) aligns  数式's math baseline とともに  テキスト baseline; `top` aligns  数式 上 とともに  行 上; `center` centers it on  テキスト; `bottom` aligns  数式 下 とともに  テキスト 下 |
-| `offsetX` | int | `0` | Horizontal pixel offset applied 後 alignment (positive = 右) |
-| `offsetY` | int | `0` | Vertical pixel offset applied 後 alignment (positive = down) |
+| `formula` | string | *(required)* | LaTeX source string |
+| `color` | `#RRGGBB` or `#AARRGGBB` | `#FFFFFF` | Glyph fill colour |
+| `scale` | float | `1.0` | Display size multiplier applied on top of the automatic line-height scaling |
+| `sourceScale` | float | `100.0` | jlatexmath layout size used as the measuring reference. In game the formula is always rasterized at the actual screen resolution; in site export it sets the PNG resolution |
+| `tooltip` | string | *(none)* | Plain tooltip text shown on hover |
+| `showTooltip` | boolean | `false` | Show the raw LaTeX source as a tooltip on hover |
+| `valign` | `baseline` / `top` / `center` / `bottom` | `baseline` | Inline-only. Vertical alignment within the text line: `baseline` (default) aligns the formula's math baseline with the text baseline; `top` aligns the formula top with the line top; `center` centers it on the text; `bottom` aligns the formula bottom with the text bottom |
+| `offsetX` | int | `0` | Horizontal pixel offset applied after alignment (positive = right) |
+| `offsetY` | int | `0` | Vertical pixel offset applied after alignment (positive = down) |
 
-例:
+Examples:
 
 ````md
 Inline: <Latex formula="E=mc^2" />
@@ -717,11 +729,11 @@ Top-aligned with an upward nudge: <Latex formula="x^2" valign="top" offsetY="-1"
 
 #### `$$formula$$` shorthand
 
-As convenience you できます 書き込む `$$formula$$` directly で Markdown なしで using  `<Latex>` タグ.
-すべての 描画 パラメーター 使用 their defaults (white colour, scale 1.0, いいえ ツールチップ, baseline-aligned).
+As a convenience you can write `$$formula$$` directly in Markdown without using the `<Latex>` tag.
+All rendering parameters use their defaults (white colour, scale 1.0, no tooltip, baseline-aligned).
 
-- **Inline**: `$$formula$$` embedded 内部 paragraph 描画 as inline 数式.
-- **表示**: paragraph whose entire コンテンツ です `$$formula$$` (とともに 任意の surrounding whitespace) 描画 as centred 表示-モード ブロック.
+- **Inline**: `$$formula$$` embedded inside a paragraph renders as an inline formula.
+- **Display**: a paragraph whose entire content is `$$formula$$` (with optional surrounding whitespace) renders as a centred display-mode block.
 
 ````md
 Inline shorthand: $$E=mc^2$$ and $$a^2+b^2=c^2$$
@@ -733,73 +745,73 @@ $$\int_0^\infty e^{-x^2}\,dx = \frac{\sqrt{\pi}}{2}$$
 $$\begin{pmatrix} a & b \\ c & d \end{pmatrix}$$
 ````
 
-注記:
+Notes:
 
--  数式 高さ です calibrated へ  現在の 行 テキスト 高さ. Simple formulas 描画 at テキスト 高さ; taller formulas (fractions, summations, integrals, etc.) expand  enclosing 行 高さ 自動的に.
-- `valign` のみ 適用します へ inline formulas. 表示-モード (ブロック-level) formulas です 常に centered horizontally; 使用 `offsetY` へ shift them vertically 内部で  ブロック.
-- `color` defaults へ white (`#FFFFFF`). 使用 `#AARRGGBB` format 用 semi-transparent fill.
-- `sourceScale` のみ affects 描画 sharpness, ない  displayed サイズ. 値 below `16` です clamped へ `16`.
-- ツールチップ priority です: リッチ 子 Markdown コンテンツ, then `tooltip="..."`, then `showTooltip={true}` 未加工 ソース フォールバック.
-- 子 ツールチップ コンテンツ です コンパイル済み as regular ガイド Markdown, so it できます 含める bold テキスト, lists, リンク, アイテム タグ, と nested `<Latex>` formulas.
--  `$$formula$$` shorthand 常に 使用します 既定値 パラメーター. 使用  `<Latex>` タグ 用 カスタム colour, scale, alignment または ツールチップ.
+- The formula height is calibrated to the current line text height. Simple formulas render at text height; taller formulas (fractions, summations, integrals, etc.) expand the enclosing line height automatically.
+- `valign` only applies to inline formulas. Display-mode (block-level) formulas are always centered horizontally; use `offsetY` to shift them vertically within the block.
+- `color` defaults to white (`#FFFFFF`). Use `#AARRGGBB` format for a semi-transparent fill.
+- `sourceScale` does not change the displayed size. In game, formulas are rasterized at the on-screen pixel size (GUI scale aware), so thin strokes such as fraction bars and minus signs stay visible on low-resolution displays; `sourceScale` only affects the site-export PNG resolution. Values below `16` are clamped to `16`.
+- Tooltip priority is: rich child Markdown content, then `tooltip="..."`, then `showTooltip={true}` raw source fallback.
+- Child tooltip content is compiled as regular guide Markdown, so it can include bold text, lists, links, item tags, and nested `<Latex>` formulas.
+- The `$$formula$$` shorthand always uses default parameters. Use the `<Latex>` tag for custom colour, scale, alignment or tooltip.
 
-### シーン 実行時 タグ
+### Scene Runtime Tags
 
-これらの タグ のみ 動作します 内部 `<GameScene>` / `<Scene>`:
+These tags only work inside `<GameScene>` / `<Scene>`:
 
-| タグ | Purpose | キー 属性 |
+| Tag | Purpose | Key attributes |
 | --- | --- | --- |
-| `<ImportStructure>` | import 外部 SNBT/NBT structure アセット | `src`, `x`, `y`, `z`, `offsetX`, `offsetY`, `offsetZ`, `formed` |
-| `<ImportStructureLib>` | import StructureLib multiblock by controller id | `controller`, `name`, `piece`, `facing`, `rotation`, `flip`, `tier`, `channel`, `channelName`, `value`, `locked`, `offsetX`, `offsetY`, `offsetZ`, `formed` |
-| `<RemoveBlocks>` | 削除 すでに-placed ブロック that 一致 a ブロック matcher | `id` |
-| `<BlockAnnotation>` | 単一のブロックを強調 | `pos`, `color`, `colorMode`, `colorPeriod`, `thickness`, `alwaysOnTop` |
-| `<BoxAnnotation>` | 軸に揃った任意のボックスを強調 | `min`, `max`, `color`, `colorMode`, `colorPeriod`, `thickness`, `alwaysOnTop` |
-| `<OutlineAnnotation>` | ブロックやエンティティの描画されたシルエットに輪郭を描画 | `pos`, `min`, `max`, `entity`, `target`, `mode`, `color`, `colorMode`, `colorPeriod`, `thickness`, `alwaysOnTop`, `pulse`, `pulsePeriod` |
-| `<BlockAnnotationTemplate>` | stamp  同じ 子 注釈 onto すべての 一致する placed ブロック | `id` |
+| `<ImportStructure>` | import an external SNBT/NBT structure asset | `src`, `x`, `y`, `z`, `offsetX`, `offsetY`, `offsetZ`, `formed` |
+| `<ImportStructureLib>` | import a StructureLib multiblock by controller id | `controller`, `name`, `piece`, `facing`, `rotation`, `flip`, `tier`, `channel`, `channelName`, `value`, `locked`, `offsetX`, `offsetY`, `offsetZ`, `formed` |
+| `<RemoveBlocks>` | remove already-placed blocks that match a block matcher | `id` |
+| `<BlockAnnotation>` | highlight one block | `pos`, `color`, `colorMode`, `colorPeriod`, `thickness`, `alwaysOnTop` |
+| `<BoxAnnotation>` | highlight an arbitrary axis-aligned box | `min`, `max`, `color`, `colorMode`, `colorPeriod`, `thickness`, `alwaysOnTop` |
+| `<OutlineAnnotation>` | outline the rendered silhouette of blocks or entities | `pos`, `min`, `max`, `entity`, `target`, `mode`, `color`, `colorMode`, `colorPeriod`, `thickness`, `alwaysOnTop`, `pulse`, `pulsePeriod` |
+| `<BlockAnnotationTemplate>` | stamp the same child annotations onto every matching placed block | `id` |
 
-`colorMode`: `solid`（既定）または `rainbow`。虹色は投影中心の周囲を 360° 回転し、RGB を置き換えて `color` のアルファを保持します. `colorPeriod`: 虹色の周期（秒）。正の有限値で、既定値は `2.4`。不正な値はページエラーになります. ゲームと Site Export は同じ虹色のグラデーションと周期を使用します。
+`colorMode`: `solid` (default) or `rainbow`; rainbow rotates through 360 degrees around the projected annotation center, replacing RGB while preserving the alpha of `color`. `colorPeriod`: positive finite rainbow cycle period in seconds; default `2.4`; invalid values produce a page error. Game and Site Export use the same rainbow gradient and cycle duration.
 
-参照 [GameScene](GameScene) 用 シーン import/removal behavior と [Annotations](Annotations) 用 注釈 template 規則.
+See [GameScene](GameScene) for scene import/removal behavior and [Annotations](Annotations) for annotation template rules.
 
 
-## チャート
+## Charts
 
-`<ColumnChart>`, `<BarChart>`, `<LineChart>`, `<PieChart>`, と `<ScatterChart>` です インタラクティブ チャート ブロック. すべての チャート share  following 一般的な 属性:
+`<ColumnChart>`, `<BarChart>`, `<LineChart>`, `<PieChart>`, and `<ScatterChart>` are interactive chart blocks. All charts share the following common attributes:
 
-| 属性 | 説明 | 既定値 |
+| Attribute | Description | Default |
 | --- | --- | --- |
-| `title` | チャート タイトル | none |
-| `width` / `height` | 明示的な サイズ | 320 / 200 |
-| `background` / `border` | 背景 と 境界線 colors (`#RGB`, `#RRGGBB`, `#AARRGGBB`, `0x...`) | dark grey |
-| `titleColor` / `labelColor` | タイトル と 値-ラベル colors | light grey |
-| `legend` | 凡例 位置: `none` / `top` / `bottom` / `left` / `right` | `top` |
-| `labelPosition` | 値-ラベル 位置: `none` / `inside` / `outside` / `above` / `below` / `center` | `none` |
-| `cornerLegend` | 内部 plot 凡例 位置: `none` / `topRight` / `topLeft` / `bottomRight` / `bottomLeft` | `none` |
-| `cornerLegendWidth` / `cornerLegendHeight` | Maximum 内部 凡例 box サイズ | `120` / `64` |
-| `cornerLegendBackground` | 内部 凡例 背景 色 | `#AA111922` |
+| `title` | Chart title | none |
+| `width` / `height` | Explicit size | 320 / 200 |
+| `background` / `border` | Background and border colors (`#RGB`, `#RRGGBB`, `#AARRGGBB`, `0x...`) | dark grey |
+| `titleColor` / `labelColor` | Title and value-label colors | light grey |
+| `legend` | Legend position: `none` / `top` / `bottom` / `left` / `right` | `top` |
+| `labelPosition` | Value-label position: `none` / `inside` / `outside` / `above` / `below` / `center` | `none` |
+| `cornerLegend` | Internal plot legend position: `none` / `topRight` / `topLeft` / `bottomRight` / `bottomLeft` | `none` |
+| `cornerLegendWidth` / `cornerLegendHeight` | Maximum internal legend box size | `120` / `64` |
+| `cornerLegendBackground` | Internal legend background color | `#AA111922` |
 
-Cartesian チャート (列 / Bar / 行 / Scatter) additionally 受け付けます axis 属性 `xAxisLabel`, `xAxisMin`, `xAxisMax`, `xAxisStep`, `xAxisUnit`, `xAxisTickFormat` と  一致する `yAxis*` 設定します, plus `showXGrid={true}` / `showYGrid={true}` へ toggle gridlines.
+Cartesian charts (Column / Bar / Line / Scatter) additionally accept axis attributes `xAxisLabel`, `xAxisMin`, `xAxisMax`, `xAxisStep`, `xAxisUnit`, `xAxisTickFormat` and the matching `yAxis*` set, plus `showXGrid={true}` / `showYGrid={true}` to toggle gridlines.
 
-無効または過大な目盛り書式は自動数値書式に戻ります。書式文字列は 256 文字、フィールド幅は 128、精度は 20 が上限です。 数値目盛りが重なる場合は一部のラベルを省略しますが、対応するグリッド線は維持されます。
+Invalid or oversized tick formats fall back to automatic number formatting. Format strings are limited to 256 characters, field widths to 128, and precision to 20. Overlapping numeric tick labels are omitted as needed without removing their grid lines.
 
-`ColumnChart`、`LineChart`、`ScatterChart` は、描画領域内の空白部分でも金色の水平補助線を表示し、左の軸に現在の Y 値を強調表示します。`BarChart` は垂直補助線を使い、下側に X 値を表示します。数値は軸の書式と単位に従います。線上には文字を置かず、領域の外では非表示になります。両軸のグリッドは薄く間隔の広い破線で、`showXGrid` と `showYGrid` で個別に切り替えられます。極端に小さい正の目盛間隔は、描画処理を制限するため自動的に広げられます。
+`ColumnChart`, `LineChart`, and `ScatterChart` show a horizontal gold dashed guide while the pointer is inside the plot, including empty space; the current Y value is highlighted beside the left axis. `BarChart` uses a vertical guide and highlights the X value below the plot. Labels follow the axis tick format and unit. The guide has no text on the line and disappears outside the plot. Both axes use faint, sparse dashed grids; `showXGrid` and `showYGrid` control them independently. Extremely small positive tick steps are coarsened automatically to bound rendering work.
 
-子要素:
+Children:
 
-* `<Series name="..." color="#..." data="10,20,30"/>` 用 category-based チャート (列 / Bar / categorical 行).
-* `<Series name="..." color="#..." points="x:y,x:y,..."/>` 用 numeric X (行 `numericX={true}`, Scatter).
-* `<Slice name="..." value="..." color="#..."/>` 用 `<PieChart>` のみ.
-* `<ReferenceLine y="100"/>` は `ColumnChart`、`LineChart`、`ScatterChart` に固定の水平線を描きます。`BarChart` は `<ReferenceLine x="100"/>` で垂直線を描き、`y` も別名として受け付けます。座標は有限の数値が必要です。複数の線を指定でき、既定の半透明グレーは `color` で変更できます。任意の `label` はプロット内に表示され、軸の目盛りと重なりません。参照線はグリッドの設定に依存せず、自動範囲を広げず、範囲外では表示されません。`PieChart` はこのタグに対応しません。
+* `<Series name="..." color="#..." data="10,20,30"/>` for category-based charts (Column / Bar / categorical Line).
+* `<Series name="..." color="#..." points="x:y,x:y,..."/>` for numeric X (Line `numericX={true}`, Scatter).
+* `<Slice name="..." value="..." color="#..."/>` for `<PieChart>` only.
+* `<ReferenceLine y="100"/>` draws a fixed horizontal line in `ColumnChart`, `LineChart`, and `ScatterChart`. `BarChart` uses `<ReferenceLine x="100"/>` for a vertical line, with `y` accepted as an alias. The coordinate must be finite. Multiple lines are allowed; `color` overrides the translucent gray default and optional `label` appears inside the plot without covering axis tick labels. References remain visible when grids are disabled, do not expand the automatic range, and are hidden outside it. `PieChart` does not support this tag.
 
-場合 `color` 省略された場合 on a `<Series>` または `<Slice>`, GuideNH cycles 通じて built-で 16-色 palette.
+When `color` is omitted on a `<Series>` or `<Slice>`, GuideNH cycles through a built-in 16-color palette.
 
-`<Series>` と `<Slice>` も 受け付けます  following 任意の icon / ツールチップ 属性:
+`<Series>` and `<Slice>` also accept the following optional icon / tooltip attributes:
 
-* `icon="modid:item"` (同じ 構文 as `<ItemImage>`'s `id`, 可能性があります 含める `@meta` と inline NBT JSON) — binds an `ItemStack` へ  エントリ;  凡例 swatch になります  アイテム icon と ホバーすると  データ 点 shows  vanilla アイテム ツールチップ とともに  チャート 説明 appended at  終端.
-* `iconImage="images/foo.png"` — 使用 PNG アセット as  凡例 swatch (overridden by `icon`).
-* `tooltip="..."` — extra free-form テキスト appended へ  ツールチップ (使用 `\n` 用 multi-行).
+* `icon="modid:item"` (same syntax as `<ItemImage>`'s `id`, may include `@meta` and inline NBT JSON) — binds an `ItemStack` to the entry; the legend swatch becomes the item icon and hovering the data point shows the vanilla item tooltip with the chart description appended at the end.
+* `iconImage="images/foo.png"` — use a PNG asset as the legend swatch (overridden by `icon`).
+* `tooltip="..."` — extra free-form text appended to the tooltip (use `\n` for multi-line).
 
-例:
+Example:
 
 ```mdx
 <PieChart title="Output share">
@@ -810,16 +822,16 @@ Cartesian チャート (列 / Bar / 行 / Scatter) additionally 受け付けま�
 
 ### `<ColumnChart>` / `<BarChart>`
 
-Extra 属性: `categories` (X-axis または Y-axis labels, comma separated), `barWidthRatio` (既定値 0.7). `<BarChart>` puts  categories on  Y-axis と 値 on  X-axis.
+Extra attributes: `categories` (X-axis or Y-axis labels, comma separated), `barWidthRatio` (default 0.7). `<BarChart>` puts the categories on the Y-axis and values on the X-axis.
 
 #### Combo extensions
 
-`<ColumnChart>` と `<BarChart>` 受け付けます 2 つ extra 子 element types so 複数の チャート styles できます share 1 つ plot area:
+`<ColumnChart>` and `<BarChart>` accept two extra child element types so multiple chart styles can share one plot area:
 
-- `<LineSeries name="…" data="v1,v2,…" color="#rrggbb" icon="…"/>` — drawn as a 折れ線 overlay on 上 of  bars. 各 行 点 sits at  cluster 中央 of  一致する category index;  overlay shares  host チャート's 値 axis. You できます declare 複数の `<LineSeries>` へ overlay several trends.
-- `<PieInset size="60" position="topRight" title="…" startAngleDeg="-90" direction="clockwise" titleColor="#rrggbb">` — small pie チャート drawn 内部 1 つ of  four corners (`topRight`, `topLeft`, `bottomRight`, `bottomLeft`) of  plot area. Its `<Slice>` 子要素 share  同じ 構文 as で `<PieChart>`.
+- `<LineSeries name="…" data="v1,v2,…" color="#rrggbb" icon="…"/>` — drawn as a polyline overlay on top of the bars. Each line point sits at the cluster center of the matching category index; the overlay shares the host chart's value axis. You can declare multiple `<LineSeries>` to overlay several trends.
+- `<PieInset size="60" position="topRight" title="…" startAngleDeg="-90" direction="clockwise" titleColor="#rrggbb">` — a small pie chart drawn inside one of the four corners (`topRight`, `topLeft`, `bottomRight`, `bottomLeft`) of the plot area. Its `<Slice>` children share the same syntax as in `<PieChart>`.
 
-`PieInset` の扇形は下にある棒や折れ線より優先してホバーに反応し、名前、値、割合、任意の `tooltip` を表示します。ゲーム内ではアイテムのツールチップも維持されます。扇形の上では主グラフの補助線が消えます。使用される挿入円グラフは最初の一つだけです。`position="rightOutside"` は右側に専用領域を確保します。`startAngleDeg="0"`、`direction="counterclockwise"`、単一の扇形による完全な円にも対応します。
+`PieInset` slices take hover priority over the bars and lines below them: tooltips show the name, value, percentage, and optional `tooltip` text; in-game item tooltips are retained when an item icon is present. The main guide is hidden while a slice is hovered. Only the first inset is used. `position="rightOutside"` reserves a separate area on the right. `startAngleDeg="0"`, `direction="counterclockwise"`, and a single full-circle slice are supported.
 
 ```mdx
 <ColumnChart title="Quarterly output" categories="Q1,Q2,Q3,Q4">
@@ -835,74 +847,74 @@ Extra 属性: `categories` (X-axis または Y-axis labels, comma separated), `b
 
 ### `<LineChart>`
 
-Extra 属性: `numericX={true}` へ enable numeric X-axis (子要素 必要があります 使用 `points`); `showPoints={false}` hides 点 markers.  hovered 点 です pushed outward by 2px along  曲線 通常, enlarged, と outlined;  adjacent 行 segments thicken by 1px.
+Extra attributes: `numericX={true}` to enable a numeric X-axis (children must use `points`); `showPoints={false}` hides point markers. The hovered point is pushed outward by 2px along the curve normal, enlarged, and outlined; the adjacent line segments thicken by 1px.
 
-`<LineChart>` と `<ScatterChart>` できます 表示 compact 凡例 内部  plot area とともに `cornerLegend="topRight"` または another corner. エントリ 使用 existing 系列 names と colors.
+`<LineChart>` and `<ScatterChart>` can show a compact legend inside the plot area with `cornerLegend="topRight"` or another corner. Entries use existing series names and colors.
 
 ### `<PieChart>`
 
-Extra 属性: `startAngle` (既定値 `-90`, i.e. 12 o'clock); `clockwise={false}` へ reverse direction.  hovered スライス pops outward 4px along its bisector.
+Extra attributes: `startAngle` (default `-90`, i.e. 12 o'clock); `clockwise={false}` to reverse direction. The hovered slice pops outward 4px along its bisector.
 
 ### `<ScatterChart>`
 
-描画 点 のみ; `<Series>` 必要があります 使用 `points`.  X-axis です 常に numeric.
+Renders points only; `<Series>` must use `points`. The X-axis is always numeric.
 
-## 関数グラフ
+## Function Graphs
 
-`<FunctionGraph>` と  単一の-曲線 shorthand `<Function>` 描画 an インタラクティブ Desmos-style panel.  同じ panel です も 利用可能 通じて a ` ```funcgraph ` fenced コードブロック; 参照してください  実行時 [Markdown sample](resourcepack/assets/guidenh/guidenh/_en_us/markdown.md) 用 完全な walkthrough.
+`<FunctionGraph>` and the single-curve shorthand `<Function>` render an interactive Desmos-style panel. The same panel is also available through a ` ```funcgraph ` fenced code block; see the runtime [Markdown sample](resourcepack/assets/guidenh/guidenh/_en_us/markdown.md) for a full walkthrough.
 
-Panel 属性 (accepted by  container,  shorthand, と  fence header alike):
+Panel attributes (accepted by the container, the shorthand, and the fence header alike):
 
 - `width` / `height` (defaults `320` x `220`)
 - `title`, `background`, `border`, `axisColor`, `gridColor`
-- `showGrid` / `showAxes` (既定値 `true`)
-- `xRange="a..b"` (または `xMin` / `xMax` separately), `xStep` 用 tick spacing; 同じ 用  Y axis
-- `xLabel` / `yLabel` 追加します Excel-style axis titles below と 上に  plot respectively. これらは 対応 inline `$$...$$` LaTeX; `domain="a..b"` は legacy alias 用 `xRange` 場合 いいえ 明示的な X range です present
-- `quadrants="1,2,3,4"` または `quadrants="all"` へ force  表示 quadrants; omit へ 開始 で quadrant 1 とともに auto-expansion 場合 sampled `y < 0`
-- `cornerLegend`, `cornerLegendWidth`, `cornerLegendHeight`, と `cornerLegendBackground` 表示 compact 凡例 内部  plot area using non-空 曲線 labels
+- `showGrid` / `showAxes` (default `true`)
+- `xRange="a..b"` (or `xMin` / `xMax` separately), `xStep` for tick spacing; same for the Y axis
+- `xLabel` / `yLabel` add Excel-style axis titles below and above the plot respectively. They support inline `$$...$$` LaTeX; `domain="a..b"` is a legacy alias for `xRange` when no explicit X range is present
+- `quadrants="1,2,3,4"` or `quadrants="all"` to force the visible quadrants; omit to start in quadrant 1 with auto-expansion when sampled `y < 0`
+- `cornerLegend`, `cornerLegendWidth`, `cornerLegendHeight`, and `cornerLegendBackground` show a compact legend inside the plot area using non-empty curve labels
 
-曲線 子要素 (`<Plot>` / `<Function>`):
+Curve children (`<Plot>` / `<Function>`):
 
-- `expr="..."` &mdash;  式. Operators `+ - * / % ^`, postfix factorial `!` (gamma-extended), `|x|` 絶対 値, `√` / `sqrt` / `∛` / `cbrt`, 暗黙的な multiplication, と  constants `pi`, `tau`, `e`, `phi` です 対応. Built-で calls cover  標準 trig/log/exp/rounding family plus 2 つ-arg `atan2`, `min`, `max`, `pow`, `hypot`, `mod`.
-- `inverse={true}` evaluates  式 as `x = f(y)` と rotates  曲線.
-- `domain="a..b"` (x bounds shorthand) または comma-separated clauses 例として `x>=0, x<5`.
-- `color`, `label`. 任意の 曲線 とともに non-空 ラベル です 自動的に listed で 凡例 描画される just below  panel: small 色 swatch followed by  ラベル, とともに エントリ flowing 左-へ-右 と wrapping onto new 行 場合  次の エントリ would ない fit.
-- `tooltip` adds プレーン テキスト below  computed ツールチップ. `showFunction` と `showValues` 既定値 へ `true`; 設定します いずれか へ `false` へ 非表示  描画される 方程式 または live `(x, y)` 値 respectively. A `<Plot>` / nested `<Function>` とともに `expr` 可能性があります 含む Markdown と GuideNH タグ as リッチ ツールチップ 本文.  順序 です 常に ラベル, 描画される 方程式, live 値, `tooltip` テキスト, then リッチ 子 コンテンツ; omitted または 無効 computed フィールド です skipped で that 順序.
-- `pointEveryX="step"` adds 生成された 点 markers at regular x intervals on that 曲線.
-- `pointEveryY="step"` adds 生成された 点 markers where  曲線 intersects regular y intervals, using bounded 検索.
-- `autoPointLabel="none|x|y|xy"` controls 生成された 点 labels; 既定値 です `none`.
-- `autoPointColor="#..."` 上書きします  生成された 点 色; omitted 意味：inherit  曲線 色.
+- `expr="..."` &mdash; the expression. Operators `+ - * / % ^`, postfix factorial `!` (gamma-extended), `|x|` absolute value, `√` / `sqrt` / `∛` / `cbrt`, implicit multiplication, and the constants `pi`, `tau`, `e`, `phi` are supported. Built-in calls cover the standard trig/log/exp/rounding family plus two-arg `atan2`, `min`, `max`, `pow`, `hypot`, `mod`.
+- `inverse={true}` evaluates the expression as `x = f(y)` and rotates the curve.
+- `domain="a..b"` (x bounds shorthand) or comma-separated clauses such as `x>=0, x<5`.
+- `color`, `label`. Any curve with a non-empty label is automatically listed in a legend rendered just below the panel: a small color swatch followed by the label, with entries flowing left-to-right and wrapping onto a new row when the next entry would not fit.
+- `tooltip` adds plain text below the computed tooltip. `showFunction` and `showValues` default to `true`; set either to `false` to hide the rendered equation or live `(x, y)` value respectively. A `<Plot>` / nested `<Function>` with `expr` may contain Markdown and GuideNH tags as a rich tooltip body. The order is always label, rendered equation, live values, `tooltip` text, then rich child content; omitted or disabled computed fields are skipped in that order.
+- `pointEveryX="step"` adds generated point markers at regular x intervals on that curve.
+- `pointEveryY="step"` adds generated point markers where the curve intersects regular y intervals, using a bounded search.
+- `autoPointLabel="none|x|y|xy"` controls generated point labels; default is `none`.
+- `autoPointColor="#..."` overrides the generated point color; omitted means inherit the curve color.
 
-Marked 点 (`<Point>`):
+Marked points (`<Point>`):
 
-- 明示的な: `x="..."` と `y="..."`.
-- Plot-anchored: `plot="N"` plus `atX="v"` または `atY="v"` ( 実行時 bisects on  plot's x-domain へ find  一致する `x`).
-- 任意の `color`, `label`.
+- Explicit: `x="..."` and `y="..."`.
+- Plot-anchored: `plot="N"` plus `atX="v"` or `atY="v"` (the runtime bisects on the plot's x-domain to find the matching `x`).
+- Optional `color`, `label`.
 
-Interaction: ホバー 曲線 へ 強調表示 it; press と hold へ scrub a 点 along  曲線.  ツールチップ starts とともに `label` 場合 supplied, then  方程式 と live `(x, y)` 値 場合を除き their switches です 無効; it stays anchored 上に  点 と flips below 場合 there です いいえ headroom.
+Interaction: hover a curve to highlight it; press and hold to scrub a point along the curve. The tooltip starts with `label` when supplied, then the equation and live `(x, y)` value unless their switches are disabled; it stays anchored above the point and flips below when there is no headroom.
 
-## BetterQuesting 互換タグ
+## BetterQuesting Compatibility Tags
 
-`<QuestLink>` と `<QuestCard>` です のみ 登録済み 場合  BetterQuesting mod です 読み込み済み. これらは です documented で detail on  [Mod Compatibility](Mod-Compatibility) ページ;  summary below covers  most 一般的な usage.
+`<QuestLink>` and `<QuestCard>` are only registered when the BetterQuesting mod is loaded. They are documented in detail on the [Mod Compatibility](Mod-Compatibility) page; the summary below covers the most common usage.
 
 ### `<QuestLink>`
 
-Inline リンク へ BetterQuesting quest. クリック opens  quest 内部  BetterQuesting GUI, 場合を除き  quest id です も present で  現在の ガイド's `quest_ids` frontmatter — で that case  リンク navigates へ that ページ 代わりに.
+Inline link to a BetterQuesting quest. Clicking opens the quest inside the BetterQuesting GUI, unless the quest id is also present in the current guide's `quest_ids` frontmatter — in that case the link navigates to that page instead.
 
-| 属性 | 意味 |
+| Attribute | Meaning |
 | --- | --- |
-| `id` | 必須 BetterQuesting quest id; accepts canonical UUID strings と compact Base64 ids |
-| `text` | 任意の 上書き 用  displayed テキスト |
-| `show_tooltip` | 任意の 真偽値 (既定値 `true`); 設定します へ `false` へ suppress  quest-説明 ツールチップ. `showTooltip` です accepted as alias |
+| `id` | required BetterQuesting quest id; accepts canonical UUID strings and compact Base64 ids |
+| `text` | optional override for the displayed text |
+| `show_tooltip` | optional boolean (default `true`); set to `false` to suppress the quest-description tooltip. `showTooltip` is accepted as an alias |
 
-表示状態 behavior です decided per player at コンパイル time:
+Visibility behavior is decided per player at compile time:
 
-- 表示 / completed quests 描画 as clickable リンク (completed quests です tinted green と append a `✓` mark)
-- locked but non-非表示 quests 引き続き 描画 as clickable quest リンク so これらは できます open  BetterQuesting quest 画面 または  indexed ガイドページ
-- 非表示 / secret quests 描画 as darker italic placeholder using `guidenh.compat.bq.hidden`
-- 不明な quest ids 描画 as red placeholder using `guidenh.compat.bq.missing`
+- visible / completed quests render as a clickable link (completed quests are tinted green and append a `✓` mark)
+- locked but non-hidden quests still render as clickable quest links so they can open the BetterQuesting quest screen or the indexed guide page
+- hidden / secret quests render as a darker italic placeholder using `guidenh.compat.bq.hidden`
+- unknown quest ids render as a red placeholder using `guidenh.compat.bq.missing`
 
-例:
+Example:
 
 ````md
 See <QuestLink id="01234567-89ab-cdef-0123-456789abcdef" /> for the next step.
@@ -913,17 +925,17 @@ See <QuestLink id="AAAAAAAAAAAAAAAAAAAMug==" text="Compact quest id example" /> 
 
 ### `<QuestCard>`
 
-ブロック-level summary card 用 BetterQuesting quest. 描画  quest タイトル とともに  同じ 状態-aware styling as `<QuestLink>`, plus  quest 説明 as 本文 paragraph 場合  quest です 表示 へ  player.
+Block-level summary card for a BetterQuesting quest. Renders the quest title with the same state-aware styling as `<QuestLink>`, plus the quest description as a body paragraph when the quest is visible to the player.
 
-| 属性 | 意味 |
+| Attribute | Meaning |
 | --- | --- |
-| `id` | 必須 BetterQuesting quest id; accepts canonical UUID strings と compact Base64 ids |
-| `show_desc` | 任意の 真偽値 (既定値 `true`); 設定します へ `false` へ suppress  説明 本文 |
-| `show_tooltip` | 任意の 真偽値 (既定値 `true`); 設定します へ `false` へ suppress  quest-説明 ツールチップ on  clickable タイトル. `showTooltip` です accepted as alias |
+| `id` | required BetterQuesting quest id; accepts canonical UUID strings and compact Base64 ids |
+| `show_desc` | optional boolean (default `true`); set to `false` to suppress the description body |
+| `show_tooltip` | optional boolean (default `true`); set to `false` to suppress the quest-description tooltip on the clickable title. `showTooltip` is accepted as an alias |
 
- accent 色 of  card 境界線 follows  quest 状態: green 用 completed, gray 用 locked / 非表示, red 用 不足, と  標準 リンク 色 用 表示 quests.  タイトル remains clickable 用 表示, completed, と locked-but-non-非表示 quests.
+The accent color of the card border follows the quest state: green for completed, gray for locked / hidden, red for missing, and the standard link color for visible quests. The title remains clickable for visible, completed, and locked-but-non-hidden quests.
 
-例:
+Example:
 
 ````md
 <QuestCard id="01234567-89ab-cdef-0123-456789abcdef" />
