@@ -3,6 +3,7 @@ package com.hfstudio.guidenh.bridge.semantic;
 public class SemanticCapability {
 
     public static final String ITEMS = "items";
+    public static final String FLUIDS = "fluids";
     public static final String ORES = "ores";
     public static final String CATEGORIES = "categories";
     public static final String MODS = "mods";
