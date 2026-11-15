@@ -9,6 +9,8 @@ import java.util.Map.Entry;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 
+import com.hfstudio.guidenh.guide.internal.fluid.FluidStackSpec;
+import com.hfstudio.guidenh.guide.internal.fluid.FluidStacks;
 import com.hfstudio.guidenh.integration.api.GuideNhIntegrationRegistry;
 
 /**
@@ -22,6 +24,8 @@ public class RecipeCache {
     public static final int MAX_CACHE_ENTRIES = 512;
     public static final Map<Key, List<Object>> HANDLERS = createCache();
     public static final Map<Key, List<Object>> USAGE_HANDLERS = createCache();
+    private static final Map<FluidStackSpec, List<Object>> FLUID_HANDLERS = createCache();
+    private static final Map<FluidStackSpec, List<Object>> FLUID_USAGE_HANDLERS = createCache();
 
     private RecipeCache() {}
 
@@ -56,13 +60,29 @@ public class RecipeCache {
     public static synchronized void clear() {
         HANDLERS.clear();
         USAGE_HANDLERS.clear();
+        FLUID_HANDLERS.clear();
+        FLUID_USAGE_HANDLERS.clear();
     }
 
-    private static Map<Key, List<Object>> createCache() {
+    public static synchronized List<Object> getFluidCraftingHandlers(FluidStackSpec target) {
+        return FLUID_HANDLERS.computeIfAbsent(
+            target,
+            spec -> GuideNhIntegrationRegistry.global()
+                .queryRawFluidCraftingHandlers(FluidStacks.resolve(spec)));
+    }
+
+    public static synchronized List<Object> getFluidUsageHandlers(FluidStackSpec target) {
+        return FLUID_USAGE_HANDLERS.computeIfAbsent(
+            target,
+            spec -> GuideNhIntegrationRegistry.global()
+                .queryRawFluidUsageHandlers(FluidStacks.resolve(spec)));
+    }
+
+    private static <K> Map<K, List<Object>> createCache() {
         return new LinkedHashMap<>(16, 0.75f, true) {
 
             @Override
-            protected boolean removeEldestEntry(Entry<Key, List<Object>> eldest) {
+            protected boolean removeEldestEntry(Entry<K, List<Object>> eldest) {
                 return size() > MAX_CACHE_ENTRIES;
             }
         };

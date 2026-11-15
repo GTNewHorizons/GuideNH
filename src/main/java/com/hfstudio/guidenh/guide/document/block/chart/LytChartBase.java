@@ -13,9 +13,12 @@ import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.block.LytBlock;
 import com.hfstudio.guidenh.guide.document.block.ResponsiveVisualSizing;
 import com.hfstudio.guidenh.guide.document.block.chart.PieInsetRenderer.Layout;
+import com.hfstudio.guidenh.guide.document.interaction.AppendedFluidTooltip;
+import com.hfstudio.guidenh.guide.document.interaction.FluidContent;
 import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;
 import com.hfstudio.guidenh.guide.document.interaction.TextTooltip;
+import com.hfstudio.guidenh.guide.internal.fluid.FluidStackSpec;
 import com.hfstudio.guidenh.guide.internal.tooltip.AppendedItemTooltip;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.render.RenderContext;
@@ -30,7 +33,7 @@ import lombok.Setter;
  * Common base class for all 5 chart types: handles common attributes (title, size, background, legend
  * position, etc.), layout, and hover state management.
  */
-public abstract class LytChartBase extends LytBlock implements InteractiveElement {
+public abstract class LytChartBase extends LytBlock implements InteractiveElement, FluidContent {
 
     protected static final int DEFAULT_WIDTH = 320;
     protected static final int DEFAULT_HEIGHT = 200;
@@ -221,6 +224,31 @@ public abstract class LytChartBase extends LytBlock implements InteractiveElemen
     }
 
     @Override
+    public FluidStackSpec getFluidSpec() {
+        ChartIcon icon = hoveredKey < 0 ? null : getHitIcon(hoveredKey);
+        return icon == null ? null : icon.getFluidSpec();
+    }
+
+    @Override
+    public FluidStackSpec getFluidSpecAt(int x, int y) {
+        if (!bounds.contains(x, y)) return null;
+        int inset = pieInsetLayout == null ? -1 : pieInsetLayout.hitTest(x, y);
+        ChartIcon icon;
+        if (inset >= 0) icon = pieInsetLayout.slices()
+            .get(inset)
+            .getIcon();
+        else {
+            int key = hitTest(x, y);
+            icon = key < 0 ? null : getHitIcon(key);
+        }
+        return icon == null ? null : icon.getFluidSpec();
+    }
+
+    protected ChartIcon getHitIcon(int key) {
+        return null;
+    }
+
+    @Override
     public final Optional<GuideTooltip> getTooltip(float x, float y) {
         if (!Float.isFinite(x) || !Float.isFinite(y) || !bounds.contains((int) x, (int) y)) {
             onMouseLeave();
@@ -238,6 +266,10 @@ public abstract class LytChartBase extends LytBlock implements InteractiveElemen
                 + '\n'
                 + formatPercent(slice.getValue() / pieInsetLayout.total());
             ChartIcon icon = slice.getIcon();
+            if (icon != null && icon.hasFluid()) {
+                return Optional
+                    .of(new AppendedFluidTooltip(icon.getFluidSpec(), text + "\n" + slice.getTooltipExtra()));
+            }
             return createTooltip(
                 text,
                 slice.getTooltipExtra(),
@@ -247,6 +279,12 @@ public abstract class LytChartBase extends LytBlock implements InteractiveElemen
         hoveredKey = hit;
         if (hit < 0) {
             return Optional.empty();
+        }
+        ChartIcon icon = getHitIcon(hit);
+        if (icon != null && icon.hasFluid()) {
+            String extra = getHitExtraTooltip(hit);
+            return Optional.of(
+                new AppendedFluidTooltip(icon.getFluidSpec(), describeHit(hit) + (extra == null ? "" : "\n" + extra)));
         }
         return createTooltip(describeHit(hit), getHitExtraTooltip(hit), getHitItemStack(hit));
     }
@@ -317,7 +355,8 @@ public abstract class LytChartBase extends LytBlock implements InteractiveElemen
      * item tooltip is used with extra text appended.
      */
     protected ItemStack getHitItemStack(int key) {
-        return null;
+        ChartIcon icon = getHitIcon(key);
+        return icon != null && icon.hasItemStack() ? icon.getStack() : null;
     }
 
     /**

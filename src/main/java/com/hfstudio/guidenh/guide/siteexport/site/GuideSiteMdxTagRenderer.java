@@ -61,6 +61,7 @@ import com.hfstudio.guidenh.guide.document.interaction.TextTooltip;
 import com.hfstudio.guidenh.guide.indices.ItemIndex;
 import com.hfstudio.guidenh.guide.indices.OreIndex;
 import com.hfstudio.guidenh.guide.internal.GuidebookText;
+import com.hfstudio.guidenh.guide.internal.fluid.FluidStackSpec;
 import com.hfstudio.guidenh.guide.internal.markdown.FileTreeParser;
 import com.hfstudio.guidenh.guide.internal.markdown.FileTreeParser.FileTreeEntry;
 import com.hfstudio.guidenh.guide.internal.markdown.FileTreeParser.FileTreeIcon;
@@ -1582,6 +1583,8 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             return "";
         }
         return switch (icon.kind()) {
+            case FLUID -> GuideSiteFluidHtml
+                .icon(new FluidStackSpec(value), GuideSiteFluidIconResolver.from(itemIconResolver), 0.75f, false);
             case PNG -> {
                 String resolved = assetExporter != null ? assetExporter.resolveImageSrc(value, currentPageId) : value;
                 if (resolved == null || resolved.isEmpty()) {
@@ -1737,6 +1740,8 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             return;
         }
         String rendered = switch (icon.kind()) {
+            case FLUID -> GuideSiteFluidHtml
+                .icon(new FluidStackSpec(icon.value()), GuideSiteFluidIconResolver.from(itemIconResolver), 1, false);
             case TEXT -> escapeHtml(icon.value());
             case PNG -> "<img src=\"" + escapeAttribute(resolveFileTreeImage(icon.value(), currentPageId))
                 + "\" alt=\"\" decoding=\"async\">";

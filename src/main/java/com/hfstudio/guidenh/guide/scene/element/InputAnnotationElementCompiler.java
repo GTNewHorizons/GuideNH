@@ -10,8 +10,10 @@ import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3f;
 
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
+import com.hfstudio.guidenh.guide.compiler.tags.FluidTagAttributes;
 import com.hfstudio.guidenh.guide.compiler.tags.MdxAttrs;
 import com.hfstudio.guidenh.guide.document.LytErrorSink;
+import com.hfstudio.guidenh.guide.internal.fluid.FluidStackSpec;
 import com.hfstudio.guidenh.guide.internal.item.GuideDisplayItemStacks;
 import com.hfstudio.guidenh.guide.scene.CameraSettings;
 import com.hfstudio.guidenh.guide.scene.LytGuidebookScene;
@@ -50,7 +52,29 @@ public class InputAnnotationElementCompiler implements SceneElementTagCompiler {
         if (modifier != null) {
             annotation.setModifier(modifier);
         }
-        annotation.setItemStack(resolveItem(compiler, errorSink, el));
+        String fluid = el.getAttributeString("fluid", null);
+        if (fluid != null && el.getAttributeString("item", null) != null) {
+            errorSink.appendError(compiler, "InputAnnotation cannot combine item and fluid", el);
+            return;
+        }
+        if (fluid != null) {
+            try {
+                annotation.setFluid(
+                    new FluidStackSpec(
+                        fluid,
+                        FluidTagAttributes.integer(el, "amount"),
+                        el.getAttributeString("nbt", null)));
+            } catch (IllegalArgumentException exception) {
+                errorSink.appendError(compiler, exception.getMessage(), el);
+                return;
+            }
+        } else {
+            if (el.getAttributeString("amount", null) != null || el.getAttributeString("nbt", null) != null) {
+                errorSink.appendError(compiler, "InputAnnotation amount and nbt require fluid", el);
+                return;
+            }
+            annotation.setItemStack(resolveItem(compiler, errorSink, el));
+        }
         annotation.setStructureLibCondition(StructureLibSceneConditionParser.parse(compiler, errorSink, el));
         scene.addAnnotation(annotation);
     }

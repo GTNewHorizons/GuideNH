@@ -4,14 +4,80 @@ import java.util.List;
 
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
+import net.minecraftforge.fluids.FluidStack;
 
 import org.jetbrains.annotations.Nullable;
 
+import com.hfstudio.guidenh.guide.internal.fluid.FluidIconRenderer;
+import com.hfstudio.guidenh.guide.internal.fluid.FluidStackSpec;
+import com.hfstudio.guidenh.guide.internal.fluid.FluidStacks;
 import com.hfstudio.guidenh.guide.render.GuidePageTexture;
+import com.hfstudio.guidenh.guide.render.RenderContext;
 
 public record GuidePageIcon(@Nullable ItemStack itemStack, @Nullable ResourceLocation textureId,
     @Nullable GuidePageTexture texture, @Nullable List<ItemStack> cycleItemStacks,
-    @Nullable List<GuidePageTexture> cycleTextures, @Nullable List<ResourceLocation> cycleTextureIds) {
+    @Nullable List<GuidePageTexture> cycleTextures, @Nullable List<ResourceLocation> cycleTextureIds,
+    List<FluidStackSpec> fluidSpecs, List<FluidStack> fluidStacks) {
+
+    public GuidePageIcon {
+        fluidSpecs = List.copyOf(fluidSpecs);
+        fluidStacks = fluidStacks.stream()
+            .map(FluidStack::copy)
+            .toList();
+        if (fluidSpecs.size() != fluidStacks.size())
+            throw new IllegalArgumentException("Fluid icon descriptions and stacks must match");
+    }
+
+    public GuidePageIcon(@Nullable ItemStack itemStack, @Nullable ResourceLocation textureId,
+        @Nullable GuidePageTexture texture, @Nullable List<ItemStack> cycleItemStacks,
+        @Nullable List<GuidePageTexture> cycleTextures, @Nullable List<ResourceLocation> cycleTextureIds) {
+        this(itemStack, textureId, texture, cycleItemStacks, cycleTextures, cycleTextureIds, List.of(), List.of());
+    }
+
+    public static GuidePageIcon fluid(FluidStackSpec spec) {
+        return cycleFluids(List.of(spec));
+    }
+
+    public static GuidePageIcon cycleFluids(List<FluidStackSpec> specs) {
+        if (specs.isEmpty()) throw new IllegalArgumentException("Fluid icon list must not be empty");
+        return new GuidePageIcon(
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            specs,
+            specs.stream()
+                .map(FluidStacks::resolve)
+                .toList());
+    }
+
+    public boolean isFluidIcon() {
+        return !fluidSpecs.isEmpty();
+    }
+
+    public List<FluidStack> fluidStacks() {
+        return fluidStacks.stream()
+            .map(FluidStack::copy)
+            .toList();
+    }
+
+    public @Nullable FluidStackSpec resolveCurrentFluidSpec() {
+        return isFluidIcon() ? fluidSpecs.get(fluidIndex()) : null;
+    }
+
+    public void renderCurrentFluid(RenderContext context, int x, int y, int size) {
+        if (isFluidIcon()) FluidIconRenderer.draw(context, fluidStacks.get(fluidIndex()), x, y, size, false);
+    }
+
+    public void renderCurrentFluid(int x, int y, int size) {
+        if (isFluidIcon()) FluidIconRenderer.draw(fluidStacks.get(fluidIndex()), x, y, size, false);
+    }
+
+    private int fluidIndex() {
+        return (int) ((System.nanoTime() / 1_000_000_000L) % fluidSpecs.size());
+    }
 
     public static GuidePageIcon item(ItemStack itemStack) {
         return new GuidePageIcon(itemStack, null, null, null, null, null);

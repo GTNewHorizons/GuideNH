@@ -32,6 +32,9 @@ public class GuideNhClientIntegrationRegistry {
     private volatile List<PreviewPlayerElytraProvider> previewPlayerElytraProviders = List.of();
     private volatile List<PreviewBlockRenderProvider> previewBlockRenderProviders = List.of();
     private volatile List<QuestHoverProvider> questHoverProviders = List.of();
+    private volatile List<FluidStackExtractor> fluidStackExtractors = List.of();
+    private volatile List<FluidDisplayAdapter> fluidDisplayAdapters = List.of();
+    private volatile List<HoveredFluidProvider> hoveredFluidProviders = List.of();
 
     public GuideNhClientIntegrationRegistry() {}
 
@@ -109,6 +112,36 @@ public class GuideNhClientIntegrationRegistry {
         updatedProviders.addAll(currentProviders);
         updatedProviders.add(provider);
         return List.copyOf(updatedProviders);
+    }
+
+    public synchronized void registerFluidStackExtractor(FluidStackExtractor provider) {
+        if (provider == null) throw new IllegalArgumentException("provider");
+        if (!fluidStackExtractors.contains(provider))
+            fluidStackExtractors = appendProvider(fluidStackExtractors, provider);
+    }
+
+    public List<FluidStackExtractor> fluidStackExtractors() {
+        return fluidStackExtractors;
+    }
+
+    public synchronized void registerFluidDisplayAdapter(FluidDisplayAdapter provider) {
+        if (provider == null) throw new IllegalArgumentException("provider");
+        if (!fluidDisplayAdapters.contains(provider))
+            fluidDisplayAdapters = appendProvider(fluidDisplayAdapters, provider);
+    }
+
+    public List<FluidDisplayAdapter> fluidDisplayAdapters() {
+        return fluidDisplayAdapters;
+    }
+
+    public synchronized void registerHoveredFluidProvider(HoveredFluidProvider provider) {
+        if (provider == null) throw new IllegalArgumentException("provider");
+        if (!hoveredFluidProviders.contains(provider))
+            hoveredFluidProviders = appendProvider(hoveredFluidProviders, provider);
+    }
+
+    public List<HoveredFluidProvider> hoveredFluidProviders() {
+        return hoveredFluidProviders;
     }
 
     @Nullable

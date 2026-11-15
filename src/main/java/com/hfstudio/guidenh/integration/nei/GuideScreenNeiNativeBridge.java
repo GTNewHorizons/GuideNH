@@ -21,6 +21,9 @@ import org.lwjgl.opengl.GL12;
 import com.hfstudio.guidenh.config.ModConfig;
 import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.internal.GuideScreen;
+import com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver.MdxSyntaxResolver;
+import com.hfstudio.guidenh.guide.internal.fluid.FluidReferenceFormatter;
+import com.hfstudio.guidenh.guide.internal.fluid.FluidStackResolver;
 import com.hfstudio.guidenh.integration.Mods;
 import com.hfstudio.guidenh.integration.api.GuideNhIntegrationRegistry;
 import com.hfstudio.guidenh.integration.nei.GuideScreenNeiBridge.EditorAccess;
@@ -99,10 +102,17 @@ public class GuideScreenNeiNativeBridge {
 
     private static String formatEditorDropText(EditorAccess editorAccess, ItemStack stack, String itemReference,
         int mouseX, int mouseY) {
+        var fluid = FluidStackResolver.getDisplayedFluid(stack);
         if (!editorAccess.canInsertRichTagAtMouse(mouseX, mouseY)) {
-            return itemReference;
+            return fluid == null ? itemReference
+                : fluid.getFluid()
+                    .getName();
         }
-        String tagName = isBlockStack(stack) ? "BlockImage" : "ItemImage";
+        var area = editorAccess.textArea();
+        boolean grid = area != null && "ItemGrid".equals(
+            MdxSyntaxResolver.enclosingContainerName(area.getText(), area.getCursorIndexAtPublic(mouseX, mouseY)));
+        if (fluid != null) return FluidReferenceFormatter.formatTag(grid ? "FluidIcon" : "FluidImage", fluid);
+        String tagName = grid ? "ItemIcon" : isBlockStack(stack) ? "BlockImage" : "ItemImage";
         return "<" + tagName + " id=\"" + GuideNeiItemReferenceFormatter.escapeAttribute(itemReference) + "\" />";
     }
 
@@ -561,9 +571,14 @@ public class GuideScreenNeiNativeBridge {
                 .lookupRecipeHandlerId(handler);
             String handlerName = GuideNhIntegrationRegistry.global()
                 .lookupRecipeHandlerName(handler);
+            var fluid = FluidStackResolver.getDisplayedFluid(stack);
             StringBuilder builder = new StringBuilder("<").append(usageRecipe ? "RecipeUsage" : "RecipeFor")
-                .append(" id=\"")
-                .append(GuideNeiItemReferenceFormatter.escapeAttribute(itemReference))
+                .append(fluid == null ? " id=\"" : " fluid=\"")
+                .append(
+                    GuideNeiItemReferenceFormatter.escapeAttribute(
+                        fluid == null ? itemReference
+                            : fluid.getFluid()
+                                .getName()))
                 .append('"');
             if (!handlerId.isEmpty()) {
                 builder.append(" handlerId=\"")
@@ -600,7 +615,14 @@ public class GuideScreenNeiNativeBridge {
         private @Nullable ItemStack safeResultStack(IRecipeHandler handler, int recipeIndex) {
             try {
                 PositionedStack result = handler.getResultStack(recipeIndex);
-                return result != null && result.item != null ? result.item.copy() : null;
+                if (result != null && result.item != null) return result.item.copy();
+                var outputs = handler.getOtherStacks(recipeIndex);
+                if (outputs != null) {
+                    for (var output : outputs) {
+                        if (output != null && output.item != null) return output.item.copy();
+                    }
+                }
+                return null;
             } catch (Throwable ignored) {
                 return null;
             }

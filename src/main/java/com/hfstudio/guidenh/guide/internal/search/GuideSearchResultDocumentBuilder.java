@@ -17,6 +17,7 @@ import com.hfstudio.guidenh.guide.document.block.LytDocument;
 import com.hfstudio.guidenh.guide.document.block.LytHBox;
 import com.hfstudio.guidenh.guide.document.block.LytImage;
 import com.hfstudio.guidenh.guide.document.block.LytItemImage;
+import com.hfstudio.guidenh.guide.document.block.LytPageFluidIcon;
 import com.hfstudio.guidenh.guide.document.block.LytParagraph;
 import com.hfstudio.guidenh.guide.document.block.LytVBox;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowContent;
@@ -138,6 +139,12 @@ public class GuideSearchResultDocumentBuilder {
     }
 
     public static LytBlock buildResultIcon(GuidePageIcon icon) {
+        if (icon.isFluidIcon()) {
+            var image = new LytPageFluidIcon(icon);
+            image.setTooltipSuppressed(true);
+            image.setMarginTop(RESULT_ICON_MARGIN_TOP);
+            return image;
+        }
         if (icon.isTextureIcon()) {
             var image = new LytImage();
             image.setTexture(icon.resolveCurrentTextureId(), icon.resolveCurrentTexture());
