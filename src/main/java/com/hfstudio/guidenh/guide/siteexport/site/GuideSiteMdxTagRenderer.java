@@ -64,7 +64,6 @@ import com.hfstudio.guidenh.guide.internal.markdown.FileTreeParser;
 import com.hfstudio.guidenh.guide.internal.markdown.FileTreeParser.FileTreeEntry;
 import com.hfstudio.guidenh.guide.internal.markdown.FileTreeParser.FileTreeIcon;
 import com.hfstudio.guidenh.guide.internal.markdown.FileTreeParser.FileTreeModel;
-import com.hfstudio.guidenh.guide.internal.markdown.FileTreeParser.SlotKind;
 import com.hfstudio.guidenh.guide.internal.markdown.MarkdownRuntimeBlocks;
 import com.hfstudio.guidenh.guide.internal.markdown.MarkdownRuntimeBlocks.QuoteIconSpec;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidDiagramType;
@@ -1631,19 +1630,48 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         GuideSiteHtmlCompiler.SceneResolver sceneResolver, GuideSiteHtmlCompiler compiler) {
         StringBuilder text = new StringBuilder();
         collectStructureText(text, element.children());
-        return renderFileTree(text.toString(), defaultNamespace, currentPageId, templates, sceneResolver, compiler);
+        int indent = readInt(element, "indent", 14);
+        int gap = Math.max(0, readInt(element, "gap", 0));
+        return renderFileTree(
+            text.toString(),
+            defaultNamespace,
+            currentPageId,
+            templates,
+            sceneResolver,
+            compiler,
+            indent > 0 ? indent : 14,
+            gap);
     }
 
     @Override
     public String renderFileTree(String source, String defaultNamespace, @Nullable ResourceLocation currentPageId,
         GuideSiteTemplateRegistry templates, GuideSiteHtmlCompiler.SceneResolver sceneResolver,
         GuideSiteHtmlCompiler compiler) {
+        return renderFileTree(source, defaultNamespace, currentPageId, templates, sceneResolver, compiler, 14, 0);
+    }
+
+    private String renderFileTree(String source, String defaultNamespace, @Nullable ResourceLocation currentPageId,
+        GuideSiteTemplateRegistry templates, GuideSiteHtmlCompiler.SceneResolver sceneResolver,
+        GuideSiteHtmlCompiler compiler, int indent, int gap) {
         FileTreeModel model = FileTreeParser.parse(source.trim());
         StringBuilder html = new StringBuilder();
-        html.append("<div class=\"guide-file-tree\">");
+        html.append("<div class=\"guide-file-tree\" style=\"--tree-max-depth:")
+            .append(
+                Math.max(
+                    1,
+                    model.entries()
+                        .stream()
+                        .mapToInt(FileTreeEntry::depth)
+                        .max()
+                        .orElse(1)))
+            .append(";--tree-indent:")
+            .append(indent)
+            .append("px;--tree-gap:")
+            .append(gap)
+            .append("px\">");
         for (FileTreeEntry entry : model.entries()) {
             html.append("<div class=\"guide-file-tree-row\">");
-            appendFileTreePrefix(html, entry.slots());
+            html.append(GuideSiteGraphRenderer.renderFileTreePrefix(entry.slots()));
             appendFileTreeIcon(html, entry.icon(), defaultNamespace, currentPageId, templates, sceneResolver);
             html.append("<span class=\"guide-file-tree-name\">")
                 .append(
@@ -1694,32 +1722,6 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
 
     private boolean isFloatWrapMode(@Nullable String wrap) {
         return "square".equalsIgnoreCase(wrap) || "tight".equalsIgnoreCase(wrap) || "through".equalsIgnoreCase(wrap);
-    }
-
-    private void appendFileTreePrefix(StringBuilder html, List<SlotKind> slots) {
-        if (slots.isEmpty()) {
-            return;
-        }
-        StringBuilder prefix = new StringBuilder();
-        for (SlotKind slot : slots) {
-            switch (slot) {
-                case VERTICAL:
-                    prefix.append("|   ");
-                    break;
-                case BRANCH:
-                    prefix.append("|-- ");
-                    break;
-                case LAST_BRANCH:
-                    prefix.append("`-- ");
-                    break;
-                case EMPTY:
-                    prefix.append("    ");
-                    break;
-            }
-        }
-        html.append("<span class=\"guide-file-tree-prefix\">")
-            .append(escapeHtml(prefix.toString()))
-            .append("</span>");
     }
 
     private void appendFileTreeIcon(StringBuilder html, @Nullable FileTreeIcon icon, String defaultNamespace,

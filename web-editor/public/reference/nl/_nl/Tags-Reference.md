@@ -197,6 +197,8 @@ Groups alternative rich inhoud under independent tabs. alleen direct `<Tab>` kin
 
 Renders Een directory-style outline met real connector regels drawn van De prefix glyphs on elke rij. Both Unicode box-drawing (`│ ├ └ ─`) en ASCII (`| +-- \-- ` / four spaces) forms are accepted en kan be mixed. Payload tekst ondersteunt De usual inline Markdown (links, **bold**, `code`, …), en those links are clickable both in-game en in De built-in site export. De zelfde inhoud kan ook be written as Een fenced ` ```tree ` or ` ```filetree ` blok.
 
+In smalle weergaven wordt de inspringing verkleind om ruimte voor tekst te houden. Lange paden breken bij voorkeur na `/`, `\`, `_` en `-`; namen zonder scheidingstekens kunnen tussen tekens afbreken. Vervolgregels beginnen bij de naam, terwijl pictogrammen en vertakkingen bij de eerste regel blijven.
+
 ````md
 <FileTree indent="14" gap="0">
 project
