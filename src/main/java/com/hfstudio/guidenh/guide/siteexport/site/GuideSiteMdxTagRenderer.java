@@ -1630,13 +1630,29 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         GuideSiteHtmlCompiler.SceneResolver sceneResolver, GuideSiteHtmlCompiler compiler) {
         StringBuilder text = new StringBuilder();
         collectStructureText(text, element.children());
-        return renderFileTree(text.toString(), defaultNamespace, currentPageId, templates, sceneResolver, compiler);
+        int indent = readInt(element, "indent", 14);
+        int gap = Math.max(0, readInt(element, "gap", 0));
+        return renderFileTree(
+            text.toString(),
+            defaultNamespace,
+            currentPageId,
+            templates,
+            sceneResolver,
+            compiler,
+            indent > 0 ? indent : 14,
+            gap);
     }
 
     @Override
     public String renderFileTree(String source, String defaultNamespace, @Nullable ResourceLocation currentPageId,
         GuideSiteTemplateRegistry templates, GuideSiteHtmlCompiler.SceneResolver sceneResolver,
         GuideSiteHtmlCompiler compiler) {
+        return renderFileTree(source, defaultNamespace, currentPageId, templates, sceneResolver, compiler, 14, 0);
+    }
+
+    private String renderFileTree(String source, String defaultNamespace, @Nullable ResourceLocation currentPageId,
+        GuideSiteTemplateRegistry templates, GuideSiteHtmlCompiler.SceneResolver sceneResolver,
+        GuideSiteHtmlCompiler compiler, int indent, int gap) {
         FileTreeModel model = FileTreeParser.parse(source.trim());
         StringBuilder html = new StringBuilder();
         html.append("<div class=\"guide-file-tree\" style=\"--tree-max-depth:")
@@ -1648,7 +1664,11 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
                         .mapToInt(FileTreeEntry::depth)
                         .max()
                         .orElse(1)))
-            .append("\">");
+            .append(";--tree-indent:")
+            .append(indent)
+            .append("px;--tree-gap:")
+            .append(gap)
+            .append("px\">");
         for (FileTreeEntry entry : model.entries()) {
             html.append("<div class=\"guide-file-tree-row\">");
             html.append(GuideSiteGraphRenderer.renderFileTreePrefix(entry.slots()));

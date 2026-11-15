@@ -932,12 +932,12 @@ public class GuideSiteTooltipRenderer {
     private void appendFileTree(StringBuilder html, LytFileTree fileTree, @Nullable ResourceLocation currentPageId,
         @Nullable GuideSitePageAssetExporter assetExporter, GuideSiteItemIconResolver itemIconResolver,
         @Nullable GuideSiteTemplateRegistry templates, boolean allowNestedItemTooltips) {
+        var rows = fileTree.getRows();
         html.append("<div class=\"guide-file-tree\" style=\"--tree-max-depth:")
             .append(
                 Math.max(
                     1,
-                    fileTree.getRows()
-                        .stream()
+                    rows.stream()
                         .mapToInt(
                             row -> row.getSlots()
                                 .size())
@@ -945,8 +945,10 @@ public class GuideSiteTooltipRenderer {
                         .orElse(1)))
             .append(";--tree-indent:")
             .append(fileTree.getIndentPx())
+            .append("px;--tree-gap:")
+            .append(fileTree.getRowGapPx())
             .append("px\">");
-        for (LytFileTree.Row row : fileTree.getRows()) {
+        for (LytFileTree.Row row : rows) {
             html.append("<div class=\"guide-file-tree-row\">");
             html.append(GuideSiteGraphRenderer.renderFileTreePrefix(row.getSlots()));
             if (row.getIconBlock() != null) {

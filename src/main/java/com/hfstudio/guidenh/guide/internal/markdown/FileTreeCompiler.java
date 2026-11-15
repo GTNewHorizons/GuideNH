@@ -55,16 +55,23 @@ public class FileTreeCompiler {
                 addPathBreaks(span.getChildren());
             } else if (node instanceof LytFlowText text) {
                 String source = text.getText();
-                StringBuilder wrapped = new StringBuilder();
+                StringBuilder wrapped = null;
+                int start = 0;
                 for (int i = 0; i < source.length(); i++) {
                     char character = source.charAt(i);
-                    wrapped.append(character);
-                    if ("/\\_-".indexOf(character) >= 0 && i + 1 < source.length()
-                        && source.charAt(i + 1) != LineBuilder.WORD_BREAK_OPPORTUNITY) {
-                        wrapped.append(LineBuilder.WORD_BREAK_OPPORTUNITY);
+                    if ("/\\_-".indexOf(character) >= 0
+                        && (i + 1 == source.length() || source.charAt(i + 1) != LineBuilder.WORD_BREAK_OPPORTUNITY)) {
+                        if (wrapped == null) wrapped = new StringBuilder(source.length() + 8);
+                        wrapped.append(source, start, i + 1)
+                            .append(LineBuilder.WORD_BREAK_OPPORTUNITY);
+                        start = i + 1;
                     }
                 }
-                text.setText(wrapped.toString());
+                if (wrapped != null) {
+                    text.setText(
+                        wrapped.append(source, start, source.length())
+                            .toString());
+                }
             }
         }
     }

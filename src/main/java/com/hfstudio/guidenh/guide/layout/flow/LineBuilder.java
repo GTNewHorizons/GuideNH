@@ -304,6 +304,7 @@ public class LineBuilder implements Consumer<LytFlowContent> {
      */
     private boolean iterateRuns(CharSequence text, ResolvedTextStyle style, char lastChar, LineConsumer consumer) {
         float curLineWidth = 0;
+        int runPadding = style.inlineCode() ? LineTextRun.INLINE_CODE_EXTRA_WIDTH : 0;
 
         lineBuffer.setLength(0);
         lineBufferPrefixWidths[0] = 0f;
@@ -377,7 +378,7 @@ public class LineBuilder implements Consumer<LytFlowContent> {
 
             var advance = context.getRenderedAdvance(codePoint, style, visibleGlyphSeen);
             // Break line if necessary
-            if (curLineWidth + advance > remainingLineWidth) {
+            if (curLineWidth + advance + runPadding > remainingLineWidth) {
                 int precedingBreakOpportunity;
 
                 // BreakIterator will only ever break *AFTER* whitespace, but since we ignore the last break opportunity
@@ -388,11 +389,12 @@ public class LineBuilder implements Consumer<LytFlowContent> {
                     // Find break opportunities and include the current character in it.
                     // Append the char temporarily to avoid a string-concatenation allocation.
                     var breakIterator = LINE_BREAK_ITERATOR.get();
-                    lineBuffer.append((char) codePoint);
+                    int bufferLength = lineBuffer.length();
+                    lineBuffer.appendCodePoint(codePoint);
                     charIterator.reset(lineBuffer);
                     breakIterator.setText(charIterator);
                     precedingBreakOpportunity = breakIterator.preceding(lineBuffer.length());
-                    lineBuffer.setLength(lineBuffer.length() - 1);
+                    lineBuffer.setLength(bufferLength);
                     // An explicit <wbr> later in the word wins over the last natural opportunity.
                     precedingBreakOpportunity = Math.max(precedingBreakOpportunity, wordBreakOffset);
                 }
@@ -428,7 +430,7 @@ public class LineBuilder implements Consumer<LytFlowContent> {
                         // Text glued to an inline image (e.g. punctuation after an item link) takes it along
                         moveGluedTailToNextLine(true);
                     }
-                    ensureTextSpaceIsAvailable(advance);
+                    ensureTextSpaceIsAvailable(advance + runPadding);
 
                     // If no wider lane exists (for example, a genuinely narrow table cell), keep
                     // the glyph in the line rather than emitting an empty line and dropping it.
@@ -439,7 +441,7 @@ public class LineBuilder implements Consumer<LytFlowContent> {
                 } else {
                     // The word touches an inline image at the end of the line (e.g. an item link's icon):
                     // wrap them together instead of splitting the word.
-                    if (moveGluedTailToNextLine(true) && curLineWidth + advance <= remainingLineWidth) {
+                    if (moveGluedTailToNextLine(true) && curLineWidth + advance + runPadding <= remainingLineWidth) {
                         curLineWidth += advance;
                         appendCodePointToLineBuffer(codePoint, advance);
                         visibleGlyphSeen = visibleGlyphSeen || advance > 0f;

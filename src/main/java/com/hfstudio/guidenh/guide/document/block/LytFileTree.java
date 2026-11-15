@@ -41,7 +41,7 @@ public class LytFileTree extends LytBlock {
     private float layoutIndentPx = DEFAULT_INDENT_PX;
 
     public void appendRow(List<SlotKind> slots, @Nullable LytBlock iconBlock, LytParagraph payload) {
-        Row row = new Row(new ArrayList<>(slots), iconBlock, payload);
+        Row row = new Row(slots, iconBlock, payload);
         if (iconBlock != null) {
             iconBlock.parent = this;
             childNodes.add(iconBlock);
@@ -101,12 +101,12 @@ public class LytFileTree extends LytBlock {
     protected LytRect computeLayout(LayoutContext context, int x, int y, int availableWidth) {
         int currentY = y;
         int totalHeight = 0;
-        int maxDepth = rows.stream()
-            .mapToInt(row -> row.slots.size())
-            .max()
-            .orElse(0);
-        int iconReserve = rows.stream()
-            .anyMatch(row -> row.iconBlock != null) ? iconBoxPx + iconGapPx : 0;
+        int maxDepth = 0;
+        int iconReserve = 0;
+        for (Row row : rows) {
+            maxDepth = Math.max(maxDepth, row.slots.size());
+            if (row.iconBlock != null) iconReserve = iconBoxPx + iconGapPx;
+        }
         int textReserve = Math.min(80, availableWidth / 2);
         layoutIndentPx = maxDepth == 0 ? indentPx
             : Math.min(indentPx, Math.max(0, availableWidth - textReserve - iconReserve) / (float) maxDepth);
@@ -117,7 +117,6 @@ public class LytFileTree extends LytBlock {
             int payloadX;
             int iconHeight = 0;
             if (row.iconBlock != null) {
-                // Measure the icon while keeping readable space for the filename.
                 int iconAvailable = Math.max(1, x + availableWidth - iconX - textReserve - iconGapPx);
                 row.iconBlock.layout(context, iconX, currentY, Math.max(1, iconAvailable));
                 LytRect iconBounds = row.iconBlock.getBounds();
@@ -248,8 +247,8 @@ public class LytFileTree extends LytBlock {
         private int rowHeight;
         private int connectorY;
 
-        Row(List<SlotKind> slots, @Nullable LytBlock iconBlock, LytParagraph payload) {
-            this.slots = slots;
+        private Row(List<SlotKind> slots, @Nullable LytBlock iconBlock, LytParagraph payload) {
+            this.slots = List.copyOf(slots);
             this.iconBlock = iconBlock;
             this.payload = payload;
         }

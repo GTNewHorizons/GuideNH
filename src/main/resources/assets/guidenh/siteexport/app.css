@@ -2145,6 +2145,7 @@ p {
 .guide-file-tree {
     container-type: inline-size;
     --tree-indent: 14px;
+    --tree-gap: 0px;
     display: flow-root;
     background: rgb(27, 31, 35);
     border: 1px solid rgb(58, 64, 71);
@@ -2159,7 +2160,10 @@ p {
 .guide-file-tree-row {
     display: flex;
     align-items: flex-start;
+    margin-bottom: var(--tree-gap);
 }
+
+.guide-file-tree-row:last-child { margin-bottom: 0; }
 
 .guide-file-tree-prefix {
     display: flex;
@@ -2178,11 +2182,12 @@ p {
     position: absolute;
     left: 50%;
     top: 0;
-    bottom: 0;
+    bottom: calc(0px - var(--tree-gap));
     border-left: 1px solid;
 }
 
 .guide-file-tree-slot-last-branch::before { height: .8em; }
+.guide-file-tree-row:last-child .guide-file-tree-slot::before { bottom: 0; }
 .guide-file-tree-slot-branch::after, .guide-file-tree-slot-last-branch::after {
     content: "";
     position: absolute;
@@ -2210,6 +2215,8 @@ p {
     white-space: normal;
     overflow-wrap: anywhere;
 }
+
+.guide-file-tree-name > p { margin: 0; }
 
 .guide-details {
     display: block;
