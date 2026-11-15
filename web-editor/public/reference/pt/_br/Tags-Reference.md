@@ -750,13 +750,14 @@ Cartesian Gráficos (coluna / Bar / linha / Scatter) additionally aceitam axis a
 
 Formatos de escala inválidos ou grandes demais usam a formatação numérica automática. Os limites são 256 caracteres, largura de campo de 128 e precisão de 20. Os rótulos numéricos sobrepostos são omitidos quando necessário, sem remover suas linhas de grade.
 
-`ColumnChart`, `LineChart` e `ScatterChart` mostram uma guia horizontal dourada na área do gráfico, inclusive em espaços vazios, e destacam o valor Y à esquerda. `BarChart` usa uma guia vertical com o valor X abaixo. Os valores seguem o formato e a unidade do eixo. A linha não contém texto e desaparece fora da área. Passos positivos extremamente pequenos são ampliados automaticamente para limitar o trabalho de renderização.
+`ColumnChart`, `LineChart` e `ScatterChart` mostram uma guia horizontal dourada na área do gráfico, inclusive em espaços vazios, e destacam o valor Y à esquerda. `BarChart` usa uma guia vertical com o valor X abaixo. Os valores seguem o formato e a unidade do eixo. A linha não contém texto e desaparece fora da área. Os dois eixos usam grades suaves com traços espaçados, controladas separadamente por `showXGrid` e `showYGrid`. Passos positivos extremamente pequenos são ampliados automaticamente para limitar o trabalho de renderização.
 
 filhos:
 
 * `<Series name="..." color="#..." data="10,20,30"/>` para category-based Gráficos (coluna / Bar / categorical linha).
 * `<Series name="..." color="#..." points="x:y,x:y,..."/>` para numeric X (linha `numericX={true}`, Scatter).
 * `<Slice name="..." value="..." color="#..."/>` para `<PieChart>` somente.
+* `<ReferenceLine y="100"/>` desenha uma linha horizontal fixa em `ColumnChart`, `LineChart` e `ScatterChart`. `BarChart` usa `<ReferenceLine x="100"/>` para uma linha vertical e aceita `y` como alias. A coordenada deve ser finita. São permitidas várias linhas; `color` substitui o cinza semitransparente, e o `label` opcional aparece dentro do gráfico sem cobrir os rótulos do eixo. As referências permanecem visíveis sem a grade, não ampliam o intervalo automático e são ocultadas fora dele. `PieChart` não aceita essa tag.
 
 quando `color` é omitted on a `<Series>` ou `<Slice>`, GuideNH cycles por Uma built-em 16-cor palette.
 

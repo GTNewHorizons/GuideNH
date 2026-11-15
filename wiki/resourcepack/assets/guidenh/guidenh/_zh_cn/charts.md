@@ -203,3 +203,17 @@ GuideNH 内置五种交互式图表标签：`<ColumnChart>`（竖柱）、`<BarC
     <Slice name="待完成" value="0" />
   </PieInset>
 </ColumnChart>
+
+## 固定参考线与稀疏网格
+
+关闭网格后参考线仍会显示。柱形、折线和散点图使用 Y 坐标；条形图使用 X 坐标，也兼容 Y 写法。坐标必须是有限数值，并位于当前坐标范围内。
+
+<ColumnChart categories="A,B,C" yAxisMin="0" yAxisMax="200" yAxisStep="50" showYGrid={false}>
+  <Series name="Output" data="60,140,180" />
+  <ReferenceLine y={100} label="Target" />
+</ColumnChart>
+
+<BarChart categories="A,B,C" xAxisMin="-100" xAxisMax="200" xAxisStep="50">
+  <Series name="Output" data="-60,140,180" />
+  <ReferenceLine x={100} label="Target" />
+</BarChart>

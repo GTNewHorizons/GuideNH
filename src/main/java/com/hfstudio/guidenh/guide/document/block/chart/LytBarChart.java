@@ -264,6 +264,7 @@ public class LytBarChart extends LytChartBase implements DebugComponent {
             }
         }
 
+        CartesianChartRenderer.drawVerticalReferenceLines(context, inner, xAxis, xRange);
         drawPieInset(context, inner, pieArea, pieInset);
         drawVerticalHoverCursor(context, inner, xAxis, xRange);
     }

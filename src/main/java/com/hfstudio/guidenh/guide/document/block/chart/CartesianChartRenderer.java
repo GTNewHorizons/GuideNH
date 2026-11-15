@@ -134,7 +134,50 @@ public class CartesianChartRenderer {
     }
 
     public static void drawGridLine(RenderContext context, float x1, float y1, float x2, float y2, int color) {
-        context.drawLine(x1, y1, x2, y2, 1, color);
+        int alpha = Math.round((color >>> 24) * 0.55f);
+        int faintColor = (color & 0x00FFFFFF) | (alpha << 24);
+        context.drawDashedLine(x1, y1, x2, y2, 1, 1, 9, faintColor);
+    }
+
+    public static void drawReferenceLines(RenderContext context, LytRect plotRect, ChartAxisOptions axis,
+        AxisRange range) {
+        for (ChartReferenceLine line : axis.getReferenceLines()) {
+            if (line.value() < range.min || line.value() > range.max || line.color() >>> 24 == 0) continue;
+            float y = mapY(line.value(), range, plotRect);
+            context.drawDashedLine(plotRect.x(), y, plotRect.right(), y, 1, 4, 3, line.color());
+            String label = line.label();
+            if (label.isEmpty()) continue;
+            ResolvedTextStyle style = LytChartBase.textStyle(line.color());
+            int labelY = Math.max(plotRect.y() + 2, (int) y - context.getLineHeight(style) - 2);
+            int labelX = plotRect.x() + 4;
+            context.pushLocalScissor(plotRect);
+            try {
+                context.drawText(label, labelX, labelY, style);
+            } finally {
+                context.popScissor();
+            }
+        }
+    }
+
+    public static void drawVerticalReferenceLines(RenderContext context, LytRect plot, ChartAxisOptions axis,
+        AxisRange range) {
+        for (ChartReferenceLine line : axis.getReferenceLines()) {
+            if (line.value() < range.min || line.value() > range.max || line.color() >>> 24 == 0) continue;
+            float x = mapX(line.value(), range, plot);
+            context.drawDashedLine(x, plot.y(), x, plot.bottom(), 1, 4, 3, line.color());
+            if (line.label()
+                .isEmpty()) continue;
+            ResolvedTextStyle style = LytChartBase.textStyle(line.color());
+            int labelX = Math.max(
+                plot.x() + 4,
+                Math.min(Math.round(x) + 4, plot.right() - context.getStringWidth(line.label(), style) - 4));
+            context.pushLocalScissor(plot);
+            try {
+                context.drawText(line.label(), labelX, plot.y() + 3, style);
+            } finally {
+                context.popScissor();
+            }
+        }
     }
 
     public static void drawNumericXTicks(RenderContext context, LytRect plotRect, ChartAxisOptions axis,
