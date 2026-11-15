@@ -17,15 +17,19 @@ public class SyntaxValueCandidate implements AutocompleteCandidate {
 
     private final SyntaxSuggestion suggestion;
     private final SyntaxValueKind kind;
+    private final String label;
+    private final String subtitle;
 
     public SyntaxValueCandidate(SyntaxSuggestion suggestion, SyntaxValueKind kind) {
         this.suggestion = suggestion;
         this.kind = kind;
+        this.label = CompletionPreview.summarize(suggestion.displayText());
+        this.subtitle = CompletionPreview.summarize(suggestion.subtitle());
     }
 
     @Override
     public String displayText() {
-        return suggestion.displayText();
+        return label;
     }
 
     @Override
@@ -50,9 +54,8 @@ public class SyntaxValueCandidate implements AutocompleteCandidate {
 
     @Override
     public int renderWidth(FontRenderer fontRenderer) {
-        int width = fontRenderer.getStringWidth(suggestion.displayText());
-        String subtitle = suggestion.subtitle();
-        if (subtitle != null && !subtitle.isEmpty()) {
+        int width = fontRenderer.getStringWidth(label);
+        if (!subtitle.isEmpty()) {
             width += fontRenderer.getStringWidth(LABEL_GAP) + fontRenderer.getStringWidth(subtitle);
         }
         return suggestion.hasIcon() ? width + ICON_SIZE + ICON_GAP : width;
@@ -68,9 +71,8 @@ public class SyntaxValueCandidate implements AutocompleteCandidate {
             FluidIconRenderer.draw(suggestion.fluidIcon(), x, y - 1, ICON_SIZE, false);
             textX += ICON_SIZE + ICON_GAP;
         }
-        int labelWidth = fontRenderer.drawString(suggestion.displayText(), textX, y + 4, LABEL_COLOR);
-        String subtitle = suggestion.subtitle();
-        if (subtitle != null && !subtitle.isEmpty()) {
+        int labelWidth = fontRenderer.drawString(label, textX, y + 4, LABEL_COLOR);
+        if (!subtitle.isEmpty()) {
             fontRenderer.drawString(
                 subtitle,
                 textX + labelWidth + fontRenderer.getStringWidth(LABEL_GAP),

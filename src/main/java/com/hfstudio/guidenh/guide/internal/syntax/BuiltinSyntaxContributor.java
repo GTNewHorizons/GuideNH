@@ -1728,10 +1728,9 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
             "\n  title:",
             "\n  parent:",
             "\n  position:",
-            "\n  icon: minecraft:book:0:{display:{Name:\"Custom Icon\"}}",
-            "\n  icons:\n    - minecraft:book:0:{display:{Name:\"Cycling Icon\"}}",
+            "\n  icon: ",
+            "\n  icons:\n    - ",
             "\n  icon_texture:");
-        sink.frontmatterValues("quest_ids", "\n  - 00000000-0000-0000-0000-000000000000");
         sink.frontmatterKind("item_id", SyntaxValueKind.ITEM_ID);
         sink.frontmatterKind("item_ids", SyntaxValueKind.ITEM_ID);
         sink.frontmatterKind("fluid_id", SyntaxValueKind.FLUID_ID);

@@ -54,6 +54,7 @@ public class AutocompletePopup implements DebugComponent {
     private int scrollbarGrabOffset;
     private final SmoothFloatState visualScrollY = new SmoothFloatState();
     private int x, y, width, height;
+    private int preferredWidth;
     private int viewportWidth, viewportHeight;
 
     public void show(List<AutocompleteCandidate> candidates, int anchorX, int anchorY, int viewportWidth,
@@ -74,7 +75,7 @@ public class AutocompletePopup implements DebugComponent {
             lastCandidateKeys = candidateKeys(this.candidates);
             snapVisualScrollToTarget();
         }
-        computeSize(fontRenderer);
+        computeSize(fontRenderer, viewportWidth);
         scrollY = clampScroll(scrollY);
         this.viewportWidth = viewportWidth;
         this.viewportHeight = viewportHeight;
@@ -86,7 +87,7 @@ public class AutocompletePopup implements DebugComponent {
 
     private static List<String> candidateKeys(List<AutocompleteCandidate> list) {
         List<String> keys = new ArrayList<>(list.size());
-        for (AutocompleteCandidate c : list) keys.add(c.displayText());
+        for (AutocompleteCandidate c : list) keys.add(c.replacementText());
         return keys;
     }
 
@@ -94,7 +95,7 @@ public class AutocompletePopup implements DebugComponent {
         if (list.size() != keys.size()) return false;
         for (int i = 0; i < list.size(); i++) {
             if (!list.get(i)
-                .displayText()
+                .replacementText()
                 .equals(keys.get(i))) return false;
         }
         return true;
@@ -146,6 +147,7 @@ public class AutocompletePopup implements DebugComponent {
      */
     public void reposition(int anchorX, int anchorY, int viewportWidth, int viewportHeight, FontRenderer fontRenderer) {
         if (!open) return;
+        width = Math.min(Math.max(1, viewportWidth - 4), preferredWidth);
         placePopup(anchorX, anchorY, viewportWidth, viewportHeight);
         this.scrollY = clampScroll(scrollY);
     }
@@ -278,7 +280,7 @@ public class AutocompletePopup implements DebugComponent {
         return open ? debugComponents.getDebugComponents() : List.of();
     }
 
-    private void computeSize(FontRenderer fontRenderer) {
+    private void computeSize(FontRenderer fontRenderer, int viewportWidth) {
         int maxW = 72;
         int maxItemH = 14;
         for (AutocompleteCandidate c : candidates) {
@@ -289,7 +291,8 @@ public class AutocompletePopup implements DebugComponent {
             if (w > maxW) maxW = w;
             if (c.renderHeight() > maxItemH) maxItemH = c.renderHeight();
         }
-        this.width = Math.max(72, maxW + SCROLLBAR_W);
+        this.preferredWidth = Math.max(72, maxW + SCROLLBAR_W);
+        this.width = Math.min(Math.max(1, viewportWidth - 4), preferredWidth);
         this.itemHeight = maxItemH;
         int visibleItems = Math.min(candidates.size(), MAX_VISIBLE_ITEMS);
         this.height = visibleItems * maxItemH + PADDING_Y * 2;

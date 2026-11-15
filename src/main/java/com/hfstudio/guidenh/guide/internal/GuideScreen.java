@@ -97,6 +97,7 @@ import com.hfstudio.guidenh.guide.internal.debug.GuideDebugOverlay;
 import com.hfstudio.guidenh.guide.internal.debug.ScreenDebugComponents;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.AutocompleteCommit;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.GuideEditorAutocompleteController;
+import com.hfstudio.guidenh.guide.internal.editor.gui.EditorTextInsertion;
 import com.hfstudio.guidenh.guide.internal.editor.gui.SceneEditorMultilineTextArea;
 import com.hfstudio.guidenh.guide.internal.editor.guide.GuideScreenEditorAction;
 import com.hfstudio.guidenh.guide.internal.editor.guide.GuideScreenEditorActionRegistry;
@@ -167,6 +168,7 @@ import com.hfstudio.guidenh.guide.style.TextStyle;
 import com.hfstudio.guidenh.guide.syntax.GuideSyntaxModel;
 import com.hfstudio.guidenh.guide.syntax.InsertTemplate;
 import com.hfstudio.guidenh.guide.syntax.SyntaxEnvironment;
+import com.hfstudio.guidenh.guide.syntax.SyntaxReplacement;
 import com.hfstudio.guidenh.guide.ui.GuideUiHost;
 import com.hfstudio.guidenh.integration.nei.GuideScreenNeiBridge;
 import com.hfstudio.guidenh.libs.unist.UnistPoint;
@@ -2236,9 +2238,6 @@ public class GuideScreen extends GuiContainer
         return entries;
     }
 
-    /**
-     * Builds menu entries from the same built-in and contributed templates used by completion.
-     */
     private List<GuideScreenEditorContextMenu.Entry> buildGuideEditorTemplateEntries() {
         Map<String, InsertTemplate> templates = resolveGuideSyntaxModel().insertTemplates();
         if (templates.isEmpty()) {
@@ -2265,8 +2264,9 @@ public class GuideScreen extends GuiContainer
             String source = guideEditorTextArea.getText();
             int start = Math.clamp(guideEditorTextArea.getSelectionStart(), 0, source.length());
             int end = Math.clamp(guideEditorTextArea.getSelectionEnd(), start, source.length());
-            String edited = source.substring(0, start) + text + source.substring(end);
-            int caretIndex = start + caret;
+            var insertion = EditorTextInsertion.prepare(source, start, new SyntaxReplacement(text, caret, caret));
+            String edited = source.substring(0, start) + insertion.text() + source.substring(end);
+            int caretIndex = start + insertion.caretOffset();
             guideEditorTextArea.applyEditPreservingViewport(edited, caretIndex, caretIndex);
         });
         syncGuideEditorPreviewScrollFromEditor();
