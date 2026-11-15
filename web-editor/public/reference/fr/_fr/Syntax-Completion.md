@@ -128,6 +128,8 @@ Un attribut's `SyntaxValueKind` decides how Le éditeur completes et quotes son 
 
 Dans l’éditeur du jeu, `FluidImage`, `FluidLink` et `FluidIcon` se complètent comme leurs équivalents Item, sans identifiants ni attributs d’exemple. Les suggestions de fluides affichent une icône native à gauche, y compris pour les associations YAML. Les sources personnalisées peuvent utiliser `SyntaxSuggestion.withFluidIcon(value, stack)` ; `withIcon(value, stack)` accepte toujours les piles d’objets.
 
+La barre de défilement des suggestions dans le jeu permet de glisser le curseur et de cliquer sur la piste. Le glissement continue hors de la fenêtre et se termine en relâchant le bouton gauche. Le défilement ne confirme ni n’insère une suggestion.
+
 Reusing Un built-dans kind signifie you do ne enregistrer anything: marking Un attribut as `ITEM_ID` est enough
 vers get élément completion pour it.
 

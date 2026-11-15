@@ -125,6 +125,8 @@ An attribute's `SyntaxValueKind` decides how the editor completes and quotes its
 
 In the in-game editor, `FluidImage`, `FluidLink`, and `FluidIcon` complete like their Item counterparts, without example IDs or attributes. Fluid value suggestions display a native icon on the left, including YAML fluid bindings. Custom value sources can use `SyntaxSuggestion.withFluidIcon(value, stack)`; `withIcon(value, stack)` continues to accept item stacks.
 
+The in-game completion scrollbar supports dragging its thumb and clicking the track. Moving the pointer outside the popup keeps dragging; releasing the left button ends the drag. Scrolling never confirms or inserts a candidate.
+
 Reusing a built-in kind means you do not register anything: marking an attribute as `ITEM_ID` is enough
 to get item completion for it.
 

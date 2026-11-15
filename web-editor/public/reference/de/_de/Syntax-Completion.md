@@ -128,6 +128,8 @@ Eine Attribut's `SyntaxValueKind` decides how Die Editor completes und quotes se
 
 Im Spiel ergänzen `FluidImage`, `FluidLink` und `FluidIcon` den Text wie die entsprechenden Item-Tags, ohne Beispiel-IDs oder Attribute. Fluid-Wertvorschläge zeigen links ein natives Symbol, auch bei YAML-Fluid-Bindungen. Eigene Wertquellen können `SyntaxSuggestion.withFluidIcon(value, stack)` verwenden; `withIcon(value, stack)` akzeptiert weiterhin ItemStacks.
 
+Die Bildlaufleiste der Vervollständigung im Spiel unterstützt das Ziehen des Reglers und Klicks auf die Leiste. Das Ziehen bleibt außerhalb des Fensters aktiv und endet beim Loslassen der linken Maustaste. Scrollen bestätigt oder fügt keinen Vorschlag ein.
+
 Reusing Eine built-in kind bedeutet you do nicht registrieren anything: marking Eine Attribut als `ITEM_ID` ist enough
 zu get Element completion für it.
 

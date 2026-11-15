@@ -128,6 +128,8 @@ Een Attribuut's `SyntaxValueKind` decides how De editor completes en quotes its 
 
 In de editor in het spel worden `FluidImage`, `FluidLink` en `FluidIcon` aangevuld zoals hun Item-equivalenten, zonder voorbeeld-ID’s of attributen. Vloeistofvoorstellen tonen links een eigen icoon, ook bij YAML-koppelingen. Eigen waardebronnen kunnen `SyntaxSuggestion.withFluidIcon(value, stack)` gebruiken; `withIcon(value, stack)` blijft itemstapels accepteren.
 
+De schuifbalk van de aanvulsuggesties in het spel ondersteunt slepen en klikken op de balk. Het slepen gaat buiten het venster door en stopt zodra de linkermuisknop wordt losgelaten. Scrollen bevestigt of voegt geen suggestie in.
+
 Reusing Een built-in kind betekent you do niet register anything: marking Een Attribuut as `ITEM_ID` is enough
 naar get item completion voor it.
 

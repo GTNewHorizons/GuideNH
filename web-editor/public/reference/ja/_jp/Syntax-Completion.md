@@ -115,6 +115,8 @@ Guide.builder(id).extension(SyntaxContributor.EXTENSION_POINT, new MyModSyntaxCo
 
 ゲーム内エディターでは、`FluidImage`、`FluidLink`、`FluidIcon` は対応する Item タグと同じ形式で補完され、サンプル ID や属性は挿入されません。流体の値候補には左側にネイティブアイコンが表示され、YAML の流体バインドにも対応します。独自の値ソースは `SyntaxSuggestion.withFluidIcon(value, stack)` を使用できます。`withIcon(value, stack)` は引き続きアイテムスタックを受け取ります。
 
+ゲーム内の補完ウィンドウでは、スクロールバーのつまみをドラッグしたり、トラックをクリックしたりできます。ウィンドウの外に移動してもドラッグは続き、左ボタンを離すと終了します。スクロールしても候補は確定・挿入されません。
+
 組み込みの種類を再利用する場合、追加登録は不要です。属性を `ITEM_ID` と指定するだけでアイテム補完が有効になります。
 
 独自レジストリを補完するには、独自の種類とソースを宣言します。

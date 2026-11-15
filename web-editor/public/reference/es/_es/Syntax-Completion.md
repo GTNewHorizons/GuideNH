@@ -128,6 +128,8 @@ Un atributo's `SyntaxValueKind` decides how El editor completes y quotes su valo
 
 En el editor del juego, `FluidImage`, `FluidLink` y `FluidIcon` se completan como sus equivalentes Item, sin IDs ni atributos de ejemplo. Las sugerencias de fluidos muestran un icono nativo a la izquierda, también en los enlaces YAML. Las fuentes de valores personalizadas pueden usar `SyntaxSuggestion.withFluidIcon(value, stack)`; `withIcon(value, stack)` sigue aceptando pilas de objetos.
 
+La barra de desplazamiento del autocompletado del juego permite arrastrar el control y pulsar la pista. El arrastre continúa fuera de la ventana y termina al soltar el botón izquierdo. Desplazarse no confirma ni inserta ninguna sugerencia.
+
 Reusing Un built-en tipo significa you do no registrar anything: marking Un atributo as `ITEM_ID` es enough
 Un get elemento completion para it.
 

@@ -128,6 +128,8 @@ Atrybut's `SyntaxValueKind` decides how  edytor completes i quotes jego wartoś�
 
 W edytorze gry `FluidImage`, `FluidLink` i `FluidIcon` uzupełniają tekst tak jak odpowiednie znaczniki Item, bez przykładowych identyfikatorów i atrybutów. Sugestie płynów pokazują natywną ikonę po lewej stronie, także dla powiązań YAML. Własne źródła wartości mogą używać `SyntaxSuggestion.withFluidIcon(value, stack)`; `withIcon(value, stack)` nadal przyjmuje stosy przedmiotów.
 
+Pasek przewijania podpowiedzi w grze obsługuje przeciąganie suwaka i kliknięcia na torze. Przeciąganie działa także poza oknem i kończy się po zwolnieniu lewego przycisku. Przewijanie nie zatwierdza ani nie wstawia sugestii.
+
 Reusing built-in rodzaj oznacza you do nie rejestrować anything: marking Atrybut as `ITEM_ID` is enough
 do get element completion dla it.
 

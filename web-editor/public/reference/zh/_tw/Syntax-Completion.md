@@ -121,6 +121,8 @@ Guide.builder(id).extension(SyntaxContributor.EXTENSION_POINT, new MyModSyntaxCo
 
 遊戲內編輯器中，`FluidImage`、`FluidLink` 和 `FluidIcon` 的補全方式與對應的 Item 標籤相同，不填入範例 ID 或屬性。流體取值候選左側顯示原生圖標，YAML 流體綁定也使用相同預覽。自訂取值來源可使用 `SyntaxSuggestion.withFluidIcon(value, stack)`；`withIcon(value, stack)` 繼續接受物品堆疊。
 
+遊戲內補全視窗的滑條支援拖動滑塊和點擊軌道定位。拖動時滑鼠可以移出彈出視窗，放開左鍵即結束；捲動不會確認或插入候選項。
+
 重複使用內建類型不需要註冊任何東西：把屬性標成 `ITEM_ID`，它就有物品補全。
 
 要從你自己的註冊表補全，就聲明一個類型和一個取值來源。類型只是一個標識，按你的習慣聲明即可：
