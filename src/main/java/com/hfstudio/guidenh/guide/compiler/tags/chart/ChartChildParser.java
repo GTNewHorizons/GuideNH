@@ -16,6 +16,7 @@ import com.hfstudio.guidenh.guide.document.block.chart.PieSlice;
 import com.hfstudio.guidenh.guide.scene.SceneTagCompiler;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstAnyContent;
+import com.hfstudio.guidenh.libs.mdast.model.MdAstParent;
 
 /**
  * Parses {@code <Series>} / {@code <Slice>} child elements inside chart tags.
@@ -214,6 +215,27 @@ public class ChartChildParser {
         return compiler.reparseBlockTagChildren(parentEl);
     }
 
+    public static List<MdxJsxElementFields> childElements(MdxJsxElementFields parentEl) {
+        List<MdxJsxElementFields> elements = new ArrayList<>();
+        collectChildElements(parentEl.children(), elements);
+        return elements;
+    }
+
+    private static void collectChildElements(List<? extends MdAstAnyContent> children,
+        List<MdxJsxElementFields> elements) {
+        for (MdAstAnyContent child : children) {
+            if (child instanceof MdxJsxElementFields element) {
+                if ("p".equals(element.name())) {
+                    collectChildElements(element.children(), elements);
+                } else {
+                    elements.add(element);
+                }
+            } else if (child instanceof MdAstParent<?>parent) {
+                collectChildElements(parent.children(), elements);
+            }
+        }
+    }
+
     private static void applyIconAndTooltip(PageCompiler compiler, LytErrorSink errorSink, MdxJsxElementFields el,
         ChartSeries series) {
         series.setIcon(parseIcon(compiler, errorSink, el));
@@ -298,7 +320,7 @@ public class ChartChildParser {
             }
             double x = MdxAttrs.getFloat(compiler, errorSink, pointEl, "x", Float.NaN);
             double y = MdxAttrs.getFloat(compiler, errorSink, pointEl, "y", Float.NaN);
-            if (Double.isNaN(x) || Double.isNaN(y)) {
+            if (!Double.isFinite(x) || !Double.isFinite(y)) {
                 continue;
             }
             xs.add(x);

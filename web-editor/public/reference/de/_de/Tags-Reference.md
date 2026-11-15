@@ -748,6 +748,10 @@ Siehe [GameScene](GameScene) für Szene import/removal behavior und [Annotations
 
 Cartesian charts (Spalte / Bar / Linie / Scatter) additionally accept axis Attribut `xAxisLabel`, `xAxisMin`, `xAxisMax`, `xAxisStep`, `xAxisUnit`, `xAxisTickFormat` und Die passend `yAxis*` Setzen Sie, plus `showXGrid={true}` / `showYGrid={true}` zu toggle gridlines.
 
+Ungültige oder übergroße Zahlenformate verwenden automatisch das Standardformat. Formatzeichenfolgen sind auf 256 Zeichen, Feldbreiten auf 128 und die Genauigkeit auf 20 begrenzt. Überlappende numerische Achsenbeschriftungen werden bei Bedarf ausgelassen; ihre Gitterlinien bleiben erhalten.
+
+`ColumnChart`, `LineChart` und `ScatterChart` zeigen im Diagrammbereich eine horizontale goldene Hilfslinie, auch über freien Flächen; der aktuelle Y-Wert wird links hervorgehoben. `BarChart` zeigt eine vertikale Hilfslinie mit dem X-Wert unterhalb des Diagramms. Die Werte folgen Achsenformat und Einheit. Auf der Linie steht kein Text; außerhalb des Bereichs verschwindet sie. Beide Achsen verwenden blasse, weit auseinanderliegende Striche für das Raster. Extrem kleine positive Schrittweiten werden automatisch vergrößert, um den Zeichenaufwand zu begrenzen.
+
 untergeordnete Elemente:
 
 * `<Series name="..." color="#..." data="10,20,30"/>` für category-based charts (Spalte / Bar / categorical Linie).
@@ -781,6 +785,8 @@ Extra Attribut: `categories` (X-axis oder Y-axis labels, comma separated), `barW
 
 - `<LineSeries name="…" data="v1,v2,…" color="#rrggbb" icon="…"/>` — drawn als Eine polyline overlay auf oben von Die bars. jede Linie Punkt sits at Die cluster Mitte von Die passend category index; Die overlay shares Die host Diagramm's Wert axis. You kann declare mehrere `<LineSeries>` zu overlay several trends.
 - `<PieInset size="60" position="topRight" title="…" startAngleDeg="-90" direction="clockwise" titleColor="#rrggbb">` — Eine small pie Diagramm drawn innerhalb eins von Die four corners (`topRight`, `topLeft`, `bottomRight`, `bottomLeft`) von Die plot area. seine `<Slice>` untergeordnete Elemente share Die gleich Syntax als in `<PieChart>`.
+
+`PieInset`-Segmente haben beim Überfahren Vorrang vor darunterliegenden Balken und Linien. Der Tooltip zeigt Name, Wert, Prozentanteil und optionalen `tooltip`-Text; Gegenstand-Tooltips bleiben im Spiel erhalten. Dabei verschwindet die Hilfslinie des Hauptdiagramms. Nur das erste eingebettete Kreisdiagramm wird verwendet. `position="rightOutside"` reserviert rechts einen eigenen Bereich. `startAngleDeg="0"`, `direction="counterclockwise"` und ein einzelnes Segment als voller Kreis werden unterstützt.
 
 ```mdx
 <ColumnChart title="Quarterly output" categories="Q1,Q2,Q3,Q4">
