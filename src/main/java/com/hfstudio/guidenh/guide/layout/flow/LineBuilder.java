@@ -400,8 +400,9 @@ public class LineBuilder implements Consumer<LytFlowContent> {
                 // If the preceding text chunk ended on a whitespace, we can break there if the
                 // current word does not offer us any opportunity to.
                 boolean lineBufferHasVisibleGlyph = containsVisibleGlyph(lineBuffer);
-                if (lineBufferHasVisibleGlyph && (precedingBreakOpportunity > 0
-                    || precedingBreakOpportunity == 0 && (canBreakAtStart || wordBreakOffset == 0))) {
+                if (lineBufferHasVisibleGlyph
+                    && (precedingBreakOpportunity > 0 || precedingBreakOpportunity == 0 && openLineElement != null
+                        && (canBreakAtStart || wordBreakOffset == 0))) {
                     // Determine width up until the break opportunity.
                     float widthAtBreakOpportunity = lineBufferPrefixWidths[precedingBreakOpportunity];
 

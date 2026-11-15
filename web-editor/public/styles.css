@@ -311,14 +311,17 @@ input:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 2px
 .guide-tabs-buttons button { padding: 5px 9px; color: var(--muted); font-size: 11px; }
 .guide-tabs-buttons button.active { color: var(--text); border-color: var(--guide-tabs-accent, var(--accent)); background: var(--accent-soft); }
 .guide-tab-panel { padding: 0 13px 12px; }
-.guide-filetree { margin: 12px 0; padding: 11px 13px; border: 1px solid var(--border); border-radius: 6px; background: var(--code); font: 12px/1.55 ui-monospace, monospace; }
-.guide-filetree-row { display: flex; align-items: baseline; gap: var(--tree-gap); min-height: calc(1.55em + var(--tree-gap)); white-space: pre; }
-.guide-filetree-prefix { display: inline-block; min-width: calc(var(--tree-indent) + 2ch); color: var(--preview-soft-text); letter-spacing: .02em; }
-.guide-filetree-vertical, .guide-filetree-branch, .guide-filetree-horizontal { color: var(--preview-tree-line); }
-.guide-filetree-branch { font-weight: 700; }
-.guide-filetree-label { min-width: 0; }
+.guide-filetree { container-type: inline-size; margin: 12px 0; padding: 11px 13px; border: 1px solid var(--border); border-radius: 6px; background: var(--code); font: 12px/1.55 ui-monospace, monospace; }
+.guide-filetree-row { display: flex; align-items: flex-start; gap: var(--tree-gap); min-height: calc(1.55em + var(--tree-gap)); }
+.guide-filetree-prefix { display: flex; align-self: stretch; flex: 0 0 auto; color: var(--preview-tree-line); }
+.guide-filetree-slot { position: relative; width: min(var(--tree-indent), calc(45cqw / var(--tree-max-depth))); }
+.guide-filetree-slot:not(.guide-filetree-slot-empty)::before { content: ""; position: absolute; left: 50%; top: 0; bottom: 0; border-left: 1px solid; }
+.guide-filetree-slot-last-branch::before { height: .775em; }
+.guide-filetree-slot-branch::after, .guide-filetree-slot-last-branch::after { content: ""; position: absolute; left: 50%; right: 0; top: .775em; border-top: 1px solid; }
+.guide-filetree-label { flex: 1; min-width: 0; white-space: normal; overflow-wrap: anywhere; }
+.guide-filetree-label code, .guide-filetree-label a { white-space: normal; overflow-wrap: anywhere; }
 .guide-filetree-directory .guide-filetree-label { color: var(--preview-tree-folder); font-weight: 600; }
-.guide-filetree-icon { min-width: 1.2em; color: var(--preview-gold); text-align: center; }
+.guide-filetree-icon { flex: 0 0 1.2em; color: var(--preview-gold); text-align: center; }
 .guide-filetree-image { width: 1.2em; height: 1.2em; object-fit: contain; vertical-align: middle; image-rendering: pixelated; }
 .guide-footnotes { max-width: 100%; margin: 20px 0 0; padding: 11px 15px; border-top: 1px solid var(--border); color: var(--muted); font-size: 12px; }
 .guide-footnotes h4 { margin: 0 0 6px; color: var(--accent); }

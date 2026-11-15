@@ -113,31 +113,19 @@ public class GuideSiteGraphRenderer {
     public static String renderFileTree(String source) {
         FileTreeModel model = FileTreeParser.parse(source);
         StringBuilder html = new StringBuilder();
-        html.append("<div class=\"guide-file-tree\">");
+        html.append("<div class=\"guide-file-tree\" style=\"--tree-max-depth:")
+            .append(
+                Math.max(
+                    1,
+                    model.entries()
+                        .stream()
+                        .mapToInt(FileTreeEntry::depth)
+                        .max()
+                        .orElse(1)))
+            .append("\">");
         for (FileTreeEntry entry : model.entries()) {
             html.append("<div class=\"guide-file-tree-row\">");
-            StringBuilder prefix = new StringBuilder();
-            for (SlotKind slot : entry.slots()) {
-                switch (slot) {
-                    case VERTICAL:
-                        prefix.append("│   ");
-                        break;
-                    case BRANCH:
-                        prefix.append("├── ");
-                        break;
-                    case LAST_BRANCH:
-                        prefix.append("└── ");
-                        break;
-                    default:
-                        prefix.append("    ");
-                        break;
-                }
-            }
-            if (!prefix.isEmpty()) {
-                html.append("<span class=\"guide-file-tree-prefix\">")
-                    .append(esc(prefix.toString()))
-                    .append("</span>");
-            }
+            html.append(renderFileTreePrefix(entry.slots()));
             FileTreeIcon icon = entry.icon();
             if (icon != null && icon.kind() == FileTreeIconKind.TEXT) {
                 html.append("<span class=\"guide-file-tree-icon\">")
@@ -151,6 +139,23 @@ public class GuideSiteGraphRenderer {
         }
         html.append("</div>");
         return html.toString();
+    }
+
+    public static String renderFileTreePrefix(List<SlotKind> slots) {
+        StringBuilder html = new StringBuilder("<span class=\"guide-file-tree-prefix\" aria-hidden=\"true\">");
+        for (SlotKind slot : slots) {
+            String kind = switch (slot) {
+                case VERTICAL -> "vertical";
+                case BRANCH -> "branch";
+                case LAST_BRANCH -> "last-branch";
+                case EMPTY -> "empty";
+            };
+            html.append("<span class=\"guide-file-tree-slot guide-file-tree-slot-")
+                .append(kind)
+                .append("\"></span>");
+        }
+        return html.append("</span>")
+            .toString();
     }
 
     public static String renderMermaidTree(MindmapDocument doc) {
