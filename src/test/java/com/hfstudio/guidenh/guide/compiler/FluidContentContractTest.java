@@ -23,17 +23,65 @@ import com.hfstudio.guidenh.guide.compiler.tags.ItemGridCompiler.ItemEntry;
 import com.hfstudio.guidenh.guide.compiler.tags.ItemGridCompiler.ItemGridPlaceholder;
 import com.hfstudio.guidenh.guide.document.block.LytNode;
 import com.hfstudio.guidenh.guide.document.block.LytVisitor;
+import com.hfstudio.guidenh.guide.extensions.ExtensionCollection;
 import com.hfstudio.guidenh.guide.indices.FluidIndex;
+import com.hfstudio.guidenh.guide.internal.editor.autocomplete.AutocompleteCommitService;
+import com.hfstudio.guidenh.guide.internal.editor.autocomplete.GuideSyntaxCompletion;
+import com.hfstudio.guidenh.guide.internal.editor.autocomplete.SyntaxElementType;
+import com.hfstudio.guidenh.guide.internal.editor.autocomplete.TextSyntaxContext;
+import com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver.TagStartContext;
 import com.hfstudio.guidenh.guide.internal.fluid.FluidStackSpec;
 import com.hfstudio.guidenh.guide.internal.recipe.FluidFilterExpression;
 import com.hfstudio.guidenh.guide.internal.recipe.FluidRecipeSlots;
+import com.hfstudio.guidenh.guide.internal.syntax.BuiltinSyntaxContributor;
 import com.hfstudio.guidenh.guide.mediawiki.template.MediaWikiTemplateTestHarness;
 import com.hfstudio.guidenh.guide.siteexport.site.GuideSiteExportedItem;
 import com.hfstudio.guidenh.guide.siteexport.site.GuideSiteItemHtml;
 import com.hfstudio.guidenh.guide.siteexport.site.GuideSiteLabelFormatter;
+import com.hfstudio.guidenh.guide.syntax.GuideSyntaxModel;
+import com.hfstudio.guidenh.guide.syntax.SyntaxContributor;
 import com.hfstudio.guidenh.integration.api.RecipeSlot;
 
 public class FluidContentContractTest {
+
+    @Test
+    public void fluidTagsCompleteLikeItemTagsWithoutExampleAttributes() {
+        var extensions = ExtensionCollection.builder()
+            .add(SyntaxContributor.EXTENSION_POINT, new BuiltinSyntaxContributor())
+            .build();
+        var model = GuideSyntaxModel.of(extensions);
+        for (String suffix : List.of("Image", "Link", "Icon")) {
+            String parent = suffix.equals("Icon") ? "ItemGrid" : null;
+            String itemTag = "Item" + suffix;
+            String fluidTag = "Fluid" + suffix;
+            var itemContext = new TagStartContext(1, itemTag.length() + 1, itemTag, parent);
+            var fluidContext = new TagStartContext(1, fluidTag.length() + 1, fluidTag, parent);
+            var item = GuideSyntaxCompletion
+                .query(
+                    model,
+                    new TextSyntaxContext(SyntaxElementType.TAG_START, 0, itemTag.length() + 1, itemContext),
+                    20)
+                .getFirst();
+            var fluid = GuideSyntaxCompletion
+                .query(
+                    model,
+                    new TextSyntaxContext(SyntaxElementType.TAG_START, 0, fluidTag.length() + 1, fluidContext),
+                    20)
+                .getFirst();
+            assertEquals(
+                item.displayText()
+                    .replace(itemTag, fluidTag),
+                fluid.displayText());
+            var itemCommit = AutocompleteCommitService.commit("<" + itemTag, itemContext, item);
+            var fluidCommit = AutocompleteCommitService.commit("<" + fluidTag, fluidContext, fluid);
+            assertEquals(
+                itemCommit.getText()
+                    .replace(itemTag, fluidTag),
+                fluidCommit.getText());
+            assertEquals(itemCommit.getSelectionStart() + 1, fluidCommit.getSelectionStart());
+            assertEquals(itemCommit.getSelectionEnd() + 1, fluidCommit.getSelectionEnd());
+        }
+    }
 
     @Test
     public void exportedItemQuantitiesUseTextOverlays() {

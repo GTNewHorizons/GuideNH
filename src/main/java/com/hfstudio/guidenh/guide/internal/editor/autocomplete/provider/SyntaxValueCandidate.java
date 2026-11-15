@@ -3,6 +3,7 @@ package com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider;
 import net.minecraft.client.gui.FontRenderer;
 
 import com.hfstudio.guidenh.guide.color.ColorUtils;
+import com.hfstudio.guidenh.guide.internal.fluid.FluidIconRenderer;
 import com.hfstudio.guidenh.guide.syntax.SyntaxSuggestion;
 import com.hfstudio.guidenh.guide.syntax.SyntaxValueKind;
 
@@ -44,7 +45,7 @@ public class SyntaxValueCandidate implements AutocompleteCandidate {
 
     @Override
     public int renderHeight() {
-        return suggestion.icon() != null ? ICON_SIZE + 2 : 14;
+        return suggestion.hasIcon() ? ICON_SIZE + 2 : 14;
     }
 
     @Override
@@ -54,7 +55,7 @@ public class SyntaxValueCandidate implements AutocompleteCandidate {
         if (subtitle != null && !subtitle.isEmpty()) {
             width += fontRenderer.getStringWidth(LABEL_GAP) + fontRenderer.getStringWidth(subtitle);
         }
-        return suggestion.icon() != null ? width + ICON_SIZE + ICON_GAP : width;
+        return suggestion.hasIcon() ? width + ICON_SIZE + ICON_GAP : width;
     }
 
     @Override
@@ -62,6 +63,9 @@ public class SyntaxValueCandidate implements AutocompleteCandidate {
         int textX = x;
         if (suggestion.icon() != null) {
             ItemCandidate.renderIcon(suggestion.icon(), x, y);
+            textX += ICON_SIZE + ICON_GAP;
+        } else if (suggestion.fluidIcon() != null) {
+            FluidIconRenderer.draw(suggestion.fluidIcon(), x, y - 1, ICON_SIZE, false);
             textX += ICON_SIZE + ICON_GAP;
         }
         int labelWidth = fontRenderer.drawString(suggestion.displayText(), textX, y + 4, LABEL_COLOR);

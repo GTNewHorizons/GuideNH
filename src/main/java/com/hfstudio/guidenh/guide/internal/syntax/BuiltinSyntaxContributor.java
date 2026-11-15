@@ -79,7 +79,6 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
 
     public void contribute(SyntaxSink sink) {
         sink.tags("FluidImage", "FluidLink", "FluidIcon");
-        sink.containerTags("FluidLink");
         sink.frontmatterKeys("fluid_id", "fluid_ids");
         sink.frontmatterKind("fluid_id", SyntaxValueKind.FLUID_ID);
         sink.frontmatterKind("fluid_ids", SyntaxValueKind.FLUID_ID);
@@ -1660,9 +1659,6 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
                 "<ImportStructureLib controller=\"\" formed={true} />",
                 "controller=\""),
             InsertTemplate.caretAfter("Recipe", "<Recipe id=\"\" />", "id=\""),
-            InsertTemplate.caretAfter("FluidImage", "<FluidImage id=\"water\" />", "id=\""),
-            InsertTemplate.caretAfter("FluidLink", "<FluidLink id=\"water\" showIcon=\"left\" />", "id=\""),
-            InsertTemplate.caretAfter("FluidIcon", "<FluidIcon id=\"water\" />", "id=\""),
             InsertTemplate.caretAfter(
                 "GameScene",
                 "<GameScene width=\"256\" height=\"160\" interactive={true}>\n  \n</GameScene>",
