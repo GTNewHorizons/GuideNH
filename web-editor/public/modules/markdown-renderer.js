@@ -1088,29 +1088,28 @@ function renderFileTree(body, attributes, context = {}) {
   const indent = numberAttr(attributes, 14, "indent");
   const gap = numberAttr(attributes, 0, "gap");
   const sourceLines = String(body || "").replaceAll("\r\n", "\n").split("\n").filter((line) => line.trim());
+  let maxDepth = 1;
   const rows = sourceLines.map((line) => {
     const iconImage = line.match(/\{:\s*iconPng\s*=\s*["']?([^}\"']+)["']?\s*\}/i);
     const iconText = line.match(/\{:\s*icon\s*=\s*["']?([^}\"']+)["']?\s*\}/i);
     const iconItem = line.match(/\{:\s*iconItem\s*=\s*["']?([^}\"']+)["']?\s*\}/i);
     const withoutDirectives = line.replace(/\{:\s*(?:iconPng|iconItem|icon)\s*=\s*[^}]+\}/gi, "");
-    const prefixMatch = withoutDirectives.match(/^[│| ├└─+\\\-]*/);
+    const prefixMatch = withoutDirectives.match(/^(?:(?:[│|]   | {4}))*(?:[├+|][─-]{2} |[└\\][─-]{2} )?/);
     const prefix = prefixMatch?.[0] || "";
     const label = withoutDirectives.slice(prefix.length).trim();
     const depth = Math.max(0, Math.floor(prefix.replace(/[│|]/g, " ").length / 4));
-    const connector = [...prefix].map((character) => {
-      if (character === "│" || character === "|") return `<span class="guide-filetree-vertical">│</span>`;
-      if (["├", "+"].includes(character)) return `<span class="guide-filetree-branch">├</span>`;
-      if (["└", "\\"].includes(character)) return `<span class="guide-filetree-branch">└</span>`;
-      if (["─", "-"].includes(character)) return `<span class="guide-filetree-horizontal">─</span>`;
-      return " ";
+    maxDepth = Math.max(maxDepth, depth);
+    const connector = (prefix.match(/.{4}/g) || []).map((slot) => {
+      const kind = /^[└\\]/.test(slot) ? "last-branch" : /^[├+|][─-]/.test(slot) ? "branch" : /^[│|]/.test(slot) ? "vertical" : "empty";
+      return `<span class="guide-filetree-slot guide-filetree-slot-${kind}"></span>`;
     }).join("");
     const iconSource = iconImage ? iconImage[1].trim() : "";
     const iconAsset = iconSource ? resolveAsset(iconSource, context) : "";
     const icon = iconItem ? renderItemPlaceholder("ItemIcon", { id: iconItem[1].trim(), showId: false }, context, true) : iconAsset ? `<img class="guide-filetree-image" src="${escapeHtml(iconAsset)}" alt="">` : iconImage ? "▧" : iconText ? escapeHtml(iconText[1].trim()) : (/[\/]$/.test(label) ? "▰" : "▱");
     const type = /[\/]$/.test(label) ? "directory" : "file";
-    return `<div class="guide-filetree-row guide-filetree-${type}" data-tree-depth="${depth}"><span class="guide-filetree-prefix">${connector}</span><span class="guide-filetree-icon">${icon}</span><span class="guide-filetree-label">${renderInline(label, context)}</span></div>`;
+    return `<div class="guide-filetree-row guide-filetree-${type}" data-tree-depth="${depth}"><span class="guide-filetree-prefix" aria-hidden="true">${connector}</span><span class="guide-filetree-icon">${icon}</span><span class="guide-filetree-label">${renderInline(label, context)}</span></div>`;
   }).join("");
-  return `<div class="guide-filetree" style="--tree-indent:${indent}px;--tree-gap:${gap}px">${rows}</div>`;
+  return `<div class="guide-filetree" style="--tree-indent:${indent}px;--tree-gap:${gap}px;--tree-max-depth:${maxDepth}">${rows}</div>`;
 }
 
 function renderCsvTable(source, attributes, context) {

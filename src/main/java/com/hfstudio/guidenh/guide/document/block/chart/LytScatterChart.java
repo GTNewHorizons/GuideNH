@@ -148,6 +148,7 @@ public class LytScatterChart extends LytChartBase {
             }
         }
         CartesianChartRenderer.drawReferenceLines(context, inner, yAxis, yRange);
+        drawHoverCursor(context, inner, yAxis, yRange);
     }
 
     private static int brighten(int argb) {

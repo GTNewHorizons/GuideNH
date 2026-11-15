@@ -10,6 +10,9 @@ import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
  */
 public class CartesianChartRenderer {
 
+    private static final int CURSOR_COLOR = 0xFFF2C14E;
+    private static final ResolvedTextStyle CURSOR_STYLE = LytChartBase.textStyle(0xFF161A22);
+
     protected CartesianChartRenderer() {}
 
     /**
@@ -83,6 +86,51 @@ public class CartesianChartRenderer {
     public static float mapY(double value, AxisRange range, LytRect plotRect) {
         double t = range.normalize(value);
         return (float) (plotRect.bottom() - t * plotRect.height());
+    }
+
+    public static void drawHoverCursor(RenderContext context, LytRect plot, ChartAxisOptions axis, AxisRange range,
+        float mouseX, float mouseY) {
+        if (!Float.isFinite(mouseX) || !Float.isFinite(mouseY)
+            || plot.isEmpty()
+            || mouseX < plot.x()
+            || mouseX > plot.right()
+            || mouseY < plot.y()
+            || mouseY > plot.bottom()) return;
+        int accent = CURSOR_COLOR;
+        context.drawDashedLine(plot.x(), mouseY, plot.right(), mouseY, 1, 4, 3, accent);
+        double fraction = (mouseY - plot.y()) / (double) plot.height();
+        double value = (1 - fraction) * range.max + fraction * range.min;
+        String label = axis.formatTick(value);
+        ResolvedTextStyle style = CURSOR_STYLE;
+        int textWidth = context.getStringWidth(label, style);
+        int lineHeight = context.getLineHeight(style);
+        int right = plot.x() - 1;
+        int top = Math.round(mouseY) - lineHeight / 2 - 2;
+        context.fillRect(right - textWidth - 8, top, textWidth + 8, lineHeight + 4, accent);
+        context.drawText(label, right - textWidth - 4, top + 2, style);
+    }
+
+    public static void drawVerticalHoverCursor(RenderContext context, LytRect plot, ChartAxisOptions axis,
+        AxisRange range, float mouseX, float mouseY) {
+        if (!Float.isFinite(mouseX) || !Float.isFinite(mouseY)
+            || plot.isEmpty()
+            || mouseX < plot.x()
+            || mouseX > plot.right()
+            || mouseY < plot.y()
+            || mouseY > plot.bottom()) return;
+        int accent = CURSOR_COLOR;
+        context.drawDashedLine(mouseX, plot.y(), mouseX, plot.bottom(), 1, 4, 3, accent);
+        double fraction = (mouseX - plot.x()) / (double) plot.width();
+        double value = (1 - fraction) * range.min + fraction * range.max;
+        String label = axis.formatTick(value);
+        ResolvedTextStyle style = CURSOR_STYLE;
+        int textWidth = context.getStringWidth(label, style);
+        int lineHeight = context.getLineHeight(style);
+        int left = Math.round(mouseX) - textWidth / 2 - 4;
+        left = Math.max(plot.x() - 4, Math.min(plot.right() - textWidth - 4, left));
+        int top = plot.bottom() + 1;
+        context.fillRect(left, top, textWidth + 8, lineHeight + 4, accent);
+        context.drawText(label, left + 4, top + 2, style);
     }
 
     public static void drawGridLine(RenderContext context, float x1, float y1, float x2, float y2, int color) {

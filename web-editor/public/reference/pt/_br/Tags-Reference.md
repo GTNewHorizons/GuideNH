@@ -197,6 +197,8 @@ Groups alternative rico conteúdo under independent tabs. somente direto `<Tab>`
 
 Renders Uma diretório-style outline com real connector linhas drawn de O prefix glyphs on cada linha. ambos Unicode box-drawing (`│ ├ └ ─`) e ASCII (`| +-- \-- ` / four spaces) forms são accepted e pode ser mixed. Payload texto suporta O usual inline Markdown (links, **bold**, `code`, …), e those links são clickable ambos em-game e em O built-em site export. O mesmo conteúdo pode também ser written as Uma fenced ` ```tree ` or ` ```filetree ` bloco.
 
+Em espaços estreitos, a indentação diminui para reservar espaço ao texto. Caminhos longos quebram preferencialmente após `/`, `\`, `_` e `-`; nomes sem separadores podem quebrar entre caracteres. As linhas seguintes se alinham ao nome, enquanto ícones e ramificações ficam alinhados à primeira linha.
+
 ````md
 <FileTree indent="14" gap="0">
 project
@@ -748,7 +750,7 @@ Cartesian Gráficos (coluna / Bar / linha / Scatter) additionally aceitam axis a
 
 Formatos de escala inválidos ou grandes demais usam a formatação numérica automática. Os limites são 256 caracteres, largura de campo de 128 e precisão de 20. Os rótulos numéricos sobrepostos são omitidos quando necessário, sem remover suas linhas de grade.
 
-Os dois eixos usam grades suaves com traços espaçados, controladas separadamente por `showXGrid` e `showYGrid`. Passos positivos extremamente pequenos são ampliados automaticamente para limitar o trabalho de renderização.
+`ColumnChart`, `LineChart` e `ScatterChart` mostram uma guia horizontal dourada na área do gráfico, inclusive em espaços vazios, e destacam o valor Y à esquerda. `BarChart` usa uma guia vertical com o valor X abaixo. Os valores seguem o formato e a unidade do eixo. A linha não contém texto e desaparece fora da área. Os dois eixos usam grades suaves com traços espaçados, controladas separadamente por `showXGrid` e `showYGrid`. Passos positivos extremamente pequenos são ampliados automaticamente para limitar o trabalho de renderização.
 
 filhos:
 
@@ -784,6 +786,8 @@ Extra atributos: `categories` (X-axis ou Y-axis labels, comma separated), `barWi
 
 - `<LineSeries name="…" data="v1,v2,…" color="#rrggbb" icon="…"/>` — drawn as Uma polilinha overlay on topo of O bars. cada linha ponto sits at O cluster centro of O correspondente category index; O overlay shares O host gráfico's valor axis. You pode declare vários `<LineSeries>` para overlay several trends.
 - `<PieInset size="60" position="topRight" title="…" startAngleDeg="-90" direction="clockwise" titleColor="#rrggbb">` — Uma small pie gráfico drawn dentro de um of O four corners (`topRight`, `topLeft`, `bottomRight`, `bottomLeft`) of O plot area. seu `<Slice>` filhos share O mesmo sintaxe as em `<PieChart>`.
+
+Os setores de `PieInset` têm prioridade sobre barras e linhas inferiores ao passar o ponteiro: a dica mostra nome, valor, porcentagem e o texto opcional `tooltip`. As dicas de itens são preservadas no jogo. A guia principal fica oculta sobre um setor. Apenas o primeiro gráfico inserido é usado. `position="rightOutside"` reserva uma área à direita. Há suporte a `startAngleDeg="0"`, `direction="counterclockwise"` e a um único setor formando o círculo completo.
 
 ```mdx
 <ColumnChart title="Quarterly output" categories="Q1,Q2,Q3,Q4">

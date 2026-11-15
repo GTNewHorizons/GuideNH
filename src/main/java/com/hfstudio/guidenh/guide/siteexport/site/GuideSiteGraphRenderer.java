@@ -16,6 +16,7 @@ import com.hfstudio.guidenh.guide.document.block.chart.ChartNumberFormat;
 import com.hfstudio.guidenh.guide.document.block.chart.ChartTicks;
 import com.hfstudio.guidenh.guide.document.block.chart.CornerLegendPosition;
 import com.hfstudio.guidenh.guide.document.block.chart.CornerLegendRenderer;
+import com.hfstudio.guidenh.guide.document.block.chart.PieChartGeometry;
 import com.hfstudio.guidenh.guide.document.block.functiongraph.AutoPointLabelMode;
 import com.hfstudio.guidenh.guide.document.block.functiongraph.AutoPointSpec;
 import com.hfstudio.guidenh.guide.document.block.functiongraph.FunctionPlot;
@@ -117,31 +118,19 @@ public class GuideSiteGraphRenderer {
     public static String renderFileTree(String source) {
         FileTreeModel model = FileTreeParser.parse(source);
         StringBuilder html = new StringBuilder();
-        html.append("<div class=\"guide-file-tree\">");
+        html.append("<div class=\"guide-file-tree\" style=\"--tree-max-depth:")
+            .append(
+                Math.max(
+                    1,
+                    model.entries()
+                        .stream()
+                        .mapToInt(FileTreeEntry::depth)
+                        .max()
+                        .orElse(1)))
+            .append("\">");
         for (FileTreeEntry entry : model.entries()) {
             html.append("<div class=\"guide-file-tree-row\">");
-            StringBuilder prefix = new StringBuilder();
-            for (SlotKind slot : entry.slots()) {
-                switch (slot) {
-                    case VERTICAL:
-                        prefix.append("│   ");
-                        break;
-                    case BRANCH:
-                        prefix.append("├── ");
-                        break;
-                    case LAST_BRANCH:
-                        prefix.append("└── ");
-                        break;
-                    default:
-                        prefix.append("    ");
-                        break;
-                }
-            }
-            if (!prefix.isEmpty()) {
-                html.append("<span class=\"guide-file-tree-prefix\">")
-                    .append(esc(prefix.toString()))
-                    .append("</span>");
-            }
+            html.append(renderFileTreePrefix(entry.slots()));
             FileTreeIcon icon = entry.icon();
             if (icon != null && icon.kind() == FileTreeIconKind.TEXT) {
                 html.append("<span class=\"guide-file-tree-icon\">")
@@ -155,6 +144,23 @@ public class GuideSiteGraphRenderer {
         }
         html.append("</div>");
         return html.toString();
+    }
+
+    public static String renderFileTreePrefix(List<SlotKind> slots) {
+        StringBuilder html = new StringBuilder("<span class=\"guide-file-tree-prefix\" aria-hidden=\"true\">");
+        for (SlotKind slot : slots) {
+            String kind = switch (slot) {
+                case VERTICAL -> "vertical";
+                case BRANCH -> "branch";
+                case LAST_BRANCH -> "last-branch";
+                case EMPTY -> "empty";
+            };
+            html.append("<span class=\"guide-file-tree-slot guide-file-tree-slot-")
+                .append(kind)
+                .append("\"></span>");
+        }
+        return html.append("</span>")
+            .toString();
     }
 
     public static String renderMermaidTree(MindmapDocument doc) {
@@ -290,12 +296,28 @@ public class GuideSiteGraphRenderer {
          */
         public final String position;
         public final @Nullable String title;
+        public final float startAngleDeg;
+        public final boolean clockwise;
+        public final int titleColor;
 
         public PieInsetData(List<SliceData> slices, int size, String position, @Nullable String title) {
-            this.slices = slices != null ? slices : new ArrayList<>();
-            this.size = Math.max(20, size);
+            this(slices, size, position, title, -90, true);
+        }
+
+        public PieInsetData(List<SliceData> slices, int size, String position, @Nullable String title,
+            float startAngleDeg, boolean clockwise) {
+            this(slices, size, position, title, startAngleDeg, clockwise, ColorUtils.CHART_TITLE.getColor());
+        }
+
+        public PieInsetData(List<SliceData> slices, int size, String position, @Nullable String title,
+            float startAngleDeg, boolean clockwise, int titleColor) {
+            this.slices = slices != null ? List.copyOf(slices) : List.of();
+            this.size = size > 16 ? size : 60;
             this.position = position != null ? position : "top-right";
             this.title = title;
+            this.startAngleDeg = startAngleDeg;
+            this.clockwise = clockwise;
+            this.titleColor = titleColor;
         }
     }
 
@@ -307,11 +329,17 @@ public class GuideSiteGraphRenderer {
         public final String label;
         public final double value;
         public final int color;
+        public final String tooltip;
 
         public SliceData(String label, double value, int color) {
+            this(label, value, color, "");
+        }
+
+        public SliceData(String label, double value, int color, @Nullable String tooltip) {
             this.label = label != null ? label : "";
-            this.value = value;
+            this.value = PieChartGeometry.positiveValue(value);
             this.color = color;
+            this.tooltip = tooltip != null ? tooltip : "";
         }
     }
 
@@ -543,8 +571,7 @@ public class GuideSiteGraphRenderer {
             style,
             seriesNames(series),
             axisLeft(yAxis, yMin, yMax, w),
-            w - PADDING
-                - (pieInset != null && isPieInsetRightOutside(pieInset.position) ? pieInset.size + PIE_OUTSIDE_GAP : 0),
+            w - PADDING - pieOutsideWidth(pieInset, w),
             computeTitleBottom(title),
             h - PADDING - AXIS_PAD_BOTTOM);
         int left = legend.left();
@@ -682,103 +709,8 @@ public class GuideSiteGraphRenderer {
         svg.append("</svg>");
 
         appendReferenceLines(svg, left, right, top, bottom, yMin, yMax, yAxis);
-        // Pie inset overlay
-        if (pieInset != null && !pieInset.slices.isEmpty()) {
-            double total = 0;
-            for (SliceData sl : pieInset.slices) total += sl.value;
-            if (total <= 0) total = 1;
-            int pr = pieInset.size / 2;
-            int pcx, pcy;
-            String position = normalizePieInsetPosition(pieInset.position);
-            pcy = switch (position) {
-                case "left" -> {
-                    pcx = left + pr + 4;
-                    yield top + pr + 4;
-                }
-                case "right" -> {
-                    pcx = w - PADDING - pr;
-                    yield top + Math.max(pr, plotH / 2);
-                }
-                case "bottom-right" -> {
-                    pcx = right - pr - 4;
-                    yield bottom - pr - 4;
-                }
-                case "bottom-left" -> {
-                    pcx = left + pr + 4;
-                    yield bottom - pr - 4;
-                }
-                default -> {
-                    pcx = right - pr - 4;
-                    yield top + pr + 4;
-                }
-            };
-            // Semi-transparent backing circle
-            svg.append("<circle cx=\"")
-                .append(pcx)
-                .append("\" cy=\"")
-                .append(pcy)
-                .append("\" r=\"")
-                .append(pr + 2)
-                .append("\" fill=\"")
-                .append(argbToRgba(bgColor))
-                .append("\" opacity=\"0.85\"/>");
-            // Pie slices
-            double ang = -Math.PI / 2;
-            for (SliceData sl : pieInset.slices) {
-                double sweep = (sl.value / total) * 2 * Math.PI;
-                double ea = ang + sweep;
-                double x1 = pcx + pr * Math.cos(ang);
-                double y1 = pcy + pr * Math.sin(ang);
-                double x2 = pcx + pr * Math.cos(ea);
-                double y2 = pcy + pr * Math.sin(ea);
-                int la = sweep > Math.PI ? 1 : 0;
-                double pct = (sl.value / total) * 100.0;
-                svg.append("<path class=\"guide-chart-shape\" d=\"M ")
-                    .append(pcx)
-                    .append(" ")
-                    .append(pcy)
-                    .append(" L ")
-                    .append(fmtD(x1))
-                    .append(" ")
-                    .append(fmtD(y1))
-                    .append(" A ")
-                    .append(pr)
-                    .append(" ")
-                    .append(pr)
-                    .append(" 0 ")
-                    .append(la)
-                    .append(" 1 ")
-                    .append(fmtD(x2))
-                    .append(" ")
-                    .append(fmtD(y2))
-                    .append(" Z\" fill=\"")
-                    .append(argbToRgba(sl.color))
-                    .append("\" stroke=\"")
-                    .append(argbToRgba(bgColor))
-                    .append("\" stroke-width=\"0.5\"><title>")
-                    .append(
-                        esc(
-                            sl.label + ": "
-                                + formatNum(sl.value)
-                                + " ("
-                                + String.format(Locale.ROOT, "%.1f", pct)
-                                + "%)"))
-                    .append("</title></path>");
-                ang = ea;
-            }
-            // Inset title
-            if (pieInset.title != null && !pieInset.title.isEmpty()) {
-                svg.append("<text x=\"")
-                    .append(pcx)
-                    .append("\" y=\"")
-                    .append(pcy + pr + 9)
-                    .append("\" text-anchor=\"middle\" font-size=\"")
-                    .append(CHART_TEXT_SIZE)
-                    .append("\" fill=\"#B8C2CF\" font-family=\"inherit\">")
-                    .append(esc(pieInset.title))
-                    .append("</text>");
-            }
-        }
+        appendCursorDomain(svg, left, right, top, bottom, yMin, yMax, yAxis);
+        appendPieInset(svg, pieInset, w, bgColor, left, right, top, bottom, plotH);
 
         appendYAxis(svg, left, top, bottom);
         appendXAxis(svg, left, right, bottom);
@@ -787,6 +719,114 @@ public class GuideSiteGraphRenderer {
         }
         return svg.append("</svg></div>")
             .toString();
+    }
+
+    private static void appendPieInset(StringBuilder svg, @Nullable PieInsetData pieInset, int w, int bgColor, int left,
+        int right, int top, int bottom, int plotH) {
+        if (pieInset == null || pieInset.slices.isEmpty()) return;
+        double total = 0;
+        for (SliceData slice : pieInset.slices) total += slice.value;
+        if (!Double.isFinite(total) || total <= 0) return;
+        String position = normalizePieInsetPosition(pieInset.position);
+        boolean outside = "right".equals(position);
+        int titleHeight = pieInset.title != null && !pieInset.title.isEmpty() ? CHART_TEXT_SIZE + 4 : 0;
+        int availableWidth = outside ? w - PADDING - right - PIE_OUTSIDE_GAP : right - left - 8;
+        int size = Math.min(pieInset.size, Math.min(availableWidth, plotH - titleHeight - 8));
+        if (size < 12) return;
+        double radius = size / 2.0;
+        double cx = switch (position) {
+            case "left", "bottom-left" -> left + radius + 4;
+            case "right" -> w - PADDING - availableWidth / 2.0;
+            default -> right - radius - 4;
+        };
+        double cy = switch (position) {
+            case "bottom-left", "bottom-right" -> bottom - radius - 4;
+            case "right" -> top + (plotH + titleHeight) / 2.0;
+            default -> top + titleHeight + radius + 4;
+        };
+        svg.append("<circle cx=\"")
+            .append(fmtD(cx))
+            .append("\" cy=\"")
+            .append(fmtD(cy))
+            .append("\" r=\"")
+            .append(fmtD(radius + 2))
+            .append("\" fill=\"")
+            .append(argbToRgba(bgColor))
+            .append("\" opacity=\"0.85\"/>");
+        double angle = PieChartGeometry.startAngle(pieInset.startAngleDeg);
+        double direction = pieInset.clockwise ? 1 : -1;
+        for (SliceData slice : pieInset.slices) {
+            if (slice.value <= 0) continue;
+            double sweep = slice.value / total * Math.PI * 2 * direction;
+            svg.append("<path class=\"guide-chart-shape guide-chart-pie-slice\" d=\"");
+            appendPieSlicePath(svg, cx, cy, radius, angle, sweep);
+            svg.append("\" fill=\"")
+                .append(argbToRgba(slice.color))
+                .append("\" stroke=\"")
+                .append(argbToRgba(bgColor))
+                .append("\" stroke-width=\"0.5\"><title>")
+                .append(
+                    esc(
+                        slice.label + ": "
+                            + formatNum(slice.value)
+                            + " ("
+                            + String.format(Locale.ROOT, "%.1f", slice.value / total * 100)
+                            + "%)"
+                            + (slice.tooltip.isEmpty() ? "" : "\n" + slice.tooltip)))
+                .append("</title></path>");
+            angle += sweep;
+        }
+        if (titleHeight > 0) {
+            svg.append("<text x=\"")
+                .append(fmtD(cx))
+                .append("\" y=\"")
+                .append(fmtD(cy - radius - 4))
+                .append("\" text-anchor=\"middle\" font-size=\"")
+                .append(CHART_TEXT_SIZE)
+                .append("\" fill=\"")
+                .append(argbToRgba(pieInset.titleColor))
+                .append("\" font-family=\"inherit\">")
+                .append(esc(pieInset.title))
+                .append("</text>");
+        }
+    }
+
+    private static void appendPieSlicePath(StringBuilder svg, double cx, double cy, double radius, double angle,
+        double sweep) {
+        int segments = Math.abs(sweep) >= Math.PI * 2 - 1e-9 ? 2 : 1;
+        svg.append("M ");
+        if (segments == 1) {
+            svg.append(fmtD(cx))
+                .append(' ')
+                .append(fmtD(cy))
+                .append(" L ");
+        }
+        svg.append(fmtD(cx + radius * Math.cos(angle)))
+            .append(' ')
+            .append(fmtD(cy + radius * Math.sin(angle)));
+        double arc = sweep / segments;
+        for (int i = 1; i <= segments; i++) {
+            double end = angle + arc * i;
+            svg.append(" A ")
+                .append(fmtD(radius))
+                .append(' ')
+                .append(fmtD(radius))
+                .append(" 0 ")
+                .append(Math.abs(arc) > Math.PI ? 1 : 0)
+                .append(' ')
+                .append(sweep > 0 ? 1 : 0)
+                .append(' ')
+                .append(fmtD(cx + radius * Math.cos(end)))
+                .append(' ')
+                .append(fmtD(cy + radius * Math.sin(end)));
+        }
+        svg.append(" Z");
+    }
+
+    private static int pieOutsideWidth(@Nullable PieInsetData inset, int chartWidth) {
+        if (inset == null || !isPieInsetRightOutside(inset.position)) return 0;
+        int available = Math.max(0, chartWidth - PADDING * 2 - AXIS_PAD_LEFT - 32);
+        return available >= 40 ? Math.min(inset.size, available / 2) + PIE_OUTSIDE_GAP : 0;
     }
 
     private static boolean isPieInsetRightOutside(@Nullable String position) {
@@ -817,6 +857,11 @@ public class GuideSiteGraphRenderer {
     }
 
     public static String renderBarChart(ChartStyle style, String[] categories, List<SeriesData> series) {
+        return renderBarChart(style, categories, series, null);
+    }
+
+    public static String renderBarChart(ChartStyle style, String[] categories, List<SeriesData> series,
+        @Nullable PieInsetData pieInset) {
         int w = style.layoutWidth();
         int h = style.layoutHeight();
         String title = style.title();
@@ -846,7 +891,7 @@ public class GuideSiteGraphRenderer {
             style,
             seriesNames(series),
             PADDING + 36,
-            w - PADDING,
+            w - PADDING - pieOutsideWidth(pieInset, w),
             titleBottom,
             h - PADDING - AXIS_PAD_BOTTOM);
         int left = legend.left();
@@ -954,6 +999,8 @@ public class GuideSiteGraphRenderer {
             }
         }
         appendReferenceLines(svg, left, right, top, bottom, xMin, xMax, barValueAxis, true);
+        appendCursorDomain(svg, left, right, top, bottom, xMin, xMax, barValueAxis, true);
+        appendPieInset(svg, pieInset, w, bgColor, left, right, top, bottom, plotH);
 
         // Axis lines
         svg.append("<line x1=\"")
@@ -1185,6 +1232,7 @@ public class GuideSiteGraphRenderer {
         }
 
         appendReferenceLines(svg, left, right, top, bottom, yMin, yMax, lineYAxis);
+        appendCursorDomain(svg, left, right, top, bottom, yMin, yMax, lineYAxis);
         appendYAxis(svg, left, top, bottom);
         appendXAxis(svg, left, right, bottom);
         renderChartCornerLegend(
@@ -1230,8 +1278,8 @@ public class GuideSiteGraphRenderer {
         for (SliceData s : slices) {
             total += Math.max(0, s.value);
         }
-        if (total <= 0) {
-            total = 1;
+        if (!Double.isFinite(total) || total <= 0) {
+            total = 0;
         }
 
         List<SeriesData> legendItems = new ArrayList<>();
@@ -1262,37 +1310,16 @@ public class GuideSiteGraphRenderer {
         StringBuilder svg = openSvg(w, h, "guide-chart", bgColor, borderColor);
         appendTitle(svg, title, w, style.titleColor());
 
-        double startAngle = Math.toRadians(style.pieStartAngleDeg());
+        double startAngle = PieChartGeometry.startAngle(style.pieStartAngleDeg());
         double sweepDirection = style.pieClockwise() ? 1d : -1d;
-        String labelFill = style.labelFill();
         for (SliceData s : slices) {
+            if (total <= 0 || s.value <= 0) continue;
             double sweep = (s.value / total) * 2 * Math.PI * sweepDirection;
             double endAngle = startAngle + sweep;
-            double x1 = cx + r * Math.cos(startAngle);
-            double y1 = cy + r * Math.sin(startAngle);
-            double x2 = cx + r * Math.cos(endAngle);
-            double y2 = cy + r * Math.sin(endAngle);
-            int largeArc = sweep > Math.PI ? 1 : 0;
             double pct = total > 0 ? (s.value / total) * 100.0 : 0;
-            svg.append("<path class=\"guide-chart-shape\" d=\"M ")
-                .append(cx)
-                .append(" ")
-                .append(cy)
-                .append(" L ")
-                .append(fmtD(x1))
-                .append(" ")
-                .append(fmtD(y1))
-                .append(" A ")
-                .append(r)
-                .append(" ")
-                .append(r)
-                .append(" 0 ")
-                .append(largeArc)
-                .append(" 1 ")
-                .append(fmtD(x2))
-                .append(" ")
-                .append(fmtD(y2))
-                .append(" Z\" fill=\"")
+            svg.append("<path class=\"guide-chart-shape guide-chart-pie-slice\" d=\"");
+            appendPieSlicePath(svg, cx, cy, r, startAngle, sweep);
+            svg.append("\" fill=\"")
                 .append(argbToRgba(s.color))
                 .append("\" stroke=\"")
                 .append(argbToRgba(bgColor))
@@ -1303,7 +1330,8 @@ public class GuideSiteGraphRenderer {
                             + formatChartValue(s.value)
                             + " ("
                             + String.format(Locale.ROOT, "%.1f", pct)
-                            + "%)"))
+                            + "%)"
+                            + (s.tooltip.isEmpty() ? "" : "\n" + s.tooltip)))
                 .append("</title></path>");
             if (labelPosition != ChartLabelPosition.NONE) {
                 boolean outside = labelPosition == ChartLabelPosition.OUTSIDE
@@ -1465,6 +1493,7 @@ public class GuideSiteGraphRenderer {
         }
 
         appendReferenceLines(svg, left, right, top, bottom, yMin, yMax, scatterYAxis);
+        appendCursorDomain(svg, left, right, top, bottom, yMin, yMax, scatterYAxis);
         appendYAxis(svg, left, top, bottom);
         appendXAxis(svg, left, right, bottom);
         renderChartCornerLegend(
@@ -2617,6 +2646,11 @@ public class GuideSiteGraphRenderer {
         }
     }
 
+    private static void appendCursorDomain(StringBuilder svg, int left, int right, int top, int bottom, double min,
+        double max, SiteChartAxis axis) {
+        appendCursorDomain(svg, left, right, top, bottom, min, max, axis, false);
+    }
+
     private static int axisLeft(SiteChartAxis axis, double min, double max, int width) {
         int labelWidth = Math
             .max(approximateTextWidth(axis.formatTick(min)), approximateTextWidth(axis.formatTick(max)));
@@ -2666,6 +2700,38 @@ public class GuideSiteGraphRenderer {
                 .append(esc(buildChartTip("", series.name, series.ys[i])))
                 .append("</title></circle>");
         }
+    }
+
+    private static void appendCursorDomain(StringBuilder svg, int left, int right, int top, int bottom, double min,
+        double max, SiteChartAxis axis, boolean vertical) {
+        String coordinate = vertical ? "x" : "y";
+        svg.append("<metadata data-chart-cursor-domain data-plot-left=\"")
+            .append(left)
+            .append("\" data-plot-right=\"")
+            .append(right)
+            .append("\" data-plot-top=\"")
+            .append(top)
+            .append("\" data-plot-bottom=\"")
+            .append(bottom)
+            .append("\" data-cursor-orientation=\"")
+            .append(vertical ? "vertical" : "horizontal")
+            .append("\" data-")
+            .append(coordinate)
+            .append("-min=\"")
+            .append(min)
+            .append("\" data-")
+            .append(coordinate)
+            .append("-max=\"")
+            .append(max)
+            .append("\" data-")
+            .append(coordinate)
+            .append("-unit=\"")
+            .append(esc(axis.unit() == null ? "" : axis.unit()))
+            .append("\" data-")
+            .append(coordinate)
+            .append("-format=\"")
+            .append(esc(axis.tickFormat() == null ? "" : axis.tickFormat()))
+            .append("\"/>");
     }
 
     private static void appendGridLine(StringBuilder svg, double x1, double y1, double x2, double y2, int color) {

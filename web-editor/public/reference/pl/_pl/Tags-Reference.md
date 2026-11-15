@@ -197,6 +197,8 @@ Groups alternative bogata treść under independent tabs. tylko bezpośredni `<T
 
 Renders katalog-style outline z real łącznik wiersze drawn z  prefix glyphs on każdy wiersz. Both Unicode box-drawing (`│ ├ └ ─`) i ASCII (`| +-- \-- ` / four spaces) forms są accepted i może be mixed. Payload tekst obsługuje  usual inline Markdown (links, **bold**, `code`, …), i those links są clickable both in-game i in  built-in site export.  ten sam treść może także be zapisany as fenced ` ```tree ` or ` ```filetree ` blok.
 
+W wąskim widoku wcięcia są zmniejszane, aby zachować miejsce na tekst. Długie ścieżki są dzielone przede wszystkim po `/`, `\`, `_` i `-`; nazwy bez separatorów mogą być łamane między znakami. Kolejne wiersze wyrównują się do początku nazwy, a ikony i rozgałęzienia do pierwszego wiersza.
+
 ````md
 <FileTree indent="14" gap="0">
 project
@@ -748,7 +750,7 @@ Cartesian Wykresy (kolumna / Bar / wiersz / Scatter) additionally akceptują oś
 
 Nieprawidłowe lub zbyt duże formaty podziałki używają automatycznego formatowania liczb. Limity wynoszą 256 znaków, 128 dla szerokości pola i 20 dla precyzji. Nakładające się etykiety liczbowe są w razie potrzeby pomijane, a odpowiadające im linie siatki pozostają bez zmian.
 
-Obie osie używają delikatnej siatki z rzadko rozmieszczonych kresek, sterowanej osobno przez `showXGrid` i `showYGrid`. Bardzo małe dodatnie odstępy podziałki są automatycznie zwiększane, aby ograniczyć koszt renderowania.
+`ColumnChart`, `LineChart` i `ScatterChart` pokazują w obszarze wykresu poziomą złotą linię pomocniczą, również nad pustym miejscem, i wyróżniają wartość Y po lewej stronie. `BarChart` używa pionowej linii z wartością X na dole. Wartości zachowują format i jednostkę osi. Na samej linii nie ma tekstu; poza wykresem znika. Obie osie używają delikatnej siatki z rzadko rozmieszczonych kresek, sterowanej osobno przez `showXGrid` i `showYGrid`. Bardzo małe dodatnie odstępy podziałki są automatycznie zwiększane, aby ograniczyć koszt renderowania.
 
 elementy podrzędne:
 
@@ -784,6 +786,8 @@ Extra atrybuty: `categories` (X-oś lub Y-oś labels, comma separated), `barWidt
 
 - `<LineSeries name="…" data="v1,v2,…" color="#rrggbb" icon="…"/>` — drawn as polilinia overlay on góra of  bars. każdy wiersz punkt sits at  cluster środek of  pasujący category index;  overlay shares  host wykres's wartość oś. You może declare wiele `<LineSeries>` do overlay several trends.
 - `<PieInset size="60" position="topRight" title="…" startAngleDeg="-90" direction="clockwise" titleColor="#rrggbb">` — small pie wykres drawn wewnątrz jeden of  four corners (`topRight`, `topLeft`, `bottomRight`, `bottomLeft`) of  plot area. jego `<Slice>` elementy podrzędne share  ten sam składnia as in `<PieChart>`.
+
+Sektory `PieInset` mają przy wskazywaniu pierwszeństwo przed słupkami i liniami pod nimi: podpowiedź pokazuje nazwę, wartość, procent i opcjonalny tekst `tooltip`. W grze zachowane są podpowiedzi przedmiotów. Nad sektorem znika główna linia pomocnicza. Używany jest tylko pierwszy wykres wstawiony. `position="rightOutside"` rezerwuje osobne miejsce po prawej. Obsługiwane są `startAngleDeg="0"`, `direction="counterclockwise"` oraz pojedynczy sektor tworzący pełne koło.
 
 ```mdx
 <ColumnChart title="Quarterly output" categories="Q1,Q2,Q3,Q4">

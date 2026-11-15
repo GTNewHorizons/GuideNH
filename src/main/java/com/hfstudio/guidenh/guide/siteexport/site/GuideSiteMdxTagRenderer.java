@@ -65,7 +65,6 @@ import com.hfstudio.guidenh.guide.internal.markdown.FileTreeParser;
 import com.hfstudio.guidenh.guide.internal.markdown.FileTreeParser.FileTreeEntry;
 import com.hfstudio.guidenh.guide.internal.markdown.FileTreeParser.FileTreeIcon;
 import com.hfstudio.guidenh.guide.internal.markdown.FileTreeParser.FileTreeModel;
-import com.hfstudio.guidenh.guide.internal.markdown.FileTreeParser.SlotKind;
 import com.hfstudio.guidenh.guide.internal.markdown.MarkdownRuntimeBlocks;
 import com.hfstudio.guidenh.guide.internal.markdown.MarkdownRuntimeBlocks.QuoteIconSpec;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidDiagramType;
@@ -1635,19 +1634,48 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         GuideSiteHtmlCompiler.SceneResolver sceneResolver, GuideSiteHtmlCompiler compiler) {
         StringBuilder text = new StringBuilder();
         collectStructureText(text, element.children());
-        return renderFileTree(text.toString(), defaultNamespace, currentPageId, templates, sceneResolver, compiler);
+        int indent = readInt(element, "indent", 14);
+        int gap = Math.max(0, readInt(element, "gap", 0));
+        return renderFileTree(
+            text.toString(),
+            defaultNamespace,
+            currentPageId,
+            templates,
+            sceneResolver,
+            compiler,
+            indent > 0 ? indent : 14,
+            gap);
     }
 
     @Override
     public String renderFileTree(String source, String defaultNamespace, @Nullable ResourceLocation currentPageId,
         GuideSiteTemplateRegistry templates, GuideSiteHtmlCompiler.SceneResolver sceneResolver,
         GuideSiteHtmlCompiler compiler) {
+        return renderFileTree(source, defaultNamespace, currentPageId, templates, sceneResolver, compiler, 14, 0);
+    }
+
+    private String renderFileTree(String source, String defaultNamespace, @Nullable ResourceLocation currentPageId,
+        GuideSiteTemplateRegistry templates, GuideSiteHtmlCompiler.SceneResolver sceneResolver,
+        GuideSiteHtmlCompiler compiler, int indent, int gap) {
         FileTreeModel model = FileTreeParser.parse(source.trim());
         StringBuilder html = new StringBuilder();
-        html.append("<div class=\"guide-file-tree\">");
+        html.append("<div class=\"guide-file-tree\" style=\"--tree-max-depth:")
+            .append(
+                Math.max(
+                    1,
+                    model.entries()
+                        .stream()
+                        .mapToInt(FileTreeEntry::depth)
+                        .max()
+                        .orElse(1)))
+            .append(";--tree-indent:")
+            .append(indent)
+            .append("px;--tree-gap:")
+            .append(gap)
+            .append("px\">");
         for (FileTreeEntry entry : model.entries()) {
             html.append("<div class=\"guide-file-tree-row\">");
-            appendFileTreePrefix(html, entry.slots());
+            html.append(GuideSiteGraphRenderer.renderFileTreePrefix(entry.slots()));
             appendFileTreeIcon(html, entry.icon(), defaultNamespace, currentPageId, templates, sceneResolver);
             html.append("<span class=\"guide-file-tree-name\">")
                 .append(
@@ -1698,32 +1726,6 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
 
     private boolean isFloatWrapMode(@Nullable String wrap) {
         return "square".equalsIgnoreCase(wrap) || "tight".equalsIgnoreCase(wrap) || "through".equalsIgnoreCase(wrap);
-    }
-
-    private void appendFileTreePrefix(StringBuilder html, List<SlotKind> slots) {
-        if (slots.isEmpty()) {
-            return;
-        }
-        StringBuilder prefix = new StringBuilder();
-        for (SlotKind slot : slots) {
-            switch (slot) {
-                case VERTICAL:
-                    prefix.append("|   ");
-                    break;
-                case BRANCH:
-                    prefix.append("|-- ");
-                    break;
-                case LAST_BRANCH:
-                    prefix.append("`-- ");
-                    break;
-                case EMPTY:
-                    prefix.append("    ");
-                    break;
-            }
-        }
-        html.append("<span class=\"guide-file-tree-prefix\">")
-            .append(escapeHtml(prefix.toString()))
-            .append("</span>");
     }
 
     private void appendFileTreeIcon(StringBuilder html, @Nullable FileTreeIcon icon, String defaultNamespace,
@@ -2095,7 +2097,8 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         return GuideSiteGraphRenderer.renderBarChart(
             resolveChartStyle(element),
             ChartAttrParser.parseStringArray(readOptional(element, "categories")),
-            parseSeriesChildren(element));
+            parseSeriesChildren(element),
+            parsePieInsetChildren(element));
     }
 
     private String renderLineChart(MdxJsxElementFields element) {
@@ -2402,16 +2405,26 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
      * Returns {@code null} if no such child is present.
      */
     @Nullable
-    private GuideSiteGraphRenderer.PieInsetData parsePieInsetChildren(MdxJsxElementFields element) {
+    private PieInsetData parsePieInsetChildren(MdxJsxElementFields element) {
         for (var c : ChartChildParser.childElements(element)) {
             if (!"PieInset".equals(c.name())) {
                 continue;
             }
-            int size = readInt(c, "size", 80);
+            int size = readInt(c, "size", 60);
             String position = readOptional(c, "position");
             String insetTitle = readOptional(c, "title");
             List<SliceData> slices = parseSliceChildren(c);
-            return new GuideSiteGraphRenderer.PieInsetData(slices, size, position, insetTitle);
+            String direction = readOptional(c, "direction");
+            if (direction != null) direction = direction.trim();
+            boolean clockwise = !"counterclockwise".equalsIgnoreCase(direction) && !"ccw".equalsIgnoreCase(direction);
+            return new PieInsetData(
+                slices,
+                size,
+                position,
+                insetTitle,
+                (float) parseDoubleAttr(c, "startAngleDeg", -90),
+                clockwise,
+                parseArgbAttr(c, "titleColor", ColorUtils.CHART_TITLE.getColor()));
         }
         return null;
     }
@@ -2454,9 +2467,9 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             }
             String label = readOptional(c, "name");
             if (label == null) label = "";
-            double value = parseDoubleAttr(c, "value", 1.0);
+            double value = parseDoubleAttr(c, "value", 0);
             int color = parseArgbAttr(c, "color", ChartAttrParser.paletteColor(idx));
-            result.add(new SliceData(label, value, color));
+            result.add(new SliceData(label, value, color, readOptional(c, "tooltip")));
             idx++;
         }
         return result;

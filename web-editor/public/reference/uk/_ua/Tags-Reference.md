@@ -197,6 +197,8 @@ Groups alternative розширений вміст under independent tabs. ли�
 
 Renders каталог-style outline з real з’єднувач рядки drawn з  prefix glyphs on кожен рядок. Both Unicode box-drawing (`│ ├ └ ─`) і ASCII (`| +-- \-- ` / four spaces) forms є accepted і може be mixed. Payload текст підтримує  usual inline Markdown (links, **bold**, `code`, …), і those links є clickable both in-game і in  built-in site export.  той самий вміст може також be записаний as fenced ` ```tree ` or ` ```filetree ` блок.
 
+У вузькому вікні відступи рівнів зменшуються, залишаючи місце для тексту. Довгі шляхи переважно переносяться після `/`, `\`, `_` і `-`; назви без роздільників можуть переноситися між символами. Продовження рядка вирівнюється за початком назви, а значки та відгалуження — за першим рядком.
+
 ````md
 <FileTree indent="14" gap="0">
 project
@@ -748,7 +750,7 @@ Cartesian Діаграми (стовпець / Bar / рядок / Scatter) addit
 
 Неправильні або завеликі формати поділок замінюються автоматичним форматуванням чисел. Обмеження: 256 символів, ширина поля 128 і точність 20. Якщо числові підписи перекриваються, частина з них приховується, а відповідні лінії сітки зберігаються.
 
-Обидві осі мають бліду сітку з рідкими штрихами, якою окремо керують `showXGrid` і `showYGrid`. Надто малий додатний крок поділок автоматично збільшується, щоб обмежити обсяг відтворення.
+`ColumnChart`, `LineChart` і `ScatterChart` показують золоту горизонтальну допоміжну лінію в області побудови, зокрема над порожніми місцями, та виділяють поточне значення Y ліворуч. `BarChart` використовує вертикальну лінію зі значенням X унизу. Значення відповідають формату й одиницям осі. На самій лінії тексту немає; поза областю вона зникає. Обидві осі мають бліду сітку з рідкими штрихами, якою окремо керують `showXGrid` і `showYGrid`. Надто малий додатний крок поділок автоматично збільшується, щоб обмежити обсяг відтворення.
 
 дочірні елементи:
 
@@ -784,6 +786,8 @@ Extra атрибути: `categories` (X-вісь або Y-вісь labels, comma
 
 - `<LineSeries name="…" data="v1,v2,…" color="#rrggbb" icon="…"/>` — drawn as a ламана overlay on угорі of  bars. кожен рядок точка sits at  cluster центр of  відповідний category index;  overlay shares  host діаграма's значення вісь. You може declare кілька `<LineSeries>` до overlay several trends.
 - `<PieInset size="60" position="topRight" title="…" startAngleDeg="-90" direction="clockwise" titleColor="#rrggbb">` — small pie діаграма drawn усередині один of  four corners (`topRight`, `topLeft`, `bottomRight`, `bottomLeft`) of  plot area. його `<Slice>` дочірні елементи share  той самий синтаксис as in `<PieChart>`.
+
+Сектори `PieInset` мають пріоритет під час наведення над стовпчиками й лініями під ними: підказка містить назву, значення, відсоток і додатковий текст `tooltip`. У грі зберігаються підказки предметів. Над сектором основна допоміжна лінія зникає. Використовується лише перша вставлена діаграма. `position="rightOutside"` виділяє окрему область праворуч. Підтримуються `startAngleDeg="0"`, `direction="counterclockwise"` та один сектор у вигляді повного кола.
 
 ```mdx
 <ColumnChart title="Quarterly output" categories="Q1,Q2,Q3,Q4">

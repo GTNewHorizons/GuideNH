@@ -156,4 +156,5 @@ public class SiteChartAxis {
     public String formatTick(double value) {
         return ChartNumberFormat.format(value, tickFormat, unit);
     }
+
 }

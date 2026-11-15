@@ -193,6 +193,8 @@ Water is H<sub>2</sub>O and x<sup>2</sup> is a square.
 
 渲染目录树式大纲，并依据每行前缀符号绘制真实的连接线。前綴同時支援 Unicode 框線（`│ ├ └ ─`）與 ASCII 形式（`| +-- \-- ` / 4 個空格），可任意混用。每行的文字部分支援常規行內 Markdown（連結、**加粗**、`代码` 等），這些連結在遊戲內和內建網站匯出中都可以點擊。等價語法是 ` ```tree ` / ` ```filetree ` 圍欄代碼區塊。
 
+窄欄中會自動縮小層級縮排，為文字保留可讀寬度。長路徑優先在 `/`、`\`、`_`、`-` 後換行，連續長檔名可在字元間換行；續行對齊名稱起點，圖示和分支連接線對齊首行。
+
 ````md
 <FileTree indent="14" gap="0">
 project
@@ -742,7 +744,7 @@ $$\begin{pmatrix} a & b \\ c & d \end{pmatrix}$$
 
 無效或過大的刻度格式會回退為自動數字格式。格式字串最多 256 個字元，欄位寬度最多 128，精度最多 20。 數值刻度文字擁擠時會自動省略部分標籤，其對應的網格線保持不變。
 
-兩軸網格採用淡而稀疏的虛線，由 `showXGrid`、`showYGrid` 分別控制。極小的正刻度間距會自動合併，以限制繪製工作量。
+`ColumnChart`、`LineChart` 和 `ScatterChart` 在滑鼠進入繪圖區後顯示金色水平輔助虛線，空白處也有效，左側座標軸會醒目顯示目前的 Y 值。`BarChart` 使用垂直輔助線，並在底部標示 X 值。數值遵循對應軸的刻度格式與單位；線上不放文字，移出繪圖區後隱藏。兩軸網格採用淡而稀疏的虛線，由 `showXGrid`、`showYGrid` 分別控制。極小的正刻度間距會自動合併，以限制繪製工作量。
 
 子元素：
 
@@ -778,6 +780,8 @@ $$\begin{pmatrix} a & b \\ c & d \end{pmatrix}$$
 
 - `<LineSeries name="…" data="v1,v2,…" color="#rrggbb" icon="…"/>` — 在柱簇上方再疊加一條折線。每個折點位於對應類別簇中心，與宿主圖共用數值軸；可同時宣告多條 `<LineSeries>`。
 - `<PieInset size="60" position="topRight" title="…" startAngleDeg="-90" direction="clockwise" titleColor="#rrggbb">` — 在绘图区四角之一（`topRight`/`topLeft`/`bottomRight`/`bottomLeft`）绘制小型饼图，内部 `<Slice>` 子元素与 `<PieChart>` 一致。
+
+`PieInset` 扇區會優先於底層長條與折線回應滑鼠停留：提示顯示名稱、數值、百分比及 `tooltip` 附加文字；遊戲內若有物品圖示，會保留物品提示。停留於扇區時隱藏主圖輔助線。僅使用第一個內嵌圓餅圖；`position="rightOutside"` 在右側預留獨立區域。支援 `startAngleDeg="0"`、`direction="counterclockwise"` 和單扇區完整圓形。
 
 ```mdx
 <ColumnChart title="季度产量" categories="Q1,Q2,Q3,Q4">

@@ -388,7 +388,7 @@ function readChartChildren(body) {
     const insetSlices = [];
     for (const sliceMatch of insetMatch[2].matchAll(/<Slice\b([^>]*?)(?:\/>|>[^<]*<\/Slice>)/gi)) {
       const attributes = parseAttributes(sliceMatch[1]);
-      insetSlices.push({ name: String(attr(attributes, "name") || ""), color: colorValue(attr(attributes, "color"), PALETTE[insetSlices.length % PALETTE.length]), value: Number(attr(attributes, "value")) || 0 });
+      insetSlices.push({ name: String(attr(attributes, "name") || ""), color: colorValue(attr(attributes, "color"), PALETTE[insetSlices.length % PALETTE.length]), value: numberAttr(attributes, 0, "value"), tooltip: attr(attributes, "tooltip") || "" });
     }
     insets.push({ attributes: insetAttributes, slices: insetSlices });
   }
@@ -403,7 +403,7 @@ function readChartChildren(body) {
       const y = Number(attr(pointAttributes, "y", "value"));
       return Number.isFinite(x) && Number.isFinite(y) ? { x, y, label: String(attr(pointAttributes, "label") || "") } : null;
     }).filter(Boolean);
-    const item = { name: String(attr(attributes, "name") || ""), color: colorValue(attr(attributes, "color"), PALETTE[(series.length + slices.length + lines.length) % PALETTE.length]), values: parseValues(attr(attributes, "data", "values")), points: [...parsePoints(attr(attributes, "points")), ...nestedPoints], value: numberAttr(attributes, 0, "value"), attributes };
+    const item = { name: String(attr(attributes, "name") || ""), color: colorValue(attr(attributes, "color"), PALETTE[(series.length + slices.length + lines.length) % PALETTE.length]), values: parseValues(attr(attributes, "data", "values")), points: [...parsePoints(attr(attributes, "points")), ...nestedPoints], value: numberAttr(attributes, 0, "value"), tooltip: attr(attributes, "tooltip") || "", attributes };
     if (match[1].toLowerCase() === "slice") slices.push(item);
     else if (match[1].toLowerCase() === "lineseries") lines.push(item);
     else series.push(item);
@@ -432,35 +432,46 @@ function parsePoints(value) {
 
 function renderPie(slices, width, height, attributes) {
   const centerX = width / 2;
-  const centerY = height / 2 + 7;
-  const radius = Math.max(25, Math.min(width, height) / 2 - 52);
-  const total = slices.reduce((sum, slice) => sum + Math.max(0, slice.value), 0) || 1;
-  let angle = (Number(attr(attributes, "startAngle", "startAngleDeg")) || -90) * Math.PI / 180;
-  const clockwise = booleanAttribute(attributes, "clockwise", true);
-  const direction = String(attr(attributes, "direction") || "clockwise").toLowerCase() === "counterclockwise" || !clockwise ? -1 : 1;
-  const paths = [];
+  const centerY = (height - 30) / 2;
+  const radius = Math.max(4, Math.min(width, height - 30) / 2 - 20);
   const labelPosition = String(attr(attributes, "labelPosition") || "none").toLowerCase();
-  for (const slice of slices) {
-    const delta = Math.max(0, slice.value) / total * Math.PI * 2;
-    const end = angle + direction * delta;
-    const large = delta > Math.PI ? 1 : 0;
-    const startPoint = [centerX + radius * Math.cos(angle), centerY + radius * Math.sin(angle)];
-    const endPoint = [centerX + radius * Math.cos(end), centerY + radius * Math.sin(end)];
-    const percentage = total ? slice.value / total * 100 : 0;
-    const labelRadius = ["inside", "center"].includes(labelPosition) ? radius * .58 : radius + 16;
-    const label = labelPosition === "none" ? "" : `<text x="${centerX + labelRadius * Math.cos(angle + direction * delta / 2)}" y="${centerY + labelRadius * Math.sin(angle + direction * delta / 2)}" text-anchor="middle" class="guide-chart-value-label">${escapeHtml(slice.name)}${labelPosition === "outside" ? ` ${percentage.toFixed(1)}%` : ` ${slice.value}`}</text>`;
-    paths.push(`<path class="guide-chart-shape guide-chart-pie-slice" data-chart-value="${slice.value}" data-chart-percentage="${percentage.toFixed(2)}" d="M ${centerX} ${centerY} L ${startPoint[0]} ${startPoint[1]} A ${radius} ${radius} 0 ${large} ${direction > 0 ? 1 : 0} ${endPoint[0]} ${endPoint[1]} Z" fill="${slice.color}" stroke="var(--preview-chart-bg)" stroke-width="1"><title>${escapeHtml(slice.name)} · ${slice.value} (${percentage.toFixed(1)}%)</title></path>${label}`);
-    angle = end;
-  }
+  const paths = renderPieSectors(slices, centerX, centerY, radius, attributes, labelPosition);
   const legend = slices.map((slice) => `<span class="guide-chart-legend"><i style="background:${slice.color}"></i>${escapeHtml(slice.name)} <small>${slice.value}</small></span>`).join("");
-  const legendPosition = String(attr(attributes, "legend") || "bottom").toLowerCase();
+  const legendPosition = chartLegendPosition(attributes);
   const legendMarkup = legendPosition === "none" ? "" : `<div class="guide-chart-legend-row guide-chart-legend-${legendPosition}">${legend}</div>`;
-  return `${legendPosition === "top" ? legendMarkup : ""}<svg class="guide-chart-svg" viewBox="0 0 ${width} ${height - 30}" role="img">${paths.join("")}</svg>${legendPosition === "top" ? "" : legendMarkup}`;
+  return `${legendPosition === "top" ? legendMarkup : ""}<svg class="guide-chart-svg" viewBox="0 0 ${width} ${height - 30}" role="img">${paths}</svg>${legendPosition === "top" ? "" : legendMarkup}`;
 }
 
 function chartLegendPosition(attributes) {
   const position = String(attr(attributes, "legend") || "top").trim().toLowerCase();
   return ["top", "bottom", "left", "right", "none"].includes(position) ? position : "top";
+}
+
+function renderPieSectors(slices, cx, cy, radius, attributes, labelPosition = "none") {
+  const positiveSlices = slices.filter((slice) => Number.isFinite(slice.value) && slice.value > 0);
+  const total = positiveSlices.reduce((sum, slice) => sum + slice.value, 0);
+  if (!Number.isFinite(total) || total <= 0) return "";
+  let angle = numberAttr(attributes, -90, "startAngleDeg", "startAngle") % 360 * Math.PI / 180;
+  const directionName = String(attr(attributes, "direction") || "").trim().toLowerCase();
+  const direction = ["counterclockwise", "ccw"].includes(directionName) || !booleanAttribute(attributes, "clockwise", true) ? -1 : 1;
+  return positiveSlices.map((slice) => {
+    const fraction = slice.value / total;
+    const sweep = fraction * Math.PI * 2 * direction;
+    const segments = Math.abs(sweep) >= Math.PI * 2 - 1e-9 ? 2 : 1;
+    let path = `M ${segments === 1 ? `${cx} ${cy} L ` : ""}${cx + radius * Math.cos(angle)} ${cy + radius * Math.sin(angle)}`;
+    const arc = sweep / segments;
+    for (let index = 1; index <= segments; index += 1) {
+      const end = angle + arc * index;
+      path += ` A ${radius} ${radius} 0 ${Math.abs(arc) > Math.PI ? 1 : 0} ${direction > 0 ? 1 : 0} ${cx + radius * Math.cos(end)} ${cy + radius * Math.sin(end)}`;
+    }
+    const percentage = (fraction * 100).toFixed(1);
+    const outside = ["outside", "above", "below"].includes(labelPosition);
+    const labelRadius = outside ? radius + 12 : radius * .6;
+    const labelText = outside ? `${slice.name} ${percentage}%` : `${percentage}%`;
+    const label = labelPosition === "none" ? "" : `<text x="${cx + labelRadius * Math.cos(angle + sweep / 2)}" y="${cy + labelRadius * Math.sin(angle + sweep / 2)}" text-anchor="middle" class="guide-chart-value-label">${escapeHtml(labelText)}</text>`;
+    angle += sweep;
+    return `<path class="guide-chart-shape guide-chart-pie-slice" data-chart-value="${slice.value}" data-chart-percentage="${percentage}" d="${path} Z" fill="${slice.color}" stroke="var(--preview-chart-bg)" stroke-width="1"><title>${escapeHtml(slice.name)} · ${slice.value} (${percentage}%)${slice.tooltip ? `\n${escapeHtml(slice.tooltip)}` : ""}</title></path>${label}`;
+  }).join("");
 }
 
 function renderCartesian(name, children, width, height, attributes) {
@@ -491,12 +502,16 @@ function renderCartesian(name, children, width, height, attributes) {
   const [xMin, xMax, xStep] = chartRange(attributes, "x", isBar ? lowY : lowX, isBar ? highY : highX);
   const formatX = createChartValueFormatter(attr(attributes, "xAxisTickFormat"), attr(attributes, "xAxisUnit"));
   const formatY = createChartValueFormatter(attr(attributes, "yAxisTickFormat"), attr(attributes, "yAxisUnit"));
-  const axisLabelWidth = Math.max(chartLabelWidth(formatY(yMin)), chartLabelWidth(formatY(yMax))) + 24;
-  const left = isBar ? 42 : Math.max(42, Math.min(width * .45, axisLabelWidth));
+  const cursorLabelWidth = Math.max(chartLabelWidth(formatY(yMin)), chartLabelWidth(formatY(yMax))) + 24;
+  const left = isBar ? 42 : Math.max(42, Math.min(width * .45, cursorLabelWidth));
   const top = 18;
   const right = 12;
   const bottom = 34;
-  const plotWidth = Math.max(1, width - left - right);
+  const inset = isLine ? null : children.insets[0];
+  const availableWidth = Math.max(1, width - left - right);
+  const outsideWidth = inset && pieInsetPosition(inset.attributes) === "right"
+    ? Math.max(0, Math.min(pieInsetSize(inset.attributes) + 6, availableWidth / 2)) : 0;
+  const plotWidth = Math.max(1, availableWidth - outsideWidth);
   const plotHeight = Math.max(1, height - top - bottom - 30);
   const showYGrid = booleanAttribute(attributes, "showYGrid", true);
   const showXGrid = booleanAttribute(attributes, "showXGrid", true);
@@ -575,7 +590,9 @@ function renderCartesian(name, children, width, height, attributes) {
   const legendPosition = chartLegendPosition(attributes);
   const legendMarkup = legendPosition === "none" ? "" : `<div class="guide-chart-legend-row guide-chart-legend-${legendPosition}">${legend}</div>`;
   const cornerLegend = renderCornerLegend(attributes, [...new Map([...series, ...lineSeries].map((item) => [item.name, item])).values()], width, height);
-  const insetMarkup = children.insets.map((inset) => renderPieInset(inset, width, height)).join("");
+  const insetMarkup = inset ? renderPieInset(inset, left, top, plotWidth, plotHeight, outsideWidth) : "";
+  const cursorAxis = isBar ? "x" : "y";
+  const cursorDomain = `<metadata data-chart-cursor-domain data-cursor-orientation="${isBar ? "vertical" : "horizontal"}" data-plot-left="${left}" data-plot-right="${left + plotWidth}" data-plot-top="${top}" data-plot-bottom="${top + plotHeight}" data-${cursorAxis}-min="${isBar ? xMin : yMin}" data-${cursorAxis}-max="${isBar ? xMax : yMax}" data-${cursorAxis}-unit="${escapeHtml(attr(attributes, `${cursorAxis}AxisUnit`) || "")}" data-${cursorAxis}-format="${escapeHtml(attr(attributes, `${cursorAxis}AxisTickFormat`) || "")}"/>`;
   const references = children.references.filter((line) => isBar ? line.x >= xMin && line.x <= xMax : line.y >= yMin && line.y <= yMax).map((line) => {
     if (isBar) {
       const x = left + chartRatio(line.x, xMin, xMax) * plotWidth;
@@ -587,7 +604,7 @@ function renderCartesian(name, children, width, height, attributes) {
     const label = line.label ? `<text class="guide-chart-reference-label" x="${left + 4}" y="${Math.max(top + 12, y - 3)}" fill="${line.color}" font-size="10">${escapeHtml(line.label)}</text>` : "";
     return `<line class="guide-chart-reference" x1="${left}" y1="${y}" x2="${left + plotWidth}" y2="${y}" stroke="${line.color}" stroke-width="1" stroke-dasharray="4 3"/>${label}`;
   }).join("");
-  return `${legendPosition === "top" ? legendMarkup : ""}<svg class="guide-chart-svg" viewBox="0 0 ${width} ${height - 30}" role="img">${grid}${marks}${clipPlot(references)}${categoryLabels}${axisLabels}${cornerLegend}${insetMarkup}</svg>${legendPosition === "top" ? "" : legendMarkup}`;
+  return `${legendPosition === "top" ? legendMarkup : ""}<svg class="guide-chart-svg" viewBox="0 0 ${width} ${height - 30}" role="img">${cursorDomain}${grid}${marks}${clipPlot(references)}${categoryLabels}${axisLabels}${cornerLegend}${insetMarkup}</svg>${legendPosition === "top" ? "" : legendMarkup}`;
 }
 
 function chartLabelWidth(label) {
@@ -673,26 +690,35 @@ function formatChartNumber(value) {
   return Number.isInteger(number) ? String(number) : number.toFixed(2).replace(/0+$/, "").replace(/\.$/, "");
 }
 
-function renderPieInset(inset, width, height) {
-  const size = Math.max(28, Math.min(120, numberAttr(inset.attributes, 60, "size")));
-  const position = String(attr(inset.attributes, "position") || "topRight").toLowerCase();
-  const x = position.includes("left") ? 8 : width - size - 8;
-  const y = position.includes("bottom") ? height - size - 38 : 8;
-  const total = inset.slices.reduce((sum, slice) => sum + Math.max(0, slice.value), 0) || 1;
-  let angle = (Number(attr(inset.attributes, "startAngleDeg", "startAngle")) || -90) * Math.PI / 180;
-  const paths = [];
-  const radius = size / 2 - 3;
-  for (const slice of inset.slices) {
-    const delta = Math.max(0, slice.value) / total * Math.PI * 2;
-    const end = angle + delta;
-    const startPoint = [size / 2 + radius * Math.cos(angle), size / 2 + radius * Math.sin(angle)];
-    const endPoint = [size / 2 + radius * Math.cos(end), size / 2 + radius * Math.sin(end)];
-    const percentage = slice.value / total * 100;
-    paths.push(`<path class="guide-chart-shape guide-chart-pie-slice" d="M ${size / 2} ${size / 2} L ${startPoint[0]} ${startPoint[1]} A ${radius} ${radius} 0 ${delta > Math.PI ? 1 : 0} 1 ${endPoint[0]} ${endPoint[1]} Z" fill="${slice.color}" stroke="var(--preview-chart-bg)" stroke-width=".6"><title>${escapeHtml(slice.name)} · ${slice.value} (${percentage.toFixed(1)}%)</title></path>`);
-    angle = end;
-  }
-  const title = attr(inset.attributes, "title") ? `<text x="${size / 2}" y="${size + 11}" text-anchor="middle" class="guide-chart-axis-label">${escapeHtml(attr(inset.attributes, "title"))}</text>` : "";
-  return `<g transform="translate(${x},${y})" class="guide-chart-pie-inset"><rect width="${size}" height="${size + (title ? 16 : 0)}" rx="4" fill="var(--preview-chart-bg)" stroke="var(--preview-chart-border)"/>${paths.join("")}${title}</g>`;
+function pieInsetPosition(attributes) {
+  const position = String(attr(attributes, "position") || "topRight").trim().toLowerCase();
+  if (["right", "rightoutside", "right-outside", "outside", "side"].includes(position)) return "right";
+  if (["topleft", "top-left", "tl"].includes(position)) return "top-left";
+  if (["bottomleft", "bottom-left", "bl"].includes(position)) return "bottom-left";
+  if (["bottomright", "bottom-right", "br"].includes(position)) return "bottom-right";
+  return "top-right";
+}
+
+function pieInsetSize(attributes) {
+  const size = numberAttr(attributes, 60, "size");
+  return size > 16 ? size : 60;
+}
+
+function renderPieInset(inset, left, top, plotWidth, plotHeight, outsideWidth) {
+  const position = pieInsetPosition(inset.attributes);
+  const outside = position === "right";
+  const size = Math.min(pieInsetSize(inset.attributes), outside ? outsideWidth - 6 : plotWidth - 8, plotHeight - 8);
+  if (size < 16) return "";
+  const titleHeight = attr(inset.attributes, "title") ? 14 : 0;
+  const radius = (size - titleHeight) / 2 - 1;
+  if (radius < 4) return "";
+  const x = outside ? left + plotWidth + 6 + (outsideWidth - 6 - size) / 2 : position.includes("left") ? left + 4 : left + plotWidth - size - 4;
+  const y = outside ? top + (plotHeight - size) / 2 : position.includes("bottom") ? top + plotHeight - size - 4 : top + 4;
+  const paths = renderPieSectors(inset.slices, size / 2, titleHeight + (size - titleHeight) / 2, radius, inset.attributes);
+  if (!paths) return "";
+  const titleColor = colorValue(attr(inset.attributes, "titleColor"), "var(--preview-chart-title)");
+  const title = titleHeight ? `<text x="${size / 2}" y="11" text-anchor="middle" class="guide-chart-axis-label" style="fill:${titleColor}">${escapeHtml(attr(inset.attributes, "title"))}</text>` : "";
+  return `<g transform="translate(${x},${y})" class="guide-chart-pie-inset">${paths}${title}</g>`;
 }
 
 export function renderFunctionGraph(rawAttributes, body, expressionOverride = null) {
