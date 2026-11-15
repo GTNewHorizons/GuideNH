@@ -17,6 +17,7 @@ import com.hfstudio.guidenh.guide.document.block.chart.PieSlice;
 import com.hfstudio.guidenh.guide.scene.SceneTagCompiler;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstAnyContent;
+import com.hfstudio.guidenh.libs.mdast.model.MdAstParent;
 
 /**
  * Parses {@code <Series>} / {@code <Slice>} child elements inside chart tags.
@@ -215,6 +216,27 @@ public class ChartChildParser {
         return compiler.reparseBlockTagChildren(parentEl);
     }
 
+    public static List<MdxJsxElementFields> childElements(MdxJsxElementFields parentEl) {
+        List<MdxJsxElementFields> elements = new ArrayList<>();
+        collectChildElements(parentEl.children(), elements);
+        return elements;
+    }
+
+    private static void collectChildElements(List<? extends MdAstAnyContent> children,
+        List<MdxJsxElementFields> elements) {
+        for (MdAstAnyContent child : children) {
+            if (child instanceof MdxJsxElementFields element) {
+                if ("p".equals(element.name())) {
+                    collectChildElements(element.children(), elements);
+                } else {
+                    elements.add(element);
+                }
+            } else if (child instanceof MdAstParent<?>parent) {
+                collectChildElements(parent.children(), elements);
+            }
+        }
+    }
+
     public static List<ChartReferenceLine> parseReferenceLines(PageCompiler compiler, LytErrorSink errorSink,
         List<? extends MdAstAnyContent> children) {
         return parseReferenceLines(compiler, errorSink, children, "y");
@@ -241,14 +263,13 @@ public class ChartChildParser {
     }
 
     public static ChartReferenceLine readReferenceLine(MdxJsxElementFields el, String coordinate) {
-        // Horizontal bars accept the original y spelling as an alias for their value axis.
-        String attribute = "x".equals(coordinate) && MdxAttrs.getString(el, "x", null) == null ? "y" : coordinate;
-        Double y = ChartAttrParser.parseBoxedDouble(el, attribute);
-        if (y == null) return null;
+        String attribute = "x".equals(coordinate) && !el.hasAttribute("x") ? "y" : coordinate;
+        Double value = ChartAttrParser.parseBoxedDouble(el, attribute);
+        if (value == null) return null;
         return new ChartReferenceLine(
-            y,
-            MdxAttrs.getString(el, "label", ""),
-            ChartAttrParser.parseColor(MdxAttrs.getString(el, "color", ""), ChartReferenceLine.DEFAULT_COLOR));
+            value,
+            el.getAttributeString("label", ""),
+            ChartAttrParser.parseColor(el.getAttributeString("color", ""), ChartReferenceLine.DEFAULT_COLOR));
     }
 
     private static void applyIconAndTooltip(PageCompiler compiler, LytErrorSink errorSink, MdxJsxElementFields el,
@@ -335,7 +356,7 @@ public class ChartChildParser {
             }
             double x = MdxAttrs.getFloat(compiler, errorSink, pointEl, "x", Float.NaN);
             double y = MdxAttrs.getFloat(compiler, errorSink, pointEl, "y", Float.NaN);
-            if (Double.isNaN(x) || Double.isNaN(y)) {
+            if (!Double.isFinite(x) || !Double.isFinite(y)) {
                 continue;
             }
             xs.add(x);

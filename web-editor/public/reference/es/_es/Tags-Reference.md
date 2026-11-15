@@ -746,11 +746,16 @@ Consulta [GameScene](GameScene) para escena import/removal comportamiento y [Ann
 
 Cartesian charts (columna / Bar / línea / Scatter) additionally aceptan eje atributos `xAxisLabel`, `xAxisMin`, `xAxisMax`, `xAxisStep`, `xAxisUnit`, `xAxisTickFormat` y El coincidente `yAxis*` Establezca, plus `showXGrid={true}` / `showYGrid={true}` Un toggle gridlines.
 
+Los formatos de escala no válidos o demasiado grandes usan el formato numérico automático. El límite es de 256 caracteres, 128 para la anchura del campo y 20 para la precisión. Las etiquetas numéricas que se superponen se omiten cuando es necesario, sin eliminar sus líneas de cuadrícula.
+
+Ambos ejes usan cuadrículas tenues de trazos espaciados, controladas por separado mediante `showXGrid` y `showYGrid`. Los pasos positivos extremadamente pequeños se amplían automáticamente para limitar el trabajo de dibujo.
+
 hijos:
 
 * `<Series name="..." color="#..." data="10,20,30"/>` para category-based charts (columna / Bar / categorical línea).
 * `<Series name="..." color="#..." points="x:y,x:y,..."/>` para numeric X (línea `numericX={true}`, Scatter).
 * `<Slice name="..." value="..." color="#..."/>` para `<PieChart>` solo.
+* `<ReferenceLine y="100"/>` dibuja una línea horizontal fija en `ColumnChart`, `LineChart` y `ScatterChart`. `BarChart` usa `<ReferenceLine x="100"/>` para una línea vertical y acepta `y` como alias. La coordenada debe ser finita. Se permiten varias líneas; `color` cambia el gris semitransparente y `label`, opcional, aparece dentro del gráfico sin tapar las etiquetas del eje. Las referencias no dependen de la cuadrícula, no amplían el rango automático y se ocultan fuera de él. `PieChart` no admite esta etiqueta.
 
 cuando `color` es omitido on a `<Series>` o `<Slice>`, GuideNH cycles a través de Un built-en 16-color palette.
 

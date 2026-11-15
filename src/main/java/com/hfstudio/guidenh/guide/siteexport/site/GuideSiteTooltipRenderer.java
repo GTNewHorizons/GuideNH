@@ -100,6 +100,8 @@ import com.hfstudio.guidenh.guide.internal.structure.GuideTextNbtCodec;
 import com.hfstudio.guidenh.guide.internal.tooltip.GuideItemTooltipLines;
 import com.hfstudio.guidenh.guide.scene.LytGuidebookScene;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
+import com.hfstudio.guidenh.guide.siteexport.site.GuideSiteGraphRenderer.PieInsetData;
+import com.hfstudio.guidenh.guide.siteexport.site.GuideSiteGraphRenderer.SliceData;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
 import com.hfstudio.guidenh.guide.style.TextAlignment;
 
@@ -1175,6 +1177,20 @@ public class GuideSiteTooltipRenderer {
         return result;
     }
 
+    private List<GuideSiteGraphRenderer.SeriesData> seriesData(List<ChartSeries> series, List<ChartSeries> overlays) {
+        List<GuideSiteGraphRenderer.SeriesData> result = seriesData(series);
+        for (ChartSeries overlay : overlays) {
+            result.add(
+                new GuideSiteGraphRenderer.SeriesData(
+                    overlay.getName(),
+                    overlay.getColor(),
+                    overlay.getXs(),
+                    overlay.getYs(),
+                    GuideSiteGraphRenderer.SeriesData.TYPE_LINE));
+        }
+        return result;
+    }
+
     private String[] categories(String[] values) {
         return values != null ? values : new String[0];
     }
@@ -1187,18 +1203,8 @@ public class GuideSiteTooltipRenderer {
             chart.getBarWidthRatio(),
             -90f,
             true);
-        GuideSiteGraphRenderer.PieInsetData inset = chart.getPieInset() != null ? pieInsetData(chart.getPieInset())
-            : null;
-        List<GuideSiteGraphRenderer.SeriesData> series = seriesData(chart.getSeries());
-        for (ChartSeries overlay : chart.getLineOverlays()) {
-            series.add(
-                new GuideSiteGraphRenderer.SeriesData(
-                    overlay.getName(),
-                    overlay.getColor(),
-                    overlay.getXs(),
-                    overlay.getYs(),
-                    GuideSiteGraphRenderer.SeriesData.TYPE_LINE));
-        }
+        PieInsetData inset = chart.getPieInset() != null ? pieInsetData(chart.getPieInset()) : null;
+        List<GuideSiteGraphRenderer.SeriesData> series = seriesData(chart.getSeries(), chart.getLineOverlays());
         return GuideSiteGraphRenderer.renderColumnChart(style, categories(chart.getCategories()), series, inset, null);
     }
 
@@ -1206,7 +1212,7 @@ public class GuideSiteTooltipRenderer {
         return GuideSiteGraphRenderer.renderBarChart(
             chartStyle(chart, chart.getXAxis(), chart.getYAxis(), chart.getBarWidthRatio(), -90f, true),
             categories(chart.getCategories()),
-            seriesData(chart.getSeries()));
+            seriesData(chart.getSeries(), chart.getLineOverlays()));
     }
 
     private String renderLineChart(LytLineChart chart) {
@@ -1223,9 +1229,9 @@ public class GuideSiteTooltipRenderer {
     }
 
     private String renderPieChart(LytPieChart chart) {
-        List<GuideSiteGraphRenderer.SliceData> slices = new ArrayList<>();
+        List<SliceData> slices = new ArrayList<>();
         for (PieSlice slice : chart.getSlices()) {
-            slices.add(new GuideSiteGraphRenderer.SliceData(slice.getLabel(), slice.getValue(), slice.getColor()));
+            slices.add(new SliceData(slice.getLabel(), slice.getValue(), slice.getColor()));
         }
         return GuideSiteGraphRenderer
             .renderPieChart(chartStyle(chart, null, null, 0.7f, chart.getStartAngleDeg(), chart.isClockwise()), slices);
@@ -1242,9 +1248,9 @@ public class GuideSiteTooltipRenderer {
     }
 
     private GuideSiteGraphRenderer.PieInsetData pieInsetData(PieInsetSpec inset) {
-        List<GuideSiteGraphRenderer.SliceData> slices = new ArrayList<>();
+        List<SliceData> slices = new ArrayList<>();
         for (PieSlice slice : inset.getSlices()) {
-            slices.add(new GuideSiteGraphRenderer.SliceData(slice.getLabel(), slice.getValue(), slice.getColor()));
+            slices.add(new SliceData(slice.getLabel(), slice.getValue(), slice.getColor()));
         }
         return new GuideSiteGraphRenderer.PieInsetData(
             slices,

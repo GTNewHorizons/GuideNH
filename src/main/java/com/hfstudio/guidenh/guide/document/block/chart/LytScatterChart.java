@@ -115,6 +115,9 @@ public class LytScatterChart extends LytChartBase {
             ChartSeries s = series.get(si);
             int n = Math.min(s.getXs().length, s.getYs().length);
             for (int i = 0; i < n; i++) {
+                if (s.getXs()[i] < xRange.min || s.getXs()[i] > xRange.max
+                    || s.getYs()[i] < yRange.min
+                    || s.getYs()[i] > yRange.max) continue;
                 float x = CartesianChartRenderer.mapX(s.getXs()[i], xRange, inner);
                 float y = CartesianChartRenderer.mapY(s.getYs()[i], yRange, inner);
                 boolean hovered = hoveredKey >= 0 && hoveredSeries == si && hoveredPoint == i;

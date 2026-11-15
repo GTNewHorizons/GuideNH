@@ -746,11 +746,16 @@ Voir [GameScene](GameScene) pour scène import/removal behavior et [Annotations]
 
 Cartesian charts (colonne / Bar / ligne / Scatter) additionally acceptent axis attributs `xAxisLabel`, `xAxisMin`, `xAxisMax`, `xAxisStep`, `xAxisUnit`, `xAxisTickFormat` et Le correspondant `yAxis*` Définissez, plus `showXGrid={true}` / `showYGrid={true}` vers toggle gridlines.
 
+Les formats de graduation invalides ou trop grands utilisent le format numérique automatique. La limite est de 256 caractères, de 128 pour la largeur du champ et de 20 pour la précision. Les graduations numériques qui se chevauchent sont masquées au besoin, sans supprimer leurs lignes de grille.
+
+Les deux axes utilisent une grille discrète à tirets espacés, contrôlée séparément par `showXGrid` et `showYGrid`. Les pas positifs extrêmement petits sont automatiquement augmentés pour limiter le travail de rendu.
+
 enfants:
 
 * `<Series name="..." color="#..." data="10,20,30"/>` pour category-based charts (colonne / Bar / categorical ligne).
 * `<Series name="..." color="#..." points="x:y,x:y,..."/>` pour numeric X (ligne `numericX={true}`, Scatter).
 * `<Slice name="..." value="..." color="#..."/>` pour `<PieChart>` seulement.
+* `<ReferenceLine y="100"/>` trace une ligne horizontale fixe dans `ColumnChart`, `LineChart` et `ScatterChart`. `BarChart` utilise `<ReferenceLine x="100"/>` pour une ligne verticale et accepte aussi `y`. La coordonnée doit être finie. Plusieurs lignes sont possibles ; `color` remplace le gris translucide et le texte facultatif `label` apparaît dans le graphique sans masquer les graduations. Les références restent visibles sans grille, n’élargissent pas la plage automatique et sont masquées hors de celle-ci. `PieChart` ne prend pas en charge cette balise.
 
 lorsque `color` est omitted on a `<Series>` ou `<Slice>`, GuideNH cycles à travers Un built-dans 16-couleur palette.
 

@@ -740,11 +740,16 @@ $$\begin{pmatrix} a & b \\ c & d \end{pmatrix}$$
 
 笛卡尔系图表（柱形/条形/折线/散点）支持坐标轴属性 `xAxisLabel`、`xAxisMin`、`xAxisMax`、`xAxisStep`、`xAxisUnit`、`xAxisTickFormat`，以及对应的`yAxis*`，外加 `showXGrid={true}` 與 `showYGrid={true}` 控制網格線。
 
+無效或過大的刻度格式會回退為自動數字格式。格式字串最多 256 個字元，欄位寬度最多 128，精度最多 20。 數值刻度文字擁擠時會自動省略部分標籤，其對應的網格線保持不變。
+
+兩軸網格採用淡而稀疏的虛線，由 `showXGrid`、`showYGrid` 分別控制。極小的正刻度間距會自動合併，以限制繪製工作量。
+
 子元素：
 
 * `<Series name="..." color="#..." data="10,20,30"/>` — 用於依類別取值的圖表（柱形/長條/類別 X 折線）。
 * `<Series name="..." color="#..." points="x:y,x:y,..."/>` — 用於數值 X（折線 `numericX={true}`、散點）。
 * `<Slice name="..." value="..." color="#..."/>` — 僅 `<PieChart>` 使用。
+* `<ReferenceLine y="100"/>` — 在 `ColumnChart`、`LineChart`、`ScatterChart` 的指定 Y 值繪製固定水平虛線；`BarChart` 使用 `<ReferenceLine x="100"/>` 繪製固定垂直線，也接受 `y` 別名。座標必須是有限數值。可加入多條，預設為半透明灰色，可用 `color` 修改；選填的 `label` 顯示於繪圖區內，避免與座標刻度重疊。參考線不受網格開關影響，不擴大自動座標範圍，範圍外不顯示；`PieChart` 不支援此標籤。
 
 未指定 `color` 時依內建 16 色盤循環分配。
 

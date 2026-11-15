@@ -1426,9 +1426,9 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
             "BlockAnnotationTemplate");
         sink.children("BarChart", "Series", "LineSeries", "PieInset", "ReferenceLine");
         sink.children("ColumnChart", "Series", "LineSeries", "PieInset", "ReferenceLine");
-        sink.children("LineChart", "Series", "LineSeries", "PieInset", "ReferenceLine");
-        sink.children("ScatterChart", "Series", "LineSeries", "PieInset", "ReferenceLine");
-        sink.children("PieChart", "Slice", "PieInset");
+        sink.children("LineChart", "Series", "ReferenceLine");
+        sink.children("ScatterChart", "Series", "ReferenceLine");
+        sink.children("PieChart", "Slice");
         sink.children("PieInset", "Slice");
         sink.children("FunctionGraph", "Plot", "Point", "Function");
         sink.children("ContentTabs", "Tab");

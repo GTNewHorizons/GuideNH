@@ -44,6 +44,7 @@ import com.hfstudio.guidenh.guide.compiler.tags.ItemImageCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.KeyBindTagCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.MdxAttrs;
 import com.hfstudio.guidenh.guide.compiler.tags.chart.ChartAttrParser;
+import com.hfstudio.guidenh.guide.compiler.tags.chart.ChartChildParser;
 import com.hfstudio.guidenh.guide.compiler.tags.functiongraph.FunctionGraphAttrs;
 import com.hfstudio.guidenh.guide.document.block.LytStructureView;
 import com.hfstudio.guidenh.guide.document.block.chart.ChartLabelPosition;
@@ -92,6 +93,8 @@ import com.hfstudio.guidenh.guide.mediawiki.MediaWikiSpecialPageResult;
 import com.hfstudio.guidenh.guide.navigation.NavigationNode;
 import com.hfstudio.guidenh.guide.navigation.NavigationTree;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
+import com.hfstudio.guidenh.guide.siteexport.site.GuideSiteGraphRenderer.PieInsetData;
+import com.hfstudio.guidenh.guide.siteexport.site.GuideSiteGraphRenderer.SliceData;
 import com.hfstudio.guidenh.guide.sound.GuideSoundSpec;
 import com.hfstudio.guidenh.guide.sound.GuideSoundTrigger;
 import com.hfstudio.guidenh.guide.units.AmountFormatter;
@@ -107,6 +110,7 @@ import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxFlowElement;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstAnyContent;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstBreak;
+import com.hfstudio.guidenh.libs.mdast.model.MdAstFlowContent;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstLiteral;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstParent;
 
@@ -323,19 +327,19 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             return renderCsvTable(element, currentPageId);
         }
         if ("ColumnChart".equals(name)) {
-            return renderColumnChart(element);
+            return renderColumnChart(normalizeChartChildren(element, currentPageId));
         }
         if ("BarChart".equals(name)) {
-            return renderBarChart(element);
+            return renderBarChart(normalizeChartChildren(element, currentPageId));
         }
         if ("LineChart".equals(name)) {
-            return renderLineChart(element);
+            return renderLineChart(normalizeChartChildren(element, currentPageId));
         }
         if ("PieChart".equals(name)) {
-            return renderPieChart(element);
+            return renderPieChart(normalizeChartChildren(element, currentPageId));
         }
         if ("ScatterChart".equals(name)) {
-            return renderScatterChart(element);
+            return renderScatterChart(normalizeChartChildren(element, currentPageId));
         }
         if ("FunctionGraph".equals(name) || "Function".equals(name)) {
             return renderFunctionGraphTag(element, defaultNamespace, currentPageId, templates, sceneResolver, compiler);
@@ -2059,10 +2063,26 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         return readBoolean(element, "showLegend", true) ? ChartLegendPosition.TOP : ChartLegendPosition.NONE;
     }
 
+    private MdxJsxElementFields normalizeChartChildren(MdxJsxElementFields element,
+        @Nullable ResourceLocation currentPageId) {
+        ParsedGuidePage source = resolveFragmentSource(currentPageId);
+        String body = source != null ? MdxBlockTagSourceExtractor.extractRawBody(element, source.getSource()) : null;
+        if (body == null || body.isBlank()) return element;
+        ParsedGuidePage parsed = PageCompiler
+            .parse(source.getSourcePack(), source.getLanguage(), source.getId(), DetailsContentExtractor.dedent(body));
+        MdxJsxFlowElement normalized = new MdxJsxFlowElement(element.name(), new ArrayList<>(element.attributes()));
+        for (var child : parsed.getAstRoot()
+            .children()) {
+            if (child instanceof MdAstFlowContent flow) normalized.children()
+                .add(flow);
+        }
+        return normalized;
+    }
+
     private String renderColumnChart(MdxJsxElementFields element) {
         String yAxisUnit = readOptional(element, "yAxisUnit");
         List<GuideSiteGraphRenderer.SeriesData> series = parseSeriesChildren(element);
-        GuideSiteGraphRenderer.PieInsetData pieInset = parsePieInsetChildren(element);
+        PieInsetData pieInset = parsePieInsetChildren(element);
         return GuideSiteGraphRenderer.renderColumnChart(
             resolveChartStyle(element),
             ChartAttrParser.parseStringArray(readOptional(element, "categories")),
@@ -2107,7 +2127,7 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
     }
 
     private String renderPieChart(MdxJsxElementFields element) {
-        List<GuideSiteGraphRenderer.SliceData> slices = parseSliceChildren(element);
+        List<SliceData> slices = parseSliceChildren(element);
         return GuideSiteGraphRenderer.renderPieChart(resolveChartStyle(element), slices);
     }
 
@@ -2308,10 +2328,7 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
     private List<GuideSiteGraphRenderer.SeriesData> parseSeriesChildren(MdxJsxElementFields element) {
         List<GuideSiteGraphRenderer.SeriesData> result = new ArrayList<>();
         int idx = 0;
-        for (MdAstAnyContent child : element.children()) {
-            if (!(child instanceof MdxJsxElementFields c)) {
-                continue;
-            }
+        for (var c : ChartChildParser.childElements(element)) {
             boolean isSeries = "Series".equals(c.name());
             boolean isLineSeries = "LineSeries".equals(c.name());
             if (!isSeries && !isLineSeries) {
@@ -2353,8 +2370,8 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
     private double[][] parseSeriesChildPoints(MdxJsxElementFields seriesEl) {
         List<Double> xs = new ArrayList<>();
         List<Double> ys = new ArrayList<>();
-        for (MdAstAnyContent child : seriesEl.children()) {
-            if (!(child instanceof MdxJsxElementFields pointEl) || !"Point".equals(pointEl.name())) {
+        for (var pointEl : ChartChildParser.childElements(seriesEl)) {
+            if (!"Point".equals(pointEl.name())) {
                 continue;
             }
             String xsStr = readOptional(pointEl, "x");
@@ -2363,8 +2380,12 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
                 continue;
             }
             try {
-                xs.add(Double.parseDouble(xsStr.trim()));
-                ys.add(Double.parseDouble(ysStr.trim()));
+                double x = Double.parseDouble(xsStr.trim());
+                double y = Double.parseDouble(ysStr.trim());
+                if (Double.isFinite(x) && Double.isFinite(y)) {
+                    xs.add(x);
+                    ys.add(y);
+                }
             } catch (NumberFormatException ignored) {}
         }
         double[] xArr = new double[xs.size()];
@@ -2382,17 +2403,14 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
      */
     @Nullable
     private GuideSiteGraphRenderer.PieInsetData parsePieInsetChildren(MdxJsxElementFields element) {
-        for (MdAstAnyContent child : element.children()) {
-            if (!(child instanceof MdxJsxElementFields c)) {
-                continue;
-            }
+        for (var c : ChartChildParser.childElements(element)) {
             if (!"PieInset".equals(c.name())) {
                 continue;
             }
             int size = readInt(c, "size", 80);
             String position = readOptional(c, "position");
             String insetTitle = readOptional(c, "title");
-            List<GuideSiteGraphRenderer.SliceData> slices = parseSliceChildren(c);
+            List<SliceData> slices = parseSliceChildren(c);
             return new GuideSiteGraphRenderer.PieInsetData(slices, size, position, insetTitle);
         }
         return null;
@@ -2404,10 +2422,7 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
     private List<GuideSiteGraphRenderer.SeriesData> parseScatterSeriesChildren(MdxJsxElementFields element) {
         List<GuideSiteGraphRenderer.SeriesData> result = new ArrayList<>();
         int idx = 0;
-        for (MdAstAnyContent child : element.children()) {
-            if (!(child instanceof MdxJsxElementFields c)) {
-                continue;
-            }
+        for (var c : ChartChildParser.childElements(element)) {
             if (!"Series".equals(c.name())) {
                 continue;
             }
@@ -2430,13 +2445,10 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
     /**
      * Parse {@code <Slice name="..." value="0.5" color="...">} children for pie chart.
      */
-    private List<GuideSiteGraphRenderer.SliceData> parseSliceChildren(MdxJsxElementFields element) {
-        List<GuideSiteGraphRenderer.SliceData> result = new ArrayList<>();
+    private List<SliceData> parseSliceChildren(MdxJsxElementFields element) {
+        List<SliceData> result = new ArrayList<>();
         int idx = 0;
-        for (MdAstAnyContent child : element.children()) {
-            if (!(child instanceof MdxJsxElementFields c)) {
-                continue;
-            }
+        for (var c : ChartChildParser.childElements(element)) {
             if (!"Slice".equals(c.name())) {
                 continue;
             }
@@ -2444,7 +2456,7 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             if (label == null) label = "";
             double value = parseDoubleAttr(c, "value", 1.0);
             int color = parseArgbAttr(c, "color", ChartAttrParser.paletteColor(idx));
-            result.add(new GuideSiteGraphRenderer.SliceData(label, value, color));
+            result.add(new SliceData(label, value, color));
             idx++;
         }
         return result;

@@ -746,11 +746,16 @@ $$\begin{pmatrix} a & b \\ c & d \end{pmatrix}$$
 
 Cartesian チャート (列 / Bar / 行 / Scatter) additionally 受け付けます axis 属性 `xAxisLabel`, `xAxisMin`, `xAxisMax`, `xAxisStep`, `xAxisUnit`, `xAxisTickFormat` と  一致する `yAxis*` 設定します, plus `showXGrid={true}` / `showYGrid={true}` へ toggle gridlines.
 
+無効または過大な目盛り書式は自動数値書式に戻ります。書式文字列は 256 文字、フィールド幅は 128、精度は 20 が上限です。 数値目盛りが重なる場合は一部のラベルを省略しますが、対応するグリッド線は維持されます。
+
+両軸のグリッドは薄く間隔の広い破線で、`showXGrid` と `showYGrid` で個別に切り替えられます。極端に小さい正の目盛間隔は、描画処理を制限するため自動的に広げられます。
+
 子要素:
 
 * `<Series name="..." color="#..." data="10,20,30"/>` 用 category-based チャート (列 / Bar / categorical 行).
 * `<Series name="..." color="#..." points="x:y,x:y,..."/>` 用 numeric X (行 `numericX={true}`, Scatter).
 * `<Slice name="..." value="..." color="#..."/>` 用 `<PieChart>` のみ.
+* `<ReferenceLine y="100"/>` は `ColumnChart`、`LineChart`、`ScatterChart` に固定の水平線を描きます。`BarChart` は `<ReferenceLine x="100"/>` で垂直線を描き、`y` も別名として受け付けます。座標は有限の数値が必要です。複数の線を指定でき、既定の半透明グレーは `color` で変更できます。任意の `label` はプロット内に表示され、軸の目盛りと重なりません。参照線はグリッドの設定に依存せず、自動範囲を広げず、範囲外では表示されません。`PieChart` はこのタグに対応しません。
 
 場合 `color` 省略された場合 on a `<Series>` または `<Slice>`, GuideNH cycles 通じて built-で 16-色 palette.
 

@@ -25,14 +25,20 @@ public class CartesianChartRenderer {
         int bottom = 4;
         if (showYTicks && yRange != null) {
             int maxLabel = 0;
-            for (double t = yRange.min; t <= yRange.max + 1e-9; t += yRange.step) {
+            ChartTicks ticks = ChartTicks.create(yRange.min, yRange.max, yRange.step);
+            for (int i = 0; i < ticks.count(); i++) {
+                double t = ticks.value(i);
                 String s = yAxis.formatTick(t);
                 int w = context.getStringWidth(s, style);
                 if (w > maxLabel) {
                     maxLabel = w;
                 }
             }
-            left = Math.max(left, maxLabel + 6);
+            double nearMin = yRange.min * 0.9999 + yRange.max * 0.0001;
+            double nearMax = yRange.max * 0.9999 + yRange.min * 0.0001;
+            maxLabel = Math.max(maxLabel, context.getStringWidth(yAxis.formatTick(nearMin), style));
+            maxLabel = Math.max(maxLabel, context.getStringWidth(yAxis.formatTick(nearMax), style));
+            left = Math.max(left, maxLabel + 10);
             // Y-axis title is drawn horizontally above the plot's top-left corner; reserve a row.
             if (yAxis.getLabel() != null && !yAxis.getLabel()
                 .isEmpty()) {
@@ -82,58 +88,70 @@ public class CartesianChartRenderer {
     public static void drawGridLine(RenderContext context, float x1, float y1, float x2, float y2, int color) {
         int alpha = Math.round((color >>> 24) * 0.55f);
         int faintColor = (color & 0x00FFFFFF) | (alpha << 24);
-        float length = (float) Math.hypot(x2 - x1, y2 - y1);
-        for (float offset = 0; offset < length; offset += 10) {
-            float start = offset / length;
-            float end = Math.min(offset + 1, length) / length;
-            context.drawLine(
-                x1 + (x2 - x1) * start,
-                y1 + (y2 - y1) * start,
-                x1 + (x2 - x1) * end,
-                y1 + (y2 - y1) * end,
-                1f,
-                faintColor);
-        }
+        context.drawDashedLine(x1, y1, x2, y2, 1, 1, 9, faintColor);
     }
 
     public static void drawReferenceLines(RenderContext context, LytRect plotRect, ChartAxisOptions axis,
         AxisRange range) {
         for (ChartReferenceLine line : axis.getReferenceLines()) {
-            if (line.y() < range.min || line.y() > range.max) continue;
-            float y = mapY(line.y(), range, plotRect);
-            for (int x = plotRect.x(); x < plotRect.right(); x += 7) {
-                context.drawLine(x, y, Math.min(x + 4, plotRect.right()), y, 1f, line.color());
-            }
+            if (line.value() < range.min || line.value() > range.max || line.color() >>> 24 == 0) continue;
+            float y = mapY(line.value(), range, plotRect);
+            context.drawDashedLine(plotRect.x(), y, plotRect.right(), y, 1, 4, 3, line.color());
             String label = line.label();
             if (label.isEmpty()) continue;
             ResolvedTextStyle style = LytChartBase.textStyle(line.color());
-            int labelY = (int) y - context.getLineHeight(style) / 2;
-            context.drawText(label, plotRect.x() - context.getStringWidth(label, style) - 4, labelY, style);
+            int labelY = Math.max(plotRect.y() + 2, (int) y - context.getLineHeight(style) - 2);
+            int labelX = plotRect.x() + 4;
+            context.pushLocalScissor(plotRect);
+            try {
+                context.drawText(label, labelX, labelY, style);
+            } finally {
+                context.popScissor();
+            }
         }
     }
 
     public static void drawVerticalReferenceLines(RenderContext context, LytRect plot, ChartAxisOptions axis,
         AxisRange range) {
         for (ChartReferenceLine line : axis.getReferenceLines()) {
-            if (line.y() < range.min || line.y() > range.max) continue;
-            float x = mapX(line.y(), range, plot);
-            for (int y = plot.y(); y < plot.bottom(); y += 7) {
-                context.drawLine(x, y, x, Math.min(y + 4, plot.bottom()), 1f, line.color());
-            }
+            if (line.value() < range.min || line.value() > range.max || line.color() >>> 24 == 0) continue;
+            float x = mapX(line.value(), range, plot);
+            context.drawDashedLine(x, plot.y(), x, plot.bottom(), 1, 4, 3, line.color());
             if (line.label()
                 .isEmpty()) continue;
             ResolvedTextStyle style = LytChartBase.textStyle(line.color());
-            context.drawText(
-                line.label(),
-                Math.round(x) - context.getStringWidth(line.label(), style) / 2,
-                plot.bottom() + 3,
-                style);
+            int labelX = Math.max(
+                plot.x() + 4,
+                Math.min(Math.round(x) + 4, plot.right() - context.getStringWidth(line.label(), style) - 4));
+            context.pushLocalScissor(plot);
+            try {
+                context.drawText(line.label(), labelX, plot.y() + 3, style);
+            } finally {
+                context.popScissor();
+            }
         }
     }
 
-    /**
-     * Render axes + grid lines + tick text inside plotRect.
-     */
+    public static void drawNumericXTicks(RenderContext context, LytRect plotRect, ChartAxisOptions axis,
+        AxisRange range) {
+        ResolvedTextStyle style = LytChartBase.textStyle(axis.getLabelColor());
+        ChartTicks ticks = ChartTicks.create(range.min, range.max, range.step);
+        int nextLabelX = Integer.MIN_VALUE;
+        for (int i = 0; i < ticks.count(); i++) {
+            double value = ticks.value(i);
+            float x = mapX(value, range, plotRect);
+            if (axis.isGridVisible()) {
+                drawGridLine(context, x, plotRect.y(), x, plotRect.bottom(), axis.getGridColor());
+            }
+            String label = axis.formatTick(value);
+            int width = context.getStringWidth(label, style);
+            int left = (int) x - width / 2;
+            if (left < nextLabelX) continue;
+            context.drawText(label, left, plotRect.bottom() + 3, style);
+            nextLabelX = left + width + 4;
+        }
+    }
+
     public static void drawAxes(RenderContext context, LytRect plotRect, ChartAxisOptions xAxis, ChartAxisOptions yAxis,
         AxisRange xRange, AxisRange yRange, String[] xCategories, boolean numericX) {
         ResolvedTextStyle xLabelStyle = LytChartBase.textStyle(xAxis.getLabelColor());
@@ -141,34 +159,27 @@ public class CartesianChartRenderer {
 
         // Y-axis grid + ticks.
         if (yRange != null) {
-            for (double t = yRange.min; t <= yRange.max + 1e-9; t += yRange.step) {
+            ChartTicks ticks = ChartTicks.create(yRange.min, yRange.max, yRange.step);
+            int lineHeight = context.getLineHeight(yLabelStyle);
+            float previousLabelY = Float.POSITIVE_INFINITY;
+            for (int i = 0; i < ticks.count(); i++) {
+                double t = ticks.value(i);
                 float y = mapY(t, yRange, plotRect);
                 if (yAxis.isGridVisible()) {
                     drawGridLine(context, plotRect.x(), y, plotRect.right(), y, yAxis.getGridColor());
                 }
+                if (previousLabelY - y < lineHeight + 4) continue;
                 String s = yAxis.formatTick(t);
                 int sw = context.getStringWidth(s, yLabelStyle);
-                int lh = context.getLineHeight(yLabelStyle);
-                context.drawText(s, plotRect.x() - sw - 4, (int) y - lh / 2, yLabelStyle);
+                context.drawText(s, plotRect.x() - sw - 4, (int) y - lineHeight / 2, yLabelStyle);
+                previousLabelY = y;
             }
         }
 
         // X axis: numeric or categorical. Tick labels are clamped horizontally so they do not
         // overflow the chart bounds at the edges.
         if (numericX && xRange != null) {
-            for (double t = xRange.min; t <= xRange.max + 1e-9; t += xRange.step) {
-                float x = mapX(t, xRange, plotRect);
-                if (xAxis.isGridVisible()) {
-                    drawGridLine(context, x, plotRect.y(), x, plotRect.bottom(), xAxis.getGridColor());
-                }
-                String s = xAxis.formatTick(t);
-                int sw = context.getStringWidth(s, xLabelStyle);
-                int tx = (int) x - sw / 2;
-                // Allow at most half the label to extend past the plot edge so neighbouring text
-                // does not collide with the chart border.
-                tx = Math.max(plotRect.x() - sw / 2, Math.min(plotRect.right() - sw / 2, tx));
-                context.drawText(s, tx, plotRect.bottom() + 3, xLabelStyle);
-            }
+            drawNumericXTicks(context, plotRect, xAxis, xRange);
         } else if (xCategories != null && xCategories.length > 0) {
             float step = (float) plotRect.width() / xCategories.length;
             for (int i = 0; i < xCategories.length; i++) {

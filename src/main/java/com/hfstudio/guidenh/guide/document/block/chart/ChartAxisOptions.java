@@ -1,6 +1,5 @@
 package com.hfstudio.guidenh.guide.document.block.chart;
 
-import java.util.IllegalFormatException;
 import java.util.List;
 
 import com.hfstudio.guidenh.guide.color.ColorUtils;
@@ -27,31 +26,15 @@ public class ChartAxisOptions {
     private int labelColor = ColorUtils.ARGB_FFCCCCCC.getColor();
     private List<ChartReferenceLine> referenceLines = List.of();
 
+    public void setReferenceLines(List<ChartReferenceLine> referenceLines) {
+        this.referenceLines = referenceLines != null ? List.copyOf(referenceLines) : List.of();
+    }
+
     /**
      * Format a numeric value using the configured tickFormat and unit; when tickFormat is unspecified,
      * automatically choose between integer / one-decimal formatting.
      */
     public String formatTick(double value) {
-        String text;
-        if (tickFormat != null && !tickFormat.isEmpty()) {
-            try {
-                text = String.format(tickFormat, value);
-            } catch (IllegalFormatException ex) {
-                text = defaultFormat(value);
-            }
-        } else {
-            text = defaultFormat(value);
-        }
-        if (unit != null && !unit.isEmpty()) {
-            text = text + unit;
-        }
-        return text;
-    }
-
-    private static String defaultFormat(double value) {
-        if (Math.abs(value - Math.rint(value)) < 1e-6) {
-            return Long.toString((long) Math.rint(value));
-        }
-        return String.format("%.2f", value);
+        return ChartNumberFormat.format(value, tickFormat, unit);
     }
 }

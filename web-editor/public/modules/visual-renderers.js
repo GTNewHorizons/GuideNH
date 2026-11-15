@@ -1,4 +1,5 @@
 import { attr, colorValue, escapeHtml, numberAttr, parseAttributes, splitComma } from "./html-utils.js";
+import { createChartValueFormatter } from "./chart-number-format.js";
 
 const PALETTE = Array.from({ length: 8 }, (_entry, index) => `var(--chart-series-${index + 1})`);
 
@@ -352,8 +353,8 @@ export function renderMermaidDiagram(source, options = {}) {
 
 export function renderChart(name, rawAttributes, body) {
   const attributes = parseAttributes(rawAttributes);
-  const width = numberAttr(attributes, 320, "width");
-  const height = numberAttr(attributes, 200, "height");
+  const width = Math.max(64, numberAttr(attributes, 320, "width"));
+  const height = Math.max(100, numberAttr(attributes, 200, "height"));
   const title = attr(attributes, "title") || "";
   const background = colorValue(attr(attributes, "background"), "var(--preview-chart-bg)");
   const border = colorValue(attr(attributes, "border"), "var(--preview-chart-border)");
@@ -361,7 +362,7 @@ export function renderChart(name, rawAttributes, body) {
   const labelColor = colorValue(attr(attributes, "labelColor"), "var(--preview-chart-label)");
   const children = readChartChildren(body);
   const chartBody = name.toLowerCase() === "piechart" ? renderPie(children.slices, width, height, attributes) : renderCartesian(name, children, width, height, attributes);
-  const legendPosition = String(attr(attributes, "legend") || "top").toLowerCase();
+  const legendPosition = chartLegendPosition(attributes);
   const className = `guide-chart guide-chart-layout-legend-${legendPosition}`;
   return `<section class="${className}" style="width:${width}px;max-width:100%;border-color:${border};background:${background};--guide-chart-label-color:${labelColor}">${title ? `<h4 style="color:${titleColor}">${escapeHtml(title)}</h4>` : ""}${chartBody}</section>`;
 }
@@ -376,9 +377,9 @@ function readChartChildren(body) {
     const attributes = parseAttributes(match[1]);
     const rawY = attr(attributes, "y");
     const rawX = attr(attributes, "x");
-    const y = rawY === undefined || String(rawY).trim() === "" ? NaN : Number(rawY);
-    const x = rawX === undefined ? y : String(rawX).trim() === "" ? NaN : Number(rawX);
-    if (Number.isFinite(y) || Number.isFinite(x)) references.push({ y, x, label: attr(attributes, "label"), color: colorValue(attr(attributes, "color"), "rgba(156,163,175,0.55)") });
+    const y = rawY === undefined || typeof rawY === "boolean" || String(rawY).trim() === "" ? NaN : Number(rawY);
+    const x = rawX === undefined ? y : typeof rawX === "boolean" || String(rawX).trim() === "" ? NaN : Number(rawX);
+    if (Number.isFinite(y) || Number.isFinite(x)) references.push({ y, x, label: String(attr(attributes, "label") ?? ""), color: colorValue(attr(attributes, "color"), "rgba(156,163,175,0.55)") });
   }
   const insetPattern = /<PieInset\b([^>]*)>([\s\S]*?)<\/PieInset>/gi;
   let insetMatch;
@@ -391,9 +392,10 @@ function readChartChildren(body) {
     }
     insets.push({ attributes: insetAttributes, slices: insetSlices });
   }
+  const directBody = String(body || "").replace(insetPattern, "");
   const pattern = /<(Series|LineSeries|Slice)\b([^>]*?)(?:\/>|>([\s\S]*?)<\/\1>)/gi;
   let match;
-  while ((match = pattern.exec(body || ""))) {
+  while ((match = pattern.exec(directBody))) {
     const attributes = parseAttributes(match[2]);
     const nestedPoints = [...String(match[3] || "").matchAll(/<Point\b([^>]*)\/?>(?:\s*<\/Point>)?/gi)].map((pointMatch) => {
       const pointAttributes = parseAttributes(pointMatch[1]);
@@ -401,7 +403,7 @@ function readChartChildren(body) {
       const y = Number(attr(pointAttributes, "y", "value"));
       return Number.isFinite(x) && Number.isFinite(y) ? { x, y, label: String(attr(pointAttributes, "label") || "") } : null;
     }).filter(Boolean);
-    const item = { name: String(attr(attributes, "name") || ""), color: colorValue(attr(attributes, "color"), PALETTE[(series.length + slices.length + lines.length) % PALETTE.length]), values: parseValues(attr(attributes, "data", "values")), points: [...parsePoints(attr(attributes, "points")), ...nestedPoints], value: Number(attr(attributes, "value")) || 0, attributes };
+    const item = { name: String(attr(attributes, "name") || ""), color: colorValue(attr(attributes, "color"), PALETTE[(series.length + slices.length + lines.length) % PALETTE.length]), values: parseValues(attr(attributes, "data", "values")), points: [...parsePoints(attr(attributes, "points")), ...nestedPoints], value: numberAttr(attributes, 0, "value"), attributes };
     if (match[1].toLowerCase() === "slice") slices.push(item);
     else if (match[1].toLowerCase() === "lineseries") lines.push(item);
     else series.push(item);
@@ -419,11 +421,10 @@ function parsePoints(value) {
   const chunks = text.split(/[;|]/).map((item) => item.trim()).filter(Boolean);
   const points = [];
   for (const chunk of chunks) {
-    const numbers = chunk.match(/-?(?:\d+\.?\d*|\.\d+)/g)?.map(Number) || [];
-    if (numbers.length >= 2 && /[:\s]/.test(chunk)) {
-      for (let index = 0; index + 1 < numbers.length; index += 2) points.push({ x: numbers[index], y: numbers[index + 1] });
-    } else if (numbers.length >= 2 && chunks.length === 1) {
-      for (let index = 0; index + 1 < numbers.length; index += 2) points.push({ x: numbers[index], y: numbers[index + 1] });
+    const numbers = chunk.match(/[+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?/g)?.map(Number) || [];
+    for (let index = 0; index + 1 < numbers.length; index += 2) {
+      const x = numbers[index], y = numbers[index + 1];
+      if (Number.isFinite(x) && Number.isFinite(y)) points.push({ x, y });
     }
   }
   return points;
@@ -457,66 +458,94 @@ function renderPie(slices, width, height, attributes) {
   return `${legendPosition === "top" ? legendMarkup : ""}<svg class="guide-chart-svg" viewBox="0 0 ${width} ${height - 30}" role="img">${paths.join("")}</svg>${legendPosition === "top" ? "" : legendMarkup}`;
 }
 
+function chartLegendPosition(attributes) {
+  const position = String(attr(attributes, "legend") || "top").trim().toLowerCase();
+  return ["top", "bottom", "left", "right", "none"].includes(position) ? position : "top";
+}
+
 function renderCartesian(name, children, width, height, attributes) {
   const categories = splitComma(attr(attributes, "categories"));
   const chartName = name.toLowerCase();
   const isLine = chartName === "linechart" || chartName === "scatterchart";
   const isBar = chartName === "barchart";
-  const series = isLine ? (children.series.length ? children.series : children.lines) : (children.series.length ? children.series : [{ name: "Values", color: PALETTE[0], values: [] }]);
+  const series = children.series;
   const lineSeries = isLine ? series : children.lines;
-  const values = series.flatMap((item) => item.values).concat(lineSeries.flatMap((item) => item.values));
-  const pointValues = [...series, ...lineSeries].flatMap((item) => item.points || []).map((point) => point.y);
-  const allValues = values.concat(pointValues);
-  const yMin = Number.isFinite(Number(attr(attributes, "yAxisMin"))) ? Number(attr(attributes, "yAxisMin")) : Math.min(0, ...allValues, 0);
-  const yMax = Number.isFinite(Number(attr(attributes, "yAxisMax"))) ? Number(attr(attributes, "yAxisMax")) : Math.max(1, ...allValues, 1);
-  const numericX = booleanAttribute(attributes, "numericX", chartName === "scatterchart" || (!categories.length && [...series, ...lineSeries].some((item) => item.points.length > 0)));
-  const pointXValues = [...series, ...lineSeries].flatMap((item) => item.points || []).map((point) => point.x);
-  const xMin = Number.isFinite(Number(attr(attributes, "xAxisMin"))) ? Number(attr(attributes, "xAxisMin")) : Math.min(0, ...(isBar ? allValues : pointXValues), 0);
-  const xMax = Number.isFinite(Number(attr(attributes, "xAxisMax"))) ? Number(attr(attributes, "xAxisMax")) : (isBar ? Math.max(1, ...allValues, 1) : Math.max(1, ...pointXValues, 1));
-  const left = 42;
+  const dataSeries = isLine ? series : [...series, ...lineSeries];
+  const numericX = isLine && (chartName === "scatterchart" || !categories.length || booleanAttribute(attributes, "numericX", false));
+  let lowY = isLine ? Infinity : 0, highY = isLine ? -Infinity : 0, lowX = Infinity, highX = -Infinity;
+  let count = Math.max(1, categories.length);
+  for (const item of dataSeries) {
+    count = Math.max(count, numericX ? item.points.length : item.values.length);
+    for (const value of numericX ? [] : item.values) {
+      lowY = Math.min(lowY, value);
+      highY = Math.max(highY, value);
+    }
+    for (const point of numericX ? item.points : []) {
+      lowX = Math.min(lowX, point.x);
+      highX = Math.max(highX, point.x);
+      lowY = Math.min(lowY, point.y);
+      highY = Math.max(highY, point.y);
+    }
+  }
+  const [yMin, yMax, yStep] = chartRange(attributes, "y", lowY, highY);
+  const [xMin, xMax, xStep] = chartRange(attributes, "x", isBar ? lowY : lowX, isBar ? highY : highX);
+  const formatX = createChartValueFormatter(attr(attributes, "xAxisTickFormat"), attr(attributes, "xAxisUnit"));
+  const formatY = createChartValueFormatter(attr(attributes, "yAxisTickFormat"), attr(attributes, "yAxisUnit"));
+  const axisLabelWidth = Math.max(chartLabelWidth(formatY(yMin)), chartLabelWidth(formatY(yMax))) + 24;
+  const left = isBar ? 42 : Math.max(42, Math.min(width * .45, axisLabelWidth));
   const top = 18;
   const right = 12;
   const bottom = 34;
-  const plotWidth = Math.max(80, width - left - right);
-  const plotHeight = Math.max(70, height - top - bottom - 30);
+  const plotWidth = Math.max(1, width - left - right);
+  const plotHeight = Math.max(1, height - top - bottom - 30);
   const showYGrid = booleanAttribute(attributes, "showYGrid", true);
   const showXGrid = booleanAttribute(attributes, "showXGrid", true);
-  const count = Math.max(categories.length, ...series.map((item) => Math.max(item.values.length, item.points.length)), ...lineSeries.map((item) => Math.max(item.values.length, item.points.length)), 1);
-  const gridLine = (x1, y1, x2, y2) => `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" class="guide-chart-grid" stroke-dasharray="1 9" stroke-opacity="0.55"/>`;
-  const grid = Array.from({ length: 5 }, (_item, index) => {
-    if (isBar) {
-      const x = left + index * plotWidth / 4;
-      const value = xMin + (xMax - xMin) * index / 4;
-      return `${showXGrid ? gridLine(x, top, x, top + plotHeight) : ""}<text x="${x}" y="${top + plotHeight + 21}" text-anchor="middle" class="guide-chart-axis-label">${formatChartNumber(value)}${escapeHtml(attr(attributes, "xAxisUnit") || "")}</text>`;
-    }
-    const y = top + plotHeight - index * plotHeight / 4;
-    const value = yMin + (yMax - yMin) * index / 4;
-    return `${showYGrid ? gridLine(left, y, left + plotWidth, y) : ""}<text x="${left - 7}" y="${y + 4}" text-anchor="end" class="guide-chart-axis-label">${formatChartNumber(value)}${escapeHtml(attr(attributes, "yAxisUnit") || "")}</text>`;
-  }).join("");
+  const xGridColor = colorValue(attr(attributes, "xGridColor"), "var(--preview-chart-grid)");
+  const yGridColor = colorValue(attr(attributes, "yGridColor"), "var(--preview-chart-grid)");
+  const gridLine = (x1, y1, x2, y2) => `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" class="guide-chart-grid" style="stroke:${x1 === x2 ? xGridColor : yGridColor}" stroke-dasharray="1 9" stroke-opacity="0.55"/>`;
+  const renderNumericTicks = (axis, min, max, step, format, showGrid) => {
+    const vertical = axis === "y";
+    let nextLabelEdge = -Infinity;
+    return chartTicks(min, max, step).map((value) => {
+      const ratio = chartRatio(value, min, max);
+      const x = vertical ? left : left + ratio * plotWidth;
+      const y = vertical ? top + (1 - ratio) * plotHeight : top + plotHeight;
+      const grid = showGrid ? vertical ? gridLine(left, y, left + plotWidth, y) : gridLine(x, top, x, y) : "";
+      const label = format(value);
+      const extent = vertical ? 12 : chartLabelWidth(label);
+      const center = vertical ? -y : x;
+      if (center - extent / 2 < nextLabelEdge) return grid;
+      nextLabelEdge = center + extent / 2 + 4;
+      return `${grid}<text x="${vertical ? left - 7 : x}" y="${vertical ? y + 4 : y + 21}" text-anchor="${vertical ? "end" : "middle"}" class="guide-chart-axis-label">${escapeHtml(label)}</text>`;
+    }).join("");
+  };
+  const grid = isBar ? renderNumericTicks("x", xMin, xMax, xStep, formatX, showXGrid)
+    : renderNumericTicks("y", yMin, yMax, yStep, formatY, showYGrid);
   const categoryLabels = isBar
     ? Array.from({ length: count }, (_item, index) => {
       const y = top + (index + .5) * plotHeight / count;
       return `${showYGrid ? gridLine(left, y, left + plotWidth, y) : ""}<text x="${left - 7}" y="${y + 4}" text-anchor="end" class="guide-chart-axis-label">${escapeHtml(categories[index] || String(index + 1))}</text>`;
     }).join("")
     : numericX
-    ? Array.from({ length: 5 }, (_item, index) => `${showXGrid ? gridLine(left + index * plotWidth / 4, top, left + index * plotWidth / 4, top + plotHeight) : ""}<text x="${left + index * plotWidth / 4}" y="${top + plotHeight + 21}" text-anchor="middle" class="guide-chart-axis-label">${formatChartNumber(xMin + (xMax - xMin) * index / 4)}</text>`).join("")
+    ? renderNumericTicks("x", xMin, xMax, xStep, formatX, showXGrid)
     : Array.from({ length: count }, (_item, index) => `${showXGrid ? gridLine(left + (index + .5) * plotWidth / count, top, left + (index + .5) * plotWidth / count, top + plotHeight) : ""}<text x="${left + (index + .5) * plotWidth / count}" y="${top + plotHeight + 21}" text-anchor="middle" class="guide-chart-axis-label">${escapeHtml(categories[index] || String(index + 1))}</text>`).join("");
   const labelPosition = String(attr(attributes, "labelPosition") || "none").toLowerCase();
   const xAxisLabel = attr(attributes, "xAxisLabel", "xLabel");
   const yAxisLabel = attr(attributes, "yAxisLabel", "yLabel");
   const axisLabels = `${xAxisLabel ? `<text x="${left + plotWidth / 2}" y="${top + plotHeight + 32}" text-anchor="middle" class="guide-chart-axis-label guide-chart-axis-title">${escapeHtml(xAxisLabel)}${attr(attributes, "xAxisUnit") ? ` (${escapeHtml(attr(attributes, "xAxisUnit"))})` : ""}</text>` : ""}${yAxisLabel ? `<text x="12" y="${top + plotHeight / 2}" text-anchor="middle" transform="rotate(-90 12 ${top + plotHeight / 2})" class="guide-chart-axis-label guide-chart-axis-title">${escapeHtml(yAxisLabel)}${attr(attributes, "yAxisUnit") ? ` (${escapeHtml(attr(attributes, "yAxisUnit"))})` : ""}</text>` : ""}`;
   let marks = "";
-  const renderLines = (items) => items.map((item) => {
-    const points = item.points.length ? item.points : item.values.map((value, index) => ({ x: index, y: value }));
-    const xPosition = (point) => numericX ? left + (point.x - xMin) / Math.max(1e-9, xMax - xMin) * plotWidth : left + (point.x + .5) * plotWidth / count;
-    const yPosition = (point) => top + (yMax - point.y) / Math.max(1e-9, yMax - yMin) * plotHeight;
+  const clipPlot = (content) => `<svg x="${left}" y="${top}" width="${plotWidth}" height="${plotHeight}" viewBox="${left} ${top} ${plotWidth} ${plotHeight}" overflow="hidden">${content}</svg>`;
+  const renderLines = (items) => clipPlot(items.map((item) => {
+    const points = numericX ? item.points : item.values.map((value, index) => ({ x: index, y: value }));
+    const xPosition = (point) => isBar ? left + chartRatio(point.y, xMin, xMax) * plotWidth : numericX ? left + chartRatio(point.x, xMin, xMax) * plotWidth : left + (point.x + .5) * plotWidth / count;
+    const yPosition = (point) => isBar ? top + (point.x + .5) * plotHeight / count : top + (1 - chartRatio(point.y, yMin, yMax)) * plotHeight;
     const path = points.map((point, index) => `${index ? "L" : "M"} ${xPosition(point)} ${yPosition(point)}`).join(" ");
     const pointString = points.map((point) => `${xPosition(point)},${yPosition(point)}`).join(" ");
     const line = chartName === "scatterchart" ? "" : `<path class="guide-chart-shape guide-chart-line" data-chart-series="${escapeHtml(item.name)}" d="${path}" fill="none" stroke="${item.color}" stroke-width="2"><title>${escapeHtml(item.name)}</title></path>`;
     const dots = booleanAttribute(attributes, "showPoints", true) ? points.map((point) => `<circle class="guide-chart-shape guide-chart-point" cx="${xPosition(point)}" cy="${yPosition(point)}" r="3.8" fill="${item.color}" stroke="var(--preview-chart-bg)" stroke-width=".8"><title>${escapeHtml(item.name)}: ${point.y}</title></circle>`).join("") : "";
     const polyline = pointString ? `<polyline class="guide-chart-shape" data-plot-label="${escapeHtml(item.name)}" points="${pointString}" fill="none" stroke="transparent" stroke-width="10"/>` : "";
     return line + polyline + dots;
-  }).join("");
+  }).join(""));
   if (isLine) {
     marks = renderLines(series);
   } else if (isBar) {
@@ -524,38 +553,108 @@ function renderCartesian(name, children, width, height, attributes) {
     const barHeight = Math.max(4, groupHeight * .72 / Math.max(1, series.length));
     marks = series.map((item, seriesIndex) => item.values.map((value, index) => {
       const y = top + index * groupHeight + groupHeight * .14 + seriesIndex * barHeight;
-      const barWidth = Math.max(0, (value - Math.min(0, xMin)) / Math.max(1e-9, xMax - Math.min(0, xMin)) * plotWidth);
-      const label = labelPosition !== "none" ? `<text x="${left + barWidth + 4}" y="${y + barHeight / 2 + 3}" class="guide-chart-value-label">${formatChartNumber(value)}</text>` : "";
-      return `<rect class="guide-chart-shape guide-chart-bar" x="${left}" y="${y}" width="${barWidth}" height="${barHeight - 2}" rx="2" fill="${item.color}"><title>${escapeHtml(item.name)}: ${value}</title></rect>${label}`;
-    }).join("")).join("");
+      const baseline = left + chartRatio(Math.max(xMin, Math.min(xMax, 0)), xMin, xMax) * plotWidth;
+      const end = left + chartRatio(Math.max(xMin, Math.min(xMax, value)), xMin, xMax) * plotWidth;
+      const barWidth = Math.abs(end - baseline);
+      const label = labelPosition !== "none" ? `<text x="${end + (value < 0 ? -4 : 4)}" y="${y + barHeight / 2 + 3}" text-anchor="${value < 0 ? "end" : "start"}" class="guide-chart-value-label">${formatChartNumber(value)}</text>` : "";
+      return `<rect class="guide-chart-shape guide-chart-bar" x="${Math.min(baseline, end)}" y="${y}" width="${barWidth}" height="${barHeight - 2}" rx="2" fill="${item.color}"><title>${escapeHtml(item.name)}: ${value}</title></rect>${label}`;
+    }).join("")).join("") + renderLines(lineSeries);
   } else {
     const groupWidth = plotWidth / count;
     const barWidth = Math.max(4, groupWidth * .72 / Math.max(1, series.length));
     marks = series.map((item, seriesIndex) => item.values.map((value, index) => {
       const x = left + index * groupWidth + groupWidth * .14 + seriesIndex * barWidth;
-      const zeroY = top + (yMax - 0) / Math.max(1e-9, yMax - yMin) * plotHeight;
-      const valueY = top + (yMax - value) / Math.max(1e-9, yMax - yMin) * plotHeight;
+      const zeroY = top + (1 - chartRatio(Math.max(yMin, Math.min(yMax, 0)), yMin, yMax)) * plotHeight;
+      const valueY = top + (1 - chartRatio(Math.max(yMin, Math.min(yMax, value)), yMin, yMax)) * plotHeight;
       const y = Math.min(zeroY, valueY);
       const label = labelPosition !== "none" ? `<text x="${x + (barWidth - 2) / 2}" y="${labelPosition === "below" ? Math.max(zeroY, valueY) + 12 : Math.min(zeroY, valueY) - 4}" text-anchor="middle" class="guide-chart-value-label">${formatChartNumber(value)}</text>` : "";
       return `<rect class="guide-chart-shape guide-chart-column" x="${x}" y="${y}" width="${barWidth - 2}" height="${Math.max(0, Math.abs(zeroY - valueY))}" rx="2" fill="${item.color}"><title>${escapeHtml(item.name)}: ${value}</title></rect>${label}`;
     }).join("")).join("") + (lineSeries.length ? renderLines(lineSeries) : "");
   }
   const legend = [...new Map([...series, ...lineSeries].map((item) => [item.name, item])).values()].map((item) => `<span class="guide-chart-legend"><i style="background:${item.color}"></i>${escapeHtml(item.name)}</span>`).join("");
-  const legendPosition = String(attr(attributes, "legend") || "top").toLowerCase();
+  const legendPosition = chartLegendPosition(attributes);
   const legendMarkup = legendPosition === "none" ? "" : `<div class="guide-chart-legend-row guide-chart-legend-${legendPosition}">${legend}</div>`;
   const cornerLegend = renderCornerLegend(attributes, [...new Map([...series, ...lineSeries].map((item) => [item.name, item])).values()], width, height);
   const insetMarkup = children.insets.map((inset) => renderPieInset(inset, width, height)).join("");
   const references = children.references.filter((line) => isBar ? line.x >= xMin && line.x <= xMax : line.y >= yMin && line.y <= yMax).map((line) => {
     if (isBar) {
-      const x = left + (line.x - xMin) / Math.max(1e-9, xMax - xMin) * plotWidth;
-      const label = line.label ? `<text class="guide-chart-reference-label" x="${x}" y="${top + plotHeight + 12}" text-anchor="middle" fill="${line.color}" font-size="10">${escapeHtml(line.label)}</text>` : "";
+      const x = left + chartRatio(line.x, xMin, xMax) * plotWidth;
+      const labelX = Math.max(left + 4, Math.min(x + 4, left + plotWidth - line.label.length * 6 - 4));
+      const label = line.label ? `<text class="guide-chart-reference-label" x="${labelX}" y="${top + 13}" fill="${line.color}" font-size="10">${escapeHtml(line.label)}</text>` : "";
       return `<line class="guide-chart-reference" x1="${x}" y1="${top}" x2="${x}" y2="${top + plotHeight}" stroke="${line.color}" stroke-width="1" stroke-dasharray="4 3"/>${label}`;
     }
-    const y = top + (yMax - line.y) / Math.max(1e-9, yMax - yMin) * plotHeight;
-    const label = line.label ? `<text class="guide-chart-reference-label" x="${left - 7}" y="${y + 4}" text-anchor="end" fill="${line.color}" font-size="10">${escapeHtml(line.label)}</text>` : "";
+    const y = top + (1 - chartRatio(line.y, yMin, yMax)) * plotHeight;
+    const label = line.label ? `<text class="guide-chart-reference-label" x="${left + 4}" y="${Math.max(top + 12, y - 3)}" fill="${line.color}" font-size="10">${escapeHtml(line.label)}</text>` : "";
     return `<line class="guide-chart-reference" x1="${left}" y1="${y}" x2="${left + plotWidth}" y2="${y}" stroke="${line.color}" stroke-width="1" stroke-dasharray="4 3"/>${label}`;
   }).join("");
-  return `${legendPosition === "top" ? legendMarkup : ""}<svg class="guide-chart-svg" viewBox="0 0 ${width} ${height - 30}" role="img">${grid}${marks}${references}${categoryLabels}${axisLabels}${cornerLegend}${insetMarkup}</svg>${legendPosition === "top" ? "" : legendMarkup}`;
+  return `${legendPosition === "top" ? legendMarkup : ""}<svg class="guide-chart-svg" viewBox="0 0 ${width} ${height - 30}" role="img">${grid}${marks}${clipPlot(references)}${categoryLabels}${axisLabels}${cornerLegend}${insetMarkup}</svg>${legendPosition === "top" ? "" : legendMarkup}`;
+}
+
+function chartLabelWidth(label) {
+  let width = 0;
+  for (const character of label) width += character.codePointAt(0) < 256 ? 6 : 9;
+  return width;
+}
+
+function chartRange(attributes, axis, low, high) {
+  if (!Number.isFinite(low) || !Number.isFinite(high) || low > high) { low = 0; high = 1; }
+  if (low === high) {
+    if (low === 0) high = 1;
+    else {
+      const padding = Math.max(Math.abs(low) * .5, Number.MIN_VALUE);
+      if (Number.isFinite(low - padding)) low -= padding;
+      if (Number.isFinite(high + padding)) high += padding;
+    }
+  }
+  const explicit = (suffix) => {
+    const raw = attr(attributes, `${axis}Axis${suffix}`);
+    const value = raw === undefined || String(raw).trim() === "" || typeof raw === "boolean" ? NaN : Number(raw);
+    return Number.isFinite(value) ? value : null;
+  };
+  const explicitMin = explicit("Min"), explicitMax = explicit("Max"), explicitStep = explicit("Step");
+  low = explicitMin ?? low;
+  high = explicitMax ?? high;
+  const range = niceChartNumber(high - low, false);
+  const step = explicitStep > 0 ? explicitStep : niceChartNumber(Number.isFinite(range) ? range / 5 : high / 5 - low / 5, true);
+  let min = explicitMin ?? Math.floor(low / step) * step;
+  let max = explicitMax ?? Math.ceil(high / step) * step;
+  if (!Number.isFinite(min)) min = low;
+  if (!Number.isFinite(max)) max = high;
+  if (max <= min) {
+    const increment = Math.max(step, Number.EPSILON * Math.abs(min), Number.MIN_VALUE);
+    max = min + increment;
+    if (!Number.isFinite(max)) { max = min; min -= increment; }
+  }
+  return [min, max, step];
+}
+
+function niceChartNumber(value, round) {
+  if (value <= 0) return 1;
+  const scale = 10 ** Math.floor(Math.log10(value));
+  if (scale === 0 || !Number.isFinite(scale)) return value;
+  const fraction = value / scale;
+  const factor = round ? fraction < 1.5 ? 1 : fraction < 3 ? 2 : fraction < 7 ? 5 : 10
+    : fraction <= 1 ? 1 : fraction <= 2 ? 2 : fraction <= 5 ? 5 : 10;
+  const result = factor * scale;
+  return Number.isFinite(result) ? result : value;
+}
+
+function chartRatio(value, min, max) {
+  const span = max - min;
+  return Number.isFinite(span) ? (value - min) / span : (value / 2 - min / 2) / (max / 2 - min / 2);
+}
+
+function chartTicks(min, max, requestedStep) {
+  const span = max - min;
+  let step = Number(requestedStep);
+  if (!Number.isFinite(step) || step <= 0) step = max / 4 - min / 4;
+  const minimumStep = Math.max(max / 255 - min / 255, Number.EPSILON * Math.max(Math.abs(min), Math.abs(max)), Number.MIN_VALUE);
+  if (step < minimumStep) {
+    const scaledStep = Math.ceil(minimumStep / step) * step;
+    step = Number.isFinite(scaledStep) ? scaledStep : minimumStep;
+  }
+  const count = Math.min(256, Math.floor((Number.isFinite(span) ? span / step : max / step - min / step) + 1e-9) + 1);
+  return Array.from({ length: count }, (_item, index) => Math.min(max, Number.isFinite(span) ? min + step * index : (min / 2 + step / 2 * index) * 2));
 }
 
 function renderCornerLegend(attributes, series, width = 320, height = 200) {
