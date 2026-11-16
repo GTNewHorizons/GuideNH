@@ -267,6 +267,8 @@ GuideNH のシーン注釈は `<GameScene>` / `<Scene>` 内の子タグです。
 
 `item` または `fluid` のどちらか一方を指定します。流体には任意の `amount`（整数）と `nbt`（SNBT）を指定できます。これらは `fluid` がある場合だけ使用できます。位置、`inputType`、修飾キー、StructureLib の表示条件も指定できます。
 
+流体のホバー情報には名前、温度、気体・液体の状態が表示されます。GregTech が読み込まれている場合、GT の設定に従った素材情報も表示されます。数量を明示すると、選択した L/mB 単位が使われます。ExportSite の入力注釈にも同じ情報がブラウザーのホバーヒントとして保持され、書式付きの数量が表示されます。
+
 ```md
 <GameScene>
   <Block id="minecraft:glass" />

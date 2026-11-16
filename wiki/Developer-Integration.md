@@ -34,6 +34,10 @@ Here `renderer` is your implementation and `id` is the guide ID. Custom renderer
 
 The render context provides `defaultNamespace`, `currentPageId`, `templates`, `sceneResolver` and `compiler` for page-relative resources and shared export services.
 
+## Extend fluid tooltips
+
+Implement `FluidTooltipProvider.appendTooltip(FluidStack, List<String>)` and register it during client initialization with `GuideNhClientIntegrationRegistry.global().registerFluidTooltipProvider(provider)`. Providers append material information after the fluid name; GuideNH adds quantity, temperature, state and optional advanced registry information. Each provider receives an independent stack and an empty list. A failing provider contributes no partial lines and does not prevent the remaining providers or default details from running. Keep lookups inexpensive and avoid storing mutable stacks. GregTech material tooltips use this API without requiring NEI.
+
 ## Extend debug information
 
 Implement `DebugInfoExtractor` with `canHandle(LytNode)`, `extract(LytNode, HoveredElementInfo)` and an optional `getPriority()`. The first matching extractor handles a node; higher priorities run first.

@@ -300,6 +300,8 @@ GuideNH 会在每个轴上自动交换反向提供的 min/max 坐标。
 
 InputAnnotation 可以指定 `item` 或 `fluid`，不能同时填写。流体目标可选填 `amount`（非负整数）和 `nbt`（SNBT），这两个参数要求同时提供 `fluid`。位置、inputType、modifier 与 StructureLib 可见条件沿用现有规则。
 
+流体悬停信息包含名称、温度和气体/液体状态，加载 GregTech 时还会显示按 GT 设置生成的材料提示。显式数量遵循 L/mB 单位设置。ExportSite 的输入标注保留相同文字作为浏览器悬停提示，并保留格式化后的数量。
+
 ```mdx
 <GameScene width="180" height="120">
   <Block x="0" y="0" z="0" id="minecraft:stone" />

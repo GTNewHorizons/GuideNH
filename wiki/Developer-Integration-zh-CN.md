@@ -34,6 +34,10 @@ Guide.builder(id).extension(GuideSiteTagRenderer.EXTENSION_POINT, renderer).buil
 
 渲染上下文提供 `defaultNamespace`、`currentPageId`、`templates`、`sceneResolver`、`compiler`，用于页面相对资源与共享导出服务。
 
+## 扩展流体提示
+
+实现 `FluidTooltipProvider.appendTooltip(FluidStack, List<String>)`，在客户端初始化时调用 `GuideNhClientIntegrationRegistry.global().registerFluidTooltipProvider(provider)` 注册。提供者在流体名称后追加材料信息，数量、温度、状态和可选的高级注册名由 GuideNH 添加。每个提供者收到独立的流体栈和空列表；提供者失败时不会保留其未完成的提示，也不会阻止其余提供者和默认信息。查询应保持轻量，不要保存可变流体栈。GregTech 材料提示通过此 API 接入，无需 NEI。
+
 ## 扩展调试信息
 
 实现 `DebugInfoExtractor` 的 `canHandle(LytNode)`、`extract(LytNode, HoveredElementInfo)`，并按需覆盖 `getPriority()`。优先级越高越早检查，第一个匹配的提取器处理该节点。
