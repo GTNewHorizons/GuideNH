@@ -1,12 +1,11 @@
 # 结构导出
 
-## 中文
 
 `/exportStructure` 用于把 StructureLib 预览或 GuideNH 已加载的 GameScene 导出为 PNG 截图。指令只在客户端注册。`structureLib` 子指令只有在检测到 StructureLib 已加载时才能使用。
 
 导出使用正交渲染。输出分辨率会随着结构或场景大小变化，但配置的方块比例保持稳定。默认比例为每个方块 `128` 像素。
 
-### 指令格式
+## 指令格式
 
 ```text
 /exportStructure structureLib [controller] [options...]
@@ -22,7 +21,7 @@
 
 `gameScene` 不使用位置参数，会导出当前已加载 guide 中编译出的全部 GameScene。
 
-### 通用参数
+## 通用参数
 
 | 参数 | 说明 |
 | --- | --- |
@@ -40,7 +39,7 @@
 | `--dry-run` | 只生成计划和 manifest，不写 PNG。 |
 | `--config <file>` / `@file.json` | 读取 JSON 配置。 |
 
-### StructureLib 参数
+## StructureLib 参数
 
 | 参数 | 说明 |
 | --- | --- |
@@ -53,7 +52,7 @@
 | `--gt-active-controller` | 仅 GregTech。尽可能把控制器渲染为机器运行中的纹理。 |
 | `--gt-place-hatches` | 仅 GregTech。启用正常 GT Hatch channel 逻辑来放置只允许 Hatch 的预览位置；省略时默认仍优先 fallback casing。 |
 
-### GameScene 参数
+## GameScene 参数
 
 | 参数 | 说明 |
 | --- | --- |
@@ -62,7 +61,7 @@
 
 GameScene 模式默认尊重每个场景自己配置的相机。只有使用 `--view`、`--yaw`、`--pitch`、`--roll`、`--rotateX`、`--rotateY` 或 `--rotateZ` 时，才会切换为自动适配导出视角。
 
-### 数字过滤
+## 数字过滤
 
 `--tier`、`--channel` 和 `--layers` 都使用同一种数字过滤语法。
 
@@ -75,7 +74,7 @@ GameScene 模式默认尊重每个场景自己配置的相机。只有使用 `--
 
 `0` 匹配单个值，`0-12` 匹配闭区间，`!` 用于排除，逗号用于组合多个 token。
 
-### 层
+## 层
 
 `--layers all` 会把完整结构或场景导出为一张图。
 
@@ -85,7 +84,7 @@ GameScene 模式默认尊重每个场景自己配置的相机。只有使用 `--
 
 按层过滤渲染时会强制渲染暴露方块面，避免相邻层隐藏后出现缺面。
 
-### StructureLib Tier 和 Channel
+## StructureLib Tier 和 Channel
 
 当省略 `--tier` 和 `--channel` 时，导出器会分析控制器，并按可用的统一 tier 每个导出一张图。统一 tier 会同时应用到主 tier 和每个发现的 StructureLib channel。自动统一 tier 导出每个控制器/朝向最多 100 张。
 
@@ -97,7 +96,7 @@ GameScene 模式默认尊重每个场景自己配置的相机。只有使用 `--
 /exportStructure structureLib gregtech:gt.blockmachines:1234 --tier 1,2 --channel coil=1-4 --channel casing=1,2
 ```
 
-### GregTech 选项
+## GregTech 选项
 
 默认情况下，GregTech 集成会把可选 Hatch 位置保留为正常 fallback casing。强制 Hatch 元素，例如 Muffler 位置，仍会渲染为指定 Hatch。
 
@@ -105,7 +104,7 @@ GameScene 模式默认尊重每个场景自己配置的相机。只有使用 `--
 
 当控制器需要显示机器运行中的纹理时，使用 `--gt-active-controller`。导出器仍会同步预览状态，但不会把机器检查失败当作截图失败。
 
-### 朝向
+## 朝向
 
 批量语法：
 
@@ -121,7 +120,7 @@ GameScene 模式默认尊重每个场景自己配置的相机。只有使用 `--
 
 两种形式可以一起使用。当 StructureLib alignment limits 拒绝某个组合时，该组合会被跳过。没有指定朝向时使用控制器默认值。
 
-### 视角
+## 视角
 
 支持的预设包括：
 
@@ -138,7 +137,7 @@ top
 --view isometric-south-east --yaw 315 --pitch 30 --roll 0
 ```
 
-### JSON 配置
+## JSON 配置
 
 StructureLib 示例：
 
@@ -193,7 +192,7 @@ GameScene 示例：
 
 相对配置路径会从当前工作目录和 `config/guidenh/structure_exports/` 查找。
 
-### 输出和 Manifest
+## 输出和 Manifest
 
 每个导出目录包含 PNG 文件和 `manifest.json`。
 
@@ -203,7 +202,7 @@ GameScene 图片名包含 guide ID、page ID、scene 序号、layers、相机模
 
 文件名会按 Windows 规则安全化。`manifest.json` 会记录输出路径、图片尺寸、选择的变体、warnings 和 errors。
 
-### 性能
+## 性能
 
 默认情况下，导出计划超过 256 张截图会被拒绝，除非使用 `--force`。
 

@@ -6,7 +6,7 @@ GuideNH отображает интерактивный индикатор вы�
 
 ## Быстрый старт
 
-1. Создайте файл Ponder JSON и поместите его в пакет ресурсов (см. [Размещение файла](#file-placement)).
+1. Создайте файл Ponder JSON и поместите его в пакет ресурсов (см. [Размещение файла](#размещение-файла)).
 2. добавьте `<ImportPonder src="..."/>` внутри блока `<GameScene>` рядом с `<ImportStructure>`.
 
 ```mdx
@@ -24,10 +24,10 @@ GuideNH отображает интерактивный индикатор вы�
 Подумайте, файлы JSON следуют тем же правилам пути к пакету ресурсов, что и структуры SNBT:
 
 ```
-assets/<modid>/guidebooks/
-  pages/machines/my_machine.mdx       <- guide page
-  pages/machines/my_machine.snbt      <- structure data
-  pages/machines/my_machine.json      <- Ponder JSON
+assets/<modid>/guidenh/
+  _en_us/machines/my_machine.md       <- guide page
+  _en_us/machines/my_machine.snbt      <- structure data
+  _en_us/machines/my_machine.json      <- Ponder JSON
 ```
 
 Атрибут `src` принимает как относительные, так и абсолютные идентификаторы:
@@ -35,7 +35,7 @@ assets/<modid>/guidebooks/
 | Пример | решено как |
 |---------|-------------|
 | `src="my_machine.json"` | относительно каталога текущей страницы. |
-| `src="mymod:guidebooks/pages/machines/my_machine.json"` | Абсолют (пространство имен `mymod`) |
+| `src="mymod:guidenh/_en_us/machines/my_machine.json"` | Абсолют (пространство имен `mymod`) |
 
 ## Формат JSON
 
@@ -793,9 +793,9 @@ assets/<modid>/guidebooks/
 
 ```
 assets/mymod/guidebooks/
-  pages/machines/grinder.mdx
-  pages/machines/grinder.snbt
-  pages/machines/grinder.json
+  _en_us/machines/grinder.md
+  _en_us/machines/grinder.snbt
+  _en_us/machines/grinder.json
 ```
 
 ### `grinder.json`
@@ -905,10 +905,9 @@ assets/mymod/guidebooks/
 
 ### `grinder.snbt`
 
-стандартный файл структуры NBT (созданный с помощью команды `/structure save` или такого инструмента, как
-Litematica). Полный справочник по формату SNBT см. в разделе «Начало работы» (`Guide-Page-Format`).
+Используйте структуру SNBT/NBT, поддерживаемую `<ImportStructure>`. Форматы описаны в [GameScene](GameScene#importstructure).
 
-### `grinder.mdx`
+### `grinder.md`
 
 ```mdx
 # Grinder

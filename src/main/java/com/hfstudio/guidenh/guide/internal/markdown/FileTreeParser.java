@@ -159,6 +159,8 @@ public class FileTreeParser {
             kind = FileTreeIconKind.PNG;
         } else if ("iconItem".equalsIgnoreCase(key) || "icon_item".equalsIgnoreCase(key)) {
             kind = FileTreeIconKind.ITEM;
+        } else if ("iconFluid".equalsIgnoreCase(key) || "icon_fluid".equalsIgnoreCase(key)) {
+            kind = FileTreeIconKind.FLUID;
         } else {
             return null;
         }
@@ -194,7 +196,8 @@ public class FileTreeParser {
     public enum FileTreeIconKind {
         TEXT,
         PNG,
-        ITEM
+        ITEM,
+        FLUID
     }
 
     public record FileTreeIcon(FileTreeIconKind kind, String value) {}

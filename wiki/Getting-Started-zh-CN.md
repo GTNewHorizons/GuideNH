@@ -47,7 +47,7 @@ wiki/resourcepack/assets/guidenh/guidenh/
 
 ## 指南发现机制
 
-GuideNH 现在会直接从资源树中发现页面。凡是位于
+GuideNH 从资源树中发现页面。凡是位于
 `assets/<modid>/guidenh/_<lang>/...` 下的 Markdown 文件，都会被视为 `<modid>:guidenh` 这本指南的一部分。
 `index.md` 仍然是约定俗成的起始页，也是推荐的开始位置。
 

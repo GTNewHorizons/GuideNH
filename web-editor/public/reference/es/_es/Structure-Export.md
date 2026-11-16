@@ -1,15 +1,13 @@
-# estructura Export
+# Exportación de estructuras
+
+La referencia detallada de esta página está disponible en inglés. Los nombres de etiquetas, atributos, identificadores y rutas se utilizan sin traducir.
 
 
-Esta documentación describe la sintaxis y las funciones de ejecución de GuideNH. El código, las etiquetas, las rutas, los identificadores y los valores de atributos se conservan sin cambios.
+`/exportStructure` exports PNG screenshots from either StructureLib previews or loaded GuideNH GameScene blocks. The command is client-side. The `structureLib` subcommand is available only when StructureLib is loaded.
 
-## English
+The exporter uses orthographic rendering. Output size may change with the structure or scene size, while the configured block scale stays stable. The default scale is 128 pixels per block.
 
-`/exportStructure` exports PNG screenshots de cualquiera StructureLib previews o cargado GuideNH GameScene bloques. El command es client-lado. El `structureLib` subcommand es disponible solo cuando StructureLib es cargado.
-
-El exporter usa orthographic renderizado. salida tamaño puede cambiar con El estructura o escena tamaño, mientras El configured bloque scale stays stable. El predeterminado scale es 128 píxeles per bloque.
-
-### Command Forms
+## Command Forms
 
 ```text
 /exportStructure structureLib [controller] [options...]
@@ -21,53 +19,53 @@ El exporter usa orthographic renderizado. salida tamaño puede cambiar con El es
 /exportStructure gameScene --config file.json
 ```
 
-para `structureLib`, `controller` usa `modid:name` o `modid:name:meta`. cuando omitido, El exporter attempts Un discover todos StructureLib controllers.
+For `structureLib`, `controller` uses `modid:name` or `modid:name:meta`. When omitted, the exporter attempts to discover all StructureLib controllers.
 
-para `gameScene`, no positional selector es usado. It exports cada GameScene compilado de El actualmente cargado guías.
+For `gameScene`, no positional selector is used. It exports every GameScene compiled from the currently loaded guides.
 
-### Shared parámetros
+## Shared Parameters
 
-| parámetro | descripción |
+| Parameter | Description |
 | --- | --- |
-| `--out <dir>` | salida directorio. predeterminados a `screenshots/structurelib/<timestamp>/` o `screenshots/gameScene/<timestamp>/`. |
-| `--pixelsPerBlock <int>` | píxel density per mundo bloque. predeterminado: `128`. |
+| `--out <dir>` | Output directory. Defaults to `screenshots/structurelib/<timestamp>/` or `screenshots/gameScene/<timestamp>/`. |
+| `--pixelsPerBlock <int>` | Pixel density per world block. Default: `128`. |
 | `--scale <float>` | Multiplies `pixelsPerBlock`. |
-| `--layers <expr\|each\|all>` | Layer visibilidad. predeterminado: `all`. |
-| `--view <preset>` | cámara preset. StructureLib predeterminado: `isometric-south-east`. GameScene predeterminado: El escena's propio cámara. |
-| `--yaw <deg>` / `--pitch <deg>` / `--roll <deg>` | Fine cámara anular. en GameScene modo, cualquier explícito vista/rotación opción switches de El escena cámara Un fitted export cámara. |
-| `--rotateX <deg>` / `--rotateY <deg>` / `--rotateZ <deg>` | Compatibility aliases para cámara anular. |
-| `--background transparent\|dark\|#RRGGBB\|#AARRGGBB` | PNG fondo. predeterminado: `transparent`. |
-| `--maxPixels <long>` | Maximum píxel count para uno imagen. predeterminado: `655360000`. usar `-1` para no limit. |
-| `--batchSize <int>` | Flushes `manifest.json` después de esto many completed resultados. predeterminado: `16`. |
-| `--force` | permite más que 256 generado screenshots. |
-| `--dry-run` | Builds El plan y manifest sin writing PNG files. |
-| `--config <file>` / `@file.json` | carga JSON configuration. |
+| `--layers <expr\|each\|all>` | Layer visibility. Default: `all`. |
+| `--view <preset>` | Camera preset. StructureLib default: `isometric-south-east`. GameScene default: the scene's own camera. |
+| `--yaw <deg>` / `--pitch <deg>` / `--roll <deg>` | Fine camera override. In GameScene mode, any explicit view/rotation option switches from the scene camera to fitted export camera. |
+| `--rotateX <deg>` / `--rotateY <deg>` / `--rotateZ <deg>` | Compatibility aliases for camera override. |
+| `--background transparent\|dark\|#RRGGBB\|#AARRGGBB` | PNG background. Default: `transparent`. |
+| `--maxPixels <long>` | Maximum pixel count for one image. Default: `655360000`. Use `-1` for no limit. |
+| `--batchSize <int>` | Flushes `manifest.json` after this many completed results. Default: `16`. |
+| `--force` | Allows more than 256 generated screenshots. |
+| `--dry-run` | Builds the plan and manifest without writing PNG files. |
+| `--config <file>` / `@file.json` | Loads JSON configuration. |
 
-### StructureLib parámetros
+## StructureLib Parameters
 
-| parámetro | descripción |
+| Parameter | Description |
 | --- | --- |
-| `--tier <expr>` | Master tier valores. |
-| `--channel <name=expr>` | Named StructureLib channel valores. puede ser repeated. |
-| `--facing <list>` | Facing valores para bulk orientación export. |
-| `--rotation <list>` | rotación valores para bulk orientación export. |
-| `--flip <list>` | Flip valores para bulk orientación export. |
-| `--orientation <facing:rotation:flip,...>` | explícito orientación combinations. |
-| `--gt-active-controller` | GregTech solo. renderiza El controller con su active machine texture cuando possible. |
-| `--gt-place-hatches` | GregTech solo. Enables normal GT Hatch channel placement para Hatch-solo vista previa positions; reserva casing remains El predeterminado cuando omitido. |
+| `--tier <expr>` | Master tier values. |
+| `--channel <name=expr>` | Named StructureLib channel values. Can be repeated. |
+| `--facing <list>` | Facing values for bulk orientation export. |
+| `--rotation <list>` | Rotation values for bulk orientation export. |
+| `--flip <list>` | Flip values for bulk orientation export. |
+| `--orientation <facing:rotation:flip,...>` | Explicit orientation combinations. |
+| `--gt-active-controller` | GregTech only. Renders the controller with its active machine texture when possible. |
+| `--gt-place-hatches` | GregTech only. Enables normal GT Hatch channel placement for Hatch-only preview positions; fallback casing remains the default when omitted. |
 
-### GameScene parámetros
+## GameScene Parameters
 
-| parámetro | descripción |
+| Parameter | Description |
 | --- | --- |
-| `--show-annotations` | renderiza escena anotaciones, including en-mundo y overlay anotaciones. predeterminado: `false`. |
-| `--show-grid` | renderiza El escena floor grid. predeterminado: `false`. |
+| `--show-annotations` | Renders scene annotations, including in-world and overlay annotations. Default: `false`. |
+| `--show-grid` | Renders the scene floor grid. Default: `false`. |
 
-GameScene modo respects cada escena's propio configured cámara by predeterminado. usar `--view`, `--yaw`, `--pitch`, `--roll`, `--rotateX`, `--rotateY`, o `--rotateZ` cuando you want Un fitted export vista en su lugar.
+GameScene mode respects each scene's own configured camera by default. Use `--view`, `--yaw`, `--pitch`, `--roll`, `--rotateX`, `--rotateY`, or `--rotateZ` when you want a fitted export view instead.
 
-### Numeric Filters
+## Numeric Filters
 
-Numeric filters son usado by `--tier`, `--channel`, y `--layers`.
+Numeric filters are used by `--tier`, `--channel`, and `--layers`.
 
 ```text
 0
@@ -76,57 +74,57 @@ Numeric filters son usado by `--tier`, `--channel`, y `--layers`.
 !0,1
 ```
 
-`0` coincide uno valor. `0-12` coincide Un inclusive range. `!` excludes valores. Commas combine tokens.
+`0` matches one value. `0-12` matches an inclusive range. `!` excludes values. Commas combine tokens.
 
-### Layers
+## Layers
 
-`--layers all` exports El completo estructura o escena en uno imagen.
+`--layers all` exports the full structure or scene in one image.
 
-`--layers 0-12,!5` exports uno imagen where solo coincidente layers son visible.
+`--layers 0-12,!5` exports one image where only matching layers are visible.
 
-`--layers each` exports uno imagen para cada actual Y layer.
+`--layers each` exports one image for every actual Y layer.
 
-Layer-filtered renderizado forces exposed bloque faces Un renderizan so ocultas neighboring layers do no leave faltante faces.
+Layer-filtered rendering forces exposed block faces to render so hidden neighboring layers do not leave missing faces.
 
-### StructureLib Tiers y canales
+## StructureLib Tiers And Channels
 
-cuando `--tier` y `--channel` son omitido, El exporter inspects El controller y exports uno screenshot para cada disponible unified tier. El mismo tier valor es applied Un El master tier y cada discovered StructureLib channel. automático unified tier export es capped at 100 screenshots per controller/orientación.
+When `--tier` and `--channel` are omitted, the exporter inspects the controller and exports one screenshot for each available unified tier. The same tier value is applied to the master tier and every discovered StructureLib channel. Automatic unified tier export is capped at 100 screenshots per controller/orientation.
 
-cuando `--tier` es proporcionado y `--channel` es omitido, cada requested tier también drives cada discovered channel con El mismo valor, clamped Un cada channel's Compatible range.
+When `--tier` is provided and `--channel` is omitted, each requested tier also drives every discovered channel with the same value, clamped to each channel's supported range.
 
-cuando uno o más `--channel` opciones son proporcionado, those explícito channel valores son usado. varios explícito tier y channel valores son combined as Un Cartesian product.
+When one or more `--channel` options are provided, those explicit channel values are used. Multiple explicit tier and channel values are combined as a Cartesian product.
 
 ```text
 /exportStructure structureLib gregtech:gt.blockmachines:1234 --tier 1,2 --channel coil=1-4 --channel casing=1,2
 ```
 
-### GregTech opciones
+## GregTech Options
 
-GregTech integration mantiene opcional Hatch-capable positions as sus normal reserva casing by predeterminado. Forced Hatch elements, como Un Muffler posición, todavía renderizan as El requested Hatch.
+GregTech integration keeps optional Hatch-capable positions as their normal fallback casing by default. Forced Hatch elements, such as a Muffler position, still render as the requested Hatch.
 
-usar `--gt-place-hatches` cuando you want GT's normal StructureLib Hatch channel logic Un colocar obligatorio Hatches para vista previa-solo screenshots. para Ejemplo, Un element declared con `atLeast(InputHatch, OutputHatch, InputBus, OutputBus, Maintenance, Energy).buildAndChain(casing)` puede colocar El obligatorio Hatch previews y actualizar sus textures en su lugar of showing solo El reserva casing.
+Use `--gt-place-hatches` when you want GT's normal StructureLib Hatch channel logic to place required Hatches for preview-only screenshots. For example, an element declared with `atLeast(InputHatch, OutputHatch, InputBus, OutputBus, Maintenance, Energy).buildAndChain(casing)` can place the required Hatch previews and update their textures instead of showing only the fallback casing.
 
-usar `--gt-active-controller` cuando Un controller deberíUn renderizan con su active texture. El exporter todavía performs vista previa estado synchronization sin treating Un failed machine check as Un export failure.
+Use `--gt-active-controller` when a controller should render with its active texture. The exporter still performs preview state synchronization without treating a failed machine check as an export failure.
 
-### orientación
+## Orientation
 
-Bulk sintaxis:
+Bulk syntax:
 
 ```text
 --facing north,south --rotation normal,clockwise --flip none
 ```
 
-explícito sintaxis:
+Explicit syntax:
 
 ```text
 --orientation north:normal:none,south:clockwise:none
 ```
 
-ambos forms puede ser usado together. no válido combinations son skipped cuando StructureLib alignment limits reject ellos. Si no orientación es specified, El controller predeterminado es usado.
+Both forms can be used together. Invalid combinations are skipped when StructureLib alignment limits reject them. If no orientation is specified, the controller default is used.
 
-### Views
+## Views
 
-Compatible presets incluir:
+Supported presets include:
 
 ```text
 isometric-north-east
@@ -135,15 +133,15 @@ isometric-north-west
 top
 ```
 
-You puede refine cualquier preset:
+You can refine any preset:
 
 ```text
 --view isometric-south-east --yaw 315 --pitch 30 --roll 0
 ```
 
-### JSON Config
+## JSON Config
 
-StructureLib Ejemplo:
+StructureLib example:
 
 ```json
 {
@@ -169,7 +167,7 @@ StructureLib Ejemplo:
 }
 ```
 
-GameScene Ejemplo:
+GameScene example:
 
 ```json
 {
@@ -187,29 +185,29 @@ GameScene Ejemplo:
 }
 ```
 
-Run configs con:
+Run configs with:
 
 ```text
 /exportStructure structureLib @my_structurelib_export.json
 /exportStructure gameScene @my_gamescene_export.json
 ```
 
-relativo config paths son searched de El actual working directorio y `config/guidenh/structure_exports/`.
+Relative config paths are searched from the current working directory and `config/guidenh/structure_exports/`.
 
-### salida y Manifest
+## Output And Manifest
 
-cada export directorio contiene PNG files y `manifest.json`.
+Each export directory contains PNG files and `manifest.json`.
 
-StructureLib imagen names inicio con El controller elemento mostrar nombre. Variant suffixes incluir tier, canales, layers, orientación, y vista.
+StructureLib image names start with the controller item display name. Variant suffixes include tier, channels, layers, orientation, and view.
 
-GameScene imagen names incluir guíUn ID, página ID, escena index, layers, cámara modo, y opcional anotación/grid suffixes.
+GameScene image names include guide ID, page ID, scene index, layers, camera mode, and optional annotation/grid suffixes.
 
-Names son sanitized para Windows filename Reglas. El manifest records salida ruta, imagen tamaño, seleccionado variants, warnings, y errors.
+Names are sanitized for Windows filename rules. The manifest records output path, image size, selected variants, warnings, and errors.
 
-### Performance
+## Performance
 
-El command refuses plans sobre 256 screenshots salvo `--force` es present.
+The command refuses plans over 256 screenshots unless `--force` is present.
 
-By predeterminado, uno imagen no puede exceed `655360000` píxeles. esto predeterminado es sized de Un 200x100x200 class machine usando Un 128 píxeles-per-projected-bloque budget. Si Un giant estructura todavía needs más room, lower `--pixelsPerBlock` o `--scale`, crop con `--layers`, raise `--maxPixels`, o usar `--maxPixels -1` Un disable El píxel limit.
+By default, one image cannot exceed `655360000` pixels. If a giant structure still needs more room, lower `--pixelsPerBlock` or `--scale`, crop with `--layers`, raise `--maxPixels`, or use `--maxPixels -1` to disable the pixel limit.
 
-Large imágenes usar tiled framebuffer renderizado cuando Estas exceed El GPU texture tamaño.
+Large images use tiled framebuffer rendering when they exceed the GPU texture size.

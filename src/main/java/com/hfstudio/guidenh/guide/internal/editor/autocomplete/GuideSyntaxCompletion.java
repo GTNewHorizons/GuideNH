@@ -103,7 +103,7 @@ public class GuideSyntaxCompletion {
             if (results.size() >= limit) {
                 break;
             }
-            results.add(new TagCandidate(tagName, model.isContainerTag(tagName), model.insertTemplate(tagName)));
+            results.add(new TagCandidate(tagName, model.isContainerTag(tagName)));
         }
         return results;
     }

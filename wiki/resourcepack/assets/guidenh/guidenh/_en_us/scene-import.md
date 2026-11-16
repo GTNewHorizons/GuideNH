@@ -37,11 +37,10 @@ correctly:
 
 `facing`, `rotation`, and `flip` use the same orientation vocabulary as StructureLib export. If a
 controller rejects the requested combination, GuideNH automatically falls back to the first valid
-alignment. GregTech controller previews also default to the opposite horizontal facing from the
-older preview orientation, rotating the visible front by 180 degrees around the Y axis.
+alignment.
 
-Add `formed={false}` when a controller should remain unformed in preview even if the surrounding
-structure is otherwise valid. GregTech controllers are the main built-in example today.
+GregTech controllers remain unformed by default, even with a complete surrounding structure.
+Set `formed={true}` to show the formed state.
 
 Default unformed controller preview:
 

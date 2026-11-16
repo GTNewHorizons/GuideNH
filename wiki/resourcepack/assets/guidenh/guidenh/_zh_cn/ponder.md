@@ -82,7 +82,7 @@ sound event id, so `guidenh:sounds/guide/sample_hover.ogg` becomes `guidenh:guid
 
 可用 `hidden: true` 表示“有中间状态，但不新增可见节点”。这对两个主要可见关键帧之间插入额外的
 `modifyTileNBT` 步骤尤其有用。
-随包提供的 `/assets/ponder_demo.json` 现在也包含了一个隐藏的中间方块 NBT 更新示例。
+随包提供的 `/assets/ponder_demo.json` 包含一个隐藏的中间方块 NBT 更新示例。
 
 ---
 

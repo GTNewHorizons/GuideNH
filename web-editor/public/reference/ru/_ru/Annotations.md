@@ -19,6 +19,7 @@
 - `<DiamondAnnotation>`
 - `<OutlineAnnotation>`
 - `<TextAnnotation>`
+- `<InputAnnotation>`
 
 GuideNH также поддерживает `<BlockAnnotationTemplate>`, применяющий свои дочерние аннотации к каждому уже размещённому подходящему блоку текущей сцены.
 
@@ -301,6 +302,21 @@ GuideNH автоматически меняет местами минималь�
   <RecipeFor id="minecraft:furnace" />
 </DiamondAnnotation>
 ````
+
+## Жидкости в `<InputAnnotation>`
+
+Укажите `item` или `fluid`, но не оба. Для жидкости доступны необязательные `amount` (целое число) и `nbt` (SNBT); они требуют `fluid`. Положение, `inputType`, модификаторы и условия видимости StructureLib остаются доступными.
+
+Подсказка жидкости показывает название, температуру и состояние (газ или жидкость), а при наличии GregTech — сведения о материале согласно настройкам GT. Явно указанное количество использует выбранную единицу L/mB. Аннотации ввода ExportSite сохраняют тот же текст в подсказке браузера и форматированное количество.
+
+```md
+<GameScene>
+  <Block id="minecraft:glass" />
+  <InputAnnotation pos="0.5 1.5 0.5" inputType="rmb" fluid="water" amount={1000} />
+</GameScene>
+```
+
+Аннотация показывает значок взаимодействия и информацию о жидкости, не заполняя резервуар. Для жидкостных блоков используйте реальные ID блоков в `Block` / `PlaceBlock`.
 
 ## `<BlockAnnotationTemplate>`
 

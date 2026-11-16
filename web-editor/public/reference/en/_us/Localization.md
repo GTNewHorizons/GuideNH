@@ -24,7 +24,7 @@ wiki/resourcepack/assets/<modid>/guidenh/
     `-- index.md
 ```
 
-Language folders are recognized only in the underscored form. Plain folders such as `en_us/` and `zh_cn/` are no longer treated as localization roots.
+Language folders are recognized only in the underscored form. Use `_en_us/` and `_zh_cn/`, including the leading underscore.
 
 ## Page Lookup Order
 
@@ -87,11 +87,26 @@ Authoring rules:
 
 GuideNH does not synthesize pages from `.lang` alone. A real page file must still exist.
 
+## Templates And Language
+
+Template pages under a `templates/` folder follow the same language lookup order as any other page, so a
+template can have one file per language:
+
+```text
+_en_us/templates/InfoBox.md
+_zh_cn/templates/InfoBox.md
+```
+
+A template page can also be replaced by a `.lang` key like any other page. The key format appends the
+template path:
+
+```text
+guidenh.page.<namespace>.<folder>.templates.<name>
+```
+
 ## Key Length
 
-GuideNH does not impose an extra character limit on these page keys. On Minecraft 1.7.10 / Forge, the backing language
-data is effectively a string-property map, so the practical limits are normal memory usage and maintainability rather
-than a dedicated hard cap. Shorter page paths still make keys easier to author and review.
+GuideNH does not impose an extra character limit on these page keys. Shorter page paths still make keys easier to author and review.
 
 ## Authoring Advice
 
@@ -139,4 +154,5 @@ wiki/resourcepack/assets/guidenh/guidenh/_zh_cn/test1.png
 ## Related Pages
 
 - [Guide Page Format](Guide-Page-Format)
+- [Templates](Templates)
 - [Images And Assets](Images-And-Assets)

@@ -1,18 +1,37 @@
 # Examples
 
-GuideNH already ships a runtime example guide in `wiki/resourcepack/`. This page maps the important example files to the feature areas they demonstrate.
+GuideNH ships a runtime example guide in `wiki/resourcepack/`. This page maps the important example files to the feature areas they demonstrate.
 
 ## Core Example Pages
 
-| Runtime file | What it demonstrates |
+These files are in `wiki/resourcepack/assets/guidenh/guidenh/_en_us/`.
+
+| File | Purpose |
 | --- | --- |
-| `.../_en_us/index.md` | frontmatter, item ids, recipes, item/block images, command links, tooltips, scenes, annotations, `ImportStructureLib`, `RemoveBlocks`, `BlockAnnotationTemplate`, home-page recommendation example |
-| `.../_en_us/markdown.md` | plain markdown features, tables, and a `recommend: 0` example |
-| `.../_en_us/rendering.md` | block-level rendering and layout behavior |
-| `.../_en_us/scene-blocks.md` | static and interactive block scene examples |
-| `.../_en_us/japanese.md` | navigation child example |
-| `.../_en_us/navigation-guide.md` | navigation, linking, and high-priority recommendation example |
-| `wiki/resourcepack/assets/gregtech/guidenh/_en_us/index.md` | second namespace example for cross-guide links and isolated same-name pages |
+| `index.md` | Category overview |
+| `markdown.md` | Markdown syntax |
+| `markdown-table.md` | Tables and merged cells |
+| `rendering.md` | Block layout |
+| `images.md` | Images and cropped textures |
+| `tooltips.md` | Hover content |
+| `recipes.md` | Item/fluid recipes and filters |
+| `charts.md` | Charts, reference lines and fluid icons |
+| `function-graph.md` | Function plots |
+| `content-embed.md` | Embedding and text wrapping |
+| `ponder.md` | Animation timelines |
+| `scene-blocks.md` | Blocks and material lists |
+| `scene-import.md` | Structure imports and block edits |
+| `scene-entities.md` | Entity previews |
+| `scene-camera.md` | Camera controls |
+| `scene-annotations.md` | Scene annotations |
+| `scene-particles.md` | Particles and weather |
+| `navigation-guide.md` | Navigation, bindings and icons |
+| `page-lang-key.md` | Whole-page translations |
+| `templates-demo.md` | Templates and include control |
+| `debug.md` | Layout and interaction diagnostics |
+| `japanese.md` | Language and navigation example |
+
+Template definitions are in `templates/`. `wiki/resourcepack/assets/gregtech/guidenh/` demonstrates another namespace and cross-guide links.
 
 ## Asset Examples
 
@@ -101,10 +120,12 @@ The child tags set StructureLib defaults for the scene and are restored when the
 ### Scene Annotation Tooltip
 
 ````md
-<DiamondAnnotation pos="0.5 2.2 0.5" color="#FFD24C">
-  ### Activated Beacon
-  <RecipeFor id="minecraft:furnace" />
-</DiamondAnnotation>
+<GameScene>
+  <DiamondAnnotation pos="0.5 2.2 0.5" color="#FFD24C">
+    ### Activated Beacon
+    <RecipeFor id="minecraft:furnace" />
+  </DiamondAnnotation>
+</GameScene>
 ````
 
 ### Recipe Filter
@@ -125,14 +146,15 @@ Use `<Amount>` for quantities. The unit is optional and defaults to a suffix-fre
 
 ## When To Use Which Example
 
-- start with `markdown.md` if you are validating parser basics
-- use `index.md` when testing mixed runtime features together, including StructureLib tooltip, hatch-highlight, and cleanup behavior
+- start with `markdown.md` for Markdown syntax
+- use `index.md` to browse examples by category
 - use `scene-blocks.md` when you only need static block layout previews
 - use `example_structure.snbt` when you need a reusable imported structure asset
+- use `templates-demo.md` with the `templates/` folder for reusable content, conditionals and include control. See [Templates](Templates)
 
 ## Recommended Learning Order
 
-1. [Getting Started](Guide-Page-Format)
+1. [Getting Started](Getting-Started)
 2. [Guide Page Format](Guide-Page-Format)
 3. [Tags Reference](Tags-Reference)
 4. [GameScene](GameScene)

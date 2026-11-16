@@ -14,6 +14,20 @@ categories:
 
 另见：[图表](./charts.md) · [函数图](./function-graph.md) · [Markdown 表格扩展](./markdown-table.md)
 
+## 原生流体图标
+
+默认悬停提示显示流体名称、开尔文温度和气体/液体状态。显式填写 `amount`（包括零）时才显示数量，单位遵循 L/mB 设置；省略数量不会添加数量行。高级提示还显示注册名。加载 GregTech 后，化学式等材料信息遵循 GT 的提示设置。游戏内提示、已连接的运行时预览与 ExportSite 共用这些信息；未连接的 Web 预览只能显示已有名称和数量。不依赖 NEI。
+
+<FluidImage id="water" amount={1000} label="right" />
+
+<FluidLink id="steam" showIcon="left" />
+
+<ItemGrid>
+  <ItemIcon id="minecraft:bucket" />
+  <FluidIcon id="water" amount={1000} />
+  <FluidIcon id="steam" />
+</ItemGrid>
+
 ## LaTeX 公式
 
 使用 `<Latex formula="..." />` 在行内渲染 LaTeX 数学公式；将同一标签单独写成一段（块级上下文）则渲染为居中展示的独立公式块。

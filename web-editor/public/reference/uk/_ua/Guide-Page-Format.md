@@ -1,66 +1,65 @@
-# Формат сторінки посібника
+# Формат сторінок посібника
 
-Ця документація описує синтаксис і функції виконання GuideNH. Код, теги, шляхи, ідентифікатори та значення атрибутів збережено без змін.
+Докладний довідник на цій сторінці доступний англійською. Назви тегів, атрибути, ідентифікатори та шляхи потрібно використовувати без перекладу.
 
+GuideNH runtime pages are markdown files parsed with:
 
-GuideNH виконання сторінки є Markdown files проаналізований з:
-
-- стандартний Markdown блок і inline синтаксис
+- standard markdown block and inline syntax
 - YAML frontmatter
-- GFM таблиці
+- GFM tables
 - strikethrough
-- mark виділяти з `==text==`
+- mark highlight with `==text==`
 - GuideNH inline underline extensions: `++text++` (straight underline), `^^text^^` (wavy underline), `::text::` (emphasis dots / dotted underline)
-- MDX comments використовуючи `{/* ... */}`
-- MDX-style власний теги
+- MDX comments using `{/* ... */}`
+- MDX-style custom tags
 
-## Підтримуваний Markdown
+## Supported Markdown
 
-GuideNH сторінки підтримка  звичайний Markdown features використовується in  Приклад посібник:
+GuideNH pages support the common markdown features used in the example guide:
 
 - headings
 - paragraphs
-- inline emphasis, bold, strike, і code
-- inline mark виділяти (`==text==`)
-- inline underline (`++text++`), wavy underline (`^^text^^`), і emphasis dots (`::text::`)
-- links і зображення
-- literal autolinks для прямий URLs, `www.` hosts, і email addresses
-- reference links і reference зображення
-- unordered і ordered lists
+- inline emphasis, bold, strike, and code
+- inline mark highlight (`==text==`)
+- inline underline (`++text++`), wavy underline (`^^text^^`), and emphasis dots (`::text::`)
+- links and images
+- literal autolinks for direct URLs, `www.` hosts, and email addresses
+- reference links and reference images
+- unordered and ordered lists
 - GFM task lists
 - blockquotes
-- GitHub-style alert blockquotes наприклад `[!NOTE]`
-- horizontal Правила
-- fenced блоки коду
-- indented блоки коду
-- GFM таблиці
+- GitHub-style alert blockquotes such as `[!NOTE]`
+- horizontal rules
+- fenced code blocks
+- indented code blocks
+- GFM tables
 - HTML tables with captions, column groups, row groups, and merged cells
 - footnotes
-- lowercase HTML fragments наприклад `<a>`, `<br>`, `<kbd>`, `<sub>`, `<sup>`, і `<details>`
-- MDX comments in сторінка текст
+- lowercase HTML fragments such as `<a>`, `<br>`, `<kbd>`, `<sub>`, `<sup>`, and `<details>`
+- MDX comments in page text
 
-Дивіться `wiki/resourcepack/assets/guidenh/guidenh/_en_us/markdown.md` для live sample сторінка.
+See `wiki/resourcepack/assets/guidenh/guidenh/_en_us/markdown.md` for a live sample page.
 
-## виділяти
+## Highlight
 
-використовувати `==text==` для inline highlighted текст. використовувати `<mark color="#8A6A00">text</mark>` коли a власний виділяти колір is needed.  Типове mark тло is dark golden yellow вибраний до Збережіть white текст readable.
+Use `==text==` for inline highlighted text. Use `<mark color="#8A6A00">text</mark>` when a custom highlight color is needed. The default mark background is a dark golden yellow chosen to keep white text readable.
 
-## блоки коду
+## Code Blocks
 
-виконання блоки коду зараз підтримка:
+Runtime code blocks currently support:
 
-- явний fence languages наприклад `java`, `lua`, `scala`, `csv`, і `mermaid`
-- автоматичний мова inference коли  fence мова is пропущений
-- a мова мітка показано над  блок
-- угорі-праворуч copy button in  in-game viewer
-- lightweight виконання синтаксис highlighting для  detected мова
+- explicit fence languages such as `java`, `lua`, `scala`, `csv`, and `mermaid`
+- automatic language inference when the fence language is omitted
+- a language label shown above the block
+- a top-right copy button in the in-game viewer
+- lightweight runtime syntax highlighting for the detected language
 
-Приклад:
+Example:
 
 ````md
 ```lua
-локальний значення = 42
-print(значення)
+local value = 42
+print(value)
 ```
 
 ```
@@ -70,68 +69,68 @@ object Demo extends App {
 ```
 ````
 
-Indented блоки коду є також Підтримувані:
+Indented code blocks are also supported:
 
 ````md
     print("indented code")
 ````
 
-коли fenced блок resolves до `mermaid` і  source is Підтримувані `mindmap`, GuideNH renders it as an інтерактивний виконання mindmap замість цього of plain блок коду.
+When a fenced block resolves to `mermaid` and the source is a supported `mindmap`, GuideNH renders it as an interactive runtime mindmap instead of a plain code block.
 
-коли fenced блок is explicitly marked as `csv`, GuideNH renders it as a виконання таблиця замість цього of plain блок коду. Якщо  fence мова is пропущений, CSV-shaped текст досі stays a блок коду і лише використовує CSV мова detection для labeling/highlighting.
+When a fenced block is explicitly marked as `csv`, GuideNH renders it as a runtime table instead of a plain code block. If the fence language is omitted, CSV-shaped text still stays a code block and only uses CSV language detection for labeling/highlighting.
 
-явний CSV таблиці може також надавати стовпець ширина hints:
+Explicit CSV tables can also provide column width hints:
 
 ````md
 ```csv widths=120,80
-назва,значення
+name,value
 iron,42
 gold,17
 ```
 ````
 
-Fence метадані також підтримує `header=false` і quoted ширина lists:
+Fence metadata also supports `header=false` and quoted width lists:
 
 ````md
 ```csv widths="120,80" header=false
-назва,значення
+name,value
 iron,42
 gold,17
 ```
 ````
 
-прямий GFM-style literal autolinks є також Підтримувані in normal paragraph текст:
+Direct GFM-style literal autolinks are also supported in normal paragraph text:
 
 ````md
 Visit https://example.com/docs, www.example.org, or guide@example.com
 ````
 
-## Ментальні карти Mermaid
+## Mermaid Mindmaps
 
-GuideNH виконання Mermaid підтримка is зараз focused on `mindmap` diagrams:
+GuideNH runtime Mermaid support is currently focused on `mindmap` diagrams:
 
-- fenced ```` ```mermaid ```` блоки
-- auto-detected mermaid code fences whose вміст starts з `mindmap`
-- явний `<Mermaid>...</Mermaid>` теги
-- явний `<Mermaid src="./diagram.mmd" />` імпорти
-- розширений inline Markdown labels усередині Mermaid node текст
-- необов’язковий `<NodeContent id="...">...</NodeContent>` дочірні елементи для arbitrary виконання блоки усередині відповідний nodes
-- whole-diagram перетягування-до-pan interaction in  in-game viewer
-- `layout: tidy-tree` frontmatter усередині Mermaid source
-- звичайний mindmap node shapes наприклад square, rounded, circle, bang, cloud, і hexagon
-- проаналізований `::icon(...)` і `:::class` метадані
+- fenced ```` ```mermaid ```` blocks
+- auto-detected mermaid code fences whose content starts with `mindmap`
+- explicit `<Mermaid>...</Mermaid>` tags
+- explicit `<Mermaid src="./diagram.mmd" />` imports
+- rich inline markdown labels inside Mermaid node text
+- optional `<NodeContent id="...">...</NodeContent>` children for arbitrary runtime blocks inside matching nodes
+- whole-diagram drag-to-pan interaction in the in-game viewer
+- `layout: tidy-tree` frontmatter inside Mermaid source
+- common mindmap node shapes such as square, rounded, circle, bang, cloud, and hexagon
+- parsed `::icon(...)` and `:::class` metadata
 
-Приклад:
+Example:
 
 ````md
 ```mermaid
 mindmap
-  корінь((GuideNH))
-    виконання
+  root((GuideNH))
+    Runtime
       Markdown
       CSV
     Mindmap::icon(fa fa-sitemap)
-      перетягування до pan
+      Drag to pan
 ```
 
 <Mermaid src="./markdown-mindmap.mmd" />
@@ -143,50 +142,50 @@ mindmap
     export["Site export"]
 
 <NodeContent id="runtime">
-Вузли виконання можуть поєднувати текст, посилання та блоки.
+Runtime nodes can mix text, links, and blocks.
 
 <ItemImage id="minecraft:diamond" />
 </NodeContent>
 
 <NodeContent id="export">
-![Machine Diagram](./resourcepack/assets/guidenh/guidenh/_en_us/test1.png)
+![Machine Diagram](./test1.png)
 </NodeContent>
 </Mermaid>
 ````
 
-Mermaid diagrams який є не Підтримувані at виконання yet досі fall назад до regular Mermaid-labeled блоки коду.
+Mermaid diagrams that are not supported at runtime yet still fall back to regular Mermaid-labeled code blocks.
 
-## Імпорт таблиці CSV
+## CSV Table Import
 
-GuideNH також підтримує виконання CSV файл імпорти through явний тег:
+GuideNH also supports runtime CSV file imports through an explicit tag:
 
 ````md
 <CsvTable src="./markdown-table.csv" />
 ````
 
- `src` шлях resolves відносний до  поточний сторінка,  той самий way виконання ресурс links і сцена `src` імпорти do.
+The `src` path resolves relative to the current page, the same way runtime asset links and scene `src` imports do.
 
-імпортований CSV таблиці може також надавати ширина hints:
+Imported CSV tables can also provide width hints:
 
 ````md
 <CsvTable src="./markdown-table.csv" widths="120,80" />
 ````
 
-You може також записувати CSV таблиця inline з явний fence:
+You can also write a CSV table inline with an explicit fence:
 
 ````md
 ```csv
-назва,значення
+name,value
 iron,42
 gold,17
 ```
 ````
 
-## Таблиці Markdown
+## Markdown Tables
 
-### Ширина стовпців
+### Column Widths
 
-Ordinary GFM Markdown таблиці може також надавати виконання стовпець ширина hints by adding trailing виконання Атрибут рядок immediately після  таблиця:
+Ordinary GFM markdown tables can also provide runtime column width hints by adding a runtime attribute line immediately before the table:
 
 ````md
 {: widths="120,80" }
@@ -196,16 +195,16 @@ Ordinary GFM Markdown таблиці може також надавати вик
 | Gold | 17 |
 ````
 
-Цей зберігає  таблиця itself стандартний Markdown поки letting GuideNH apply виконання-лише бажаний стовпець widths.
+This keeps the table itself standard markdown while letting GuideNH apply runtime-only preferred column widths.
 
-### Об’єднання комірок та атрибути
+### Merged Cells and Cell Attributes
 
-- Додатковий `|` після комірки займає ще один стовпець: `||` об’єднує два, `|||` — три.
-- Комірка з `^^` на початку об’єднується з верхньою; її вміст додається з нового рядка.
-- Двокрапки на краях задають вирівнювання: `: ліворуч`, `праворуч :`, `: по центру :`.
-- Кінцевий IAL (`{: ... }`) задає `color`, `background` / `bgcolor`, безпечний `style`, `align`, `valign`, `id` або `class`. `{:name: ...}` визначає повторно вживані атрибути. Небезпечний CSS і зовнішні URL ігноруються.
-- `\` наприкінці рядка продовжує його на наступному фізичному рядку. Роздільник на початку (`|--|--|`) створює таблицю без заголовка.
-- Комірки підтримують вбудовані Markdown та MDX: посилання, зображення, виділення й LaTeX. HTML також підтримує `<thead>`, `<tbody>` і `<tfoot>`.
+- An extra `|` after a cell adds one spanned column: `||` spans two columns, `|||` spans three.
+- Start a cell with `^^` to merge it into the cell above; its content is added on a new line.
+- Edge colons set cell alignment: `: left`, `right :`, or `: centered :`.
+- A trailing IAL (`{: ... }`) sets `color`, `background` / `bgcolor`, safe `style`, `align`, `valign`, `id`, or `class`. Define reusable attributes with `{:name: ...}`. Unsafe CSS and external URLs are ignored.
+- End a physical row with `\` to continue it on the next line. A delimiter row first (`|--|--|`) creates a headerless table.
+- Cells accept ordinary inline Markdown and MDX, including links, images, emphasis, and LaTeX. HTML tables also support explicit `<thead>`, `<tbody>`, and `<tfoot>` groups.
 
 ```markdown
 {:warning: style="background: #4b2418; color: #ffd8c2; font-weight: bold"}
@@ -216,9 +215,9 @@ Ordinary GFM Markdown таблиці може також надавати вик
 | Total ||| {: style="text-align: right; background: #26364d"}
 ```
 
-### Таблиці HTML
+### HTML Tables
 
-HTML tables support captions, column groups, semantic row groups, merged cells, and alignment. `col` accepts pixel `width`; `span` repeats a width. `th` and `td` support `colspan`, `rowspan`, and `align`; `th` supports `scope`:
+Use an HTML table for explicit row groups and multi-row headers. `<caption>` is shown above the table. Use `<colgroup>` and `<col>` to set preferred pixel or percentage column widths; `width` accepts pixels or percentages (with an optional `px` suffix), and `span` repeats one width for several columns. Group rows with `<thead>`, `<tbody>`, and `<tfoot>`. Header and data cells support `colspan`, `rowspan`, `align`, and `valign`; `th` also supports `scope`, `abbr`, and `headers`. Site export preserves common table attributes such as `width`, `border`, `cellpadding`, `cellspacing`, `frame`, `rules`, `summary`, `bgcolor`, and `bordercolor`. A table-level `widths` attribute can also provide comma-separated pixel hints:
 
 ````md
 <table widths="150,70,70,150">
@@ -229,28 +228,45 @@ HTML tables support captions, column groups, semantic row groups, merged cells, 
     <col width="150" />
   </colgroup>
   <thead>
-    <tr><th scope="col" rowspan="2" align="left">Fuel</th><th scope="colgroup" colspan="2" align="center">Rate</th><th scope="col" rowspan="2" align="right">Notes</th></tr>
-    <tr><th scope="col" align="right">Charcoal</th><th scope="col" align="right">Coal</th></tr>
+    <tr>
+      <th scope="col" rowspan="2" align="left">Fuel</th>
+      <th scope="colgroup" colspan="2" align="center">Burn rate</th>
+      <th scope="col" rowspan="2" align="right">Notes</th>
+    </tr>
+    <tr>
+      <th scope="col" align="right">Charcoal</th>
+      <th scope="col" align="right">Coal</th>
+    </tr>
   </thead>
   <tbody>
-    <tr><th scope="row" rowspan="2" align="left">Solid fuel</th><td align="right">42</td><td align="right">17</td><td rowspan="2" align="left">Per tick</td></tr>
-    <tr><td colspan="2" align="right">59 combined</td></tr>
+    <tr>
+      <th scope="row" rowspan="2" align="left">Solid fuel</th>
+      <td align="right">42</td>
+      <td align="right">17</td>
+      <td rowspan="2" align="left">Per tick</td>
+    </tr>
+    <tr>
+      <td colspan="2" align="right">59 combined</td>
+    </tr>
   </tbody>
   <tfoot>
-    <tr><th scope="rowgroup" align="left">Total</th><td colspan="3" align="right">59 units</td></tr>
+    <tr>
+      <th scope="rowgroup" align="left">Total</th>
+      <td colspan="3" align="right">59 units</td>
+    </tr>
   </tfoot>
 </table>
 ````
 
-## Списки завдань, сповіщення та виноски
+## Task Lists, Alerts, And Footnotes
 
-GuideNH виконання також підтримує several useful GFM-style behaviors:
+GuideNH runtime also supports several useful GFM-style behaviors:
 
-- task lists використовуючи `- [ ]` і `- [x]`
-- GitHub alert blockquotes наприклад `[!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]`, і `[!CAUTION]`
-- footnote references і definitions
+- task lists using `- [ ]` and `- [x]`
+- GitHub alert blockquotes such as `[!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]`, and `[!CAUTION]`
+- footnote references and definitions
 
-Приклад:
+Example:
 
 ````md
 - [x] done item
@@ -264,11 +280,11 @@ Footnote ref[^one]
 [^one]: tooltip text
 ````
 
-Footnote references відтворювати as підказка-style inline маркери, і GuideNH appends compact виконання footnote список near  унизу of  сторінка.
+Footnote references render as tooltip-style inline markers, and GuideNH appends a compact runtime footnote list near the bottom of the page.
 
-## Налаштування ширини списку
+## List Width Customization
 
-стандартний Markdown lists do не define ширина controls, but GuideNH виконання containers може constrain їх:
+Standard markdown lists do not define width controls, but GuideNH runtime containers can constrain them:
 
 ````md
 <Column width="220">
@@ -277,11 +293,11 @@ Footnote references відтворювати as підказка-style inline м
 </Column>
 ````
 
-Цей is зараз  recommended way до customize список рядок ширина at виконання.
+This is currently the recommended way to customize list line width at runtime.
 
-## Довідкові посилання та зображення
+## Reference Links And Images
 
-GuideNH підтримує CommonMark reference definitions:
+GuideNH supports CommonMark reference definitions:
 
 ````md
 [Guide Ref][doc]
@@ -291,9 +307,9 @@ GuideNH підтримує CommonMark reference definitions:
 [img]: ./test1.png "Machine Diagram"
 ````
 
-## Lowercase HTML виконання теги
+## Lowercase HTML Runtime Tags
 
-GuideNH виконання підтримує focused subset of lowercase HTML-style теги directly:
+GuideNH runtime supports a focused subset of lowercase HTML-style tags directly:
 
 ````md
 Press <kbd>Shift</kbd> + <sub>1</sub>
@@ -307,14 +323,14 @@ Body text
 </details>
 ````
 
-Other raw HTML fragments досі fall назад до literal текст-style handling замість цього of browser-grade HTML відтворення.
+Other raw HTML fragments still fall back to literal text-style handling instead of browser-grade HTML rendering.
 
 ## MDX Comments
 
-GuideNH підтримує  MDX коментар form і ignores it до Markdown compilation:
+GuideNH supports the MDX comment form and ignores it before markdown compilation:
 
 ````md
-Видимий текст. {/* прихований вбудований коментар */}
+Visible text. {/* hidden inline comment */}
 
 {/*
 multiline comment
@@ -323,107 +339,111 @@ multiline comment
 More visible text.
 ````
 
-## frontmatter
+## Frontmatter
 
-GuideNH reads  перший YAML frontmatter блок і parses Ці known ключі:
+GuideNH reads the first YAML frontmatter block and parses these known keys:
 
-| ключ | Тип | Значення |
+| Key | Type | Meaning |
 | --- | --- | --- |
-| `navigation` | map | додає  сторінка до  Навігація tree |
-| `categories` | список of strings | додає  сторінка до MediaWiki-style categories; кожен запис може optionally використовувати `category|sort key` |
-| `item_id` | предмет фільтр вираз | A один NEI-style предмет вираз який makes  сторінка discoverable by `<ItemLink>` |
-| `item_ids` | список of предмет фільтр expressions | список form of `item_id`; any відповідний вираз makes  сторінка discoverable by `<ItemLink>` |
-| `ore_ids` | список of ore dictionary names | Makes  сторінка discoverable by ore-dictionary items (e.g. `ingotIron`, `oreCopper`) |
-| `quest_ids` | список of BetterQuesting quest ids | Makes  сторінка discoverable by `<QuestLink>` / `<QuestCard>` і by  open-посібник hotkey коли quest is hovered in  BQ GUI. Accepts canonical UUID strings і BetterQuesting's compact Base64 form. лише consumed коли BetterQuesting is завантажений. Дивіться [Mod Compatibility](Mod-Compatibility) |
-| `author` | рядок | один автор назва. Displayed in  унизу bar. |
-| `authors` | список of strings або `{name: ...}` maps | кілька автор names. At most два є displayed; additional ones є замінений з `...`. Takes precedence over `author` Якщо both є present. |
-| `date` | рядок або YYYY-MM-DD date | вміст creation date. Displayed in  унизу bar. |
-| `updated` | рядок або YYYY-MM-DD date | останній оновлений date. Displayed in  унизу bar. |
-| `zoom` | positive число з плаваючою комою | Per-сторінка вміст масштаб multiplier (e.g. `1.5` = 150 %). Multiplied з  глобальний `contentZoom` setting in ModConfig. Типове `1.0`. |
-| any other ключ | any YAML значення | Preserved in `additionalProperties` для extensions або tooling |
+| `navigation` | map | Adds the page to the navigation tree |
+| `categories` | list of strings | Adds the page to MediaWiki-style categories; each entry can optionally use `category|sort key` |
+| `item_id` | item filter expression | A single NEI-style item expression that makes the page discoverable by `<ItemLink>` |
+| `item_ids` | list of item filter expressions | List form of `item_id`; any matching expression makes the page discoverable by `<ItemLink>` |
+| `fluid_id` / `fluid_ids` | string / string list | Exact fluid registry-name binding, optionally with #anchor |
+| `ore_ids` | list of ore dictionary names | Makes the page discoverable by ore-dictionary items (e.g. `ingotIron`, `oreCopper`) |
+| `quest_ids` | list of BetterQuesting quest ids | Makes the page discoverable by `<QuestLink>` / `<QuestCard>` and by the open-guide hotkey when a quest is hovered in the BQ GUI. Accepts canonical UUID strings and BetterQuesting's compact Base64 form. Only consumed when BetterQuesting is loaded. See [Mod Compatibility](Mod-Compatibility) |
+| `author` | string | Single author name. Displayed in the bottom bar. |
+| `authors` | list of strings or `{name: ...}` maps | Multiple author names. At most two are displayed; additional ones are replaced with `...`. Takes precedence over `author` if both are present. |
+| `date` | string or YYYY-MM-DD date | Content creation date. Displayed in the bottom bar. |
+| `updated` | string or YYYY-MM-DD date | Last updated date. Displayed in the bottom bar. |
+| `zoom` | positive float | Per-page content zoom multiplier (e.g. `1.5` = 150 %). Multiplied with the global `contentZoom` setting in ModConfig. Default `1.0`. |
+| any other key | any YAML value | Available to extensions and authoring tools |
+
+### Native fluid bindings and navigation icons
+
+`fluid_id` accepts one registry-name binding. `fluid_ids` accepts a string list. Both may coexist and are merged without duplicate destinations. Append `#anchor` to target a section; distinct anchors remain distinct. Bindings use exact names and ignore displayed amount and NBT.
+
+```yaml
+fluid_id: water
+fluid_ids:
+  - water#coolant
+  - steam#uses
+navigation:
+  title: Fluid handling
+  icon_fluid: water
+```
+
+Choose either `navigation.icon_fluid` for one registry name or `icon_fluids` for a nonempty list cycling once per second. These fields are mutually exclusive and cannot be combined with item or texture icon sources. They select page icons, not page bindings. Validate fluid availability in the running game; offline previews cannot verify registry contents.
 
 ### `navigation`
 
-| поле | Обов’язково | Тип | Примітки |
+| Field | Required | Type | Notes |
 | --- | --- | --- | --- |
-| `title` | yes | рядок | відображати назва in Навігація і пошук заголовок резервний варіант |
-| `keyword` | no | рядок | один additional пошук keyword або alias; підтримує prefix відповідний |
-| `keywords` | no | список of strings | Additional Ключові слова пошуку або aliases; значення є combined і deduplicated |
-| `parent` | no | ідентифікатор сторінки | батьківський ідентифікатор сторінки; пропущений означає угорі-level node |
-| `position` | no | ціле число | Sibling sort порядок; Типове `0`, larger значення appear earlier |
-| `priority` | no | ціле число | Пріоритет завантаження для той самий-шлях сторінка overrides; Типове `0`, higher wins, equal priority lets  later пакет ресурсів запис win |
-| `icon` | no | предмет id | предмет icon показано in Навігація/пошук. Accepts `modid:name`, `modid:name:meta`, або `modid:name:meta:{snbt}`.  inline SNBT tail is  бажаний way до attach NBT наприклад a власний відображати назва. |
-| `icons` | no | список of предмет ids | список of предмет icons для animated cycling (один per second). кожен запис використовує  той самий синтаксис as `icon`, including inline `:{snbt}` tails. коли present takes priority over `icon`. |
-| `icon_texture` | no | ресурс шлях | Texture icon шлях розв’язаний like any other ресурс посилання |
-| `icon_textures` | no | список of ресурс paths | список of texture icons для animated cycling (один per second). коли present takes priority over `icon_texture`. |
-| `required_mod` | no | mod id | Hides  сторінка unless Цей mod is завантажений. |
-| `required_mods` | no | список of mod ids | Hides  сторінка unless кожен listed mod is завантажений. |
-| `excluded_mod` | no | mod id | Hides  сторінка коли Цей mod is завантажений. |
-| `excluded_mods` | no | список of mod ids | Hides  сторінка коли any listed mod is завантажений. |
+| `title` | yes | string | Display name in navigation and search title fallback |
+| `keyword` | no | string | One additional search keyword or alias; supports prefix matching |
+| `keywords` | no | list of strings | Additional search keywords or aliases; values are combined and deduplicated |
+| `parent` | no | page id | Parent page id; omitted means top-level node |
+| `position` | no | integer | Sibling sort order; default `0`, larger values appear earlier |
+| `recommend` | no | integer | Home recommendation priority; only included when set, larger values first |
+| `priority` | no | integer | Load priority for same-path page overrides; default `0`, higher wins, equal priority lets the later resource pack entry win |
+| `icon` | no | item id | Item icon shown in navigation/search. Accepts `modid:name`, `modid:name:meta`, or `modid:name:meta:{snbt}`. The inline SNBT tail is the preferred way to attach NBT such as a custom display name. |
+| `icons` | no | list of item ids | List of item icons for animated cycling (one per second). Each entry uses the same syntax as `icon`, including inline `:{snbt}` tails. When present takes priority over `icon`. |
+| `icon_texture` | no | asset path | Texture icon path resolved like any other asset link |
+| `icon_textures` | no | list of asset paths | List of texture icons for animated cycling (one per second). When present takes priority over `icon_texture`. |
+| `icon_fluid` | no | string | One fluid registry name; excludes `icon_fluids` and item/texture sources |
+| `icon_fluids` | no | string list | Nonempty fluid registry names cycling once per second; excludes `icon_fluid` and item/texture sources |
+| `required_mod` | no | mod id | Hides the page unless this mod is loaded. |
+| `required_mods` | no | list of mod ids | Hides the page unless every listed mod is loaded. |
+| `excluded_mod` | no | mod id | Hides the page when this mod is loaded. |
+| `excluded_mods` | no | list of mod ids | Hides the page when any listed mod is loaded. |
 
-### Приклад frontmatter
+### Example Frontmatter
 
 ```yaml
-item_id: minecraft:potion 16384-16462,!16386
 item_ids:
-  - ae2:white_paint_ball:*
-  - "<minecraft:wool:14>"
+  - minecraft:book
+fluid_id: water#coolant
 navigation:
-  title: Root
+  title: Guide Overview
   parent: index.md
   position: 10
-  priority: 0
-  icon: minecraft:book:0:{display:{Name:"My Custom Book"}}
-  # Use meta/damage to select a specific subtype:
-  # icon: minecraft:wool:1       (orange wool, colon form)
-  # Cycling icons list — cycles one per second:
-  # icons:
-  #   - minecraft:wool:1
-  #   - minecraft:wool:4:{display:{Name:"Custom Green Wool"}}
-  #   - minecraft:wool:14
-
-  icon_texture: test1.png
-  # Cycling textures:
-  # icon_textures:
-  #   - test1.png
-  #   - test2.png
+  recommend: 0
+  icon: minecraft:book
 categories:
   - basics
-  - examples|Examples Overview
-ore_ids:
-  - ingotIron
-  - oreCopper
-quest_ids:
-  - 01234567-89ab-cdef-0123-456789abcdef
-  - AAAAAAAAAAAAAAAAAAAMug==
+  - examples|Overview
 author: ExampleAuthor
 date: 2024-01-15
 updated: 2024-06-01
 ```
 
-`categories` accepts either plain category names або `category|sort key` записи.
-використовувати `<Category name="examples" rows="3" />` до відтворювати category listing блок, і
-`<Special name="SpecialPages" rows="3" />` до embed  згенерований MediaWiki-style special-сторінка index.
+`categories` accepts either plain category names or `category|sort key` entries.
+Use `<Category name="examples" rows="3" />` to render a category listing block, and
+`<Special name="SpecialPages" rows="3" />` to embed the generated MediaWiki-style special-page index.
 
-для BetterQuesting integration, `quest_ids` accepts either of Ці formats:
+The `templates/` folder under a language folder is reserved for template pages. Templates are written
+like any other page but are excluded from listings and the navigation tree. See
+[Templates](Templates).
 
-- canonical UUID strings наприклад `01234567-89ab-cdef-0123-456789abcdef`
-- BetterQuesting compact quest ids наприклад `AAAAAAAAAAAAAAAAAAAMug==`
+For BetterQuesting integration, `quest_ids` accepts either of these formats:
 
-Do не список both forms для  той самий quest in один сторінка's `quest_ids`; Вони normalize до  той самий внутрішній UUID і would be treated as duplicates.
+- canonical UUID strings such as `01234567-89ab-cdef-0123-456789abcdef`
+- BetterQuesting compact quest ids such as `AAAAAAAAAAAAAAAAAAAMug==`
 
-коли any of `author`, `authors`, `date`, або `updated` is present, GuideNH shows a
-унизу bar in  посібник екран (відповідний  угорі toolbar style) з праворуч-aligned
-текст like: *вміст з MyMod, автор ExampleAuthor, Date 2024-01-15, оновлений 2024-06-01*.
+Do not list both forms for the same quest in one page's `quest_ids`; they normalize to the same internal UUID and would be treated as duplicates.
 
-кілька authors Приклад:
+When any of `author`, `authors`, `date`, or `updated` is present, GuideNH shows a
+bottom bar in the guide screen (matching the top toolbar style) with right-aligned
+text like: *Content from MyMod, Author ExampleAuthor, Date 2024-01-15, Updated 2024-06-01*.
+
+Multiple authors example:
 ```yaml
 authors:
   - Alice
   - Bob
-  - Charlie   # only Alice and Bob are shown, "..." appended
+  - Charlie
 ```
-або з structured записи:
+Or with structured entries:
 ```yaml
 authors:
   - name: Alice
@@ -432,20 +452,20 @@ authors:
 
 ### `zoom`
 
- `zoom` ключ lets you enlarge або shrink  вміст of a один сторінка без
-affecting any other сторінка.  значення is positive число з плаваючою комою treated as multiplier:
+The `zoom` key lets you enlarge or shrink the content of a single page without
+affecting any other page. The value is a positive float treated as a multiplier:
 
-| Приклад значення | Effect |
+| Example value | Effect |
 | --- | --- |
-| `1.0` (Типове) | Normal розмір |
-| `1.5` | 150 % — вміст 50 % larger |
-| `0.75` | 75 % — вміст 25 % smaller |
+| `1.0` (default) | Normal size |
+| `1.5` | 150 % — content 50 % larger |
+| `0.75` | 75 % — content 25 % smaller |
 
- per-сторінка масштаб is multiplied з  глобальний **contentZoom** slider in
-ModConfig → GuideNH → UI. Цей lets server packs Установіть sensible baseline поки
-досі allowing individual сторінки до fine-tune структура для narrow або wide вміст.
+The per-page zoom is multiplied with the global **contentZoom** slider in
+ModConfig → GuideNH → UI. This lets server packs set a sensible baseline while
+still allowing individual pages to fine-tune layout for narrow or wide content.
 
-Приклад: Установіть Цей сторінка до відображати at 150 % of  base масштаб:
+Example: set this page to display at 150 % of the base zoom:
 
 ```yaml
 zoom: 1.5
@@ -453,49 +473,49 @@ navigation:
   title: My Dense Page
 ```
 
-сторінка структура is recomputed at  масштаб-adjusted ширина, so текст wrapping і усі
-блок геометрією remain correct at any масштаб level.
+Page layout is recomputed at the zoom-adjusted width, so text wrapping and all
+block geometry remain correct at any zoom level.
 
-## Розв’язання посилань
+## Link Resolution
 
-GuideNH resolves ids і paths використовуючи Ці Правила:
+GuideNH resolves ids and paths using these rules:
 
-### сторінка links
+### Page links
 
-| ввід | Значення |
+| Input | Meaning |
 | --- | --- |
-| `subpage.md` | відносний до  поточний сторінка, in  поточний сторінка простір імен |
-| `./subpage.md` | відносний до  поточний сторінка, in  поточний сторінка простір імен |
-| `/guide.md` | rooted до  поточний сторінка простір імен, equivalent до `currentmod:guide.md` |
-| `gregtech:guide.md` | явний простір імен; opens `gregtech:guidenh` коли  поточний посібник шлях is `guidenh` |
-| `gregtech:/guide.md` | явний простір імен plus rooted шлях, normalized до `gregtech:guide.md` |
-| `subpage.md#anchor` | сторінка plus якір fragment |
-| `guidenh:other.md#anchor` | явний `modid:path#anchor` |
-| `https://example.com` | зовнішній HTTP/HTTPS посилання |
+| `subpage.md` | relative to the current page, in the current page namespace |
+| `./subpage.md` | relative to the current page, in the current page namespace |
+| `/guide.md` | rooted to the current page namespace, equivalent to `currentmod:guide.md` |
+| `gregtech:guide.md` | explicit namespace; opens `gregtech:guidenh` when the current guide path is `guidenh` |
+| `gregtech:/guide.md` | explicit namespace plus rooted path, normalized to `gregtech:guide.md` |
+| `subpage.md#anchor` | page plus anchor fragment |
+| `guidenh:other.md#anchor` | explicit `modid:path#anchor` |
+| `https://example.com` | external HTTP/HTTPS link |
 
-сторінка links є isolated by простір імен. посилання записаний з `assets/guidenh/guidenh/_en_us/index.md` as
-`[Guide](guide.md)` resolves до `guidenh:guide.md`;  той самий текст in
-`assets/gregtech/guidenh/_en_us/index.md` resolves до `gregtech:guide.md`. Якщо який сторінка is missing in 
-поточний простір імен, GuideNH reports it as broken посилання замість цього of falling назад до another mod's сторінка.
+Page links are isolated by namespace. A link written from `assets/guidenh/guidenh/_en_us/index.md` as
+`[Guide](guide.md)` resolves to `guidenh:guide.md`; the same text in
+`assets/gregtech/guidenh/_en_us/index.md` resolves to `gregtech:guide.md`. If that page is missing in the
+current namespace, GuideNH reports it as a broken link instead of falling back to another mod's page.
 
-явний `modid:path` links може cross з один mod's дані-driven посібник до another.  посібник id is derived з
- ціль сторінка простір імен і  поточний посібник шлях, so посилання з `guidenh:guidenh` до `gregtech:guide.md`
-opens сторінка `gregtech:guide.md` in посібник `gregtech:guidenh`.
+Explicit `modid:path` links can cross from one mod's data-driven guide to another. The guide id is derived from
+the target page namespace and the current guide path, so a link from `guidenh:guidenh` to `gregtech:guide.md`
+opens page `gregtech:guide.md` in guide `gregtech:guidenh`.
 
-якір fragments прокручування  посібник до heading whose текст lowercased і spaces замінений з hyphens
-відповідає  fragment (e.g. `#crafting-recipe` scrolls до `## Crafting Recipe`), або до a `<a name="...">` якір.
+Anchor fragments scroll the guide to a heading whose text lowercased and spaces replaced with hyphens
+matches the fragment (e.g. `#crafting-recipe` scrolls to `## Crafting Recipe`), or to a `<a name="...">` anchor.
 
-### ресурс links
+### Asset links
 
-ресурси використовувати  той самий resolution Правила as links. для Приклад:
+Assets use the same resolution rules as links. For example:
 
-- `test1.png` resolves відносний до  поточний сторінка файл.
-- `/assets/example_structure.snbt` resolves до  посібник's ресурс корінь.
-- `guidenh:textures/gui/example.png` resolves as явний ресурс location.
+- `test1.png` resolves relative to the current page file.
+- `/assets/example_structure.snbt` resolves to the guide's asset root.
+- `guidenh:textures/gui/example.png` resolves as an explicit resource location.
 
-## Синтаксис посилань на предмети
+## Item Reference Syntax
 
-Навігація `icon` і `icons`, уздовж з теги який приймають an предмет id, використовувати ordinary предмет references:
+Navigation `icon` and `icons`, along with tags that accept an item id, use ordinary item references:
 
 ```text
 modid:name
@@ -503,10 +523,10 @@ modid:name:meta
 modid:name:meta:{snbt}
 ```
 
-пропущений `meta` типові до `0`. SNBT tail starts at  перший `{` і is проаналізований as предмет NBT. Where wildcard
-метадані is Підтримувані, `*` може be combined з  SNBT tail.
+An omitted `meta` defaults to `0`. An SNBT tail starts at the first `{` and is parsed as item NBT. Where wildcard
+metadata is supported, `*` can be combined with the SNBT tail.
 
-Приклади:
+Examples:
 
 ```text
 minecraft:diamond
@@ -515,18 +535,18 @@ minecraft:written_book:0:{title:TestBook,author:GuideNH}
 minecraft:written_book:*:{title:TestBook,author:GuideNH}
 ```
 
-### Вирази індексу предметів
+### Item Index Expressions
 
-`item_id` accepts один NEI-style вираз і `item_ids` accepts YAML список of  той самий expressions. кожен
-`item_ids` запис is independent;  сторінка is linked коли any запис відповідає. Whitespace combines terms, `|`
-combines alternatives, і `,` combines Правила усередині один term.
+`item_id` accepts one NEI-style expression and `item_ids` accepts a YAML list of the same expressions. Each
+`item_ids` entry is independent; the page is linked when any entry matches. Whitespace combines terms, `|`
+combines alternatives, and `,` combines rules within one term.
 
-- `minecraft:lava` performs case-insensitive partial registry-id відповідати, so it також відповідає `minecraft:lava_bucket`.
-- `<minecraft:wool:14>` strictly відповідає один предмет і meta значення.
-- `ae2:white_paint_ball:*`, `:32767`, і uppercase meta tokens наприклад `:ANY` є compatible strict усі-meta forms.
-- `16384-16462,!16386` відповідає метадані range поки excluding `16386`.
-- `!minecraft:portal` excludes відповідний registry id.
-- `r/^m\\w{6}ft$/` використовує Java regular вираз against  registry id.
+- `minecraft:lava` performs a case-insensitive partial registry-id match, so it also matches `minecraft:lava_bucket`.
+- `<minecraft:wool:14>` strictly matches one item and meta value.
+- `ae2:white_paint_ball:*`, `:32767`, and uppercase meta tokens such as `:ANY` are compatible strict all-meta forms.
+- `16384-16462,!16386` matches a metadata range while excluding `16386`.
+- `!minecraft:portal` excludes a matching registry id.
+- `r/^m\\w{6}ft$/` uses a Java regular expression against the registry id.
 
 ```yaml
 item_id: "minecraft:potion 16384-16462,!16386 | ae2:white_paint_ball:*"
@@ -540,20 +560,20 @@ item_ids:
   - minecraft:diamond#Usage
 ```
 
-In Цей Приклад, whitespace combines умови, `,` combines Правила усередині один term, `!` excludes відповідати, і
-`|` separates alternatives.  перший вираз тому accepts potion метадані з `16384` through `16462`
-except `16386`, або any метадані of `ae2:white_paint_ball`.  second вираз demonstrates wildcard предмет
-reference in comma-separated вираз з reverse (`!`) rule.  останній два записи показувати метадані union
-з `28` excluded і an предмет mapping який opens  `Usage` heading якір.
+In this example, whitespace combines conditions, `,` combines rules within one term, `!` excludes a match, and
+`|` separates alternatives. The first expression therefore accepts potion metadata from `16384` through `16462`
+except `16386`, or any metadata of `ae2:white_paint_ball`. The second expression demonstrates a wildcard item
+reference in a comma-separated expression with a reverse (`!`) rule. The last two entries show a metadata union
+with `28` excluded and an item mapping that opens the `Usage` heading anchor.
 
-An необов’язковий `#anchor` suffix opens відповідний сторінка at heading якір. Exact предмет і явний-meta mappings використовувати
- прямий index перший; expressions є evaluated лише коли needed.
+An optional `#anchor` suffix opens a matching page at a heading anchor. Exact item and explicit-meta mappings use
+the direct index first; expressions are evaluated only when needed.
 
-## Обробка помилок
+## Error Handling
 
-Якщо a сторінка fails до аналізувати, GuideNH creates помилка сторінка замість цього of crashing  посібник. недійсний теги, ids, і атрибути є reported inline as посібник-відтворений помилка текст.
+If a page fails to parse, GuideNH creates an error page instead of crashing the guide. Invalid tags, ids, and attributes are reported inline as guide-rendered error text.
 
-## Пов’язані сторінки
+## Related Pages
 
 - [Navigation](Navigation)
 - [Images And Assets](Images-And-Assets)

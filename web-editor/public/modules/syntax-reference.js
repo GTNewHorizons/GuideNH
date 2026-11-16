@@ -1,5 +1,6 @@
-import { renderMarkdown } from "./markdown-renderer.js";
+import { markdownHeadingId, renderMarkdown } from "./markdown-renderer.js";
 import { translatedString, UI_LANGUAGES } from "./language.js";
+import { advanceCodeFence, stripMdxComments } from "./markdown-source.js";
 
 const DOCUMENTS = [
   "Guide-Page-Format",
@@ -17,20 +18,40 @@ const DOCUMENTS = [
   "Examples",
 ];
 
-function splitSections(source, documentId) {
+export function splitSections(source, documentId) {
   const sections = [];
   let current = null;
-  for (const line of source.split(/\r?\n/)) {
-    const heading = line.match(/^(#{1,3})\s+(.+)$/);
-    if (heading) {
+  let fence = null;
+  const preamble = [];
+  for (const line of stripMdxComments(source).split("\n")) {
+    fence = advanceCodeFence(line, fence);
+    const heading = !fence && line.match(/^ {0,3}(#{1,6})\s+(.+?)\s*#*\s*$/);
+    if (heading && heading[1].length <= 3) {
       if (current) sections.push(current);
-      current = { id: `${documentId}-${sections.length}`, title: heading[2].replaceAll("`", ""), markdown: line, depth: heading[1].length };
+      current = { id: `${documentId}-${sections.length}`, documentId, title: heading[2].replaceAll("`", ""), markdown: [...preamble, line].join("\n"), depth: heading[1].length, anchors: [markdownHeadingId(heading[2])] };
+      preamble.length = 0;
     } else if (current) {
       current.markdown += `\n${line}`;
-    }
+      if (heading) current.anchors.push(markdownHeadingId(heading[2]));
+    } else preamble.push(line);
   }
   if (current) sections.push(current);
   return sections;
+}
+
+export function resolveReferenceLink(href, sections, currentDocumentId, locale) {
+  const match = String(href ?? "").match(/^(?:\.\/)?([A-Za-z][A-Za-z0-9-]*(?:\.md)?)?(?:#(.*))?$/);
+  if (!match) return null;
+  const documentId = match[1]?.replace(/\.md$/i, "").replace(/-(?:zh-CN|en-US)$/i, "") || currentDocumentId;
+  let anchor;
+  try { anchor = decodeURIComponent(match[2] || ""); }
+  catch { return null; }
+  const documentSections = sections.filter(section => section.documentId === documentId);
+  const section = (anchor && documentSections.find(item => item.anchors.includes(anchor))) || documentSections[0];
+  if (section) return { section, anchor };
+  if (!match[1]) return null;
+  const suffix = locale?.startsWith("zh") ? "-zh-CN" : "";
+  return { url: `https://github.com/GTNewHorizons/GuideNH/wiki/${documentId}${suffix}${anchor ? `#${encodeURIComponent(anchor)}` : ""}` };
 }
 
 export function createSyntaxReference(dialog, initialLocale) {
@@ -118,7 +139,7 @@ export function createSyntaxReference(dialog, initialLocale) {
         if (!response.ok) throw new Error(`Unable to load ${documentId}`);
         return { documentId, source: await response.text() };
       }));
-      cache.set(nextLanguage, sources.flatMap(({ documentId, source }) => splitSections(source, documentId).map((section) => ({ ...section, documentId }))));
+      cache.set(nextLanguage, sources.flatMap(({ documentId, source }) => splitSections(source, documentId)));
     }
     if (request !== loadRequest) return;
     sections = cache.get(nextLanguage);
@@ -135,14 +156,16 @@ export function createSyntaxReference(dialog, initialLocale) {
     if (!link) return;
     const href = link.getAttribute("href") || "";
     if (/^https?:/i.test(href)) { link.target = "_blank"; link.rel = "noopener noreferrer"; return; }
-    const documentId = href.split("#")[0].replace(/^\.\//, "").replace(/^.*\//, "").replace(/\.md$/i, "");
-    const section = sections.find((item) => item.documentId === documentId);
-    if (!section) return;
+    const currentDocumentId = sections.find(section => section.id === selectedId)?.documentId;
+    const target = resolveReferenceLink(href, sections, currentDocumentId, language);
+    if (!target) return;
+    if (target.url) { link.href = target.url; link.target = "_blank"; link.rel = "noopener noreferrer"; return; }
     event.preventDefault();
     search.value = "";
-    selectedId = section.id;
+    selectedId = target.section.id;
     renderResults();
     results.querySelector(".reference-result.active")?.scrollIntoView({ block: "nearest" });
+    if (target.anchor) [...content.querySelectorAll("[id]")].find(element => element.id === target.anchor)?.scrollIntoView({ block: "start" });
   });
 
   return {

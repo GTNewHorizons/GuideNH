@@ -95,7 +95,7 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
      * The name of the nearest tag that opens before the caret and has not been closed, or null at the root.
      */
     @Nullable
-    private static String enclosingContainerName(String text, int cursorIndex) {
+    public static String enclosingContainerName(String text, int cursorIndex) {
         Deque<String> open = new ArrayDeque<>();
         int pos = 0;
         int limit = Math.min(cursorIndex, text.length());

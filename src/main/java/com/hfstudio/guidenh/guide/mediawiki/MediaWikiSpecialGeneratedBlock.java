@@ -918,6 +918,10 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
     }
 
     private void renderIcon(RenderContext context, GuidePageIcon icon, int x, int y) {
+        if (icon.isFluidIcon()) {
+            icon.renderCurrentFluid(context, x, y, ICON_SIZE);
+            return;
+        }
         if (icon.isItemIcon() && icon.resolveCurrentItemStack() != null) {
             context.renderItemIcon(icon.resolveCurrentItemStack(), x, y);
             return;

@@ -67,7 +67,7 @@ BetterQuesting 任务描述可以通过 `[guide]` 标签跳回 GuideNH 页面。
 | 状态 | 来源 | 渲染 |
 | --- | --- | --- |
 | 可见 | 任务已解锁但未完成 | 普通可点击链接 |
-| 完成 | `quest.isComplete(player)` 返回 true | 可点击链接，绿色，末尾追加 `✓` |
+| 完成 | 任务已完成 | 可点击链接，绿色，末尾追加 `✓` |
 | 锁定 | 任务存在但未解锁，可见性不为 HIDDEN/SECRET | 仍然是可点击的任务链接 / 任务卡片标题，会打开 BetterQuesting 或跳到索引页 |
 | 隐藏 | 锁定且可见性为 HIDDEN 或 SECRET | 深灰斜体占位符，不泄露任务信息 |
 | 缺失 | 任务 id 在数据库中找不到对应任务 | 红色斜体占位符 |
@@ -93,7 +93,7 @@ GuideNH 永不渲染处于 `HIDDEN` 或 `SECRET` 状态且仍处于锁定的任�
 锁定但非隐藏的任务，在 `<QuestLink>` 以及 `<QuestCard>` 的可点击标题上仍可显示描述 tooltip，这与 BetterQuesting 自身在锁定任务 tooltip 中暴露描述的行为一致。可通过 `show_tooltip="false"`（或 `showTooltip={false}`）关闭该 tooltip；隐藏任务不会暴露任何 tooltip。
 
 > [!NOTE]
-> 任务状态在页面编译时根据本地玩家进度解析。编译结果按指南缓存；解锁或完成任务后重新打开指南会重新评估状态。
+> 解锁或完成任务后重新打开指南，以刷新显示的任务状态。
 
 ### “打开指南”快捷键集成
 
@@ -109,37 +109,9 @@ GuideNH 永不渲染处于 `HIDDEN` 或 `SECRET` 状态且仍处于锁定的任�
 ### BetterQuesting 缺席时的行为
 
 - `<QuestLink>` 与 `<QuestCard>` 不会注册；使用了它们的页面会以标准“未知标签”错误形式呈现，直到你移除这些标签。
-- `quest_ids` 仍会被解析并存入 `additionalProperties`，但不会被读取。
-- 快捷键的任务悬停分支变为空操作。
-- BetterQuesting 描述中的 `[guide]...[/guide]` 链接不会被解析，因为 BetterQuesting 文本框和相关 mixin 都不会加载。
+- `quest_ids` 不会建立任务跳转，任务悬停快捷键也不可用。
+- BetterQuesting 描述链接仅在安装 BetterQuesting 时可用。
 
-这意味着面向 BetterQuesting 的指南只需编写一次，即可在没有 BetterQuesting 的环境下静默降级。
+面向可选 BetterQuesting 集成的页面可设置 `navigation.required_mod: betterquesting`，避免未安装该模组时显示未知标签错误。
 
-## 把你自己的标签导出到站点
-
-导出的静态站点只会渲染 GuideNH 自带的标签。若你的标签由自己的 `TagCompiler` 编译，可以注册一个渲染器，让它同样出现在站点里，而不是"游戏里能看、站点上没有"：
-
-```java
-public class MyModSiteTagRenderer implements GuideSiteTagRenderer {
-
-    @Override
-    public Set<String> getTagNames() {
-        return Set.of("MyMachine");
-    }
-
-    @Override
-    public String render(GuideSiteTagRenderContext context, MdxJsxElementFields element) {
-        String id = element.getAttributeString("id", "");
-        return "<div class=\"mymod-machine\">" + GuideSiteGraphRenderer.esc(id) + "</div>";
-    }
-}
-```
-
-```java
-GuideNhIntegrationRegistry.global().registerSiteTagRenderer(new MyModSiteTagRenderer());
-Guide.builder(id).extension(GuideSiteTagRenderer.EXTENSION_POINT, new MyModSiteTagRenderer()).build();
-```
-
-注册的渲染器先于内置渲染器被询问，第一个返回内容的胜出，因此你只需要处理自己声明的标签。返回 `null` 表示把该元素交给下一个渲染器或内置导出。渲染器抛异常会记录到日志并跳过，因此一个坏插件不会让你并不拥有页面的导出失败。
-
-上下文携带当前导出的页面与共享服务：`defaultNamespace`、`currentPageId`、`templates`、`sceneResolver`、`compiler`，与内置渲染器拿到的完全一致。你写出的标记会原样插入页面，因此文本请用 `GuideSiteGraphRenderer.esc(...)` 转义。
+模组开发者扩展标签及站点导出的说明见 [开发者集成](Developer-Integration-zh-CN)。

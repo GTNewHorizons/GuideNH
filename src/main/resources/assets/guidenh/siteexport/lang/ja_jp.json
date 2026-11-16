@@ -22,7 +22,9 @@
   "navigation": {
     "open": "ナビゲーション",
     "close": "ナビゲーションを閉じる",
-    "holdToOpenGuide": "G を長押ししてガイドを開く"
+    "holdToOpenGuide": "G を長押ししてガイドを開く",
+    "chooseGuide": "ガイドページを選択",
+    "closeChooser": "ページ選択を閉じる"
   },
   "sceneLoading": {
     "error": "3D シーンを読み込めません。",

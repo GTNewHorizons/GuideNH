@@ -11,6 +11,13 @@ categories:
 
 所有注解都使用世界坐标，可通过场景按钮的“显示/隐藏注解”切换。
 
+## 原生流体输入注解
+
+<GameScene width="180" height="120">
+  <Block x="0" y="0" z="0" id="minecraft:stone" />
+  <InputAnnotation pos="0.5 1.5 0.5" inputType="rmb" fluid="water" amount={1000} />
+</GameScene>
+
 ## DiamondAnnotation 菱形标注
 
 在 3D 预览任意世界坐标处放一个**菱形标注**。菱形始终朝向屏幕，光标悬停时出现白色半透明遮罩并弹出富文本 tooltip。

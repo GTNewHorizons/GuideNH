@@ -23,6 +23,8 @@ import com.hfstudio.guidenh.guide.document.block.LytBalancedColumns;
 import com.hfstudio.guidenh.guide.document.block.LytBlock;
 import com.hfstudio.guidenh.guide.document.block.LytBlockContainer;
 import com.hfstudio.guidenh.guide.document.block.LytParagraph;
+import com.hfstudio.guidenh.guide.internal.fluid.FluidStackSpec;
+import com.hfstudio.guidenh.guide.internal.recipe.FluidFilterExpression;
 import com.hfstudio.guidenh.guide.internal.recipe.RecipeLookup;
 import com.hfstudio.guidenh.integration.api.RecipeEntry;
 import com.hfstudio.guidenh.integration.api.RecipeSlot;
@@ -44,21 +46,28 @@ public class RecipeCompiler extends BlockTagCompiler {
         String fallbackText = MdxAttrs.getString(compiler, parent, el, "fallbackText", null);
 
         String idStr = MdxAttrs.getString(compiler, parent, el, "id", null);
-        if (idStr == null || idStr.isEmpty()) {
-            parent.appendError(compiler, "Recipe tag requires an 'id' attribute", el);
+        String fluidId = MdxAttrs.getString(compiler, parent, el, "fluid", null);
+        if ((idStr == null) == (fluidId == null)) {
+            parent.appendError(compiler, "Recipe tag requires exactly one of 'id' and 'fluid'", el);
             return;
         }
 
         String defaultNs = compiler.getPageId()
             .getResourceDomain();
-        IdUtils.ParsedItemRef ref;
+        IdUtils.ParsedItemRef ref = null;
+        FluidStackSpec fluid = null;
         try {
-            ref = IdUtils.parseItemRef(idStr, defaultNs);
+            if (fluidId != null) {
+                fluid = new FluidStackSpec(fluidId);
+                idStr = fluid.id();
+            } else {
+                ref = IdUtils.parseItemRef(idStr, defaultNs);
+            }
         } catch (IllegalArgumentException e) {
             parent.appendError(compiler, "Malformed id '" + idStr + "': " + e.getMessage(), el);
             return;
         }
-        if (ref == null) {
+        if (ref == null && fluid == null) {
             parent.appendError(compiler, "Blank id", el);
             return;
         }
@@ -78,6 +87,7 @@ public class RecipeCompiler extends BlockTagCompiler {
         if (handlerOrderStr != null && !handlerOrderStr.isEmpty()) {
             try {
                 handlerOrder = Integer.parseInt(handlerOrderStr.trim());
+                if (handlerOrder < 0) throw new NumberFormatException();
             } catch (NumberFormatException ignored) {
                 parent.appendError(compiler, "handlerOrder must be a non-negative integer", el);
                 return;
@@ -100,13 +110,23 @@ public class RecipeCompiler extends BlockTagCompiler {
 
         FilterExpr inputExpr = parseFilterExpr(compiler, parent, el, "input", defaultNs);
         FilterExpr outputExpr = parseFilterExpr(compiler, parent, el, "output", defaultNs);
+        FluidFilterExpression inputFluid;
+        FluidFilterExpression outputFluid;
+        try {
+            inputFluid = FluidFilterExpression.parse(el.getAttributeString("inputFluid", null));
+            outputFluid = FluidFilterExpression.parse(el.getAttributeString("outputFluid", null));
+        } catch (IllegalArgumentException exception) {
+            parent.appendError(compiler, exception.getMessage(), el);
+            return;
+        }
 
         String limitStr = el.getAttributeString("limit", null);
         int limit = multi ? Integer.MAX_VALUE : 1;
         if (limitStr != null && !limitStr.isEmpty()) {
             try {
                 int parsed = Integer.parseInt(limitStr.trim());
-                if (parsed > 0) limit = parsed;
+                if (parsed <= 0) throw new NumberFormatException();
+                limit = parsed;
             } catch (NumberFormatException ignored) {
                 parent.appendError(compiler, "limit must be a positive integer", el);
                 return;
@@ -129,7 +149,10 @@ public class RecipeCompiler extends BlockTagCompiler {
             outputExpr,
             limit,
             multi,
-            usageQuery);
+            usageQuery,
+            fluid,
+            inputFluid,
+            outputFluid);
         ph.setStyleClass(tagName);
         ph.setStyle(LytParagraph.PLACEHOLDER_STYLE);
         ph.appendText("[Recipe]");
@@ -367,7 +390,10 @@ public class RecipeCompiler extends BlockTagCompiler {
 
         public final String tagName;
         public final String idStr;
-        public final IdUtils.ParsedItemRef ref;
+        public final @Nullable IdUtils.ParsedItemRef ref;
+        public final @Nullable FluidStackSpec fluid;
+        public final FluidFilterExpression inputFluid;
+        public final FluidFilterExpression outputFluid;
         public final String fallbackText;
         public final String handlerName;
         public final String handlerId;
@@ -385,9 +411,38 @@ public class RecipeCompiler extends BlockTagCompiler {
             String handlerName, String handlerId, int handlerOrder, List<String> handlerWhitelist,
             List<String> handlerBlacklist, int recipeIndex, FilterExpr inputExpr, FilterExpr outputExpr, int limit,
             boolean multi, boolean usageQuery) {
+            this(
+                tagName,
+                idStr,
+                ref,
+                fallbackText,
+                handlerName,
+                handlerId,
+                handlerOrder,
+                handlerWhitelist,
+                handlerBlacklist,
+                recipeIndex,
+                inputExpr,
+                outputExpr,
+                limit,
+                multi,
+                usageQuery,
+                null,
+                FluidFilterExpression.EMPTY,
+                FluidFilterExpression.EMPTY);
+        }
+
+        public RecipePlaceholder(String tagName, String idStr, @Nullable IdUtils.ParsedItemRef ref, String fallbackText,
+            String handlerName, String handlerId, int handlerOrder, List<String> handlerWhitelist,
+            List<String> handlerBlacklist, int recipeIndex, FilterExpr inputExpr, FilterExpr outputExpr, int limit,
+            boolean multi, boolean usageQuery, @Nullable FluidStackSpec fluid, FluidFilterExpression inputFluid,
+            FluidFilterExpression outputFluid) {
             this.tagName = tagName;
             this.idStr = idStr;
             this.ref = ref;
+            this.fluid = fluid;
+            this.inputFluid = inputFluid;
+            this.outputFluid = outputFluid;
             this.fallbackText = fallbackText;
             this.handlerName = handlerName;
             this.handlerId = handlerId;

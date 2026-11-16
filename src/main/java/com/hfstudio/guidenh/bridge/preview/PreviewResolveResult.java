@@ -14,6 +14,7 @@ public class PreviewResolveResult {
     private final String detail;
     private final Integer meta;
     private final Integer count;
+    private final Integer amount;
     private final String nbt;
     private final List<String> tooltipLines;
     private final String iconPngBase64;
@@ -23,6 +24,25 @@ public class PreviewResolveResult {
     public PreviewResolveResult(String capability, String previewKey, String id, String displayName, String detail,
         Integer meta, Integer count, String nbt, List<String> tooltipLines, String iconPngBase64, int pixelWidth,
         int pixelHeight) {
+        this(
+            capability,
+            previewKey,
+            id,
+            displayName,
+            detail,
+            meta,
+            count,
+            null,
+            nbt,
+            tooltipLines,
+            iconPngBase64,
+            pixelWidth,
+            pixelHeight);
+    }
+
+    public PreviewResolveResult(String capability, String previewKey, String id, String displayName, String detail,
+        Integer meta, Integer count, Integer amount, String nbt, List<String> tooltipLines, String iconPngBase64,
+        int pixelWidth, int pixelHeight) {
         this.capability = capability == null ? "" : capability;
         this.previewKey = previewKey == null ? "" : previewKey;
         this.id = id == null ? "" : id;
@@ -30,6 +50,7 @@ public class PreviewResolveResult {
         this.detail = detail;
         this.meta = meta;
         this.count = count;
+        this.amount = amount;
         this.nbt = nbt;
         this.tooltipLines = tooltipLines == null ? List.of() : List.copyOf(tooltipLines);
         this.iconPngBase64 = iconPngBase64 == null ? "" : iconPngBase64;

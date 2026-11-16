@@ -1,13 +1,12 @@
 # Lokalizacja
 
-Ta dokumentacja opisuje składnię i funkcje czasu wykonania GuideNH. Kod, tagi, ścieżki, identyfikatory i wartości atrybutów pozostają bez zmian.
+Szczegółowa dokumentacja na tej stronie jest dostępna po angielsku. Nazwy tagów, atrybuty, identyfikatory i ścieżki należy stosować bez tłumaczenia.
 
+GuideNH supports localized guide pages and localized guide assets.
 
-GuideNH obsługuje zlokalizowany przewodnik strony i zlokalizowany przewodnik zasoby.
+## Folder Layout
 
-## Układ folderów
-
-lokalizacja czasu wykonania is folder-based:
+Runtime localization is folder-based:
 
 ```text
 config/guidenh/DefaultGuide/<modid>/guidenh/
@@ -17,7 +16,7 @@ config/guidenh/DefaultGuide/<modid>/guidenh/
     `-- index.md
 ```
 
- repository Przykład pakiet zasobów zachowuje jego documented outer `assets/` layer:
+The repository example resource pack keeps its documented outer `assets/` layer:
 
 ```text
 wiki/resourcepack/assets/<modid>/guidenh/
@@ -27,101 +26,116 @@ wiki/resourcepack/assets/<modid>/guidenh/
     `-- index.md
 ```
 
-język folders są recognized tylko in  underscored form. Plain folders takie jak `en_us/` i `zh_cn/` są no longer treated as Lokalizacja roots.
+Language folders are recognized only in the underscored form. Use `_en_us/` and `_zh_cn/`, including the leading underscore.
 
-## Kolejność wyszukiwania stron
+## Page Lookup Order
 
-Dla każdego requested ID strony, GuideNH tries:
+For each requested page id, GuideNH tries:
 
 1. `_<current language>/<page>`
-2. `_<default language>/<page>` Jeśli  bieżący język strona is missing
-3. `<page>` bez folder języka
+2. `_<default language>/<page>` if the current language page is missing
+3. `<page>` without a language folder
 
-przewodnik strony tylko fall tył do  przewodnik's `defaultLanguage`. Auto-discovered zasób-pack przewodniki nadal Domyślne który wartość do `en_us`, so another język is nie promoted do język awaryjny just because it exists.
+Guide pages only fall back to the guide's `defaultLanguage`. Auto-discovered resource-pack guides still default that value to `en_us`, so another language is not promoted into a fallback language just because it exists.
 
-## strona Lang klucz Overrides
+## Page Lang Key Overrides
 
-przewodnik strony może także zastąpić ich full źródło Markdown z a `.lang` klucz, but tylko gdy  physical strona plik
-już exists.  plik remains  existence gate i  awaryjny source.
+Guide pages may also replace their full markdown source from a `.lang` key, but only when the physical page file
+already exists. The file remains the existence gate and the fallback source.
 
-- GuideNH pierwszy resolves  strona plik z  normal język awaryjny kolejność
-- po plik ma been found, GuideNH looks dla strona-zlokalizowany `.lang` wartość dla  requested język
-- Jeśli który klucz exists i is non-empty, jego full wartość staje się  strona źródło Markdown przed parsing
-- Jeśli  klucz is missing lub empty, GuideNH falls tył do  rozwiązany plik treść
+- GuideNH first resolves the page file with the normal language fallback order
+- after a file has been found, GuideNH looks for a page-localized `.lang` value for the requested language
+- if that key exists and is non-empty, its full value becomes the page markdown source before parsing
+- if the key is missing or empty, GuideNH falls back to the resolved file content
 
-gdy non-empty `.lang` strona wartość is używany, GuideNH merges missing frontmatter pola z  rozwiązany physical
-strona przed parsing. zlokalizowany frontmatter zawsze wins dla pola it explicitly defines, so translated
-`navigation.title` wartości pozostają zlokalizowany, podczas newer structural pola takie jak `navigation.recommend`,
-`navigation.priority`, categories, element links, authorship metadane, lub strona powiększenie może be inherited z 
-awaryjny `.md` plik. Ten zachowuje older full-strona translations z accidentally dropping home-strona recommendations
-gdy  base strona metadane is zaktualizowany.
+When a non-empty `.lang` page value is used, GuideNH merges missing frontmatter fields from the resolved physical
+page before parsing. Localized frontmatter always wins for fields it explicitly defines, so translated
+`navigation.title` values stay localized, while newer structural fields such as `navigation.recommend`,
+`navigation.priority`, categories, item links, authorship metadata, or page zoom can be inherited from the
+fallback `.md` file. This keeps older full-page translations from accidentally dropping home-page recommendations
+when the base page metadata is updated.
 
- klucz format is:
+The key format is:
 
 ```text
 guidenh.page.<namespace>.<folder>.<page path without .md>
 ```
 
-Przykład:
+Example:
 
 ```text
 assets/guidenh/guidenh/_en_us/charts.md
 -> guidenh.page.guidenh.guidenh.charts
 ```
 
-ścieżka separators become `.` in  klucz. Literal dots wewnątrz a ścieżka segment są escaped so jeden do nie collide z
+Path separators become `.` in the key. Literal dots inside a path segment are escaped so they do not collide with
 segment separators:
 
 ```text
 foo.bar.md -> foo_x2e_bar
 ```
 
-Other non-alphanumeric characters są escaped z  ten sam `_x<hex>_` pattern.
+Other non-alphanumeric characters are escaped with the same `_x<hex>_` pattern.
 
-wewnątrz  `.lang` wartość, literal `\n` i `\r` sequences są converted do real wiersz endings przed Markdown parsing,
-so  tłumaczenie wartość może zawierać full strona including frontmatter, headings, lists, i MDX tagi.
+Inside the `.lang` value, literal `\n` and `\r` sequences are converted to real line endings before markdown parsing,
+so the translation value can contain a full page including frontmatter, headings, lists, and MDX tags.
 
-Authoring Zasady:
+Authoring rules:
 
-- zapisywać  strona as jeden physical `.lang` wiersz dla który klucz
-- używać literal `\n` wewnątrz  wartość gdy you want Markdown wiersz break
-- do nie insert real wiersz breaks do  `.lang` wartość itself, because Forge reads `.lang` files wiersz by wiersz
-- do nie zapisywać `\\n` unless you intentionally want  końcowy źródło Markdown do zawierać  literal characters `\n`
+- write the page as one physical `.lang` line for that key
+- use literal `\n` inside the value when you want a markdown line break
+- do not insert real line breaks into the `.lang` value itself, because Forge reads `.lang` files line by line
+- do not write `\\n` unless you intentionally want the final markdown source to contain the literal characters `\n`
 
-GuideNH nie synthesize strony z `.lang` alone. real strona plik musi nadal exist.
+GuideNH does not synthesize pages from `.lang` alone. A real page file must still exist.
 
-## klucz Length
+## Templates And Language
 
-GuideNH nie impose extra character limit on Te strona klucze. On Minecraft 1.7.10 / Forge,  backing język
-dane is effectively ciąg znaków-właściwość map, so  practical limits są normal memory usage i maintainability rather
-niż dedicated hard cap. Shorter strona paths nadal make klucze easier do autor i review.
+Template pages under a `templates/` folder follow the same language lookup order as any other page, so a
+template can have one file per language:
 
-## Wskazówki dotyczące tworzenia
+```text
+_en_us/templates/InfoBox.md
+_zh_cn/templates/InfoBox.md
+```
 
-- Ustaw `defaultLanguage` deliberately gdy you want non-English język awaryjny dla przewodnik
-- Dodaj shared język-neutral strona tylko gdy cross-język awaryjny is actually intended
-- translate strony pierwszy, następnie translate zasoby tylko gdy tekst is embedded in  zasób
-- avoid język-określony zasób filenames gdy rooted shared zasób would do
+A template page can also be replaced by a `.lang` key like any other page. The key format appends the
+template path:
 
-## Kolejność wyszukiwania zasobów
+```text
+guidenh.page.<namespace>.<folder>.templates.<name>
+```
 
-przewodnik zasoby używać slightly richer awaryjny kolejność:
+## Key Length
+
+GuideNH does not impose an extra character limit on these page keys. Shorter page paths still make keys easier to author and review.
+
+## Authoring Advice
+
+- set `defaultLanguage` deliberately when you want a non-English fallback language for a guide
+- add a shared language-neutral page only when cross-language fallback is actually intended
+- translate pages first, then translate assets only when text is embedded in the asset
+- avoid language-specific asset filenames when a rooted shared asset would do
+
+## Asset Lookup Order
+
+Guide assets use a slightly richer fallback order:
 
 1. `_<current language>/<path>`
-2. Jeśli  bieżący język is nie  przewodnik język domyślny, `_<default language>/<path>`
+2. if the current language is not the guide default language, `_<default language>/<path>`
 3. `<path>`
 
-Ten makes it possible do localize obrazy lub texture-like zasoby gdy needed.
+This makes it possible to localize images or texture-like assets when needed.
 
-## Wyszukiwanie i język
+## Search And Language
 
-wyszukiwanie documents store both  raw Minecraft język i  analyzer język używany dla Lucene. Jeśli  bieżący Minecraft język is nie mapped do known analyzer, wyszukiwanie falls tył do English tokenization.
+Search documents store both the raw Minecraft language and the analyzer language used for Lucene. If the current Minecraft language is not mapped to a known analyzer, search falls back to English tokenization.
 
-## Ignore tłumaczenie Config
+## Ignore Translation Config
 
-GuideNH nie expose globalny "ignore translations" switch. Jeśli you want przewodnik do fall tył do non-English język, Ustaw który przewodnik's `defaultLanguage` explicitly in code.
+GuideNH does not expose a global "ignore translations" switch. If you want a guide to fall back to a non-English language, set that guide's `defaultLanguage` explicitly in code.
 
-## Przykład
+## Example
 
 ```text
 config/guidenh/DefaultGuide/guidenh/guidenh/_en_us/index.md
@@ -130,7 +144,7 @@ config/guidenh/DefaultGuide/guidenh/guidenh/_en_us/test1.png
 config/guidenh/DefaultGuide/guidenh/guidenh/_zh_cn/test1.png
 ```
 
-Repository Przykład pack equivalent:
+Repository example pack equivalent:
 
 ```text
 wiki/resourcepack/assets/guidenh/guidenh/_en_us/index.md
@@ -139,7 +153,8 @@ wiki/resourcepack/assets/guidenh/guidenh/_en_us/test1.png
 wiki/resourcepack/assets/guidenh/guidenh/_zh_cn/test1.png
 ```
 
-## Powiązane strony
+## Related Pages
 
 - [Guide Page Format](Guide-Page-Format)
+- [Templates](Templates)
 - [Images And Assets](Images-And-Assets)

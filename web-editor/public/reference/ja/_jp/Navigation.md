@@ -31,6 +31,8 @@ navigation:
 | `icons` | 切り替え表示するアイテムアイコンのリスト |
 | `icon_texture` | ガイドアセットから解決するテクスチャーアイコン |
 | `icon_textures` | 切り替え表示するテクスチャーアイコンのリスト |
+| `icon_fluid` | 単一の流体登録名。他のアイコン源と併用不可 |
+| `icon_fluids` | 空でない流体登録名リスト。1 秒ごとに切り替え。他のアイコン源と併用不可 |
 | `required_mod` | 任意の Mod ID。Mod がないとページを非表示 |
 | `required_mods` | 任意の Mod ID リスト。すべて読み込まれている必要があります |
 | `excluded_mod` | 任意の Mod ID。読み込まれているとページを非表示 |
@@ -121,7 +123,7 @@ navigation:
 
 ## アイコンのソース
 
-GuideNH は次の順でアイコンを選びます。
+流体アイコンを設定していない場合、GuideNH は次の順でアイテムとテクスチャーのアイコンを選びます。
 
 1. 1 件以上設定された `icon_textures`
 2. 正常に読み込めた `icon_texture`
@@ -201,6 +203,23 @@ Markdown リンクと `<a>` タグで見出しアンカーへ移動できます�
 [Jump here](#custom-anchor)
 ```
 
+## 流体からページを開く
+
+`fluid_id` で 1 つ、`fluid_ids` で複数の登録名をページへバインドします。両方を併用でき、数量と NBT は照合しません。`#anchor` で節を指定できます。
+
+```yaml
+fluid_id: water
+fluid_ids:
+  - steam#uses
+navigation:
+  title: Fluid handling
+  icon_fluid: water
+```
+
+`<FluidLink>` とホバー中の長押し `G` から開けます。対応する NEI 流体表示や流体入り容器も対象です。空容器はアイテムとして検索されます。複数の対象がある場合は選択リストに流体ページ、容器ページの順で表示されます。
+
+ページアイコンは `icon_fluid` と `icon_fluids` のどちらかだけを使用し、アイテムやテクスチャーアイコンと併用しません。アイコンだけではページをバインドしません。
+
 ## `<SubPages>`
 
 `<SubPages>` はナビゲーションの子ページへのリンクを描画します。
@@ -239,8 +258,12 @@ Markdown リンクと `<a>` タグで見出しアンカーへ移動できます�
 
 | 属性 | 型 | 既定値 | 意味 |
 | --- | --- | --- | --- |
-| `name` | 文字列 | なし | `AllPages` または `Categories` |
+| `name` | string | — | `SpecialPages` で一覧を表示。例：`AllPages`、`Categories`、`Templates` |
 | `rows` | 正の整数 | `3` | 表示列数 |
+| `page` | page id | — | ページを対象とする一覧の指定 |
+| `prefix` | string | — | `AllPagesWithPrefix` の接頭辞 |
+| `language` | string | — | 翻訳一覧の言語 |
+| `query` | string | — | 一覧の検索テキスト |
 
 ````md
 <Special name="AllPages" rows="4" />

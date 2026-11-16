@@ -1,32 +1,50 @@
 # Ejemplos
 
+La referencia detallada de esta página está disponible en inglés. Los nombres de etiquetas, atributos, identificadores y rutas se utilizan sin traducir.
 
-Esta documentación describe la sintaxis y las funciones de ejecución de GuideNH. El código, las etiquetas, las rutas, los identificadores y los valores de atributos se conservan sin cambios.
+GuideNH ships a runtime example guide in `wiki/resourcepack/`. This page maps the important example files to the feature areas they demonstrate.
 
-GuideNH ya ships Un ejecución Ejemplo guíUn en `wiki/resourcepack/`. esto página maps El important Ejemplo files Un El feature areas Estas demonstrate.
+## Core Example Pages
 
-## Core Ejemplo páginas
+These files are in `wiki/resourcepack/assets/guidenh/guidenh/_en_us/`.
 
-| ejecución archivo | What it demonstrates |
+| File | Purpose |
 | --- | --- |
-| `.../_en_us/index.md` | frontmatter, elemento ids, recipes, elemento/bloque imágenes, command enlaces, tooltips, escenas, anotaciones, `ImportStructureLib`, `RemoveBlocks`, `BlockAnnotationTemplate`, home-página recommendation Ejemplo |
-| `.../_en_us/markdown.md` | simple markdown features, tablas, y a `recommend: 0` Ejemplo |
-| `.../_en_us/rendering.md` | bloque-level renderizado y diseño comportamiento |
-| `.../_en_us/scene-blocks.md` | static y interactivo bloque escena Ejemplos |
-| `.../_en_us/japanese.md` | navigation hijo Ejemplo |
-| `.../_en_us/navigation-guide.md` | navigation, linking, y high-priority recommendation Ejemplo |
-| `wiki/resourcepack/assets/gregtech/guidenh/_en_us/index.md` | second espacio de nombres Ejemplo para cross-guíUn enlaces y isolated mismo-nombre páginas |
+| `index.md` | Category overview |
+| `markdown.md` | Markdown syntax |
+| `markdown-table.md` | Tables and merged cells |
+| `rendering.md` | Block layout |
+| `images.md` | Images and cropped textures |
+| `tooltips.md` | Hover content |
+| `recipes.md` | Item/fluid recipes and filters |
+| `charts.md` | Charts, reference lines and fluid icons |
+| `function-graph.md` | Function plots |
+| `content-embed.md` | Embedding and text wrapping |
+| `ponder.md` | Animation timelines |
+| `scene-blocks.md` | Blocks and material lists |
+| `scene-import.md` | Structure imports and block edits |
+| `scene-entities.md` | Entity previews |
+| `scene-camera.md` | Camera controls |
+| `scene-annotations.md` | Scene annotations |
+| `scene-particles.md` | Particles and weather |
+| `navigation-guide.md` | Navigation, bindings and icons |
+| `page-lang-key.md` | Whole-page translations |
+| `templates-demo.md` | Templates and include control |
+| `debug.md` | Layout and interaction diagnostics |
+| `japanese.md` | Language and navigation example |
 
-## recurso Ejemplos
+Template definitions are in `templates/`. `wiki/resourcepack/assets/gregtech/guidenh/` demonstrates another namespace and cross-guide links.
 
-| ejecución archivo | Purpose |
+## Asset Examples
+
+| Runtime file | Purpose |
 | --- | --- |
-| `wiki/resourcepack/assets/guidenh/guidenh/_en_us/test1.png` | página-local imagen Ejemplo |
-| `wiki/resourcepack/assets/guidenh/guidenh/assets/example_structure.snbt` | rooted shared estructura recurso para `<ImportStructure>` y `<RemoveBlocks>` |
+| `wiki/resourcepack/assets/guidenh/guidenh/_en_us/test1.png` | page-local image example |
+| `wiki/resourcepack/assets/guidenh/guidenh/assets/example_structure.snbt` | rooted shared structure asset for `<ImportStructure>` and `<RemoveBlocks>` |
 
-## Ejemplo Snippets
+## Example Snippets
 
-### frontmatter + Navigation
+### Frontmatter + Navigation
 
 ```yaml
 item_ids:
@@ -53,28 +71,28 @@ navigation:
   recommend: 5
 ```
 
-### relativo imagen
+### Relative Image
 
 ````md
 ![Test Image](test1.png)
 ````
 
-### Namespaced guíUn enlaces
+### Namespaced Guide Links
 
 ````md
-[Mismo espacio de nombres](guide.md)
-[Mismo espacio de nombres desde la raíz](/guide.md)
-[Otro espacio de nombres](gregtech:guide.md)
-[Otro espacio de nombres desde la raíz](gregtech:/guide.md)
+[Same namespace](guide.md)
+[Same namespace from root](/guide.md)
+[Other namespace](gregtech:guide.md)
+[Other namespace from root](gregtech:/guide.md)
 ````
 
-### Rooted estructura recurso
+### Rooted Structure Asset
 
 ````md
 <ImportStructure src="/assets/example_structure.snbt" />
 ````
 
-### StructureLib escena Import
+### StructureLib Scene Import
 
 ````md
 <GameScene width="384" height="256" zoom={4} interactive={true}>
@@ -90,9 +108,9 @@ navigation:
 </GameScene>
 ````
 
-El hijo etiquetas Establezca StructureLib predeterminados para El escena y son restored cuando El escena vista es reset.
+The child tags set StructureLib defaults for the scene and are restored when the scene view is reset.
 
-### importado estructura Cleanup
+### Imported Structure Cleanup
 
 ````md
 <GameScene width="384" height="256" zoom={4} interactive={true}>
@@ -101,24 +119,26 @@ El hijo etiquetas Establezca StructureLib predeterminados para El escena y son r
 </GameScene>
 ````
 
-### escena anotación Tooltip
+### Scene Annotation Tooltip
 
 ````md
-<DiamondAnnotation pos="0.5 2.2 0.5" color="#FFD24C">
-  ### Activated Beacon
-  <RecipeFor id="minecraft:furnace" />
-</DiamondAnnotation>
+<GameScene>
+  <DiamondAnnotation pos="0.5 2.2 0.5" color="#FFD24C">
+    ### Activated Beacon
+    <RecipeFor id="minecraft:furnace" />
+  </DiamondAnnotation>
+</GameScene>
 ````
 
-### Recipe filtro
+### Recipe Filter
 
 ````md
 <RecipesFor id="minecraft:redstone_torch" input="minecraft:stick&minecraft:redstone" limit="1" />
 ````
 
-### Formato de cantidades
+### Amount formatting
 
-Usa `<Amount>` para cantidades. La unidad es opcional y por defecto solo muestra el número; `fluid` sigue la preferencia `mB`/`L` de GTNHLib.
+Use `<Amount>` for quantities. The unit is optional and defaults to a suffix-free number; `fluid` follows the GTNHLib `mB`/`L` preference.
 
 ````md
 <Amount value="250" />
@@ -126,18 +146,19 @@ Usa `<Amount>` para cantidades. La unidad es opcional y por defecto solo muestra
 <Amount value="1200000" format="compact" /> items
 ````
 
-## cuando Un usar que Ejemplo
+## When To Use Which Example
 
-- inicio con `markdown.md` Si you son validating analizador basics
-- usar `index.md` cuando testing mixed ejecución features together, including StructureLib tooltip, hatch-resaltar, y cleanup comportamiento
-- usar `scene-blocks.md` cuando you solo need static bloque diseño previews
-- usar `example_structure.snbt` cuando you need Un reusable importado estructura recurso
+- start with `markdown.md` for Markdown syntax
+- use `index.md` to browse examples by category
+- use `scene-blocks.md` when you only need static block layout previews
+- use `example_structure.snbt` when you need a reusable imported structure asset
+- use `templates-demo.md` with the `templates/` folder for reusable content, conditionals and include control. See [Templates](Templates)
 
-## Recommended Learning orden
+## Recommended Learning Order
 
-1. [Primeros pasos](Guide-Page-Format)
-2. [Formato de páginas de guía](Guide-Page-Format)
-3. [Referencia de etiquetas](Tags-Reference)
+1. [Getting Started](Getting-Started)
+2. [Guide Page Format](Guide-Page-Format)
+3. [Tags Reference](Tags-Reference)
 4. [GameScene](GameScene)
 5. [Annotations](Annotations)
 6. [Recipes](Recipes)

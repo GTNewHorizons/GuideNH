@@ -21,6 +21,7 @@ GuideNH 的场景注解是放在游戏场景（`<GameScene>` / `<Scene>`）内�
 - `<DiamondAnnotation>`
 - `<OutlineAnnotation>`
 - `<TextAnnotation>`
+- `<InputAnnotation>`
 
 GuideNH 还支持 `<BlockAnnotationTemplate>`，它会把自己的子注解应用到当前场景里所有已经存在且匹配的方块上。
 
@@ -296,6 +297,21 @@ GuideNH 会在每个轴上自动交换反向提供的 min/max 坐标。
   <RecipeFor id="minecraft:furnace" />
 </DiamondAnnotation>
 ````
+
+## `<InputAnnotation>` 流体目标
+
+InputAnnotation 可以指定 `item` 或 `fluid`，不能同时填写。流体目标可选填 `amount`（非负整数）和 `nbt`（SNBT），这两个参数要求同时提供 `fluid`。位置、inputType、modifier 与 StructureLib 可见条件沿用现有规则。
+
+流体悬停信息包含名称、温度和气体/液体状态，加载 GregTech 时还会显示按 GT 设置生成的材料提示。显式数量遵循 L/mB 单位设置。ExportSite 的输入标注保留相同文字作为浏览器悬停提示，并保留格式化后的数量。
+
+```mdx
+<GameScene width="180" height="120">
+  <Block x="0" y="0" z="0" id="minecraft:stone" />
+  <InputAnnotation pos="0.5 1.5 0.5" inputType="rmb" fluid="water" amount={1000} />
+</GameScene>
+```
+
+注解只显示操作图标和流体信息，不会填充容器或改变场景世界。编辑、保存、重载和导出需要保留注册名、数量与 NBT。可放置的流体方块仍须在 Block / PlaceBlock 中使用真实方块 ID。
 
 ## `<BlockAnnotationTemplate>`
 

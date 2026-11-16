@@ -230,8 +230,18 @@ public class GuideEditorAutocompleteController implements DebugComponent {
             return true;
         }
         popup.mouseClicked(mouseX, mouseY);
-        acceptSelected(text);
+        if (!popup.isDraggingScrollbar()) {
+            acceptSelected(text);
+        }
         return true;
+    }
+
+    public boolean handleMouseDragged(int mouseX, int mouseY, int button) {
+        return popup.mouseDragged(mouseX, mouseY, button);
+    }
+
+    public boolean handleMouseReleased(int button) {
+        return popup.mouseReleased(button);
     }
 
     public boolean handleWheel(int mouseX, int mouseY, int wheelDelta) {

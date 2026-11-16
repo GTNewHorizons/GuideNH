@@ -28,17 +28,7 @@ public class TagCandidate implements AutocompleteCandidate {
         this.tagName = tagName;
         this.container = container;
         this.template = template;
-        this.display = buildDisplay(tagName, container, template);
-    }
-
-    private static String buildDisplay(String tagName, boolean container, @Nullable InsertTemplate template) {
-        if (template != null) {
-            return template.text()
-                .replace('\n', ' ')
-                .replaceAll("\\s+", " ")
-                .trim();
-        }
-        return container ? tagName + "  </" + tagName + ">" : tagName;
+        this.display = CompletionPreview.summarize(container ? tagName + "  </" + tagName + ">" : tagName);
     }
 
     @Override

@@ -11,7 +11,7 @@ categories:
 # MDX 模板
 
 本页用于检验模板层。模板是 MDX 标签，因此调用在页面编译时就被处理，查看时不再做任何解析。
-语法参考见[模板](Templates-zh-CN)。
+语法参考见[模板](https://github.com/GTNewHorizons/GuideNH/wiki/Templates-zh-CN)。
 
 ## 具名参数与默认值
 
@@ -66,7 +66,7 @@ categories:
 ```md
 <Expr value="2 + 3 * 4" /> 得到 14
 <Expr value="10 / 4" /> 得到 2.5
-<Len value="Etching Array" /> 得到 13 个字符
+<Len value="Etching Array" /> 得到 12 个字符
 <Sub value="Etching Array" start="0" length="7" /> 得到 `Etching`
 <Replace value="a-b" from="-" to="+" /> 得到 `a+b`
 <Lower value="ABC" /> 得到 `abc`，<Upper value="abc" /> 得到 `ABC`

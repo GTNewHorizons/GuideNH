@@ -1,18 +1,14 @@
 # Nawigacja
 
-Ta dokumentacja opisuje składnię i funkcje czasu wykonania GuideNH. Kod, tagi, ścieżki, identyfikatory i wartości atrybutów pozostają bez zmian.
+Szczegółowa dokumentacja na tej stronie jest dostępna po angielsku. Nazwy tagów, atrybuty, identyfikatory i ścieżki należy stosować bez tłumaczenia.
 
+GuideNH builds its navigation tree from page frontmatter.
 
-GuideNH builds jego Nawigacja tree z strona frontmatter.
+Expanded ancestors stay pinned while their child pages scroll beneath them. Multiple levels can remain visible until their descendants leave the visible area.
 
-In  in-game sidebar, expanded ancestor strony pozostają pinned at  góra podczas ich nadal-widoczny
-descendants przewijanie underneath. wiele expanded ancestor levels może stos at once, i każdy sticky
-wiersz is pushed away tylko gdy jego entire widoczny subtree scrolls out, similar do  VSCode plik
-explorer.
+## Navigation Frontmatter
 
-## frontmatter nawigacji
-
- `navigation` map controls whether strona appears in  przewodnik tree.
+The `navigation` map controls whether a page appears in the guide tree.
 
 ```yaml
 navigation:
@@ -22,40 +18,42 @@ navigation:
   icon: minecraft:diamond_block
 ```
 
-### Opis pól
+### Field Reference
 
-| pole | opis |
+| Field | Description |
 | --- | --- |
-| `title` | Wymagane wyświetlać tytuł |
-| `keyword` | opcjonalny pojedynczy wyszukiwanie keyword lub alias |
-| `keywords` | opcjonalny lista of Słowa kluczowe wyszukiwania lub aliases |
-| `parent` | opcjonalny nadrzędny ID strony, rozwiązany like strona przewodnika odnośnik |
-| `position` | opcjonalny sibling ordering hint |
-| `recommend` | opcjonalny home-strona recommendation priority; absent oznacza  strona is nie wyświetlany in  Recommended panel |
-| `priority` | opcjonalny Priorytet ładowania dla ten sam-ścieżka strona overrides; Domyślne `0` |
-| `icon` | opcjonalny pojedynczy element icon; obsługuje inline `mod:item:meta:{snbt}` tails |
-| `icons` | opcjonalny cycling element icons lista; wpisy może be plain element ids z opcjonalny inline `:{snbt}` lub `{id, meta?, nbt?}` maps |
-| `icon_texture` | opcjonalny texture icon rozwiązany z przewodnik zasoby |
-| `icon_textures` | opcjonalny cycling texture icon lista |
-| `required_mod` | opcjonalny pojedynczy mod id; strona is ukryty gdy Ten mod is nie załadowany |
-| `required_mods` | opcjonalny lista of mod ids; strona is ukryty unless wszystkie listed mods są załadowany |
-| `excluded_mod` | opcjonalny pojedynczy mod id; strona is ukryty gdy Ten mod is załadowany |
-| `excluded_mods` | opcjonalny lista of mod ids; strona is ukryty gdy any listed mod is załadowany |
+| `title` | Required display title |
+| `keyword` | Optional single search keyword or alias |
+| `keywords` | Optional list of search keywords or aliases |
+| `parent` | Optional parent page id, resolved like a guide page link |
+| `position` | Optional sibling ordering hint |
+| `recommend` | Optional home-page recommendation priority; absent means the page is not shown in the Recommended panel |
+| `priority` | Optional load priority for same-path page overrides; default `0` |
+| `icon` | Optional single item icon; supports inline `mod:item:meta:{snbt}` tails |
+| `icons` | Optional cycling item icons list; entries may be plain item ids with optional inline `:{snbt}` or `{id, meta?, nbt?}` maps |
+| `icon_texture` | Optional texture icon resolved from guide assets |
+| `icon_textures` | Optional cycling texture icon list |
+| `icon_fluid` | Optional single fluid registry name; excludes `icon_fluids` and item/texture sources |
+| `icon_fluids` | Optional nonempty fluid registry-name list cycling once per second; excludes `icon_fluid` and item/texture sources |
+| `required_mod` | Optional single mod id; page is hidden when this mod is not loaded |
+| `required_mods` | Optional list of mod ids; page is hidden unless all listed mods are loaded |
+| `excluded_mod` | Optional single mod id; page is hidden when this mod is loaded |
+| `excluded_mods` | Optional list of mod ids; page is hidden when any listed mod is loaded |
 
 ### `navigation.position`
 
-`navigation.position` is opcjonalny liczba całkowita używany do kolejność sibling strony in  Nawigacja tree.
+`navigation.position` is an optional integer used to order sibling pages in the navigation tree.
 
-- Missing `position` domyślne do `0`.
-- Larger wartości appear earlier.
-- Jeśli dwa strony have  ten sam wartość, jeden są sorted by tytuł alphabetically.
+- Missing `position` defaults to `0`.
+- Larger values appear earlier.
+- If two pages have the same value, they are sorted by title alphabetically.
 
-### Słowa kluczowe wyszukiwania
+### Search Keywords
 
-`navigation.keyword` dodaje jeden wyszukiwanie alias. `navigation.keywords` dodaje lista of aliases. Both pola
-może be używany together; wartości są trimmed i duplicate wartości są ignored. Keyword pasuje używać  ten sam
-język analyzer i prefix pasujący as tytuł i strona treść searches, podczas wyniki continue do pokazywać
- normal Nawigacja tytuł.
+`navigation.keyword` adds one search alias. `navigation.keywords` adds a list of aliases. Both fields
+can be used together; values are trimmed and duplicate values are ignored. Keyword matches use the same
+language analyzer and prefix matching as title and page content searches, while results continue to show
+the normal navigation title.
 
 ```yaml
 navigation:
@@ -66,17 +64,17 @@ navigation:
     - autocrafting machine
 ```
 
-## Polecane na stronie głównej
+## Home Page Recommendations
 
 ### `navigation.recommend`
 
-`navigation.recommend` is opcjonalny liczba całkowita używany by  home strona Recommended panel.
+`navigation.recommend` is an optional integer used by the home page Recommended panel.
 
-- strony tylko appear in  Recommended panel gdy Ten pole is present.
-- `0` is prawidłowy.
-- Larger wartości appear earlier.
-- Jeśli dwa strony have  ten sam wartość, jeden są sorted by tytuł alphabetically.
--  panel works at  `GuidePage` level, so każdy recommended strona wpis jumps directly do który strona.
+- Pages only appear in the Recommended panel when this field is present.
+- `0` is valid.
+- Larger values appear earlier.
+- If two pages have the same value, they are sorted by title alphabetically.
+- Each recommendation opens its page directly.
 
 ```yaml
 navigation:
@@ -85,12 +83,12 @@ navigation:
   recommend: 0
 ```
 
-## Wymagania modów
+## Mod Requirements
 
-używać `required_mod` lub `required_mods` do require jeden lub more załadowany mods. używać `excluded_mod` lub
-`excluded_mods` do ukrywać strona gdy jeden lub more incompatible mods są załadowany. gdy warunek is nie
-met,  strona is excluded z  Nawigacja tree i wszystkie strona indices (element, category, etc.) so it
-nie może be found through Nawigacja lub wyszukiwanie.
+Use `required_mod` or `required_mods` to require one or more loaded mods. Use `excluded_mod` or
+`excluded_mods` to hide a page when one or more incompatible mods are loaded. When a condition is not
+met, the page is excluded from the navigation tree and all page indices (item, category, etc.) so it
+cannot be found through navigation or search.
 
 ```yaml
 navigation:
@@ -106,10 +104,10 @@ navigation:
     - appliedenergistics2
 ```
 
-Both klucze może be combined;  strona is tylko wyświetlany gdy każdy listed mod is present.
+Both keys may be combined; the page is only shown when every listed mod is present.
 
-Wymagane i excluded warunki może także be combined. wszystkie Wymagane mods musi be załadowany i none of 
-excluded mods może be załadowany.
+Required and excluded conditions can also be combined. All required mods must be loaded and none of the
+excluded mods may be loaded.
 
 ```yaml
 navigation:
@@ -121,10 +119,10 @@ navigation:
     - legacy_addon
 ```
 
-## Priorytet ładowania
+## Load Priority
 
-gdy several załadowany zasób packs zapewniać  ten sam strona przewodnika ścieżka, GuideNH reads  strona
-frontmatter pierwszy i chooses  candidate z  highest `navigation.priority`.
+When several loaded resource packs provide the same guide page path, GuideNH reads the page
+frontmatter first and chooses the candidate with the highest `navigation.priority`.
 
 ```yaml
 navigation:
@@ -133,48 +131,50 @@ navigation:
   priority: 100
 ```
 
-Zasady:
+Rules:
 
 - missing `priority` is `0`
-- wartości są signed Java integers up do `2147483647`
+- values are integers
 - higher priority wins
-- Jeśli priorities są equal,  later processed pakiet zasobów wpis wins, pasujący Minecraft zasób-pack nadpisywać kolejność
-- priority tylko decides between candidates dla  ten sam strona ścieżka i język/awaryjny layer
+- if priorities are equal, the later processed resource pack entry wins, matching Minecraft resource-pack override order
+- priority only decides between candidates for the same page path and language/fallback layer
 
-Ten is useful gdy mod ships baseline strona przewodnika i pack wants do zastąpić it bez relying tylko on
-zasób-pack ordering.
+This is useful when a mod ships a baseline guide page and a pack wants to replace it without relying only on
+resource-pack ordering.
 
-## Źródła ikon
+## Icon Sources
 
-GuideNH chooses Nawigacja/wyszukiwanie icons in Ten kolejność:
+Choose `icon_fluid` or `icon_fluids` for fluid icons. The two fields are mutually exclusive and cannot accompany item or texture sources. Icons do not create fluid navigation bindings; add page-level `fluid_id` / `fluid_ids` separately.
 
-1. `icon_textures` Jeśli at least jeden texture wpis is configured
-2. `icon_texture` Jeśli  texture plik ładuje successfully
-3. `icons` Jeśli at least jeden configured element resolves successfully
-4. `icon` Jeśli  element exists
-5. no icon Jeśli neither is usable
+When no fluid icon is configured, GuideNH chooses item and texture icons in this order:
 
-Texture icons są czytać z czas wykonania zasoby, so względny strona-lokalny files takie jak `test1.png` działa.
+1. `icon_textures` if at least one texture entry is configured
+2. `icon_texture` if the texture file loads successfully
+3. `icons` if at least one configured item resolves successfully
+4. `icon` if the item exists
+5. no icon if neither is usable
 
-## Węzły nadrzędne i główne
+Texture icons are read from runtime assets, so relative page-local files such as `test1.png` work.
 
-- Omit `parent` do utworzyć katalog główny node.
-- Ustaw `parent: index.md` lub any other ID strony do utworzyć element podrzędny node.
--  nadrzędny strona musi exist in  ten sam przewodnik Nawigacja tree.
+## Parent And Root Nodes
 
-`navigation.parent` używa  ten sam przestrzeń nazw Zasady as Markdown strona links:
+- Omit `parent` to create a root node.
+- Set `parent: index.md` or any other page id to create a child node.
+- The parent page must exist in the same guide navigation tree.
 
-- `parent: index.md` i `parent: ./index.md` rozwiązać wewnątrz  bieżący strona przestrzeń nazw.
-- `parent: /index.md` resolves z  bieżący strona przestrzeń nazw katalog główny.
-- `parent: gregtech:index.md` lub `parent: gregtech:/index.md` explicitly targets another przestrzeń nazw.
+`navigation.parent` uses the same namespace rules as Markdown page links:
 
-dane-driven przewodniki są isolated by przestrzeń nazw. strony under `assets/guidenh/guidenh/_en_us/...` belong do
-`guidenh:guidenh`; strony under `assets/gregtech/guidenh/_en_us/...` belong do `gregtech:guidenh`.
-względny parents i links nigdy fall through do another mod's ten sam-named strona.
+- `parent: index.md` and `parent: ./index.md` resolve inside the current page namespace.
+- `parent: /index.md` resolves from the current page namespace root.
+- `parent: gregtech:index.md` or `parent: gregtech:/index.md` explicitly targets another namespace.
 
-## Strony kategorii
+Data-driven guides are isolated by namespace. Pages under `assets/guidenh/guidenh/_en_us/...` belong to
+`guidenh:guidenh`; pages under `assets/gregtech/guidenh/_en_us/...` belong to `gregtech:guidenh`.
+Relative parents and links never fall through to another mod's same-named page.
 
-strony może join jeden lub more named categories używając frontmatter:
+## Category Pages
+
+Pages can join one or more named categories using frontmatter:
 
 ```yaml
 categories:
@@ -182,14 +182,14 @@ categories:
   - machines|Arc Furnace
 ```
 
-każdy wpis może be either category nazwa lub `category|sort key`.
+Each entry can be either a category name or `category|sort key`.
 
-Those categories są queryable through  built-in `<Category name="machines" rows="3" />` tag i także auto-utworzyć ukryty searchable strony takie jak `Category:machines`.
-GuideNH także auto-creates  ukryty searchable special strony `Special:AllPages` i `Special:Categories`.
+Those categories are queryable through the built-in `<Category name="machines" rows="3" />` tag and also auto-create hidden searchable pages such as `Category:machines`.
+GuideNH also auto-creates the hidden searchable special pages `Special:AllPages` and `Special:Categories`.
 
-## Strony indeksowane przedmiotami
+## Item-Indexed Pages
 
-strony może rejestrować element-do-strona mappings używając `item_id` (jeden wartość) lub `item_ids` (lista):
+Pages can register item-to-page mappings using `item_id` (one value) or `item_ids` (a list):
 
 ```yaml
 item_id: "minecraft:potion 16384-16462,!16386 | ae2:white_paint_ball:*"
@@ -200,52 +200,67 @@ item_ids:
   - minecraft:iron_ore#crafting
 ```
 
-Te mappings są używany by `<ItemLink>`. `item_id` is jeden NEI-style wyrażenie i każdy `item_ids`
-wpis is  ten sam rodzaj of wyrażenie. dla Przykład, `minecraft:potion 16384-16462,!16386` pasuje a
-metadane range except dla `16386`, podczas `minecraft:potion 0-16,20-36,!28` combines dwa metadane ranges i
-excludes `28`. `ae2:white_paint_ball:*` is compatible strict wszystkie-meta mapping.
+These mappings are used by `<ItemLink>`. `item_id` is one NEI-style expression and each `item_ids`
+entry is the same kind of expression. For example, `minecraft:potion 16384-16462,!16386` matches a
+metadata range except for `16386`, while `minecraft:potion 0-16,20-36,!28` combines two metadata ranges and
+excludes `28`. `ae2:white_paint_ball:*` is a compatible strict all-meta mapping.
 
-opcjonalny `#anchor` suffix scrolls do określony heading gdy  odnośnik is clicked.
- kotwica is formed by lowercasing  heading tekst i replacing spaces z hyphens
+An optional `#anchor` suffix scrolls to a specific heading when the link is clicked.
+The anchor is formed by lowercasing the heading text and replacing spaces with hyphens
 (e.g. `## Crafting Recipe` → `#crafting-recipe`).
 
-Lookup zachowanie:
+Lookup behavior:
 
-1. exact element + exact meta
-2. wildcard-meta awaryjny Jeśli present
-3. pasujący element wyrażenie
+1. exact item + exact meta
+2. wildcard-meta fallback if present
+3. matching item expression
 
-## Łącza kotwic nagłówków
+## Fluid-indexed pages
 
-GuideNH obsługuje heading kotwica Nawigacja in Markdown links i `<a>` tagi.
-Anchors są derived z heading tekst by lowercasing i replacing spaces z hyphens.
+Use `fluid_id` for one fluid or `fluid_ids` for a list; both fields may coexist. Bindings match exact registry names independently of amount and NBT. Append `#anchor` to open a section:
 
-**ten sam-strona kotwica:**
+```yaml
+fluid_id: water
+fluid_ids:
+  - steam#uses
+navigation:
+  title: Fluid handling
+  icon_fluid: water
+```
+
+Bindings serve `<FluidLink>` and the hover-and-hold `G` shortcut. Recognized NEI fluid displays and filled containers are supported; empty containers retain item navigation. Multiple targets open a chooser with fluid pages before container-item pages.
+
+## Heading Anchor Links
+
+GuideNH supports heading anchor navigation in Markdown links and `<a>` tags.
+Anchors are derived from heading text by lowercasing and replacing spaces with hyphens.
+
+**Same-page anchor:**
 
 ```md
 [Jump to Installation](#installation)
 [Jump to Crafting Recipe](#crafting-recipe)
 ```
 
-**Cross-strona kotwica:**
+**Cross-page anchor:**
 
 ```md
-[See Getting Started](./Guide-Page-Format#installation)
+[See Getting Started](./getting-started.md#installation)
 [Another guide](other-guide.md#usage)
 ```
 
-**bezwzględny ścieżka kotwica** (używając  przewodnik przestrzeń nazw, avoids względny ścieżka ambiguity in subdirectories):
+**Absolute path anchor** (using the guide namespace, avoids relative path ambiguity in subdirectories):
 
 ```md
 [Absolute link](guidenh:other-guide.md#usage)
 [Any namespace](mymods:crafting/iron.md#smelting)
 ```
 
- `namespace:path` format resolves do  strona przewodnika whose id pasuje `namespace:path`.
-Ten is identical do what względny paths rozwiązać do, but avoids `../` Nawigacja.
- strona musi exist in  ten sam przewodnik as  odnośnik source.
+The `namespace:path` format resolves to the guide page whose id matches `namespace:path`.
+This is identical to what relative paths resolve to, but avoids `../` navigation.
+The target page must be loaded.
 
-**Named inline anchors** może także be umieszczony z `<a name="...">` in MDX:
+**Named inline anchors** can also be placed with `<a name="...">` in MDX:
 
 ```md
 <a name="custom-anchor" />
@@ -255,20 +270,20 @@ Ten is identical do what względny paths rozwiązać do, but avoids `../` Nawiga
 [Jump here](#custom-anchor)
 ```
 
-Navigating do odnośnik z kotwica scrolls  przewodnik do  cel heading lub named kotwica.
+Navigating to a link with an anchor scrolls the guide to the target heading or named anchor.
 
 ## `<SubPages>`
 
-`<SubPages>` renders links do Nawigacja elementy podrzędne.
+`<SubPages>` renders links to navigation children.
 
-### atrybuty
+### Attributes
 
-| Atrybut | Typ | Domyślne | Znaczenie |
+| Attribute | Type | Default | Meaning |
 | --- | --- | --- | --- |
-| `id` | ID strony lub empty ciąg znaków | bieżący strona | strona whose elementy podrzędne powinien be listed |
-| `alphabetical` | wartość logiczna wyrażenie | `false` | Sort elementy podrzędne by tytuł zamiast tego of Nawigacja kolejność |
+| `id` | page id or empty string | current page | Page whose children should be listed |
+| `alphabetical` | boolean expression | `false` | Sort children by title instead of navigation order |
 
-### Przykłady
+### Examples
 
 ````md
 <SubPages />
@@ -276,54 +291,58 @@ Navigating do odnośnik z kotwica scrolls  przewodnik do  cel heading lub named 
 <SubPages id="" alphabetical={true} />
 ````
 
-Special case: `id=""` lists katalog główny Nawigacja nodes.
+Special case: `id=""` lists root navigation nodes.
 
 ## `<Category>`
 
-`<Category>` renders links do każdy strona in named category.
+`<Category>` renders links to every page in a named category.
 
-### atrybuty
+### Attributes
 
-| Atrybut | Typ | Domyślne | Znaczenie |
+| Attribute | Type | Default | Meaning |
 | --- | --- | --- | --- |
-| `name` | ciąg znaków | none | Category nazwa do renderować |
-| `rows` | positive liczba całkowita | `3` | liczba of wyświetlać kolumny in  MediaWiki-style układ |
+| `name` | string | none | Category name to render |
+| `rows` | positive integer | `3` | Number of display columns in the MediaWiki-style layout |
 
 ````md
 <Category name="machines" rows="3" />
 ````
 
-Jeśli  category is missing, GuideNH renders inline błąd.
+If the category is missing, GuideNH renders an inline error.
 
- ten sam category także ma auto-wygenerowany ukryty searchable strona at `Category:machines`.
+The same category also has an auto-generated hidden searchable page at `Category:machines`.
 
 ## `<Special>`
 
-`<Special>` renders jeden of  built-in MediaWiki-style special strona listings.
+`<Special>` renders one of the built-in MediaWiki-style special page listings.
 
-### atrybuty
+### Attributes
 
-| Atrybut | Typ | Domyślne | Znaczenie |
+| Attribute | Type | Default | Meaning |
 | --- | --- | --- | --- |
-| `name` | ciąg znaków | none | Obsługiwane wartości: `AllPages`, `Categories` |
-| `rows` | positive liczba całkowita | `3` | liczba of wyświetlać kolumny in  MediaWiki-style układ |
+| `name` | string | none | Special page name; use `SpecialPages` for the catalog, including `AllPages`, `Categories` and `Templates` |
+| `rows` | positive integer | `3` | Number of display columns in the MediaWiki-style layout |
+| `page` | page id | none | Page target for special lists that require one |
+| `prefix` | string | none | Title/page-ID prefix for `AllPagesWithPrefix` |
+| `language` | string | none | Language filter for translation lists |
+| `query` | string | none | List search text |
 
 ````md
 <Special name="AllPages" rows="4" />
 <Special name="Categories" rows="3" />
 ````
 
- ten sam treść is także dostępny through  ukryty searchable strony `Special:AllPages` i `Special:Categories`.
+The same content is also available through the hidden searchable pages `Special:AllPages` and `Special:Categories`.
 
-## Tytuły wyników wyszukiwania
+## Search Result Titles
 
-wyszukiwanie titles są derived in Ten kolejność:
+Search titles are derived in this order:
 
 1. `navigation.title`
-2. pierwszy level-1 heading (`# Heading`)
-3. raw ID strony
+2. first level-1 heading (`# Heading`)
+3. raw page id
 
-## Powiązane strony
+## Related Pages
 
 - [Guide Page Format](Guide-Page-Format)
 - [Search](Search)

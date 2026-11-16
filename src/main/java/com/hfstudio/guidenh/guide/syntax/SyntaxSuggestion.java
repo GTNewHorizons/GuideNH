@@ -5,11 +5,16 @@ import java.util.List;
 import java.util.Locale;
 
 import net.minecraft.item.ItemStack;
+import net.minecraftforge.fluids.FluidStack;
 
 import org.jetbrains.annotations.Nullable;
 
 public record SyntaxSuggestion(String value, @Nullable String label, @Nullable String subtitle,
-    @Nullable ItemStack icon) {
+    @Nullable ItemStack icon, @Nullable FluidStack fluidIcon) {
+
+    public SyntaxSuggestion(String value, @Nullable String label, @Nullable String subtitle, @Nullable ItemStack icon) {
+        this(value, label, subtitle, icon, null);
+    }
 
     public static SyntaxSuggestion of(String value) {
         return new SyntaxSuggestion(value, null, null, null);
@@ -25,6 +30,14 @@ public record SyntaxSuggestion(String value, @Nullable String label, @Nullable S
 
     public static SyntaxSuggestion withIcon(String value, @Nullable ItemStack icon) {
         return new SyntaxSuggestion(value, null, null, icon);
+    }
+
+    public static SyntaxSuggestion withFluidIcon(String value, @Nullable FluidStack fluidIcon) {
+        return new SyntaxSuggestion(value, null, null, null, fluidIcon);
+    }
+
+    public boolean hasIcon() {
+        return icon != null || fluidIcon != null;
     }
 
     public String displayText() {

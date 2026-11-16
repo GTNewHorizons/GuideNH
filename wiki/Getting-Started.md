@@ -26,7 +26,7 @@ config/guidenh/DefaultGuide/guidenh/guidenh/_en_us/index.md
 
 ## Repository Example Resource Pack
 
-The built-in example guide in this repository still uses the documentation-oriented resource-pack layout:
+The built-in example guide in this repository uses the documentation-oriented resource-pack layout:
 
 ```text
 wiki/resourcepack/
@@ -47,9 +47,9 @@ wiki/resourcepack/assets/guidenh/guidenh/
 
 ## Guide Discovery
 
-GuideNH now discovers pages directly from the resource tree. Any markdown file under
+GuideNH discovers pages directly from the resource tree. Any markdown file under
 `assets/<modid>/guidenh/_<lang>/...` is part of the guide for `<modid>:guidenh`.
-`index.md` is still the conventional start page and the recommended place to begin.
+`index.md` is the conventional start page and the recommended place to begin.
 
 Each `<modid>` gets its own isolated guide namespace. For example, `assets/guidenh/guidenh/_en_us/index.md`
 and `assets/gregtech/guidenh/_en_us/index.md` are two different pages in two different guides:

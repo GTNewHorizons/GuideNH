@@ -14,8 +14,8 @@ import com.hfstudio.guidenh.guide.color.ConstantColor;
 import com.hfstudio.guidenh.guide.document.DefaultStyles;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.block.LytBlock;
+import com.hfstudio.guidenh.guide.document.block.LytIconImage;
 import com.hfstudio.guidenh.guide.document.block.LytImage;
-import com.hfstudio.guidenh.guide.document.block.LytItemImage;
 import com.hfstudio.guidenh.guide.document.flow.InlineBlockAlignment;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowAnchor;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowBreak;
@@ -718,7 +718,7 @@ public class LineBuilder implements Consumer<LytFlowContent> {
     }
 
     private int getInlineImageYOffset(LineElement element) {
-        if (element instanceof LineBlock lineBlock && lineBlock.getBlock() instanceof LytItemImage itemImage) {
+        if (element instanceof LineBlock lineBlock && lineBlock.getBlock() instanceof LytIconImage itemImage) {
             return itemImage.getInlineVerticalOffset();
         }
         return 0;
@@ -730,7 +730,7 @@ public class LineBuilder implements Consumer<LytFlowContent> {
 
     private static boolean isInlineImage(LytBlock block) {
         return block instanceof LytImage
-            || block instanceof LytItemImage itemImage && itemImage.isInline() && itemImage.isShowingIcon();
+            || block instanceof LytIconImage itemImage && itemImage.isInline() && itemImage.isShowingIcon();
     }
 
     /**

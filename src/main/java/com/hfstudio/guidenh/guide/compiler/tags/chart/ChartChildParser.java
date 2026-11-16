@@ -14,6 +14,7 @@ import com.hfstudio.guidenh.guide.document.block.chart.ChartReferenceLine;
 import com.hfstudio.guidenh.guide.document.block.chart.ChartSeries;
 import com.hfstudio.guidenh.guide.document.block.chart.PieInsetSpec;
 import com.hfstudio.guidenh.guide.document.block.chart.PieSlice;
+import com.hfstudio.guidenh.guide.internal.fluid.FluidStackSpec;
 import com.hfstudio.guidenh.guide.scene.SceneTagCompiler;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstAnyContent;
@@ -295,6 +296,19 @@ public class ChartChildParser {
      * present.
      */
     public static ChartIcon parseIcon(PageCompiler compiler, LytErrorSink errorSink, MdxJsxElementFields el) {
+        String fluid = el.getAttributeString("iconFluid", null);
+        if (fluid != null) {
+            if (el.getAttribute("icon") != null || el.getAttribute("iconImage") != null) {
+                errorSink.appendError(compiler, "iconFluid conflicts with icon and iconImage", el);
+                return null;
+            }
+            try {
+                return ChartIcon.ofFluid(new FluidStackSpec(fluid));
+            } catch (IllegalArgumentException exception) {
+                errorSink.appendError(compiler, exception.getMessage(), el);
+                return null;
+            }
+        }
         String iconId = MdxAttrs.getString(compiler, errorSink, el, "icon", null);
         if (iconId != null && !iconId.trim()
             .isEmpty()) {

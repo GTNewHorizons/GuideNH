@@ -22,7 +22,9 @@
   "navigation": {
     "open": "Navigation",
     "close": "Close navigation",
-    "holdToOpenGuide": "Hold G to open guide"
+    "holdToOpenGuide": "Hold G to open guide",
+    "chooseGuide": "Choose a guide page",
+    "closeChooser": "Close page chooser"
   },
   "sceneLoading": {
     "error": "The 3D scene could not be loaded.",

@@ -14,6 +14,7 @@ import com.hfstudio.guidenh.guide.color.ColorUtils;
 public class ItemCandidate implements AutocompleteCandidate {
 
     private final String id;
+    private final String display;
     private final ItemStack stack;
     private static final int ICON_SIZE = 16;
     private static final int TEXT_X = ICON_SIZE + 2;
@@ -22,12 +23,13 @@ public class ItemCandidate implements AutocompleteCandidate {
 
     public ItemCandidate(String id, ItemStack stack) {
         this.id = id;
+        this.display = CompletionPreview.summarize(id);
         this.stack = stack;
     }
 
     @Override
     public String displayText() {
-        return id;
+        return display;
     }
 
     @Override
@@ -41,9 +43,14 @@ public class ItemCandidate implements AutocompleteCandidate {
     }
 
     @Override
+    public int renderWidth(FontRenderer fontRenderer) {
+        return TEXT_X + fontRenderer.getStringWidth(display);
+    }
+
+    @Override
     public void render(FontRenderer fontRenderer, int x, int y, int width, boolean hovered) {
         renderIcon(stack, x, y);
-        fontRenderer.drawString(id, x + TEXT_X, y + 4, TEXT_COLOR);
+        fontRenderer.drawString(display, x + TEXT_X, y + 4, TEXT_COLOR);
     }
 
     public static void renderIcon(ItemStack stack, int x, int y) {
