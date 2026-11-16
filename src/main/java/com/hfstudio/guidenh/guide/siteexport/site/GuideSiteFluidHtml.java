@@ -1,10 +1,13 @@
 package com.hfstudio.guidenh.guide.siteexport.site;
 
 import static com.hfstudio.guidenh.guide.siteexport.site.GuideSiteItemHtml.escapeHtml;
+import static com.hfstudio.guidenh.guide.siteexport.site.GuideSiteLegacyTextRenderer.renderLegacyFormattedText;
 
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+
+import net.minecraft.client.Minecraft;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -14,6 +17,7 @@ import com.hfstudio.guidenh.guide.GuidePageIcon;
 import com.hfstudio.guidenh.guide.compiler.tags.FluidImageOptions;
 import com.hfstudio.guidenh.guide.internal.fluid.FluidStackSpec;
 import com.hfstudio.guidenh.guide.internal.fluid.FluidStacks;
+import com.hfstudio.guidenh.guide.internal.fluid.FluidTooltips;
 
 public class GuideSiteFluidHtml {
 
@@ -22,11 +26,17 @@ public class GuideSiteFluidHtml {
     protected GuideSiteFluidHtml() {}
 
     public static Map<String, Object> exportedData(FluidStackSpec spec, GuideSiteFluidIconResolver resolver) {
+        var stack = FluidStacks.resolve(spec);
+        var tooltip = FluidTooltips.lines(spec, stack, Minecraft.getMinecraft().gameSettings.advancedItemTooltips);
         var data = new LinkedHashMap<String, Object>();
         data.put("id", spec.id());
-        data.put("displayName", FluidStacks.displayName(FluidStacks.resolve(spec)));
+        data.put("displayName", tooltip.getFirst());
         data.put("iconSrc", resolver.exportFluidIcon(spec));
-        if (spec.amount() != null) data.put("amount", spec.amount());
+        data.put("tooltipLines", List.copyOf(tooltip));
+        if (spec.amount() != null) {
+            data.put("amount", spec.amount());
+            data.put("amountText", NumberFormatUtil.formatFluid(stack.amount));
+        }
         if (spec.nbt() != null) data.put("nbt", spec.nbt());
         return Map.copyOf(data);
     }
@@ -56,14 +66,15 @@ public class GuideSiteFluidHtml {
     }
 
     public static String tooltip(FluidStackSpec spec) {
-        String name = FluidStacks.displayName(FluidStacks.resolve(spec));
-        return "<div class=\"guide-fluid-tooltip\"><div>" + escapeHtml(name)
-            + "</div>"
-            + (spec.amount() == null ? ""
-                : "<div>" + escapeHtml(NumberFormatUtil.formatNumber(spec.amount())) + " L</div>")
-            + "<div class=\"guide-tooltip-muted\">"
-            + escapeHtml(spec.id())
-            + "</div></div>";
+        StringBuilder html = new StringBuilder("<div class=\"guide-fluid-tooltip\">");
+        for (String line : FluidTooltips
+            .lines(spec, FluidStacks.resolve(spec), Minecraft.getMinecraft().gameSettings.advancedItemTooltips)) {
+            html.append("<div>")
+                .append(renderLegacyFormattedText(line))
+                .append("</div>");
+        }
+        return html.append("</div>")
+            .toString();
     }
 
     public static String icon(FluidStackSpec fluid, GuideSiteFluidIconResolver resolver, float scale,

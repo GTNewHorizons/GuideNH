@@ -3,9 +3,8 @@ package com.hfstudio.guidenh.guide.document.interaction;
 import net.minecraft.client.Minecraft;
 import net.minecraftforge.fluids.FluidStack;
 
-import com.gtnewhorizon.gtnhlib.util.numberformatting.NumberFormatUtil;
 import com.hfstudio.guidenh.guide.internal.fluid.FluidStackSpec;
-import com.hfstudio.guidenh.guide.internal.fluid.FluidStacks;
+import com.hfstudio.guidenh.guide.internal.fluid.FluidTooltips;
 
 public class FluidTooltip extends TextTooltip implements FluidContent {
 
@@ -29,9 +28,7 @@ public class FluidTooltip extends TextTooltip implements FluidContent {
 
     @Override
     public String getText() {
-        String text = FluidStacks.displayName(stack);
-        if (spec.amount() != null) text += "\n" + NumberFormatUtil.formatNumber(stack.amount) + " L";
-        if (Minecraft.getMinecraft().gameSettings.advancedItemTooltips) text += "\n\u00a78" + spec.id();
-        return text;
+        return String
+            .join("\n", FluidTooltips.lines(spec, stack, Minecraft.getMinecraft().gameSettings.advancedItemTooltips));
     }
 }

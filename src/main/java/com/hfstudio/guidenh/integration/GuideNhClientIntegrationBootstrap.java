@@ -21,6 +21,7 @@ import com.hfstudio.guidenh.integration.forgemultipart.ForgeMultipartPreviewBloc
 import com.hfstudio.guidenh.integration.forgemultipart.ForgeMultipartPreviewTileEntityFinalizer;
 import com.hfstudio.guidenh.integration.forgemultipart.ForgeMultipartPreviewTileEntityProvider;
 import com.hfstudio.guidenh.integration.gregtech.GregTechFakeWorldIntegration;
+import com.hfstudio.guidenh.integration.gregtech.GregTechFluidTooltipProvider;
 import com.hfstudio.guidenh.integration.gregtech.GregTechPreviewPrepareContributor;
 import com.hfstudio.guidenh.integration.gregtech.GregTechStructureLibControllerIntegration;
 import com.hfstudio.guidenh.integration.logisticspipes.LogisticsPipesBlockDisplayProvider;
@@ -45,6 +46,10 @@ import com.hfstudio.guidenh.integration.tinkerconstruct.TinkersConstructPreviewP
 public class GuideNhClientIntegrationBootstrap {
 
     public static void preInitClient() {
+        if (Mods.GregTech.isModLoaded()) {
+            GuideNhClientIntegrationRegistry.global()
+                .registerFluidTooltipProvider(new GregTechFluidTooltipProvider());
+        }
         if (Mods.NotEnoughItems.isModLoaded()) {
             GuideNhClientIntegrationRegistry.global()
                 .registerFluidStackExtractor(new NeiFluidStackExtractor());

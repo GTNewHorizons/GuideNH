@@ -991,8 +991,13 @@ function renderFluidPlaceholder(name, attributes, context, inline, body = "") {
     const labelStyle = labelOffset === undefined ? "" : ` style="position:relative;top:${Number(labelOffset) * scale}px"`;
     const label = link ? (body.trim() ? renderInline(body, context) : booleanAttr(attributes, "showText") === false ? "" : escapeHtml(displayName))
       : labelSide ? `<span class="guide-item-placeholder-label"${labelStyle}>${labelContent}</span>` : "";
-    const details = spec.amount === undefined ? displayName : `${displayName}\n${spec.amount} L`;
-    const tooltip = fluidTooltipVisible(attributes) ? renderTooltipParts(name, { showTooltip: true }, details, context, spec.id)
+    const tooltipLines = Array.isArray(preview?.tooltipLines) && preview.tooltipLines.length
+      ? preview.tooltipLines.filter(line => typeof line === "string")
+      : spec.amount === undefined ? [displayName] : [displayName, String(spec.amount)];
+    const tooltip = fluidTooltipVisible(attributes) ? {
+      attributes: ` data-guide-tooltip-rich="true" data-guide-tooltip-kind="${name.toLowerCase()}" tabindex="0"`,
+      template: `<template data-guide-tooltip-content><div class="guide-fluid-tooltip">${tooltipLines.map(line => `<div>${escapeHtml(line.replace(/§[0-9a-fk-or]/gi, ""))}</div>`).join("")}</div></template>`,
+    }
       : { attributes: "", template: "" };
     let content = labelSide === "left" || link && iconOption === "right" ? label + icon : icon + label;
     const target = attr(attributes, "linksTo") ?? context.resolveFluidHref?.(spec.id);

@@ -35,6 +35,7 @@ public class GuideNhClientIntegrationRegistry {
     private volatile List<FluidStackExtractor> fluidStackExtractors = List.of();
     private volatile List<FluidDisplayAdapter> fluidDisplayAdapters = List.of();
     private volatile List<HoveredFluidProvider> hoveredFluidProviders = List.of();
+    private volatile List<FluidTooltipProvider> fluidTooltipProviders = List.of();
 
     public GuideNhClientIntegrationRegistry() {}
 
@@ -132,6 +133,16 @@ public class GuideNhClientIntegrationRegistry {
 
     public List<FluidDisplayAdapter> fluidDisplayAdapters() {
         return fluidDisplayAdapters;
+    }
+
+    public synchronized void registerFluidTooltipProvider(FluidTooltipProvider provider) {
+        if (provider == null) throw new IllegalArgumentException("provider");
+        if (!fluidTooltipProviders.contains(provider))
+            fluidTooltipProviders = appendProvider(fluidTooltipProviders, provider);
+    }
+
+    public List<FluidTooltipProvider> fluidTooltipProviders() {
+        return fluidTooltipProviders;
     }
 
     public synchronized void registerHoveredFluidProvider(HoveredFluidProvider provider) {
