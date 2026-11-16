@@ -19,6 +19,10 @@ public class GuideSiteTemplateRegistry {
     private final Map<String, String> renderedBySemanticKey;
     private final Map<String, String> itemHrefs = new LinkedHashMap<>();
     private final Function<ItemStack, String> itemHrefResolver;
+    private final Function<String, String> fluidHrefResolver;
+    private final Map<String, String> fluidHrefs = new LinkedHashMap<>();
+    private final Function<String, List<Map<String, String>>> fluidTargetResolver;
+    private final Map<String, List<Map<String, String>>> fluidTargets = new LinkedHashMap<>();
 
     public GuideSiteTemplateRegistry() {
         this(new LinkedHashMap<>());
@@ -30,8 +34,40 @@ public class GuideSiteTemplateRegistry {
 
     public GuideSiteTemplateRegistry(Map<String, String> renderedBySemanticKey,
         Function<ItemStack, String> itemHrefResolver) {
+        this(renderedBySemanticKey, itemHrefResolver, fluid -> "");
+    }
+
+    public GuideSiteTemplateRegistry(Map<String, String> renderedBySemanticKey,
+        Function<ItemStack, String> itemHrefResolver, Function<String, String> fluidHrefResolver) {
+        this(renderedBySemanticKey, itemHrefResolver, fluidHrefResolver, fluid -> List.of());
+    }
+
+    public GuideSiteTemplateRegistry(Map<String, String> renderedBySemanticKey,
+        Function<ItemStack, String> itemHrefResolver, Function<String, String> fluidHrefResolver,
+        Function<String, List<Map<String, String>>> fluidTargetResolver) {
         this.renderedBySemanticKey = renderedBySemanticKey != null ? renderedBySemanticKey : new LinkedHashMap<>();
         this.itemHrefResolver = itemHrefResolver;
+        this.fluidHrefResolver = fluidHrefResolver;
+        this.fluidTargetResolver = fluidTargetResolver;
+    }
+
+    public List<Map<String, String>> resolveFluidTargets(String id) {
+        if (id == null || fluidTargetResolver == null) return List.of();
+        return fluidTargets.computeIfAbsent(id, fluid -> {
+            var targets = fluidTargetResolver.apply(fluid);
+            return targets == null ? List.of()
+                : targets.stream()
+                    .map(Map::copyOf)
+                    .toList();
+        });
+    }
+
+    public String resolveFluidHref(String id) {
+        if (id == null || fluidHrefResolver == null) return "";
+        return fluidHrefs.computeIfAbsent(id, fluid -> {
+            String href = fluidHrefResolver.apply(fluid);
+            return href == null ? "" : href;
+        });
     }
 
     public String resolveItemHref(ItemStack stack) {

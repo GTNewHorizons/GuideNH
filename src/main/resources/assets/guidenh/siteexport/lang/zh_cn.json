@@ -22,7 +22,9 @@
   "navigation": {
     "open": "导航",
     "close": "关闭导航",
-    "holdToOpenGuide": "长按 G 打开指南"
+    "holdToOpenGuide": "长按 G 打开指南",
+    "chooseGuide": "选择指南页面",
+    "closeChooser": "关闭页面选择"
   },
   "sceneLoading": {
     "error": "3D 场景加载失败。",

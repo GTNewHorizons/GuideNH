@@ -1,16 +1,15 @@
-# Ponder Animation Timeline
+# Ponder-tijdlijn
 
-Deze documentatie beschrijft de GuideNH-syntaxis en runtimefuncties. Code, tags, paden, ID's en attribuutwaarden blijven ongewijzigd.
+De uitgebreide naslag op deze pagina is beschikbaar in het Engels. Namen van tags, attributen, ID’s en paden worden zonder vertaling gebruikt.
 
+GuideNH supports Ponder-style animated timelines inside `<GameScene>` blocks. You supply an
+external JSON file that defines keyframes, camera movements and in-world annotations, and
+GuideNH renders an interactive progress bar with play/pause controls below the 3D scene.
 
-GuideNH ondersteunt Ponder-animatie-style animated timelines binnen `<GameScene>` blokken. You supply an
-external JSON bestand that defines keyframes, camera movements en in-wereld Annotaties, en
-GuideNH renders Een interactief progress bar met play/pause controls below De 3D scène.
+## Quick Start
 
-## Snel starten
-
-1. maken Een Ponder-animatie JSON bestand en place it in your resourcepack (see [File Placement](#file-placement)).
-2. Voeg toe `<ImportPonder src="..."/>` binnen a `<GameScene>` blok alongside `<ImportStructure>`.
+1. Create a Ponder JSON file and place it in your resource pack (see [File Placement](#file-placement)).
+2. Add `<ImportPonder src="..."/>` inside a `<GameScene>` block alongside `<ImportStructure>`.
 
 ```mdx
 <GameScene zoom="4">
@@ -19,28 +18,28 @@ GuideNH renders Een interactief progress bar met play/pause controls below De 3D
 </GameScene>
 ```
 
-> **Opmerking:** `<ImportPonder>` moet appear binnen a `<GameScene>` blok. De `src` Attribuut is
-> Vereist. Structure data is still provided by `<ImportStructure>` of `<ImportStructureLib>`.
+> **Note:** `<ImportPonder>` must appear inside a `<GameScene>` block. The `src` attribute is
+> required. Structure data is still provided by `<ImportStructure>` or `<ImportStructureLib>`.
 
-## Bestandsplaatsing
+## File Placement
 
-Ponder-animatie JSON files follow De zelfde resource-pack pad Regels as SNBT structures:
+Ponder JSON files follow the same resource-pack path rules as SNBT structures:
 
 ```
-assets/<modid>/guidebooks/
-  pages/machines/my_machine.mdx       <- guide page
-  pages/machines/my_machine.snbt      <- structure data
-  pages/machines/my_machine.json      <- Ponder JSON
+assets/<modid>/guidenh/
+  _en_us/machines/my_machine.md       <- guide page
+  _en_us/machines/my_machine.snbt      <- structure data
+  _en_us/machines/my_machine.json      <- Ponder JSON
 ```
 
-De `src` Attribuut accepts both relative en absolute IDs:
+The `src` attribute accepts both relative and absolute IDs:
 
-| Example | opgelost as |
+| Example | Resolved as |
 |---------|-------------|
-| `src="my_machine.json"` | Relative naar De huidige pagina's directory |
-| `src="mymod:guidebooks/pages/machines/my_machine.json"` | Absolute (`mymod` namespace) |
+| `src="my_machine.json"` | Relative to the current page's directory |
+| `src="mymod:guidenh/_en_us/machines/my_machine.json"` | Absolute (`mymod` namespace) |
 
-## JSON-indeling
+## JSON Format
 
 ```json
 {
@@ -86,59 +85,61 @@ De `src` Attribuut accepts both relative en absolute IDs:
 }
 ```
 
-### Hoofdvelden
+### Root fields
 
-| Field | Type | Vereist | Description |
+| Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `totalTime` | geheel getal | Yes | Total duration in ticks (20 ticks = 1 second). Minimum clamped naar 1. |
-| `keyframes` | array | Yes | lijst of keyframe objects. kan be empty. |
+| `totalTime` | integer | Yes | Total duration in ticks (20 ticks = 1 second). Minimum clamped to 1. |
+| `keyframes` | array | Yes | List of keyframe objects. May be empty. |
 
-### Keyframevelden
+For offline editor validation, add `"$schema": "guidenh://schema/ponder.json"` to the JSON root. The GuideNH mod exposes the bundled schema at `assets/guidenh/schema/ponder_schema.json`; the wiki example resource pack keeps a copy at `wiki/resourcepack/assets/guidenh/guidenh/assets/schema/ponder_schema.json`. Neither copy loads a remote URL.
 
-| Field | Type | Vereist | Description |
+### Keyframe fields
+
+| Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `time` | geheel getal | Yes | Tick at which Deze keyframe occurs (0 <= time <= totalTime). |
-| `hidden` | boolean | No | wanneer `true`, De keyframe still applies camera/NBT/entity/annotatie status at its `time`, but no zichtbaar node is drawn voor it on De progress bar en zichtbaar keyframe Navigatie skips it. |
-| `label` | tekenreeks | No | optioneel fallback label getoond wanneer hovering De keyframe node on De progress bar. |
-| `labelKey` | tekenreeks | No | vertaalsleutel voor De keyframe label. wanneer opgelost, it overrides `label`. |
-| `camera` | object | No | camera status at Deze keyframe. Null fields inherit van De previous keyframe. |
-| `cameraEaseTicks` | geheel getal of null | No | How many ticks De camera takes naar ease van De **previous** keyframe naar Deze one. `null` (Standaard) = ease over De full segment. `0` = instant snap. `N > 0` = ease over N ticks, then hold at De target positie. |
-| `layer` | geheel getal of null | No | zichtbaar layer override. `null` (of omitted) shows alle layers. 1-based index. |
-| `annotations` | array | No | lijst of annotatie objects getoond terwijl Deze keyframe is active. |
-| `sounds` | array | No | lijst of sounds played once wanneer Deze keyframe becomes active during forward playback. |
-| `particles` | array | No | lijst of runtime particle bursts of presets fired wanneer Deze keyframe becomes active during forward playback. |
-| `blockChanges` | array | No | lijst of blok replacements applied wanneer Deze keyframe first becomes active. |
-| `mergeTileNBT` | array | No | Merge SNBT compounds into tile entities at blok positions. |
-| `modifyTileNBT` | array | No | Stel in one tile-entity NBT pad naar Een SNBT waarde. |
-| `removeTileNBT` | array | No | verwijderen one tile-entity NBT pad. |
-| `createEntities` | array | No | maken Ponder-animatie-owned entities that kan be referenced by later entity NBT operations. |
-| `setEntityNBT` | array | No | vervangen Een referenced entity's NBT met De supplied SNBT compound. |
-| `mergeEntityNBT` | array | No | Merge Een SNBT compound into Een referenced entity. |
-| `modifyEntityNBT` | array | No | Stel in one referenced entity NBT pad naar Een SNBT waarde. |
-| `removeEntityNBT` | array | No | verwijderen one referenced entity NBT pad. |
-| `removeEntities` | array | No | verwijderen one of more Ponder-animatie-owned entities by `ref` using De stable scène-entity registry. |
+| `time` | integer | Yes | Tick at which this keyframe occurs (0 <= time <= totalTime). |
+| `hidden` | boolean | No | When `true`, the keyframe still applies camera/NBT/entity/annotation state at its `time`, but no visible node is drawn for it on the progress bar and visible keyframe navigation skips it. |
+| `label` | string | No | Optional fallback label shown when hovering the keyframe node on the progress bar. |
+| `labelKey` | string | No | Translation key for the keyframe label. When resolved, it overrides `label`. |
+| `camera` | object | No | Camera state at this keyframe. Null fields inherit from the previous keyframe. |
+| `cameraEaseTicks` | integer or null | No | How many ticks the camera takes to ease from the **previous** keyframe to this one. `null` (default) = ease over the full segment. `0` = instant snap. `N > 0` = ease over N ticks, then hold at the target position. |
+| `layer` | integer or null | No | Visible layer override. `null` (or omitted) shows all layers. 1-based index. |
+| `annotations` | array | No | List of annotation objects shown while this keyframe is active. |
+| `sounds` | array | No | List of sounds played once when this keyframe becomes active during forward playback. |
+| `particles` | array | No | List of runtime particle bursts or presets fired when this keyframe becomes active during forward playback. |
+| `blockChanges` | array | No | List of block replacements applied when this keyframe first becomes active. |
+| `mergeTileNBT` | array | No | Merge SNBT compounds into tile entities at block positions. |
+| `modifyTileNBT` | array | No | Set one tile-entity NBT path to an SNBT value. |
+| `removeTileNBT` | array | No | Remove one tile-entity NBT path. |
+| `createEntities` | array | No | Create Ponder-owned entities that can be referenced by later entity NBT operations. |
+| `setEntityNBT` | array | No | Replace a referenced entity's NBT with the supplied SNBT compound. |
+| `mergeEntityNBT` | array | No | Merge an SNBT compound into a referenced entity. |
+| `modifyEntityNBT` | array | No | Set one referenced entity NBT path to an SNBT value. |
+| `removeEntityNBT` | array | No | Remove one referenced entity NBT path. |
+| `removeEntities` | array | No | Remove one or more Ponder-owned entities by `ref` using the stable scene-entity registry. |
 
-verborgen keyframes are useful wanneer you want additional intermediate status wijzigingen zonder adding Een new zichtbaar node
-naar De timeline. voor example, you kan split several `modifyTileNBT` updates across meerdere ticks, mark De
-intermediate keyframes as verborgen, en Behoud alleen De major beats zichtbaar on De progress bar.
+Hidden keyframes are useful when you want additional intermediate state changes without adding a new visible node
+to the timeline. For example, you can split several `modifyTileNBT` updates across multiple ticks, mark the
+intermediate keyframes as hidden, and keep only the major beats visible on the progress bar.
 
-### Cameravelden
+### Camera fields
 
-alle Cameravelden are optioneel. Any `null` of omitted field inherits its waarde van De nearest
-prior keyframe that defined it; Als no prior keyframe defined De field, De scène's Standaard
-camera waarde is gebruikt.
+All camera fields are optional. Any `null` or omitted field inherits its value from the nearest
+prior keyframe that defined it; if no prior keyframe defined the field, the scene's default
+camera value is used.
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `zoom` | kommagetal | camera zoomen level (0.1 - 10.0). |
-| `rotX` | kommagetal | X-axis rotatie in degrees. |
-| `rotY` | kommagetal | Y-axis rotatie in degrees. |
-| `rotZ` | kommagetal | Z-axis rotatie in degrees. |
-| `offX` | kommagetal | Horizontal pan offset in scherm pixels. |
-| `offY` | kommagetal | Vertical pan offset in scherm pixels. |
+| `zoom` | float | Camera zoom level (0.1 - 10.0). |
+| `rotX` | float | X-axis rotation in degrees. |
+| `rotY` | float | Y-axis rotation in degrees. |
+| `rotZ` | float | Z-axis rotation in degrees. |
+| `offX` | float | Horizontal pan offset in screen pixels. |
+| `offY` | float | Vertical pan offset in screen pixels. |
 
-De camera smoothly interpolates between adjacent keyframes using an **ease-in/ease-out** curve.
-gebruiken `cameraEaseTicks` on De **destination** keyframe naar control De easing duration:
+The camera smoothly interpolates between adjacent keyframes using an **ease-in/ease-out** curve.
+Use `cameraEaseTicks` on the **destination** keyframe to control the easing duration:
 
 ```json
 { "time": 60, "cameraEaseTicks": 0,  "camera": { "rotY": 90 } }   <- instant snap
@@ -146,11 +147,11 @@ gebruiken `cameraEaseTicks` on De **destination** keyframe naar control De easin
 { "time": 180, "camera": { "rotY": 270 } }                         <- ease over full segment (default)
 ```
 
-## blok wijzigingen
+## Block Changes
 
-De `blockChanges` array in Een keyframe replaces blokken in De live structure wanneer that keyframe
-becomes active. Deze staat toe De animation naar tonen voor-en-na states, place of verwijderen
-blokken, of animate Een machine powering on.
+The `blockChanges` array in a keyframe replaces blocks in the live structure when that keyframe
+becomes active. This allows the animation to show before-and-after states, place or remove
+blocks, or animate a machine powering on.
 
 ```json
 {
@@ -166,26 +167,26 @@ blokken, of animate Een machine powering on.
 }
 ```
 
-| Field | Type | Standaard | Description |
+| Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `x`, `y`, `z` | geheel getal | - | **Vereist.** positie of De blok naar wijzigen (structure coördinaten). |
-| `block` | tekenreeks | - | **Vereist.** Registry naam, e.g. `"minecraft:furnace"`. gebruiken `"minecraft:air"` naar verwijderen. |
-| `meta` | geheel getal | `0` | blok metadata / damage waarde. |
-| `particles` | boolean | `true` | Whether naar spawn blok-texture particle effects wanneer Deze blok wijzigen fires during forward playback. Particles are taken van De blok's own icon texture. Stel in naar `false` naar suppress (e.g., voor silent removal). |
-| `nbt` | tekenreeks | `null` | SNBT tekenreeks voor Een tile entity tag, e.g. voor chests, furnaces, etc. Parsed met `JsonToNBT`. Keys moet be **unquoted** (standard SNBT format). Ignored Als De blok has no tile entity. |
+| `x`, `y`, `z` | integer | - | **Required.** Position of the block to change (structure coordinates). |
+| `block` | string | - | **Required.** Registry name, e.g. `"minecraft:furnace"`. Use `"minecraft:air"` to remove. |
+| `meta` | integer | `0` | Block metadata / damage value. |
+| `particles` | boolean | `true` | Whether to spawn block-texture particle effects when this block change fires during forward playback. Particles are taken from the block's own icon texture. Set to `false` to suppress (e.g., for silent removal). |
+| `nbt` | string | `null` | SNBT string for a tile entity tag, e.g. for chests, furnaces, etc. Parsed with `JsonToNBT`. Keys must be **unquoted** (standard SNBT format). Ignored if the block has no tile entity. |
 
-**Seek-safe:** wanneer seeking backwards De runtime restores alle changed positions naar their
-original structure status, then re-applies wijzigingen van keyframes 0 through De huidige one.
-De displayed structure is always correct regardless of seek direction.
+**Seek-safe:** When seeking backwards the runtime restores all changed positions to their
+original structure state, then re-applies changes from keyframes 0 through the current one.
+The displayed structure is always correct regardless of seek direction.
 
-> **Opmerking on particles:** blok-texture particles fire once, alleen during forward playback wanneer De
-> keyframe first becomes active. They are cleared on seek, restart, of initial laden.
+> **Note on particles:** Block-texture particles fire once, only during forward playback when the
+> keyframe first becomes active. They are cleared on seek, restart, or initial load.
 
 ## Keyframe Sounds
 
-Voeg toe a `sounds` array naar Een keyframe naar play one of more gids sounds wanneer De keyframe becomes active
-during forward playback. Seeking en initial laden do niet play keyframe sounds; restart clears De
-play history so De sounds kan fire again.
+Add a `sounds` array to a keyframe to play one or more guide sounds when the keyframe becomes active
+during forward playback. Seeking and initial load do not play keyframe sounds; restart clears the
+play history so the sounds can fire again.
 
 ```json
 {
@@ -200,26 +201,24 @@ play history so De sounds kan fire again.
 
 Sound fields:
 
-| Field | Type | Standaard | Description |
+| Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `sound` | tekenreeks | - | Sound event id, e.g. `guidenh:machine.start`. |
-| `src` | tekenreeks | - | Sound bestand id of pad; `guidenh:sounds/machine/start.ogg` becomes `guidenh:machine.start`. |
-| `volume` | kommagetal | `1.0` | Playback volume voor attenuation. |
-| `pitch` | kommagetal | `1.0` | Playback pitch. |
-| `cooldown` | geheel getal | `250` | Minimum milliseconds voor De zelfde sound kan play again. |
-| `x`, `y`, `z` | kommagetal | none | optioneel scène-space source positie voor schermruimte attenuation. |
-| `radius` | kommagetal | scène short side * 0.75 | Attenuation radius in scherm pixels. |
-| `minVolume` | kommagetal | `0.15` | Minimum attenuation factor. |
+| `sound` | string | - | Sound event id, e.g. `guidenh:machine.start`. |
+| `src` | string | - | Sound file id or path; `guidenh:sounds/machine/start.ogg` becomes `guidenh:machine.start`. |
+| `volume` | float | `1.0` | Playback volume before attenuation. |
+| `pitch` | float | `1.0` | Playback pitch. |
+| `cooldown` | integer | `250` | Minimum milliseconds before the same sound can play again. |
+| `x`, `y`, `z` | float | none | Optional scene-space source position for screen-space attenuation. |
+| `radius` | float | scene short side * 0.75 | Attenuation radius in screen pixels. |
+| `minVolume` | float | `0.15` | Minimum attenuation factor. |
 
-
-Voeg voor offline validatie in de editor `"$schema": "guidenh://schema/ponder.json"` toe aan de JSON-root. Het meegeleverde schema staat in `wiki/resourcepack/assets/guidenh/guidenh/assets/schema/ponder_schema.json` en laadt nooit een externe URL.
 ---
 
 ## Keyframe Particles
 
-Voeg toe a `particles` array naar Een keyframe wanneer you want one-shot particle bursts of timeline-lokale
-Weer overlays during forward playback. Deze particles are niet re-fired during reverse
-scrubbing, en seek/restart clears them voor replaying De active status.
+Add a `particles` array to a keyframe when you want one-shot particle bursts or timeline-local
+weather overlays during forward playback. These particles are not re-fired during reverse
+scrubbing, and seek/restart clears them before replaying the active state.
 
 Generic particles:
 
@@ -261,7 +260,7 @@ Explosion preset:
 }
 ```
 
-Weer preset:
+Weather preset:
 
 ```json
 {
@@ -281,47 +280,47 @@ Weer preset:
 
 Particle fields:
 
-| Field | Type | Standaard | Description |
+| Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `preset` | tekenreeks | none | Special preset. `explosion` spawns Een vanilla-style flash/smoke burst. `rain` enables De Weer preset. |
-| `weather` | tekenreeks | `rain` | Weer Type gebruikt by `preset: "rain"`. Supported waarden: `rain`, `snow`. |
-| `name` | tekenreeks | none | Generic particle appearance. Supported waarden: `billboard`, `smoke`, `largesmoke`, `explode`, `flash`, `largeexplode`, `hugeexplosion`. |
-| `particle` / `kind` | tekenreeks | none | Compatibility aliases voor `name`. |
-| `x`, `z` | kommagetal of array | scène bounds | Particle origin of Weer coverage. Generic particles gebruiken scalar coördinaten. voor `preset: "rain"`, scalar waarden target one precipitation kolom en arrays define rectangular coverage by endpoint pairs. |
-| `vx`, `vy`, `vz` | kommagetal | `0.0` | Initial motion vector. `motionX/Y/Z` are accepted aliases. |
-| `time` / `lifetime` | geheel getal | preset-specific | Particle lifetime in ticks. voor `preset: "rain"` Deze is De total Weer duration, including fade-in en fade-out. |
-| `size` | kommagetal | preset-specific | Generic particle half-grootte in blok units. |
-| `amount` | geheel getal | preset-specific | Generic particle count. voor `explosion`, omitted amount scales van `power`. voor `preset: "rain"`, Deze is De average per-tick Weer density. |
-| `power` | kommagetal | `2.0` | Explosion strength voor De `explosion` preset. |
+| `preset` | string | none | Special preset. `explosion` spawns a vanilla-style flash/smoke burst. `rain` enables the weather preset. |
+| `weather` | string | `rain` | Weather type used by `preset: "rain"`. Supported values: `rain`, `snow`. |
+| `name` | string | none | Generic particle appearance. Supported values: `billboard`, `smoke`, `largesmoke`, `explode`, `flash`, `largeexplode`, `hugeexplosion`. |
+| `particle` / `kind` | string | none | Compatibility aliases for `name`. |
+| `x`, `z` | float or array | scene bounds | Particle origin or weather coverage. Generic particles use scalar coordinates. For `preset: "rain"`, scalar values target one precipitation column and arrays define rectangular coverage by endpoint pairs. |
+| `vx`, `vy`, `vz` | float | `0.0` | Initial motion vector. `motionX/Y/Z` are accepted aliases. |
+| `time` / `lifetime` | integer | preset-specific | Particle lifetime in ticks. For `preset: "rain"` this is the total weather duration, including fade-in and fade-out. |
+| `size` | float | preset-specific | Generic particle half-size in block units. |
+| `amount` | integer | preset-specific | Generic particle count. For `explosion`, omitted amount scales from `power`. For `preset: "rain"`, this is the average per-tick weather density. |
+| `power` | float | `2.0` | Explosion strength for the `explosion` preset. |
 
-Weer preset notes:
+Weather preset notes:
 
-- `preset: "rain"` is De shared Weer preset entry punt. gebruiken `weather: "rain"` voor rainfall of
-  `weather: "snow"` voor snowfall.
-- Deze preset is timeline-owned Weer. It ondersteunt replay, pause, seek, en fast-forward together
-  met De rest of De Ponder-animatie timeline.
-- voor always-on scène Weer buiten De Ponder-animatie timeline, gebruiken De `<Weather>` tag binnen
+- `preset: "rain"` is the shared weather preset entry point. Use `weather: "rain"` for rainfall or
+  `weather: "snow"` for snowfall.
+- This preset is timeline-owned weather. It supports replay, pause, seek, and fast-forward together
+  with the rest of the Ponder timeline.
+- For always-on scene weather outside the Ponder timeline, use the `<Weather>` tag inside
   `<GameScene>` instead.
-- Weer presets ignore `y`; De vertical spawn range is derived van De huidige scène bounds.
-- `x: 5, z: 8` targets one precipitation kolom. Arrays gebruiken endpoint pairs:
+- Weather presets ignore `y`; the vertical spawn range is derived from the current scene bounds.
+- `x: 5, z: 8` targets one precipitation column. Arrays use endpoint pairs:
   `x: [1, 5, 10, 12], z: [2, 6, 20, 24]` creates two covered rectangles.
-- Als one axis has extra unmatched array waarden, De unmatched tail is ignored.
-- De runtime automatisch shapes De effect met Een short begin transition, Een steady middle
-  section, en Een einde transition.
+- If one axis has extra unmatched array values, the unmatched tail is ignored.
+- The runtime automatically shapes the effect with a short start transition, a steady middle
+  section, and an end transition.
 - Rain spawns fast falling drops plus occasional ground splashes. Snow spawns slower drifting
-  flakes zonder splash particles.
-- De Weer area is derived van De huidige GameScene bounds so De effect scales met De
-  imported structure instead of Een hard-coded box.
-- De zelfde `x/z` kolom never stacks meerdere Weer types at De zelfde time. Earlier overlapping
-  Weer declarations Behoud De shared columns; later ones alleen renderen on De remaining area.
+  flakes without splash particles.
+- The weather area is derived from the current GameScene bounds so the effect scales with the
+  imported structure instead of a hard-coded box.
+- The same `x/z` column never stacks multiple weather types at the same time. Earlier overlapping
+  weather declarations keep the shared columns; later ones only render on the remaining area.
 
 ---
 
 ## Tile Entity NBT Operations
 
-gebruiken `mergeTileNBT`, `modifyTileNBT`, en `removeTileNBT` wanneer De blok stays in place but its
-tile entity data wijzigingen. Operations are seek-safe: GuideNH restores De original tile NBT en
-then replays alle operations van keyframe 0 through De active keyframe.
+Use `mergeTileNBT`, `modifyTileNBT`, and `removeTileNBT` when the block stays in place but its
+tile entity data changes. Operations are seek-safe: GuideNH restores the original tile NBT and
+then replays all operations from keyframe 0 through the active keyframe.
 
 ```json
 {
@@ -345,23 +344,23 @@ then replays alle operations van keyframe 0 through De active keyframe.
 }
 ```
 
-| Field | gebruikt by | Description |
+| Field | Used by | Description |
 |-------|---------|-------------|
-| `x`, `y`, `z` | alle | Tile-entity blok positie in structure coördinaten. |
-| `nbt` | `mergeTileNBT` | SNBT compound merged into De tile entity. Existing compound keys are merged recursively; other waarden vervangen De old waarde. |
-| `path` | `modifyTileNBT`, `removeTileNBT` | Dotted NBT pad met lijst indexes, e.g. `Items[0].Count` of `InputTanks[0].TankContent.Amount`. |
-| `value` | `modifyTileNBT` | SNBT waarde written at `path`, e.g. `3b`, `500`, `"\"text\""`, `{Count:1b,id:"minecraft:stone"}`. |
+| `x`, `y`, `z` | all | Tile-entity block position in structure coordinates. |
+| `nbt` | `mergeTileNBT` | SNBT compound merged into the tile entity. Existing compound keys are merged recursively; other values replace the old value. |
+| `path` | `modifyTileNBT`, `removeTileNBT` | Dotted NBT path with list indexes, e.g. `Items[0].Count` or `InputTanks[0].TankContent.Amount`. |
+| `value` | `modifyTileNBT` | SNBT value written at `path`, e.g. `3b`, `500`, `"\"text\""`, `{Count:1b,id:"minecraft:stone"}`. |
 
-Paths follow De zelfde idea as Minecraft's `/data` paths: gebruiken dots voor compound keys en
-`[index]` voor lijst entries. lijst traversal currently expects De traversed lijst entries naar be
-compounds, which matches algemene tile NBT such as inventories, tanks, en recipe slots.
+Paths follow the same idea as Minecraft's `/data` paths: use dots for compound keys and
+`[index]` for list entries. List traversal currently expects the traversed list entries to be
+compounds, which matches common tile NBT such as inventories, tanks, and recipe slots.
 
 ---
 
 ## Entity Actions
 
-Regular `<Entity>` tags are al supported in `GameScene`. Ponder-animatie timelines kan ook maken
-their own entities met `createEntities`, then target those entities by `ref` in later keyframes.
+Regular `<Entity>` tags are already supported in `GameScene`. Ponder timelines can also create
+their own entities with `createEntities`, then target those entities by `ref` in later keyframes.
 
 ```json
 {
@@ -381,18 +380,18 @@ their own entities met `createEntities`, then target those entities by `ref` in 
 
 | Field | Description |
 |-------|-------------|
-| `ref` | Vereist lokale reference naam voor later operations. |
-| `sceneEntityId` | optioneel stable scène-lokale id gebruikt voor mount relations, replay-safe replacement, import/export restore, en any later removal of Deze logical entity. Defaults naar Een internal id derived van `ref`. |
-| `id` | Entity ID, e.g. `minecraft:pig`, `Pig`, of Een mod entity ID supported by De scène entity loader. |
-| `x`, `y`, `z` | optioneel spawn positie. Defaults naar `0, 0, 0` unless `nbt` supplies `Pos`. |
-| `yaw`, `pitch` | optioneel spawn rotatie. Defaults naar `0, 0` unless `nbt` supplies `Rotation`. |
-| `bodyYaw`, `headYaw` | optioneel living-entity body/head yaw overrides. Als omitted terwijl `yaw` is present, they follow `yaw`. |
-| `nbt` | optioneel SNBT compound applied wanneer De entity is gemaakt. |
-| `name`, `nameKey`, `uuid` | optioneel voorbeeldweergave-player profile fields wanneer creating Een voorbeeldweergave player entity. |
-| `mount` | optioneel stable `sceneEntityId` of De vehicle that Deze entity zou moeten ride na creation of later replay. |
-| `unmount` | optioneel boolean that clears De entity's huidige stable mount relation voor any later `mount` is applied. |
+| `ref` | Required local reference name for later operations. |
+| `sceneEntityId` | Optional stable scene-local id used for mount relations, replay-safe replacement, import/export restore, and any later removal of this logical entity. Defaults to an internal id derived from `ref`. |
+| `id` | Entity ID, e.g. `minecraft:pig`, `Pig`, or a mod entity ID supported by the scene entity loader. |
+| `x`, `y`, `z` | Optional spawn position. Defaults to `0, 0, 0` unless `nbt` supplies `Pos`. |
+| `yaw`, `pitch` | Optional spawn rotation. Defaults to `0, 0` unless `nbt` supplies `Rotation`. |
+| `bodyYaw`, `headYaw` | Optional living-entity body/head yaw overrides. If omitted while `yaw` is present, they follow `yaw`. |
+| `nbt` | Optional SNBT compound applied when the entity is created. |
+| `name`, `nameKey`, `uuid` | Optional preview-player profile fields when creating a preview player entity. `nameKey` overrides `name` when its translation is available and falls back to `name`. |
+| `mount` | Optional stable `sceneEntityId` of the vehicle that this entity should ride after creation or later replay. |
+| `unmount` | Optional boolean that clears the entity's current stable mount relation before any later `mount` is applied. |
 
-na creation, gebruiken De entity NBT operations:
+After creation, use the entity NBT operations:
 
 ```json
 {
@@ -409,7 +408,7 @@ na creation, gebruiken De entity NBT operations:
 }
 ```
 
-`setEntityNBT` is ook available wanneer you want naar vervangen De entity's NBT instead of merging:
+`setEntityNBT` is also available when you want to replace the entity's NBT instead of merging:
 
 ```json
 {
@@ -420,7 +419,7 @@ na creation, gebruiken De entity NBT operations:
 }
 ```
 
-Entity actions kan ook bijwerken transform, voorbeeldweergave-player pose, en stable mount status zonder
+Entity actions can also update transform, preview-player pose, and stable mount state without
 changing NBT:
 
 ```json
@@ -436,7 +435,7 @@ changing NBT:
 }
 ```
 
-naar detach of verwijderen Een timeline entity, gebruiken `unmount` of `removeEntities`:
+To detach or remove a timeline entity, use `unmount` or `removeEntities`:
 
 ```json
 {
@@ -450,39 +449,38 @@ naar detach of verwijderen Een timeline entity, gebruiken `unmount` of `removeEn
 }
 ```
 
-Like tile operations, entity operations are replayed van De beginning whenever De active
-keyframe wijzigingen, so seeking backwards removes Ponder-animatie-gemaakt entities en recreates De correct
-status voor De target tick.
+Like tile operations, entity operations are replayed from the beginning whenever the active
+keyframe changes, so seeking backwards removes Ponder-created entities and recreates the correct
+state for the target tick.
 
 Notes:
 
-- `ref` identifies which Ponder-animatie-owned entity De huidige action zou moeten edit of verwijderen.
-- `sceneEntityId` en `mount` identify stable cross-entity relations. `mount` always punten naar a
-  stable scène id, niet naar another `ref`.
-- Relying on raw passenger NBT alone is niet recommended voor cross-entity scène relationships. De
-  stable registry is what keeps mount en removal behavior deterministic across replay, rebuild,
-  import/export, en editor voorbeeldweergave refresh.
+- `ref` identifies which Ponder-owned entity the current action should edit or remove.
+- `sceneEntityId` and `mount` identify stable cross-entity relations. `mount` always points to a
+  stable scene id, not to another `ref`.
+- Relying on raw passenger NBT alone is not recommended for cross-entity scene relationships. The
+  stable registry is what keeps mount and removal behavior deterministic across replay, rebuild,
+  import/export, and editor preview refresh.
 
 ---
 
-## annotatie Fade
+## Annotation Fade
 
-Annotaties smoothly fade in over **5 game ticks** (250 ms) whenever De active keyframe
-wijzigingen during playback. Seeking of pausing always shows Annotaties at full opacity.
-
----
-
-## annotatie Types
-
-elke entry in De `annotations` array requires a `type` field. Seven types are available.
+Annotations smoothly fade in over **5 game ticks** (250 ms) whenever the active keyframe
+changes during playback. Seeking or pausing always shows annotations at full opacity.
 
 ---
 
-Elke Ponder-annotatie ondersteunt `tooltip` en `tooltipKey`. De sleutel wordt uit de actieve `lang`-bestanden gehaald en valt terug op de oorspronkelijke tekst als de sleutel ontbreekt.
+## Annotation Types
+
+Every Ponder annotation accepts `tooltip` and `tooltipKey`. The key is resolved from the active `lang` files and falls back to the original text when it is missing.
+Each entry in the `annotations` array requires a `type` field. Seven types are available.
+
+---
 
 ### `diamond`
 
-Renders Een 3D diamond marker at Een wereld positie.
+Renders a 3D diamond marker at a world position.
 
 ```json
 {
@@ -496,19 +494,19 @@ Renders Een 3D diamond marker at Een wereld positie.
 }
 ```
 
-| Field | Type | Standaard | Description |
+| Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `x`, `y`, `z` | kommagetal | `0.0` | wereldruimte positie of De diamond tip. |
-| `color` | tekenreeks | `"0xFF00E000"` | ARGB kleur as `"0xAARRGGBB"`. |
-| `tooltip` | tekenreeks | `""` | fallback tekst getoond on zweven. |
-| `tooltipKey` | tekenreeks | `""` | vertaalsleutel voor De zweven tekst. wanneer opgelost, it overrides `tooltip`. |
-| `alwaysOnTop` | boolean | `false` | Als true, gerenderd through solid blokken. |
+| `x`, `y`, `z` | float | `0.0` | World-space position of the diamond tip. |
+| `color` | string | `"0xFF00E000"` | ARGB color as `"0xAARRGGBB"`. |
+| `tooltip` | string | `""` | Fallback text shown on hover. |
+| `tooltipKey` | string | `""` | Translation key for the hover text. When resolved, it overrides `tooltip`. |
+| `alwaysOnTop` | boolean | `false` | If true, rendered through solid blocks. |
 
 ---
 
 ### `box`
 
-Renders Een wireframe asuitgelijnd box van `min` naar `max`.
+Renders a wireframe axis-aligned box from `min` to `max`.
 
 ```json
 {
@@ -521,20 +519,20 @@ Renders Een wireframe asuitgelijnd box van `min` naar `max`.
 }
 ```
 
-| Field | Type | Standaard | Description |
+| Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `minX/Y/Z` | kommagetal | `0.0` | Minimum corner. |
-| `maxX/Y/Z` | kommagetal | `1.0` | Maximum corner. |
-| `color` | tekenreeks | `"0xFFFFFFFF"` | ARGB regel kleur. |
-| `lineWidth` | kommagetal | Standaard | GL regel breedte. |
-| `alwaysOnTop` | boolean | `false` | renderen through blokken. |
+| `minX/Y/Z` | float | `0.0` | Minimum corner. |
+| `maxX/Y/Z` | float | `1.0` | Maximum corner. |
+| `color` | string | `"0xFFFFFFFF"` | ARGB line color. |
+| `lineWidth` | float | default | GL line width. |
+| `alwaysOnTop` | boolean | `false` | Render through blocks. |
 
 ---
 
 ### `block`
 
-Renders Een wireframe around one whole blok. Deze is De Ponder-animatie JSON equivalent of
-`<BlockAnnotation pos="x y z">` in Een regular `GameScene`.
+Renders a wireframe around one whole block. This is the Ponder JSON equivalent of
+`<BlockAnnotation pos="x y z">` in a regular `GameScene`.
 
 ```json
 {
@@ -546,23 +544,23 @@ Renders Een wireframe around one whole blok. Deze is De Ponder-animatie JSON equ
 }
 ```
 
-`"type": "blockBox"` en `"type": "block_box"` are accepted aliases.
+`"type": "blockBox"` and `"type": "block_box"` are accepted aliases.
 
-| Field | Type | Standaard | Description |
+| Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `pos` | getal[3] of tekenreeks | `[0, 0, 0]` | blok coördinaat as `[x, y, z]` of `"x y z"`. |
-| `x`, `y`, `z` | getal | `0` | Alternative blok coördinaat fields. waarden are floored. |
-| `blockX/Y/Z` | geheel getal | `0` | Legacy-style blok coördinaat fields. |
-| `color` | tekenreeks | `"0xFFFFFFFF"` | ARGB regel kleur. |
-| `lineWidth` | kommagetal | Standaard | GL regel breedte. |
-| `alwaysOnTop` | boolean | `false` | renderen through blokken. |
+| `pos` | number[3] or string | `[0, 0, 0]` | Block coordinate as `[x, y, z]` or `"x y z"`. |
+| `x`, `y`, `z` | number | `0` | Alternative block coordinate fields. Values are floored. |
+| `blockX/Y/Z` | integer | `0` | Legacy-style block coordinate fields. |
+| `color` | string | `"0xFFFFFFFF"` | ARGB line color. |
+| `lineWidth` | float | default | GL line width. |
+| `alwaysOnTop` | boolean | `false` | Render through blocks. |
 
 ---
 
 ### `line`
 
-Renders Een lijnsegment of polylijn between wereld positions. `points` takes priority over
-`fromX/Y/Z` en `toX/Y/Z` wanneer it bevat at least two valid punten.
+Renders a line segment or polyline between world positions. `points` takes priority over
+`fromX/Y/Z` and `toX/Y/Z` when it contains at least two valid points.
 
 ```json
 {
@@ -576,7 +574,7 @@ Renders Een lijnsegment of polylijn between wereld positions. `points` takes pri
 }
 ```
 
-polylijn punten kan be written either as Een tekenreeks of as Een array:
+Polyline points can be written either as a string or as an array:
 
 ```json
 {
@@ -587,21 +585,21 @@ polylijn punten kan be written either as Een tekenreeks of as Een array:
 }
 ```
 
-| Field | Type | Standaard | Description |
+| Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `fromX/Y/Z` | kommagetal | `0.0` | begin punt. |
-| `toX/Y/Z` | kommagetal | `1.0` | einde punt. |
-| `points` | tekenreeks of array | `null` | polylijn punten. gebruiken `"x y z; x y z; ..."` of `[[x,y,z], ...]`. |
-| `color` | tekenreeks | `"0xFFFFFFFF"` | ARGB regel kleur. |
-| `arrow` | tekenreeks | `null` | `start` of `end`; omitted of invalid waarden tekenen no pijl. |
-| `lineWidth` | kommagetal | Standaard | GL regel breedte. |
-| `alwaysOnTop` | boolean | `false` | renderen through blokken. |
+| `fromX/Y/Z` | float | `0.0` | Start point. |
+| `toX/Y/Z` | float | `1.0` | End point. |
+| `points` | string or array | `null` | Polyline points. Use `"x y z; x y z; ..."` or `[[x,y,z], ...]`. |
+| `color` | string | `"0xFFFFFFFF"` | ARGB line color. |
+| `arrow` | string | `null` | `start` or `end`; omitted or invalid values draw no arrow. |
+| `lineWidth` | float | default | GL line width. |
+| `alwaysOnTop` | boolean | `false` | Render through blocks. |
 
 ---
 
 ### `blockface`
 
-Markeert alle zijden van één blok met een doorschijnende effen overlay.
+Highlights all faces of a single block with a translucent solid overlay.
 
 ```json
 {
@@ -612,23 +610,23 @@ Markeert alle zijden van één blok met een doorschijnende effen overlay.
 }
 ```
 
-`"type": "blockFace"` en `"type": "block_face"` are accepted aliases.
+`"type": "blockFace"` and `"type": "block_face"` are accepted aliases.
 
-| Field | Type | Standaard | Description |
+| Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `pos` | getal[3] of tekenreeks | `[0, 0, 0]` | blok coördinaat as `[x, y, z]` of `"x y z"`. |
-| `x`, `y`, `z` | getal | `0` | Alternative blok coördinaat fields. waarden are floored. |
-| `blockX/Y/Z` | geheel getal | `0` | Legacy-style blok coördinaat fields. |
-| `color` | tekenreeks | `"0x80FFFFFF"` | ARGB overlay kleur. |
-| `alwaysOnTop` | boolean | `false` | renderen through blokken. |
+| `pos` | number[3] or string | `[0, 0, 0]` | Block coordinate as `[x, y, z]` or `"x y z"`. |
+| `x`, `y`, `z` | number | `0` | Alternative block coordinate fields. Values are floored. |
+| `blockX/Y/Z` | integer | `0` | Legacy-style block coordinate fields. |
+| `color` | string | `"0x80FFFFFF"` | ARGB overlay color. |
+| `alwaysOnTop` | boolean | `false` | Render through blocks. |
 
 ---
 
 ### `text`
 
-Renders Een speech-bubble label anchored naar Een wereld positie. De box appears above De anchor by
-Standaard en is connected naar it met Een short vertical regel. tekst inhoud is keyframe-driven: gebruiken
-anders `text` annotatie entries on anders keyframes naar wijzigen De displayed tekst over time.
+Renders a speech-bubble label anchored to a world position. The box appears above the anchor by
+default and is connected to it with a short vertical line. Text content is keyframe-driven: use
+different `text` annotation entries on different keyframes to change the displayed text over time.
 
 ```json
 {
@@ -644,9 +642,9 @@ anders `text` annotatie entries on anders keyframes naar wijzigen De displayed t
 }
 ```
 
-voor Een vast schermruimte positie that doet niet project van wereld coördinaten, gebruiken
-**independent modus**. De bubble is centered horizontally in De scène en placed at
-`yOffset` pixels below De scène's vertical centre.
+For a fixed screen-space position that does not project from world coordinates, use
+**independent mode**. The bubble is centered horizontally in the scene and placed at
+`yOffset` pixels below the scene's vertical centre.
 
 ```json
 {
@@ -659,45 +657,45 @@ voor Een vast schermruimte positie that doet niet project van wereld coördinate
 }
 ```
 
-| Field | Type | Standaard | Description |
+| Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `x`, `y`, `z` | kommagetal | `0.0` | wereldruimte anchor positie (ignored in independent modus). |
-| `text` | tekenreeks | — | Terugvaltekst voor de bubbel. |
-| `textKey` | tekenreeks | — | Vertalingssleutel voor de tekst in de bubbel; bij een geslaagde vertaling vervangt deze `text`. |
-| `color` | tekenreeks | `"0xFFAAAAAA"` | ARGB kleur of De bubble rand. |
-| `backgroundAlpha` | geheel getal | `204` | achtergrond opacity van `0` (transparent) naar `255` (opaque). De RGB kleur remains De Standaard dark navy. |
-| `maxWidth` | geheel getal | `0` | Als &gt; 0, wraps tekst at Deze breedte in pixels. Omit of Stel in naar `0` voor Een enkele-regel label. |
-| `independent` | boolean | `false` | Als `true`, positie is relative naar De scène centre rather than Een wereld punt. |
-| `yOffset` | geheel getal | `0` | Pixel offset van De scène's vertical centre (positive = downward). gebruikt met `independent: true`. |
-| `connectorSide` | tekenreeks | `"bottom"` | `bottom`, `top`, `left`, `right`, of `none`. Ignored in independent modus. |
-| `connectorOffset` | geheel getal | `0` | Pixel offset along De geselecteerd bubble edge; positive moves right voor top/bottom en down voor left/right. |
-| `connectorLength` | geheel getal | `6` | Pixel length of De connector regel. `0` hides De regel terwijl keeping side-based placement. |
-| `hlMinX/Y/Z` | kommagetal | `0.0` | Minimum corner of Een optioneel markeren box drawn alongside De tekst bubble. |
-| `hlMaxX/Y/Z` | kommagetal | `1.0` | Maximum corner of De optioneel markeren box. |
-| `highlightColor` | tekenreeks | `"0x8000FFAA"` | ARGB kleur of De markeren box. |
+| `x`, `y`, `z` | float | `0.0` | World-space anchor position (ignored in independent mode). |
+| `text` | string | — | Fallback text to display inside the bubble. |
+| `textKey` | string | — | Translation key for the bubble text; when resolved it overrides `text`. |
+| `color` | string | `"0xFFAAAAAA"` | ARGB color of the bubble border. |
+| `backgroundAlpha` | integer | `204` | Background opacity from `0` (transparent) to `255` (opaque). The RGB color remains the default dark navy. |
+| `maxWidth` | integer | `0` | If &gt; 0, wraps text at this width in pixels. Omit or set to `0` for a single-line label. |
+| `independent` | boolean | `false` | If `true`, position is relative to the scene centre rather than a world point. |
+| `yOffset` | integer | `0` | Pixel offset from the scene's vertical centre (positive = downward). Used with `independent: true`. |
+| `connectorSide` | string | `"bottom"` | `bottom`, `top`, `left`, `right`, or `none`. Ignored in independent mode. |
+| `connectorOffset` | integer | `0` | Pixel offset along the selected bubble edge; positive moves right for top/bottom and down for left/right. |
+| `connectorLength` | integer | `6` | Pixel length of the connector line. `0` hides the line while keeping side-based placement. |
+| `hlMinX/Y/Z` | float | `0.0` | Minimum corner of an optional highlight box drawn alongside the text bubble. |
+| `hlMaxX/Y/Z` | float | `1.0` | Maximum corner of the optional highlight box. |
+| `highlightColor` | string | `"0x8000FFAA"` | ARGB color of the highlight box. |
 
-wanneer `hlMinX` (of any `hlMin/Max` coördinaat) is present, an `InWorldBoxAnnotation` is ook
-gemaakt at De specified bounds met `highlightColor`. Deze is useful voor pointing at specific
-blok regions terwijl explaining them.
+When `hlMinX` (or any `hlMin/Max` coordinate) is present, an `InWorldBoxAnnotation` is also
+created at the specified bounds with `highlightColor`. This is useful for pointing at specific
+block regions while explaining them.
 
-De achtergrond is Een dark navy bubble by Standaard (`#CC0E0E20`), en `backgroundAlpha` controls its
-opacity. In wereld-anchored modus Een connector regel links De box naar De anchor. tekst ondersteunt De
-full GuideNH inline rich-tekst syntaxis: Markdown formatting en MDX inline tags. It is gerenderd met
+The background is a dark navy bubble by default (`#CC0E0E20`), and `backgroundAlpha` controls its
+opacity. In world-anchored mode a connector line links the box to the anchor. Text supports the
+full GuideNH inline rich-text syntax: markdown formatting and MDX inline tags. It is rendered with
 drop-shadow.
 
-> **Rich tekst:** De `text` field ondersteunt De zelfde inline markup gebruikt in GuideNH gids pages:
+> **Rich text:** The `text` field supports the same inline markup used in GuideNH guide pages:
 > `**bold**`, `*italic*`, `~~strikethrough~~`, `<Color id="RED">colored</Color>`,
-> `<ItemLink id="minecraft:iron_ingot" />`, en alle other inline MDX tags.
-> Plain Minecraft `§` format codes are **niet** supported; gebruiken MDX syntaxis instead.
+> `<ItemLink id="minecraft:iron_ingot" />`, and all other inline MDX tags.
+> Plain Minecraft `§` format codes are **not** supported; use MDX syntax instead.
 
-> A `text` annotatie zonder a `text` field (of Een empty tekenreeks) is silently ignored.
+> A `text` annotation without a `text` field (or an empty string) is silently ignored.
 
 ---
 
 ### `input`
 
-Renders Een mouse-input icon (left button, right button, of scrollen wheel) anchored naar Een wereld
-positie. Deze is gebruikt naar hint that De player zou moeten perform Een specific interaction.
+Renders a mouse-input icon (left button, right button, or scroll wheel) anchored to a world
+position. This is used to hint that the player should perform a specific interaction.
 
 ```json
 {
@@ -709,7 +707,7 @@ positie. Deze is gebruikt naar hint that De player zou moeten perform Een specif
 }
 ```
 
-met Een optioneel modifier key prefix en Een item icon:
+With an optional modifier key prefix and an item icon:
 
 ```json
 {
@@ -723,82 +721,82 @@ met Een optioneel modifier key prefix en Een item icon:
 }
 ```
 
-| Field | Type | Standaard | Description |
+| Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `x`, `y`, `z` | kommagetal | `0.0` | wereldruimte anchor positie. |
-| `inputType` | tekenreeks | `"lmb"` | One of `"lmb"`, `"rmb"`, of `"scroll"`. Case-insensitive. |
-| `modifier` | tekenreeks | `null` | optioneel modifier key: `"sneak"` of `"ctrl"`. Shows prefix tekst above De icon. |
-| `item` | tekenreeks | `null` | optioneel item registry ID (e.g. `"minecraft:iron_ingot"`). Renders De item icon naar De left of De mouse icon. ondersteunt `"modid:item:meta"` format voor meta waarden. |
+| `x`, `y`, `z` | float | `0.0` | World-space anchor position. |
+| `inputType` | string | `"lmb"` | One of `"lmb"`, `"rmb"`, or `"scroll"`. Case-insensitive. |
+| `modifier` | string | `null` | Optional modifier key: `"sneak"` or `"ctrl"`. Shows prefix text above the icon. |
+| `item` | string | `null` | Optional item registry ID (e.g. `"minecraft:iron_ingot"`). Renders the item icon to the left of the mouse icon. Supports `"modid:item:meta"` format for meta values. |
 
-De icon is Een 16x16 sprite drawn van `ponder_widgets.png`. De box achtergrond is semi-transparent
-dark (`#CC0E0E20`) met Een light-blue rand (`#80AAAADD`). wanneer an `item` is specified De box
-expands naar accommodate both De item icon en De mouse icon side by side.
+The icon is a 16x16 sprite drawn from `ponder_widgets.png`. The box background is semi-transparent
+dark (`#CC0E0E20`) with a light-blue border (`#80AAAADD`). When an `item` is specified the box
+expands to accommodate both the item icon and the mouse icon side by side.
 
 ---
 
-## Kleurindeling
+## Color Format
 
-Colors are ARGB hexadecimal strings. Both `"0xFFFFFF00"` (met `0x` prefix) en
-`"FFFF00"` (zonder prefix) are accepted.
+Colors are ARGB hexadecimal strings. Both `"0xFFFFFF00"` (with `0x` prefix) and
+`"FFFF00"` (without prefix) are accepted.
 
 - `FF` alpha = fully opaque
 - `80` alpha = 50% transparent
 - `00` alpha = invisible
-- `"0xFF00E000"` - fully opaque green (Standaard diamond kleur)
+- `"0xFF00E000"` - fully opaque green (default diamond color)
 - `"0x8022CCFF"` - semi-transparent blue
-- `"0xFFAAAAAA"` - light grey (Standaard tekst bubble rand)
+- `"0xFFAAAAAA"` - light grey (default text bubble border)
 
-## Afspeelgedrag
+## Playback Behavior
 
 ### Controls
 
 | Control | Action |
 |---------|--------|
-| **Prev keyframe** | Jump naar De begin of De previous zichtbaar keyframe segment. verborgen keyframes are skipped. |
-| **Play/Pause** | Toggle playback; restarts van De beginning Als al finished. |
-| **Restart** | Return naar tick 0, reset status, en begin playing. |
-| Progress bar | klikken of slepen naar seek naar any positie. Seeking always pauses playback. |
-| Keyframe nodes | Small tick marks on De bar voor zichtbaar keyframes; zweven naar see De label en direction pijl. |
+| **Prev keyframe** | Jump to the start of the previous visible keyframe segment. Hidden keyframes are skipped. |
+| **Play/Pause** | Toggle playback; restarts from the beginning if already finished. |
+| **Restart** | Return to tick 0, reset state, and begin playing. |
+| Progress bar | Click or drag to seek to any position. Seeking always pauses playback. |
+| Keyframe nodes | Small tick marks on the bar for visible keyframes; hover to see the label and direction arrow. |
 
-### Beginstatus
+### Initial state
 
-wanneer Een pagina containing `<ImportPonder>` is first opened, De scène starts **paused at tick 0**.
-Press Play naar begin.
+When a page containing `<ImportPonder>` is first opened, the scene starts **paused at tick 0**.
+Press Play to begin.
 
-### camera lock
+### Camera lock
 
-terwijl playback is **active** (niet paused):
-- De camera follows De interpolated pad defined by keyframes.
-- Mouse slepen en scrollen zoomen are **uitgeschakeld**.
-- De layer slider en StructureLib sliders are **verborgen**.
+While playback is **active** (not paused):
+- The camera follows the interpolated path defined by keyframes.
+- Mouse drag and scroll zoom are **disabled**.
+- The layer slider and StructureLib sliders are **hidden**.
 
-terwijl playback is **paused** of **finished**:
-- Full interactief camera slepen, zoomen, en layer/StructureLib control are restored.
+While playback is **paused** or **finished**:
+- Full interactive camera drag, zoom, and layer/StructureLib control are restored.
 
 ### Keyframe node labels
 
-wanneer you zweven over Een keyframe node on De progress bar:
-- De node grows slightly naar indicate it is hovered.
-- Als De keyframe has a `label`, it is displayed beside De node.
-- verborgen keyframes do niet maken hoverable nodes, but they still apply their timeline status wanneer playback of seeking reaches them.
+When you hover over a keyframe node on the progress bar:
+- The node grows slightly to indicate it is hovered.
+- If the keyframe has a `label`, it is displayed beside the node.
+- Hidden keyframes do not create hoverable nodes, but they still apply their timeline state when playback or seeking reaches them.
 
 ### Layer control during playback
 
-De `layer` field of De active keyframe overrides De zichtbaar-layer filter during playback:
-- `null` (of omitted) -> tonen alle layers.
-- `1`, `2`, `3`, ... -> restrict naar that 1-based layer index.
+The `layer` field of the active keyframe overrides the visible-layer filter during playback:
+- `null` (or omitted) -> show all layers.
+- `1`, `2`, `3`, ... -> restrict to that 1-based layer index.
 
-## Volledig voorbeeld
+## Complete Example
 
-De following example demonstrates iedere annotatie Type across Een four-keyframe scène.
+The following example demonstrates every annotation type across a four-keyframe scene.
 
-### Mapindeling
+### Directory layout
 
 ```
 assets/mymod/guidebooks/
-  pages/machines/grinder.mdx
-  pages/machines/grinder.snbt
-  pages/machines/grinder.json
+  _en_us/machines/grinder.md
+  _en_us/machines/grinder.snbt
+  _en_us/machines/grinder.json
 ```
 
 ### `grinder.json`
@@ -908,10 +906,9 @@ assets/mymod/guidebooks/
 
 ### `grinder.snbt`
 
-Een standard NBT structure bestand (gemaakt met De `/structure save` command of Een tool such as
-Litematica). See [Getting Started](Guide-Page-Format) voor De full SNBT format reference.
+Use an SNBT/NBT structure accepted by `<ImportStructure>`. See [GameScene](GameScene#importstructure) for supported formats.
 
-### `grinder.mdx`
+### `grinder.md`
 
 ```mdx
 # Grinder
@@ -921,34 +918,34 @@ Litematica). See [Getting Started](Guide-Page-Format) voor De full SNBT format r
   <ImportPonder src="grinder.json" />
 </GameScene>
 
-De vergruizer verandert ertsen in dubbele hoeveelheden stof. Druk op **Afspelen** om de animatie te bekijken.
+The Grinder turns ores into doubled dust. Press **Play** to see the animated walkthrough.
 ```
 
 ## Notes
 
-- De Ponder-animatie progress bar is drawn above De layer/StructureLib sliders. During playback De
-  structural sliders are verborgen naar Behoud De UI clean; they reappear wanneer paused.
-- camera interpolation is always smooth (ease-in/out) even Als some keyframes alleen wijzigen a
-  subset of camera axes. gebruiken `cameraEaseTicks` on Een keyframe naar snap De camera instantly (`0`)
-  of ease over Een vast getal of ticks voor holding De target positie.
-- Annotaties belong naar Een enkele keyframe - they appear alleen terwijl that keyframe is active
-  (i.e., van its `time` tick until De next keyframe's `time` tick). Overlay tekst Annotaties
-  fade out smoothly wanneer De keyframe wijzigingen during playback.
-- Ponder-animatie `line` Annotaties gebruiken De zelfde runtime renderer as regular `LineAnnotation`, including
-  polylijn bends en begin/einde arrows. punt marker cubes remain Een MDX-alleen feature.
-- Ponder-animatie `text` Annotaties gebruiken De zelfde runtime renderer as regular `TextAnnotation`, including
-  connector side, offset, en length. Dynamic tekst is keyframe-based rather than interpolated per tick.
-- alleen one `<ImportPonder>` tag is effective per `<GameScene>`. Een second tag overwrites De first.
-- A `text` annotatie met Een empty of absent `text` field is silently skipped.
-- De `inputType` field defaults naar `"lmb"` Als omitted of unrecognised.
-- `blockChanges` are applied in order van De first naar De huidige keyframe iedere time De
-  active keyframe wijzigingen, so changing De zelfde positie in meerdere keyframes works correctly.
-- Tile/entity NBT operations gebruiken De zelfde replay model as `blockChanges`; they are safe naar seek
-  forwards of backwards.
-- `text` Annotaties met a `maxWidth` &gt; 0 are word-wrapped using De vanilla font renderer;
-  De bubble box hoogte adjusts automatisch voor multi-regel tekst.
-- `nbt` strings in `blockChanges` moet gebruiken **unquoted** SNBT keys (standard MC 1.7.10 format).
-  Quoted keys zal be rejected by De parser. tekenreeks waarden still require quotes:
+- The Ponder progress bar is drawn above the layer/StructureLib sliders. During playback the
+  structural sliders are hidden to keep the UI clean; they reappear when paused.
+- Camera interpolation is always smooth (ease-in/out) even if some keyframes only change a
+  subset of camera axes. Use `cameraEaseTicks` on a keyframe to snap the camera instantly (`0`)
+  or ease over a fixed number of ticks before holding the target position.
+- Annotations belong to a single keyframe - they appear only while that keyframe is active
+  (i.e., from its `time` tick until the next keyframe's `time` tick). Overlay text annotations
+  fade out smoothly when the keyframe changes during playback.
+- Ponder `line` annotations use the same runtime renderer as regular `LineAnnotation`, including
+  polyline bends and start/end arrows. Point marker cubes remain an MDX-only feature.
+- Ponder `text` annotations use the same runtime renderer as regular `TextAnnotation`, including
+  connector side, offset, and length. Dynamic text is keyframe-based rather than interpolated per tick.
+- Only one `<ImportPonder>` tag is effective per `<GameScene>`. A second tag overwrites the first.
+- A `text` annotation with an empty or absent `text` field is silently skipped.
+- The `inputType` field defaults to `"lmb"` if omitted or unrecognised.
+- `blockChanges` are applied in order from the first to the current keyframe every time the
+  active keyframe changes, so changing the same position in multiple keyframes works correctly.
+- Tile/entity NBT operations use the same replay model as `blockChanges`; they are safe to seek
+  forwards or backwards.
+- `text` annotations with a `maxWidth` &gt; 0 are word-wrapped using the vanilla font renderer;
+  the bubble box height adjusts automatically for multi-line text.
+- `nbt` strings in `blockChanges` must use **unquoted** SNBT keys (standard MC 1.7.10 format).
+  Quoted keys will be rejected by the parser. String values still require quotes:
   `{id:"minecraft:iron_ingot",Count:8b}`.
-- `modifyTileNBT` en `modifyEntityNBT` waarden are SNBT waarden, niet JSON waarden. voor Een tekenreeks
-  waarde, escape De SNBT quotes binnen JSON: `"value": "\"hello\""`.
+- `modifyTileNBT` and `modifyEntityNBT` values are SNBT values, not JSON values. For a string
+  value, escape the SNBT quotes inside JSON: `"value": "\"hello\""`.

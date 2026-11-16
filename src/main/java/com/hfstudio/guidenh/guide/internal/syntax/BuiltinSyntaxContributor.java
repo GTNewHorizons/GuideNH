@@ -19,6 +19,7 @@ import com.hfstudio.guidenh.guide.internal.syntax.values.DomainValueSource;
 import com.hfstudio.guidenh.guide.internal.syntax.values.EntityNameValueSource;
 import com.hfstudio.guidenh.guide.internal.syntax.values.ExpressionValueSource;
 import com.hfstudio.guidenh.guide.internal.syntax.values.FilePathValueSource;
+import com.hfstudio.guidenh.guide.internal.syntax.values.FluidIdValueSource;
 import com.hfstudio.guidenh.guide.internal.syntax.values.FormatPatternValueSource;
 import com.hfstudio.guidenh.guide.internal.syntax.values.ItemIdValueSource;
 import com.hfstudio.guidenh.guide.internal.syntax.values.KeyBindValueSource;
@@ -64,8 +65,54 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
         .of("showTooltip", SyntaxValueKind.BOOLEAN);
     private static final AttributeSyntax QUEST_SHOW_TOOLTIP_SNAKE = AttributeSyntax
         .of("show_tooltip", SyntaxValueKind.BOOLEAN);
+    private static final AttributeSyntax FLUID_ID = AttributeSyntax.of("id", SyntaxValueKind.FLUID_ID);
+    private static final AttributeSyntax FLUID_AMOUNT = AttributeSyntax.of("amount", SyntaxValueKind.INT);
+    private static final AttributeSyntax FLUID_NBT = AttributeSyntax.of("nbt", SyntaxValueKind.SNBT);
+    private static final AttributeSyntax FLUID_SHOW_TOOLTIP = AttributeSyntax
+        .of("showTooltip", SyntaxValueKind.BOOLEAN);
+    private static final AttributeSyntax FLUID_NO_TOOLTIP = AttributeSyntax.of("noTooltip", SyntaxValueKind.BOOLEAN);
+    private static final AttributeSyntax RECIPE_FLUID = AttributeSyntax.of("fluid", SyntaxValueKind.FLUID_ID);
+    private static final AttributeSyntax RECIPE_INPUT_FLUID = AttributeSyntax
+        .of("inputFluid", SyntaxValueKind.FLUID_ID);
+    private static final AttributeSyntax RECIPE_OUTPUT_FLUID = AttributeSyntax
+        .of("outputFluid", SyntaxValueKind.FLUID_ID);
 
     public void contribute(SyntaxSink sink) {
+        sink.tags("FluidImage", "FluidLink", "FluidIcon");
+        sink.frontmatterKeys("fluid_id", "fluid_ids");
+        sink.frontmatterKind("fluid_id", SyntaxValueKind.FLUID_ID);
+        sink.frontmatterKind("fluid_ids", SyntaxValueKind.FLUID_ID);
+        sink.frontmatterKeys("icon_fluid", "icon_fluids");
+        sink.frontmatterKind("icon_fluid", SyntaxValueKind.FLUID_ID);
+        sink.frontmatterKind("icon_fluids", SyntaxValueKind.FLUID_ID);
+        sink.attributes("FluidImage", FLUID_ID, FLUID_AMOUNT, FLUID_NBT, FLUID_SHOW_TOOLTIP, FLUID_NO_TOOLTIP);
+        sink.attributes("FluidLink", FLUID_ID, FLUID_AMOUNT, FLUID_NBT, FLUID_SHOW_TOOLTIP, FLUID_NO_TOOLTIP);
+        sink.attributes("FluidIcon", FLUID_ID, FLUID_AMOUNT, FLUID_NBT, FLUID_SHOW_TOOLTIP, FLUID_NO_TOOLTIP);
+        sink.attributes(
+            "ContentTabs",
+            AttributeSyntax.of("iconFluid", SyntaxValueKind.FLUID_ID),
+            AttributeSyntax.of("icon_fluid", SyntaxValueKind.FLUID_ID));
+        sink.attributes("Series", AttributeSyntax.of("iconFluid", SyntaxValueKind.FLUID_ID));
+        sink.attributes("LineSeries", AttributeSyntax.of("iconFluid", SyntaxValueKind.FLUID_ID));
+        sink.attributes("Slice", AttributeSyntax.of("iconFluid", SyntaxValueKind.FLUID_ID));
+        sink.attributes(
+            "FluidImage",
+            AttributeSyntax.of("scale", SyntaxValueKind.FLOAT),
+            AttributeSyntax.of("yOffset", SyntaxValueKind.INT),
+            AttributeSyntax.of("labelYOffset", SyntaxValueKind.INT),
+            AttributeSyntax.of("showIcon", SyntaxValueKind.STRING),
+            AttributeSyntax.of("label", SyntaxValueKind.STRING),
+            AttributeSyntax.of("format", SyntaxValueKind.FORMAT_PATTERN),
+            LAYOUT_WRAP,
+            LAYOUT_ALIGN,
+            LAYOUT_FLOAT);
+        sink.attributes(
+            "FluidLink",
+            AttributeSyntax.of("scale", SyntaxValueKind.FLOAT),
+            AttributeSyntax.of("showText", SyntaxValueKind.BOOLEAN),
+            AttributeSyntax.of("showIcon", SyntaxValueKind.STRING),
+            AttributeSyntax.of("linksTo", SyntaxValueKind.PAGE_PATH));
+
         sink.attributes(
             "ItemImage",
             AttributeSyntax.of("id", SyntaxValueKind.ITEM_ID),
@@ -986,7 +1033,10 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
             AttributeSyntax.of("z", SyntaxValueKind.FLOAT),
             AttributeSyntax.of("inputType", SyntaxValueKind.ENUM, "lmb", "rmb", "scroll"),
             AttributeSyntax.of("modifier", SyntaxValueKind.ENUM, "sneak", "ctrl"),
-            AttributeSyntax.of("item", SyntaxValueKind.ITEM_ID));
+            AttributeSyntax.of("item", SyntaxValueKind.ITEM_ID),
+            AttributeSyntax.of("fluid", SyntaxValueKind.FLUID_ID),
+            FLUID_AMOUNT,
+            FLUID_NBT);
 
         sink.attributes(
             "BarChart",
@@ -1451,7 +1501,7 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
             "GregTechPlaceHatches",
             "GtPlaceHatches");
         sink.children("BlockStats", "BlockStat");
-        sink.children("ItemGrid", "ItemIcon");
+        sink.children("ItemGrid", "ItemIcon", "FluidIcon");
         sink.children("Mermaid", "NodeContent");
         sink.children("FloatingImage", "ImageAnnotation", "SoundArea");
         // A details body is ordinary block markdown and an annotation body is tooltip content, so both take
@@ -1562,12 +1612,36 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
     }
 
     private static void contributeValueKinds(SyntaxSink sink) {
-        sink.attributes("Recipe", RECIPE_INPUT, RECIPE_OUTPUT);
-        sink.attributes("RecipeFor", RECIPE_INPUT, RECIPE_OUTPUT);
-        sink.attributes("RecipesFor", RECIPE_INPUT, RECIPE_OUTPUT);
-        sink.attributes("Usage", RECIPE_INPUT, RECIPE_OUTPUT);
-        sink.attributes("RecipeUsage", RECIPE_INPUT, RECIPE_OUTPUT);
-        sink.attributes("RecipesUsage", RECIPE_INPUT, RECIPE_OUTPUT);
+        sink.attributes("Recipe", RECIPE_INPUT, RECIPE_OUTPUT, RECIPE_FLUID, RECIPE_INPUT_FLUID, RECIPE_OUTPUT_FLUID);
+        sink.attributes(
+            "RecipeFor",
+            RECIPE_INPUT,
+            RECIPE_OUTPUT,
+            RECIPE_FLUID,
+            RECIPE_INPUT_FLUID,
+            RECIPE_OUTPUT_FLUID);
+        sink.attributes(
+            "RecipesFor",
+            RECIPE_INPUT,
+            RECIPE_OUTPUT,
+            RECIPE_FLUID,
+            RECIPE_INPUT_FLUID,
+            RECIPE_OUTPUT_FLUID);
+        sink.attributes("Usage", RECIPE_INPUT, RECIPE_OUTPUT, RECIPE_FLUID, RECIPE_INPUT_FLUID, RECIPE_OUTPUT_FLUID);
+        sink.attributes(
+            "RecipeUsage",
+            RECIPE_INPUT,
+            RECIPE_OUTPUT,
+            RECIPE_FLUID,
+            RECIPE_INPUT_FLUID,
+            RECIPE_OUTPUT_FLUID);
+        sink.attributes(
+            "RecipesUsage",
+            RECIPE_INPUT,
+            RECIPE_OUTPUT,
+            RECIPE_FLUID,
+            RECIPE_INPUT_FLUID,
+            RECIPE_OUTPUT_FLUID);
         sink.attributes("BlockAnnotationTemplate", AttributeSyntax.of("id", SyntaxValueKind.BLOCK_ID));
         sink.tags("link", "image");
         sink.attributes("link", AttributeSyntax.of("url", SyntaxValueKind.PAGE_PATH));
@@ -1654,12 +1728,13 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
             "\n  title:",
             "\n  parent:",
             "\n  position:",
-            "\n  icon: minecraft:book:0:{display:{Name:\"Custom Icon\"}}",
-            "\n  icons:\n    - minecraft:book:0:{display:{Name:\"Cycling Icon\"}}",
+            "\n  icon: ",
+            "\n  icons:\n    - ",
             "\n  icon_texture:");
-        sink.frontmatterValues("quest_ids", "\n  - 00000000-0000-0000-0000-000000000000");
         sink.frontmatterKind("item_id", SyntaxValueKind.ITEM_ID);
         sink.frontmatterKind("item_ids", SyntaxValueKind.ITEM_ID);
+        sink.frontmatterKind("fluid_id", SyntaxValueKind.FLUID_ID);
+        sink.frontmatterKind("fluid_ids", SyntaxValueKind.FLUID_ID);
         sink.frontmatterKind("icon", SyntaxValueKind.ITEM_ID);
         sink.frontmatterKind("icons", SyntaxValueKind.ITEM_ID);
         sink.frontmatterKind("ore_ids", SyntaxValueKind.ORE_DICT);
@@ -1724,6 +1799,7 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
 
     private static void contributeValueSources(SyntaxSink sink) {
         sink.valueSource(new ItemIdValueSource());
+        sink.valueSource(new FluidIdValueSource());
         sink.valueSource(new BlockIdValueSource());
         sink.valueSource(new ModIdValueSource());
         sink.valueSource(new DomainValueSource());

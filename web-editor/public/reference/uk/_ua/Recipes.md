@@ -1,52 +1,51 @@
 # Рецепти
 
-Ця документація описує синтаксис і функції виконання GuideNH. Код, теги, шляхи, ідентифікатори та значення атрибутів збережено без змін.
+Докладний довідник на цій сторінці доступний англійською. Назви тегів, атрибути, ідентифікатори та шляхи потрібно використовувати без перекладу.
 
+Use recipe tags to show how an item or fluid is produced or consumed. Machine recipes depend on the installed recipe integrations; vanilla crafting is available without NEI.
 
-GuideNH може відтворювати crafting і NEI-backed Рецепти directly усередині посібник сторінки.
+## Choosing a tag
 
-## Підтримувані теги
+| Tag | Query | Default result count |
+| --- | --- | --- |
+| `<Recipe>` / `<RecipeFor>` | Produces the target | One |
+| `<Usage>` / `<RecipeUsage>` | Consumes the target | One |
+| `<RecipesFor>` | Produces the target | All matches |
+| `<RecipesUsage>` | Consumes the target | All matches |
 
-- `<Recipe>`
-- `<Usage>`
-- `<RecipeFor>`
-- `<RecipeUsage>`
-- `<RecipesFor>`
-- `<RecipesUsage>`
+All six tags accept the same attributes. Use `limit` to cap the result count and `recipeIndex` to select a specific recipe.
 
-усі three share  той самий компілятор і Атрибут Установіть.
+## Attributes
 
-## тег Semantics
+Provide exactly one target: `id` for an item or `fluid` for a fluid. Fluid names are exact, case-sensitive Forge registry names such as `water` or `steam`; use registered names rather than temporary numeric display IDs.
 
-| тег              | поведінка                                               |
-|------------------|--------------------------------------------------------|
-| `<Recipe>`       | відтворювати a один recipe для  ціль предмет             |
-| `<Usage>`        | відтворювати a один recipe використовуючи  ціль предмет           |
-| `<RecipeFor>`    | той самий один-recipe поведінка, more автор-friendly назва |
-| `<RecipeUsage>`  | той самий один-recipe поведінка, more автор-friendly назва |
-| `<RecipesFor>`   | відтворювати кілька відповідний Рецепти                       |
-| `<RecipesUsage>` | відтворювати кілька відповідний Рецепти                       |
+| Attribute | Meaning |
+| --- | --- |
+| `id` | Target item reference; mutually exclusive with `fluid` |
+| `fluid` | Target fluid registry name; mutually exclusive with `id` |
+| `fallbackText` | Text displayed when no usable recipe is found |
+| `handlerName` | Case-insensitive substring of the recipe handler's display name |
+| `handlerId` | Exact overlay/handler ID, case-insensitive; also accepts a substring of the handler's simple class name |
+| `handlerBlacklist` | Comma-separated handlers to exclude |
+| `handlerWhitelist` | Comma-separated handlers to retain despite a blacklist; does not narrow results by itself |
+| `handlerOrder` | Nonnegative, zero-based index into the filtered handler list |
+| `recipeIndex` | Nonnegative, zero-based recipe index |
+| `input` / `output` | Item ingredient/result filter expressions |
+| `inputFluid` / `outputFluid` | Fluid ingredient/result filter expressions |
+| `limit` | Positive integer maximum result count |
 
-Якщо кілька Рецепти exist і you використовувати  один-recipe forms, GuideNH renders лише один результат unless filters narrow it further.
+```md
+<RecipeFor id="minecraft:crafting_table" />
+<RecipesFor id="minecraft:torch" limit="3" />
+<RecipeFor fluid="steam" fallbackText="No steam recipe is available." />
+<RecipesUsage fluid="water" inputFluid="water&!lava" limit="3" />
+```
 
-## звичайний атрибути
+If an optional recipe integration is unavailable, `fallbackText` is displayed; without it, the page shows an authoring error. Filled containers remain item ingredients.
 
-| Атрибут      | Обов’язково | Значення                                           |
-|----------------|----------|---------------------------------------------------|
-| `id`           | yes      | ціль предмет reference                             |
-| `fallbackText` | no       | текст показано коли no usable recipe is found         |
-| `handlerName`  | no       | case-insensitive substring фільтр on handler назва |
-| `handlerId`    | no       | exact overlay/handler id фільтр, case-insensitive |
-| `handlerBlacklist` | no   | comma-separated handlers до drop з  результати |
-| `handlerWhitelist` | no   | comma-separated handlers до Збережіть, even Якщо blacklisted |
-| `handlerOrder` | no       | 0-based index після handler filtering             |
-| `input`        | no       | ingredient фільтр вираз                      |
-| `output`       | no       | результат фільтр вираз                          |
-| `limit`        | no       | positive ціле число max число of відтворений Рецепти   |
+## Item references
 
-## предмет Id синтаксис
-
- `id`, `input`, і `output` атрибути усі використовувати  GuideNH extended предмет reference format:
+`id`, `input` and `output` accept these forms:
 
 ```text
 modid:name
@@ -54,143 +53,51 @@ modid:name:meta
 modid:name:meta:{snbt}
 ```
 
-Wildcard meta значення:
-
-- `*`
-- `32767`
-- uppercase tokens наприклад `ANY`
-
-## фільтр вираз синтаксис
-
- `input` і `output` filters підтримка:
-
-- `,` для або
-- `&` для і
-- `!` для не
-
-Приклади:
-
-```text
-minecraft:planks:*
-minecraft:stick&minecraft:redstone
-!minecraft:planks:0
-minecraft:planks:*,minecraft:log:*
-```
-
-NBT може be combined з усі three предмет-reference атрибути. Commas і ampersands усередині an
-SNBT compound/список є kept усередині  reference; лише угорі-level separators split  фільтр:
+Wildcard metadata may be written as `*`, `32767` or an uppercase token such as `ANY`.
 
 ```md
 <RecipeFor id='minecraft:written_book:0:{title:TestBook,author:GuideNH}' />
-<RecipesFor
-  id='minecraft:stone:3:{display:{Name:"Special Stone"}}'
-  input='minecraft:chest:0:{Items:[{id:"minecraft:diamond",Count:1b}]}'
-  output='minecraft:diamond:0:{display:{Name:"Reward"}}'
-/>
+<RecipesFor id="minecraft:stick" input="minecraft:planks:*" limit="3" />
 ```
 
-## відтворення порядок
+## Ingredient filters
 
-GuideNH tries Рецепти in Цей порядок:
+Both item and fluid filters support `,` for OR, `&` for AND and `!` for NOT. Every supplied input/output filter must match. Commas and ampersands inside an item's SNBT compound or list stay within that reference.
 
-1. NEI native handler відтворення
-2. NEI slot-дані резервний варіант
-3. built-in vanilla crafting резервний варіант
+```md
+<RecipesFor id="minecraft:redstone_torch" input="minecraft:stick&minecraft:redstone" limit="1" />
+<RecipesFor id="minecraft:iron_ingot" outputFluid="steam,water" />
+<RecipesUsage fluid="water" inputFluid="water&!lava" limit="3" />
+```
 
-Якщо nothing відповідає:
+Fluid filters match registry names, including fluids in auxiliary output slots. They do not match amounts or NBT. Invalid filter syntax produces an authoring error.
 
-- `fallbackText` is використовується коли present
-- otherwise inline authoring помилка is показано
+## Handler selection
 
-## Приклади
+Use `handlerId` for a known recipe handler, `handlerName` for a display-name match or `handlerOrder` to choose from the filtered list. `recipeIndex` selects a recipe within the query.
 
-### один recipe
-
-````md
-<RecipeFor id="minecraft:crafting_table" />
-````
-
-### кілька Рецепти
-
-````md
-<RecipesFor id="minecraft:torch" />
-````
-
-### Handler filtering
-
-````md
+```md
 <RecipesFor id="minecraft:iron_pickaxe" handlerId="repair" />
-<RecipesFor id="minecraft:fire_charge" handlerName="shapeless" />
-````
+<RecipesFor id="minecraft:fire_charge" handlerName="shapeless" limit="3" />
+<RecipeFor id="minecraft:torch" recipeIndex="0" />
+```
 
-### Handler blacklist і whitelist
+Blacklist and whitelist entries match handler IDs, overlay IDs and class names as case-insensitive substrings. Page blacklists add to `recipeHandlerBlacklist` in `config/guidenh/guidenh.cfg`. Explicit `handlerId` or `handlerWhitelist` selection can retain a blacklisted handler.
 
-`handlerBlacklist` drops handlers з  результати, `handlerWhitelist` puts їх назад. Both take a
-**comma-separated список**, і запис відповідає  handler id, його overlay id або його class назва,
-case-insensitively і as substring — so один запис може назва a один handler або whole package.
+```md
+<RecipesFor id="minecraft:planks" handlerBlacklist="fuel,repair" limit="6" />
+<RecipeFor id="minecraft:chest" handlerWhitelist="GTNEIMultiblockHandler,StructureCompatNEIHandler" fallbackText="Multiblock preview unavailable." />
+```
 
-handler is dropped коли it is named by blacklist **unless**  тег asks для it: `handlerId`,
-`handlerWhitelist` і lowercased class-назва відповідати усі Збережіть it.
-
-**A список, because один handler id rarely appears alone.** Planks є both crafting material і fuel, so
-список  handler ids you do не want:
-
-````md
-<RecipesFor id="minecraft:planks" handlerBlacklist="fuel,repair" />
-````
-
-**package in один запис.** запис is substring of  class назва too, so mod id covers кожен handler
-який mod registers — handy коли один mod's handlers є усі noise для Цей предмет:
-
-````md
-<RecipesFor id="minecraft:chest" handlerBlacklist="gregtech,ic2,railcraft" limit="6" />
-````
-
-**Whitelist, до undo blacklist для один сторінка.**  configuration hides два multiblock handlers on кожен
-сторінка. whitelist naming їх brings їх назад here, і a список works  той самий way:
-
-````md
-<Recipe id="minecraft:chest" handlerWhitelist="GTNEIMultiblockHandler,StructureCompatNEIHandler" fallbackText="Multiblock preview unavailable." />
-````
-
-**Whitelist не фільтр on його власний.** It лише rescues handlers blacklist would drop; використовувати
-`handlerId` / `handlerName` / `handlerOrder` до narrow  результат до один handler, і `limit` до cap how
-many є drawn.
-
- configuration файл `config/guidenh/guidenh.cfg` holds `recipeHandlerBlacklist`, який застосовує до кожен
-сторінка і by Типове містить:
+The following multiblock handlers are excluded by default because they render a whole structure:
 
 - `blockrenderer6343.integration.gregtech.GTNEIMultiblockHandler`
 - `blockrenderer6343.integration.structurelib.StructureCompatNEIHandler`
 
-A сторінка's власний список is **added** до  configured один, so a сторінка може приховувати more but не fewer. Editing 
-configuration зміни кожен сторінка; naming handler on a тег зміни лише який сторінка.
+Use a whitelist to include them on a page. Use `limit` for broad queries to keep pages readable.
 
-### ввід/вивід filtering
+## Related references
 
-````md
-<RecipesFor id="minecraft:stick" input="minecraft:planks:*" limit="3" />
-<RecipesFor id="minecraft:stick" output="minecraft:torch" limit="2" />
-<RecipesFor id="minecraft:redstone_torch" input="minecraft:stick&minecraft:redstone" limit="1" />
-````
-
-### резервний варіант текст
-
-````md
-<Recipe id="missingrecipe" fallbackText="This recipe is disabled." />
-````
-
-## Best Practices
-
-- використовувати `fallbackText` для необов’язковий-mod integrations
-- використовувати `handlerId` коли you know  exact NEI handler you want
-- використовувати `handlerBlacklist` коли один блок is produced by many handlers і лише some є worth showing
--  два handlers below є прихований by Типове in `config/guidenh/guidenh.cfg` because Вони відтворювати whole multiblock; назва один з `handlerId` або `handlerWhitelist` до показувати it
-  - `blockrenderer6343.integration.gregtech.GTNEIMultiblockHandler`
-  - `blockrenderer6343.integration.structurelib.StructureCompatNEIHandler`
-- використовувати `limit` коли a тег could expand до many Рецепти
-- Збережіть complex фільтр logic in comments near  тег для maintainability
-
-## Live виконання Приклад
-
-Дивіться `wiki/resourcepack/assets/guidenh/guidenh/_en_us/index.md` для extensive recipe samples, including handler filters і wildcard/NBT предмет ids.
+- [Tags Reference](Tags-Reference)
+- [Mod Compatibility](Mod-Compatibility)
+- [Examples](Examples)

@@ -22,7 +22,9 @@
   "navigation": {
     "open": "탐색 메뉴",
     "close": "탐색 메뉴 닫기",
-    "holdToOpenGuide": "G를 길게 눌러 가이드 열기"
+    "holdToOpenGuide": "G를 길게 눌러 가이드 열기",
+    "chooseGuide": "가이드 페이지 선택",
+    "closeChooser": "페이지 선택 닫기"
   },
   "sceneLoading": {
     "error": "3D 장면을 불러올 수 없습니다.",

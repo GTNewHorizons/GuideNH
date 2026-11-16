@@ -1,6 +1,6 @@
 # Tags Reference
 
-This page lists the built-in runtime tags registered by `DefaultExtensions`.
+This page describes the built-in tags available to guide authors.
 
 ## Usage Rules
 
@@ -32,6 +32,7 @@ This page lists the built-in runtime tags registered by `DefaultExtensions`.
 | `<KeyBind>` | inserts keybinding display name | `id` or `action` |
 | `<ItemImage>` | inline item icon | `id`, `ore`, `nbt`, `scale`, `noTooltip`, `showTooltip`, `showIcon`, `label`, `format`, `yOffset`, `labelYOffset` |
 | `<ItemLink>` | item tooltip + optional navigation link | `id` or `ore`, `linksTo`, `showTooltip`, `noTooltip`, `showIcon` |
+| `<FluidImage>` / `<FluidLink>` | native fluid icon and page navigation | `id`, `amount`, `nbt`, `scale`, `showTooltip`, `noTooltip`, `showIcon`, `label`, `linksTo` |
 | `<CommandLink>` | clickable chat command link | `command`, `title`, `close` |
 | `<Latex>` | LaTeX math formula; inline in flow context, centered display block in block context | `formula`, `color`, `scale`, `sourceScale`, `tooltip`, `showTooltip` |
 | `<QuestLink>` | BetterQuesting quest link with state-aware styling (compat tag, only registered when BetterQuesting is loaded) | `id`, `text`, `show_tooltip` |
@@ -48,14 +49,14 @@ Inline markdown also supports action links for sound playback:
 | Tag | Purpose | Key attributes |
 | --- | --- | --- |
 | `<div>` | pass-through block wrapper | none |
-| `<ContentTabs>` | groups alternative rich content under independent tabs | `title`, `color`, `background`, `icon`, `iconPng`, `icon_png`, `iconItem`, `icon_item`, `default`, `defaultIndex` |
+| `<ContentTabs>` | groups alternative rich content under independent tabs | `title`, `color`, `background`, `icon`, `iconPng`, `icon_png`, `iconItem`, `icon_item`, `iconFluid`, `icon_fluid`, `default`, `defaultIndex` |
 | `<Tab>` | one content panel inside `<ContentTabs>` | `title` |
 | `<details>` | collapsible runtime block | `open`, `width`, `height`, `wrap`, `align` |
 | `<FileTree>` | directory-style outline with connector lines | `indent`, `gap` |
 | `<Row>` | horizontal flex layout | `gap`, `alignItems`, `fullWidth`, `width` |
 | `<Column>` | vertical flex layout | `gap`, `alignItems`, `fullWidth`, `width` |
 | `<FootnoteList>` | width-constrained footnote container used by runtime markdown footnotes | `width` |
-| `<ItemGrid>` | compact grid of item icons | children must be `<ItemIcon id="..."/>` or `<ItemIcon ore="..."/>` |
+| `<ItemGrid>` | compact grid of item and fluid icons | mix `<ItemIcon id="..."/>`, `<ItemIcon ore="..."/>`, and `<FluidIcon id="..."/>` |
 | `<BlockImage>` | non-interactive 3D single-block preview | `id`, `ore`, `meta`, `nbt`, `scale`, `width`, `height`, `perspective`, `wrap`, `align` |
 | `<FloatingImage>` | cropped image block with float or true inline placement | `src`, `x`, `y`, `width` / `w`, `height` / `h`, `scaleX`, `scaleY`, `displayWidth`, `displayHeight`, `wrap`, `align`, `title` |
 | `<SubPages>` | navigation child listing | `id`, `alphabetical` |
@@ -185,7 +186,7 @@ Groups alternative rich content under independent tabs. Only direct `<Tab>` chil
 - `default` matches the first tab whose `title` matches exactly
 - `defaultIndex` is zero-based and wins over `default` when both are present
 - `color` optionally overrides the left accent line and selected-tab highlight with `#RRGGBB` or `#AARRGGBB`
-- background — optionally overrides the tab container background with #RRGGBB, #AARRGGBB, or transparent; omitted keeps the default gray background
+- `background` optionally overrides the tab container background with `#RRGGBB`, `#AARRGGBB`, or `transparent`; the default keeps the normal gray callout background
 - `title` adds an optional plain-text heading above the tab strip
 - `icon`, `iconPng` / `icon_png`, and `iconItem` / `icon_item` use the same heading icon semantics as markdown quote-style callouts
 - invalid children or invalid defaults render visible author-facing errors
@@ -446,6 +447,39 @@ Examples:
 <ItemLink id="minecraft:compass" linksTo="#usage" />
 ````
 
+### `<FluidImage>`, `<FluidLink>`, and `<FluidIcon>`
+
+Native fluid icons resolve the exact Forge fluid registry name, such as `water`, `steam`, or `molten.iron`. Persist names, never numeric fluid IDs or NEI display-item metadata. Rendering uses the Forge fluid texture and tint and does not require NEI.
+
+Default hover tooltips show the fluid name, temperature in kelvin and gas/liquid state. An explicit `amount`, including zero, adds the quantity in the selected L/mB unit; an omitted amount adds no quantity. Advanced tooltips also show the registry name. When GregTech is loaded, material information such as chemical formulas follows its tooltip settings. Native tooltips, connected runtime previews and ExportSite share these details; disconnected Web previews only know the supplied name and amount. NEI is not required.
+
+ExportSite displays item counts and fluid amounts as text overlays using its bundled Pixeloid Mono font. Item durability bars remain part of the icon image.
+
+| Attribute | Contract |
+| --- | --- |
+| `id` | Required complete fluid registry name; no implicit namespace or item metadata |
+| `amount` | Optional integer amount; display follows the selected fluid unit |
+| `nbt` | Optional SNBT describing a private fluid stack tag |
+| `showTooltip`, `noTooltip` | Same visibility precedence as item icons; hiding a tooltip does not disable G navigation |
+| `scale`, `showIcon`, `label`, `format`, `yOffset`, `labelYOffset` | FluidImage shares ItemImage presentation options; scale must be finite and positive |
+| `showIcon`, `showText`, `linksTo` | FluidLink shares ItemLink label, icon-side, and explicit page/anchor behavior |
+
+`FluidIcon` is an ItemGrid child and accepts only `id`, `amount`, `nbt`, `showTooltip`, and `noTooltip`. A single ItemGrid may mix ItemIcon and FluidIcon children in source order. There is no separate FluidGrid. `ore` and item metadata are not fluid selectors.
+
+```mdx
+<FluidImage id="water" amount={1000} scale="2" label="right" />
+<FluidLink id="steam" showIcon="left">Steam</FluidLink>
+<ItemGrid>
+  <ItemIcon id="minecraft:bucket" />
+  <FluidIcon id="water" amount={1000} />
+  <FluidIcon id="steam" />
+</ItemGrid>
+```
+
+Bind pages with `fluid_id` / `fluid_ids`. Hold the remappable open-guide key (G by default) over native fluid icons or supported container/display representations. One match opens directly; multiple matches show a chooser with fluid pages before container pages. Amount and NBT affect display, while bindings match the registry name. Empty containers retain ordinary item navigation. Unrecognized fluid GUIs require a registered hover provider.
+
+Use `navigation.icon_fluid` / `icon_fluids` for single/cycling page icons, and `iconFluid` in ContentTabs, FileTree directives, quote directives, chart Series / LineSeries / Slice. Fluid icon sources must not be combined with item, PNG, or text icon sources. Six Recipe/Usage tags accept `fluid`, `inputFluid`, and `outputFluid`; InputAnnotation accepts `fluid`, `amount`, and `nbt`. See Recipes, Guide Page Format, and Annotations for the remaining contracts.
+
 ### `<CommandLink>`
 
 Sends a chat command when clicked.
@@ -459,7 +493,7 @@ Sends a chat command when clicked.
 Example:
 
 ````md
-<CommandLink command="/tp @s 0 90 0" title="Teleport">Teleport!</CommandLink>
+<CommandLink command="/tp @p 0 90 0" title="Teleport">Teleport!</CommandLink>
 ````
 
 ### `<Row>` And `<Column>`
@@ -504,7 +538,7 @@ GuideNH uses this block tag internally when runtime markdown footnotes are expan
 
 ### `<ItemGrid>`
 
-Renders a compact item grid. Children must be raw `<ItemIcon>` elements, which are parsed directly by the grid compiler. Each child can use either `id` or `ore`.
+Renders a compact icon grid. ItemIcon and FluidIcon children appear in source order. Item children select `id` or `ore`; fluid children select a registry-name `id` with optional amount and NBT.
 
 ````md
 <ItemGrid>
@@ -628,6 +662,19 @@ name,value
 iron,42
 gold,17
 ```
+````
+
+### HTML `<table>`
+
+The native HTML table tags are supported in GuideNH pages. Use `<caption>`, `<colgroup>` / `<col>`, and `<thead>` / `<tbody>` / `<tfoot>` to describe the table structure. Cells support `colspan`, `rowspan`, `align`, and `valign`; header cells additionally support `scope`, `abbr`, and `headers`. A table `align` value with commas (for example `left,center,right`) is retained as a per-column alignment extension; a single `left`, `center`, or `right` value positions the complete table. `width`, `border`, `cellpadding`, and `cellspacing` are supported in the game renderer and site export. The kramdown metadata line `{: widths="130,70,150" }` remains supported for Markdown tables.
+
+````md
+<table width="100%" cellpadding="2">
+  <caption>Fuel rates</caption>
+  <colgroup><col width="40%" /><col width="60%" /></colgroup>
+  <thead><tr><th scope="col">Fuel</th><th scope="col">Rate</th></tr></thead>
+  <tbody><tr><td>Coal</td><td align="right">42</td></tr></tbody>
+</table>
 ````
 
 ### `<Latex>`

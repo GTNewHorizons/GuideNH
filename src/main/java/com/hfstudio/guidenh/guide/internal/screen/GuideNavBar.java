@@ -1636,6 +1636,10 @@ public class GuideNavBar implements DebugComponent {
     }
 
     public static void drawMiniIcon(Minecraft mc, GuidePageIcon icon, int x, int y, int size) {
+        if (icon.isFluidIcon()) {
+            icon.renderCurrentFluid(x, y, size);
+            return;
+        }
         if (icon.isTextureIcon()) {
             drawMiniTextureIcon(icon.resolveCurrentTexture(), x, y, size);
             return;

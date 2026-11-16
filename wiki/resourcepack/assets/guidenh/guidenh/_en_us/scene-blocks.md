@@ -209,8 +209,6 @@ For 3D region parameters, GuideNH keeps the field names `dx`/`dy`/`dz`, but the 
 Automatic mode groups by `item:meta`, sorts by count, and resolves common multipart-style blocks
 into the items players expect to see. This includes AE2 cable-bus parts and facades,
 ForgeMultipart parts, and Carpenters' Blocks covers or overlays when those mods are present.
-Statistics are cached and rebuilt only when scene blocks, Ponder timeline state, StructureLib
-selection, or statistics settings change.
 
 ## Docked Automatic Statistics
 

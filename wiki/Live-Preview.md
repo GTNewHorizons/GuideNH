@@ -48,10 +48,7 @@ GuideNH also supports broader development source roots:
 | `wiki/resourcepack/assets` | assets-root mode; `assets/<modid>/guidenh/...` maps to `<modid>:...` |
 | `wiki/resourcepack` | resourcepack-root mode; `assets/<modid>/guidenh/...` maps to `<modid>:...` |
 
-The data-driven guide remains a single merged guide. When multiple namespaces contain the same markdown file name, the
-namespace is preserved in the page id, so `assets/gregtech/guidenh/_zh_cn/index.md` and
-`assets/appliedenergistics2/guidenh/_zh_cn/index.md` become `gregtech:index.md` and
-`appliedenergistics2:index.md` instead of overwriting each other.
+Each namespace has its own guide. Navigation combines the loaded guides, while page IDs preserve their namespace: `gregtech:index.md` and `appliedenergistics2:index.md` remain separate pages.
 
 ## Multi-Pack Live Preview
 
@@ -63,14 +60,16 @@ watched for all GuideNH content under `assets/<modid>/guidenh/...`.
 -Dguideme.resourcePacks.sources=E:/packs/override
 ```
 
-The property is intentionally repeatable. GuideNH reads the JVM input arguments in the order they appear, because Java
-system properties would otherwise collapse repeated `-D` keys into a single final value.
+Repeat the property to load multiple source folders in the listed order.
 
 Conflict rules are resource-pack-like but deterministic for live preview:
 
 - different mod ids are isolated by namespace, so `gregtech:index.md` and `appliedenergistics2:index.md` are separate pages
-- for the same mod id, language, and markdown path, the earlier `guideme.resourcePacks.sources` entry wins
-- if the same page also exists in regular loaded resource packs, the development resource-pack roots win
+- pages at the same namespace, language and path follow `navigation.priority`: higher values win, with later scanned packs winning ties
+- configured development packs are scanned before regular packs, so an existing regular pack can replace a development page at equal priority
+- assets from development packs use the first configured folder containing that asset
+
+For a guide source that should directly override its resource-pack pages, use `guideme.<namespace>.<path>.sources` instead of the multi-pack setting.
 
 Changing markdown, Ponder JSON, images, or other files under these development resource-pack roots triggers a client
 resource reload so the merged guide and scene content refresh together.
@@ -85,23 +84,23 @@ resource reload so the merged guide and scene content refresh together.
 
 Relative page ids after `!` resolve against the guide namespace, so `index.md` becomes `guidenh:index.md`.
 
-## Performance Notes
+## Reload timing
 
-GuideNH does not poll guide files every frame.
-
-- development source watching is only registered when at least one guide actually enables development sources
-- multi-pack live preview watching is only registered when at least one `guideme.resourcePacks.sources` root exists
-- guide watcher processing is throttled to once every `20` client ticks
-- non-Markdown guide assets trigger page reparsing, so external files such as Ponder JSON can update live
-- startup guide opening and validation run only once after the title screen appears
-
-This keeps the live preview workflow responsive without introducing unnecessary high-frequency client work.
+Changes are checked once every 20 client ticks, about one second at normal tick speed. Pages and assets inside configured source folders can reload while the client runs.
 
 ## Recommended Workflow
 
-1. Start the client with `runGuide`.
+For the repository examples, replace the path below with your checkout and add this JVM argument to the game launch configuration:
+
+```text
+-Dguideme.guidenh.guidenh.sources=E:/Github/GuideNH-NH/wiki/resourcepack/assets/guidenh/guidenh
+```
+
+Optionally add `-Dguideme.showOnStartup=guidenh:guidenh!index.md` to open the example guide automatically. JVM arguments must reach the game process; setting a property only on the Gradle process does not configure its forked client.
+
+1. Add the source-folder JVM arguments to your launcher and start the client.
 2. Edit runtime guide files under `wiki/resourcepack/assets/...`.
-3. Wait for the throttled watcher to pick up the change.
+3. Wait about one second for the change to reload.
 4. Reopen or revisit the page if you changed navigation structure or startup targets.
 
 ## When A Restart Is Still Needed

@@ -43,6 +43,7 @@ import com.hfstudio.guidenh.guide.internal.markdown.MarkdownListSemantics;
 import com.hfstudio.guidenh.guide.internal.markdown.MarkdownListSemantics.TaskMarker;
 import com.hfstudio.guidenh.guide.internal.markdown.MarkdownRuntimeBlocks;
 import com.hfstudio.guidenh.guide.internal.markdown.MarkdownRuntimeBlocks.BlockquoteDirective;
+import com.hfstudio.guidenh.guide.internal.markdown.MarkdownRuntimeBlocks.QuoteIconKind;
 import com.hfstudio.guidenh.guide.internal.markdown.MarkdownRuntimeBlocks.QuoteIconSpec;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidDiagramType;
 import com.hfstudio.guidenh.guide.internal.mermaid.flowchart.FlowchartParser;
@@ -2106,12 +2107,15 @@ public class GuideSiteHtmlCompiler {
                 return "<span class=\"guide-quote-icon guide-quote-icon-image\"><img src=\"" + escapeAttribute(resolved)
                     + "\" alt=\"\" decoding=\"async\"></span>";
             }
+            case FLUID:
             case ITEM: {
                 // Synthesize an <ItemImage id="..." /> tag and dispatch through the MDX renderer so
                 // the icon is exported with the same path/tooltip handling as inline ItemImages.
                 List<MdxJsxAttributeNode> attrs = new ArrayList<>();
                 attrs.add(new MdxJsxAttribute("id", value));
-                MdxJsxFlowElement synthetic = new MdxJsxFlowElement("ItemImage", attrs);
+                MdxJsxFlowElement synthetic = new MdxJsxFlowElement(
+                    icon.kind() == QuoteIconKind.FLUID ? "FluidImage" : "ItemImage",
+                    attrs);
                 String rendered = mdxTagRenderer
                     .render(synthetic, defaultNamespace, currentPageId, templates, sceneResolver, this);
                 if (rendered == null || rendered.isEmpty()) {

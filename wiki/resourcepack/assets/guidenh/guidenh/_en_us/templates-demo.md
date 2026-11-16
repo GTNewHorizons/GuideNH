@@ -11,7 +11,7 @@ categories:
 # MDX Templates
 
 This page exercises the template layer. Templates are MDX tags, so a call is compiled while the page is
-compiled and nothing is resolved at view time. See [Templates](Templates) for the reference.
+compiled and nothing is resolved at view time. See [Templates](https://github.com/GTNewHorizons/GuideNH/wiki/Templates) for the reference.
 
 ## Named Arguments With Defaults
 
@@ -67,7 +67,7 @@ template body would use them. A value comes from `value`, or from a nested `<Par
 <Expr value="2 + 3 * 4" /> gives 14
 <Expr value="10 / 4" /> gives 2.5
 <Expr value="7 &gt; 5" /> gives 1, because a comparison yields `1` or `0`
-<Len value="Etching Array" /> gives 13 characters
+<Len value="Etching Array" /> gives 12 characters
 <Sub value="Etching Array" start="0" length="7" /> gives `Etching`
 <Replace value="a-b" from="-" to="+" /> gives `a+b`
 <Explode value="a,b,c" delimiter="," index="1" /> gives `b`
@@ -76,7 +76,7 @@ template body would use them. A value comes from `value`, or from a nested `<Par
 <Lower value="ABC" /> gives `abc`, and <Upper value="abc" /> gives `ABC`
 <Trim value=" spaced " /> removes the surrounding spaces
 <UrlEncode value="a b" /> gives `a%20b`
-<Pos value="abc" needle="c" /> gives 3
+<Pos value="abc" needle="c" /> gives 2
 ```
 
 Right-to-left scripts and Japanese names work the same way, so `<Upper value="steel ingot" />`,

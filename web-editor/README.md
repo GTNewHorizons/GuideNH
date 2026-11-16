@@ -1,41 +1,40 @@
 # GuideNH Web Editor
 
-GuideNH Web Editor is a small Node.js service and browser workspace for editing and previewing GuideNH source pages. It accepts a GuideNH source directory selected through the browser directory picker or a ZIP archive.
+A browser workspace for editing and previewing GuideNH pages. Import a source directory or ZIP archive, edit UTF-8 Markdown and download the updated project. The hosted editor is available at https://www.gtnewhorizons.com/GuideNH.
 
 ## Run locally
+
+Use Node.js 20 or newer. From `web-editor`:
 
 ```powershell
 npm install
 npm start
 ```
 
-Open `http://localhost:8787`. The service also exposes `GET /api/health`.
+Open `http://localhost:8787`. For Docker, run `docker compose up --build -d`. The health endpoint is `GET /api/health`.
 
-The Syntax button opens a searchable English/Chinese reference built from the bundled wiki pages. After editing those wiki pages, run `npm run sync:reference` from `web-editor` to update the deployed copies. The reference is included in the Docker image.
+## Editing
 
-The selected file is stored in the `page` URL parameter, so refreshing or using browser Back/Forward restores the page when the project is present in that browser's local storage.
+- Import a directory or ZIP with its local assets. Repository imports skip `.git`, build output, logs, `.gradle` and `node_modules`.
+- Select a page and edit beside its preview. The selected page is retained in the URL; browser Back/Forward and refresh restore it while the project is stored locally.
+- Enable Sync scroll to follow headings between source and preview. Pages without matching headings use proportional scrolling.
+- Use the Syntax button to search the bundled author reference and follow links to related sections. Topics outside the bundled reference open in the GitHub Wiki.
+- Download your work before clearing browser data. Projects are stored in the browser; normal editing does not upload page contents to the server.
 
-The Preview toolbar includes a persisted Sync scroll switch. Markdown headings anchor bidirectional scrolling between the editor and preview; pages without matching headings use proportional scrolling. HTML source pages synchronize with their isolated iframe through scroll-position messages. The light and dark themes provide separate default colors for preview content and visualizations while preserving colors explicitly set by a guide page.
+## Preview coverage
 
-## Run with Docker
+Markdown tables, code, footnotes, Mermaid mindmaps, charts, function graphs, file trees, tabs, annotations and media have browser previews. Relative image/font/audio/video assets are retained on import; HTML pages use an isolated frame.
+
+Item and fluid tags remain inline content. Registry-backed values, recipe data and interactive game scenes require the running game for full validation and rendering; offline placeholders do not establish whether a registry name exists.
+
+## Maintaining the reference
+
+Author references live in `../wiki/` and `public/reference/<language>/<region>/`. Keep matching Wiki and Web pages synchronized. Complete translations remain localized; pages with a localized overview and an English detailed reference identify that fallback explicitly.
+
+After adding or removing locale/reference files, run:
 
 ```powershell
-docker compose up --build -d
+npm run sync:locales
 ```
 
-The browser keeps project snapshots in IndexedDB and falls back to localStorage when IndexedDB is unavailable. The server does not receive document contents during normal editing.
-
-## Import behavior
-
-- A directory import reads UTF-8 text files and common image/font assets.
-- A ZIP import reads stored and deflate compressed entries without an external browser library.
-- Repository folders ignore build output, logs, `.git`, `.gradle`, and `node_modules` entries.
-- Common image, font, audio, and video assets are retained as UTF-8-safe data URLs.
-- HTML source pages are previewed in a sandboxed frame with local relative assets inlined when available.
-- Markdown pages keep runtime-only values visible as placeholders: scenes use a framed runtime surface, item and block tags remain inline content, and hidden IDs use a muted italic treatment.
-- Tables, CSV, code fences, footnotes, Mermaid mindmaps, charts, function graphs, file trees, tabs, floating images, annotations, and media tags are rendered in the browser preview.
-- Inline `<CsvTable>` bodies are supported in addition to page-relative CSV imports. HTML flow tags (`p`, `div`, `table`, lists, headings, and inline emphasis/code tags) are preserved in the Markdown preview.
-- Mermaid mindmaps support fixed viewports, explicit node positions, and `NodeContent` panels. Cartesian charts support horizontal bars, line overlays, and `PieInset` combinations.
-- Chart axes, units, labels, value labels, corner legends, hover targets, and function-graph sampling markers are rendered from the documented attributes.
-
-`ItemLink`, `ItemImage`, and `ItemIcon` are rendered as inline GuideNH content. `ItemLink` uses dotted underlining and does not become a button.
+This command updates locale and document indexes; it does not copy Wiki content. Bundled references are included in the Docker image.

@@ -21,11 +21,13 @@ import com.hfstudio.guidenh.guide.document.block.LytBlock;
 import com.hfstudio.guidenh.guide.document.block.LytParagraph;
 import com.hfstudio.guidenh.guide.document.block.recipes.LytStandardRecipeBox;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowInlineBlock;
+import com.hfstudio.guidenh.guide.internal.fluid.FluidStacks;
 import com.hfstudio.guidenh.guide.internal.host.EventType;
 import com.hfstudio.guidenh.guide.internal.host.LytEvent;
 import com.hfstudio.guidenh.guide.internal.host.LytScript;
 import com.hfstudio.guidenh.guide.internal.host.ScriptContext;
 import com.hfstudio.guidenh.guide.internal.host.ScriptType;
+import com.hfstudio.guidenh.guide.internal.recipe.FluidRecipeSlots;
 import com.hfstudio.guidenh.guide.internal.recipe.LytNeiRecipeBox;
 import com.hfstudio.guidenh.guide.internal.recipe.RecipeCache;
 import com.hfstudio.guidenh.guide.internal.recipe.RecipeLookup;
@@ -59,15 +61,24 @@ public class RecipeScript implements LytScript {
         RecipePlaceholder ph = LytFlowInlineBlock.unwrapPlaceholder(node, RecipePlaceholder.class);
         if (ph == null) return;
 
-        Item item = (Item) Item.itemRegistry.getObject(ph.ref.rawKey());
-        if (item == null) {
-            showFallback(ctx, ph, "Recipe item not found: " + ph.idStr);
-            return;
-        }
-        ItemStack targetStack = new ItemStack(item, 1, ph.ref.concreteMeta());
-        if (ph.ref.nbt() != null) {
-            targetStack.stackTagCompound = (NBTTagCompound) ph.ref.nbt()
+        ItemStack targetStack = null;
+        if (ph.fluid == null) {
+            if (ph.ref == null) return;
+            Item item = (Item) Item.itemRegistry.getObject(ph.ref.rawKey());
+            if (item == null) {
+                showFallback(ctx, ph, "Recipe item not found: " + ph.idStr);
+                return;
+            }
+            targetStack = new ItemStack(item, 1, ph.ref.concreteMeta());
+            if (ph.ref.nbt() != null) targetStack.stackTagCompound = (NBTTagCompound) ph.ref.nbt()
                 .copy();
+        } else {
+            try {
+                FluidStacks.resolve(ph.fluid);
+            } catch (IllegalArgumentException exception) {
+                showFallback(ctx, ph, exception.getMessage());
+                return;
+            }
         }
 
         boolean hasHandlerFilter = ph.handlerName != null || ph.handlerId != null
@@ -78,10 +89,12 @@ public class RecipeScript implements LytScript {
         boolean usageQuery = ph.usageQuery;
 
         // NEI handler path
-        List<Object> rawHandlers = usageQuery ? RecipeCache.getUsageHandlers(targetStack)
-            : RecipeCache.getCraftingHandlers(targetStack);
+        List<Object> rawHandlers = ph.fluid != null
+            ? usageQuery ? RecipeCache.getFluidUsageHandlers(ph.fluid) : RecipeCache.getFluidCraftingHandlers(ph.fluid)
+            : usageQuery ? RecipeCache.getUsageHandlers(targetStack) : RecipeCache.getCraftingHandlers(targetStack);
         if (!usageQuery && (ph.handlerId != null || ph.handlerName != null || !ph.handlerWhitelist.isEmpty())) {
-            List<Object> usage = RecipeCache.getUsageHandlers(targetStack);
+            List<Object> usage = ph.fluid != null ? RecipeCache.getFluidUsageHandlers(ph.fluid)
+                : RecipeCache.getUsageHandlers(targetStack);
             if (!usage.isEmpty()) {
                 if (rawHandlers.isEmpty()) {
                     rawHandlers = usage;
@@ -147,7 +160,7 @@ public class RecipeScript implements LytScript {
                 int num = GuideNhIntegrationRegistry.global()
                     .lookupRecipeHandlerRecipeCount(handler);
                 int recipeStart = Math.max(ph.recipeIndex, 0);
-                int recipeEnd = ph.recipeIndex >= 0 ? Math.min(num, ph.recipeIndex + 1) : num;
+                int recipeEnd = ph.recipeIndex >= 0 ? (int) Math.min(num, (long) ph.recipeIndex + 1) : num;
                 for (int ri = recipeStart; ri < recipeEnd && boxes.size() < limit; ri++) {
                     NeiRecipeLookup.Entry entry = new NeiRecipeLookup.Entry(
                         "",
@@ -155,13 +168,24 @@ public class RecipeScript implements LytScript {
                         recipeAccess.readIngredientSlots(handler, ri),
                         recipeAccess.readOtherSlots(handler, ri),
                         recipeAccess.readResultSlot(handler, ri));
-                    if (!usageQuery && !RecipeCompiler.handlerTargetMatches(
-                        entry,
-                        ph.ref,
-                        ph.handlerId != null || ph.handlerName != null || !ph.handlerWhitelist.isEmpty())) {
+                    if (ph.fluid == null && !usageQuery
+                        && !RecipeCompiler.handlerTargetMatches(
+                            entry,
+                            ph.ref,
+                            ph.handlerId != null || ph.handlerName != null || !ph.handlerWhitelist.isEmpty())) {
                         continue;
                     }
                     if (hasRecipeFilter && !RecipeCompiler.recipeMatches(entry, ph.inputExpr, ph.outputExpr)) continue;
+                    if ((ph.fluid != null || !ph.inputFluid.isEmpty() || !ph.outputFluid.isEmpty())
+                        && !FluidRecipeSlots.matches(
+                            handler,
+                            ri,
+                            ph.fluid == null ? null : ph.fluid.id(),
+                            usageQuery,
+                            ph.handlerId != null || ph.handlerName != null || !ph.handlerWhitelist.isEmpty(),
+                            ph.inputFluid,
+                            ph.outputFluid))
+                        continue;
                     if (!recipeFingerprints.add(NeiRecipeLookup.recipeFingerprint(handler, entry))) continue;
                     boxes.add(new LytNeiRecipeBox(handler, ri, !usageQuery));
                 }
@@ -195,6 +219,11 @@ public class RecipeScript implements LytScript {
             return;
         }
 
+        if (ph.fluid != null) {
+            showFallback(ctx, ph, "No fluid recipe found for " + ph.idStr);
+            return;
+        }
+
         // Integration recipe entries
         List<RecipeEntry> recipeEntries = usageQuery ? Collections.emptyList()
             : GuideNhIntegrationRegistry.global()
@@ -209,6 +238,9 @@ public class RecipeScript implements LytScript {
                 if (e.result() == null || e.ingredients()
                     .isEmpty()) continue;
                 if (hasRecipeFilter && !RecipeCompiler.entryMatches(e, ph.inputExpr, ph.outputExpr)) continue;
+                if (!FluidRecipeSlots
+                    .matches(e.ingredients(), List.of(), e.result(), null, false, false, ph.inputFluid, ph.outputFluid))
+                    continue;
                 List<ItemStack> flat = new ArrayList<>(9);
                 for (int s = 0; s < 9; s++) flat.add(null);
                 int idx = 0;
@@ -249,6 +281,7 @@ public class RecipeScript implements LytScript {
         for (int i = vanillaStart; i < vanillaEnd && boxes.size() < limit; i++) {
             var e = entries.get(i);
             if (hasRecipeFilter && !RecipeCompiler.vanillaEntryMatches(e, ph.inputExpr, ph.outputExpr)) continue;
+            if (!ph.inputFluid.matches(Set.of()) || !ph.outputFluid.matches(Set.of())) continue;
             var box = e.shapeless ? LytStandardRecipeBox.shapeless(RecipeLookup.asList(e), e.result)
                 : LytStandardRecipeBox.shaped3x3(RecipeLookup.asList(e), e.result);
             boxes.add(box);

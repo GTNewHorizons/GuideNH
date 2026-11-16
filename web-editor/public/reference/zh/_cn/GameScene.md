@@ -1,5 +1,3 @@
-[English](GameScene)
-
 # 游戏场景
 
 `<GameScene>` 是 GuideNH 的 3D 预览标签，`<Scene>` 是具有相同行为的别名。
@@ -29,7 +27,6 @@
 ## 方块统计框
 
 包含方块的场景默认会启用方块统计切换按钮。需要覆盖模式、位置、过滤器、可见性或尺寸时，再添加 `<BlockStats>` 子标签。
-列表只会在场景方块、思索时间线状态、StructureLib 选择或统计配置发生变化时重建；普通渲染帧会复用已经准备好的行数据。
 列表会受 `maxWidth` 和 `maxHeight` 限制；如果省略，它们取"固定的 `224` × `96` 像素"与"场景宽高的 40%"两者中较大的一个。内容过宽或过高时会出现可拖拽滚动条；鼠标在统计框上时滚轮会滚动列表，按住 Shift 可以横向滚动。
 
 自动模式会扫描场景中的非空气方块，并尽量解析成玩家通常看到的物品显示。一个坐标内包含多个可见组件的方块可以贡献多个物品，
@@ -189,7 +186,7 @@
 </GameScene>
 ````
 
-GregTech 控制器现在默认保持未成型，即使导入的多方块结构本身已经完整：
+GregTech 控制器默认保持未成型，即使导入的多方块结构本身已经完整：
 
 ````md
 <GameScene width="384" height="256" zoom={4} interactive={true}>
@@ -214,7 +211,7 @@ GregTech 控制器现在默认保持未成型，即使导入的多方块结构�
 </GameScene>
 ````
 
-纯方块搭出来的简单布局仍然完全兼容，后续如果替换成 GT 多方块控制器，也能沿用同一套场景检测逻辑：
+纯 `<Block>` 搭出来的简单布局仍然完全兼容，后续如果替换成 GT 多方块控制器，也能沿用同一套场景检测逻辑：
 
 ````md
 <GameScene zoom={4} interactive={true}>
@@ -265,6 +262,19 @@ GuideNH 当前注册了以下场景子标签：
 
 提供 `x`、`y`、`z` 时，音量会从投影后的场景坐标到点击点或场景中心进行屏幕空间衰减。
 `radius` 默认是场景较短边的 75%，`minVolume` 默认是 `0.15`。
+
+## `<InputAnnotation>` 流体目标
+
+InputAnnotation 可以指定 `item` 或 `fluid`，不能同时填写。流体目标可选填 `amount`（非负整数）和 `nbt`（SNBT），这两个参数要求同时提供 `fluid`。位置、inputType、modifier 与 StructureLib 可见条件沿用现有规则。
+
+```mdx
+<GameScene width="180" height="120">
+  <Block x="0" y="0" z="0" id="minecraft:stone" />
+  <InputAnnotation pos="0.5 1.5 0.5" inputType="rmb" fluid="water" amount={1000} />
+</GameScene>
+```
+
+注解只显示操作图标和流体信息，不会填充容器或改变场景世界。编辑、保存、重载和导出需要保留注册名、数量与 NBT。可放置的流体方块仍须在 Block / PlaceBlock 中使用真实方块 ID。
 
 ## `<BlockStats>` 和 `<BlockStat>`
 
@@ -399,7 +409,6 @@ GuideNH 当前注册了以下场景子标签：
 - 控制器匹配支持 GTNH 风格 `modid:block:meta`
 - 当场景里有多个 StructureLib 导入，而且其他标签需要只针对其中一个结构状态时，请显式提供 `name`
 - `facing`、`rotation` 与 `flip` 使用和 StructureLib 导出一致的朝向词汇；若请求的组合不被控制器允许，GuideNH 会自动回退到第一个有效对齐
-- GregTech 控制器预览默认朝向现在会相对旧预览方向绕 Y 轴旋转 180 度，也就是默认显示为旧朝向的背面
 - 若希望导入后的 GregTech 控制器保持未成型，请设置 `formed={false}`；这比故意提供残缺 NBT 更稳定
 
 示例：
@@ -455,8 +464,7 @@ StructureLib 默认值也可以写成子标签。这些默认值会成为场景�
 | `<GregTechActiveController />` | 仅 GregTech：尽可能使用机器激活状态的控制器贴图。 |
 | `<GregTechPlaceHatches />` | 仅 GregTech：为仅允许仓室的位置放置真实 GT 仓室；省略时仍会使用 GT survival preview，但空仓室位置默认回退为外壳。 |
 
-对 GregTech 控制器，GuideNH 现在会使用与导出命令一致的 StructureLib survival preview 路径。
-这可以修复普通 `construct()` 无法填充的仓室专用位置，同时默认保留外壳 fallback 行为。
+GregTech 结构预览默认在空仓室位置放置外壳。添加 `<GregTechPlaceHatches />` 可改为放置真实仓室。
 
 ````md
 <GameScene width="384" height="256" zoom={4} interactive={true}>
@@ -680,16 +688,6 @@ StructureLib 默认值也可以写成子标签。这些默认值会成为场景�
   <Entity id="player" x="1.5" y="2" sceneEntityId="rider" mount="horse" name="GuideNH" />
   <Entity id="player" x="3" y="1" sceneEntityId="rider" unmount={true} name="GuideNH" />
   <RemoveEntity sceneEntityId="horse" />
- </GameScene>
- ````
-
-婴儿实体示例：
-
-````md
-<GameScene zoom={4} interactive={true}>
-  <Block id="minecraft:grass" />
-  <Entity id="minecraft:sheep" y="1" baby={true} data="{Color:14}" />
-  <Entity id="minecraft:zombie" x="1.5" y="1" baby={true} />
 </GameScene>
 ````
 

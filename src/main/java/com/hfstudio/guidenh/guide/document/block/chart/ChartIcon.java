@@ -4,9 +4,14 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
+import net.minecraftforge.fluids.FluidStack;
 
+import com.hfstudio.guidenh.guide.internal.fluid.FluidIconRenderer;
+import com.hfstudio.guidenh.guide.internal.fluid.FluidStackSpec;
+import com.hfstudio.guidenh.guide.internal.fluid.FluidStacks;
 import com.hfstudio.guidenh.guide.internal.resource.GuideResourceAccess;
 import com.hfstudio.guidenh.guide.render.GuidePageTexture;
+import com.hfstudio.guidenh.guide.render.RenderContext;
 
 /**
  * Icon associated with a chart series/slice: either an {@link ItemStack} or a PNG resource.
@@ -22,6 +27,8 @@ public class ChartIcon {
     private int deferredMeta;
     private ResourceLocation deferredImageId;
     private boolean resolved;
+    private FluidStackSpec fluidSpec;
+    private FluidStack fluid;
 
     private ChartIcon(ItemStack stack, GuidePageTexture texture, ResourceLocation imageId) {
         this.stack = stack;
@@ -32,6 +39,27 @@ public class ChartIcon {
 
     public static ChartIcon ofItemStack(ItemStack stack) {
         return new ChartIcon(stack, null, null);
+    }
+
+    public static ChartIcon ofFluid(FluidStackSpec spec) {
+        ChartIcon icon = new ChartIcon(null, null, null);
+        icon.fluidSpec = spec;
+        icon.resolved = false;
+        return icon;
+    }
+
+    public FluidStackSpec getFluidSpec() {
+        return fluidSpec;
+    }
+
+    public boolean hasFluid() {
+        resolve();
+        return fluid != null;
+    }
+
+    public void renderFluid(RenderContext context, int x, int y, int size) {
+        resolve();
+        if (fluid != null) FluidIconRenderer.draw(context, fluid, x, y, size, false);
     }
 
     public static ChartIcon ofImage(ResourceLocation id, GuidePageTexture texture) {
@@ -56,6 +84,13 @@ public class ChartIcon {
     private void resolve() {
         if (resolved) return;
         resolved = true;
+        if (fluidSpec != null) {
+            try {
+                fluid = FluidStacks.resolve(fluidSpec);
+            } catch (IllegalArgumentException exception) {
+                fluid = null;
+            }
+        }
         if (deferredRawKey != null) {
             Item item = (Item) Item.itemRegistry.getObject(deferredRawKey);
             if (item != null) {

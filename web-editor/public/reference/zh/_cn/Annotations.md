@@ -1,5 +1,3 @@
-[English](Annotations)
-
 # 注解
 
 GuideNH 的场景注解是放在游戏场景（`<GameScene>` / `<Scene>`）内部的子标签。它们在世界空间中渲染，并且可以包含子 Markdown/标签内容，后者会成为富 tooltip。
@@ -21,6 +19,7 @@ GuideNH 的场景注解是放在游戏场景（`<GameScene>` / `<Scene>`）内�
 - `<DiamondAnnotation>`
 - `<OutlineAnnotation>`
 - `<TextAnnotation>`
+- `<InputAnnotation>`
 
 GuideNH 还支持 `<BlockAnnotationTemplate>`，它会把自己的子注解应用到当前场景里所有已经存在且匹配的方块上。
 
@@ -77,7 +76,7 @@ GuideNH 还支持 `<BlockAnnotationTemplate>`，它会把自己的子注解应�
 
 ````md
 <BlockAnnotation pos="2 0 2" color="#33DDEE" alwaysOnTop={true}>
-  高亮控制器方块。
+  Highlights the controller block.
 </BlockAnnotation>
 <BlockAnnotation pos="4 0 2" color="#80FFFFFF" colorMode="rainbow" colorPeriod="4.8" />
 ````
@@ -103,7 +102,7 @@ GuideNH 会在每个轴上自动交换反向提供的 min/max 坐标。
 
 ````md
 <BoxAnnotation min="0 1 0" max="1 1.6 0.6" color="#EE3333" thickness="0.04">
-  半高区域高亮。
+  Half-height area highlight.
 </BoxAnnotation>
 <BoxAnnotation min="2 0 0" max="4 1.5 0.5" color="#80FFFFFF" colorMode="rainbow" colorPeriod="2.4" />
 ````
@@ -133,7 +132,7 @@ GuideNH 会在每个轴上自动交换反向提供的 min/max 坐标。
 
 ````md
 <LineAnnotation from="0.5 1.2 0.5" to="2.5 1.2 2.5" color="#FFD24C" thickness="0.08">
-  信号路径。
+  Signal path.
 </LineAnnotation>
 ````
 
@@ -148,7 +147,7 @@ GuideNH 会在每个轴上自动交换反向提供的 min/max 坐标。
 >
   <LinePoint index="0" show color="#66CCFF" />
   <LinePoint index="1" show color="#FF8844" size="0.12" />
-  穿过弯折处的信号路径。
+  Signal path through a bend.
 </LineAnnotation>
 ````
 
@@ -297,6 +296,21 @@ GuideNH 会在每个轴上自动交换反向提供的 min/max 坐标。
 </DiamondAnnotation>
 ````
 
+## `<InputAnnotation>` 流体目标
+
+InputAnnotation 可以指定 `item` 或 `fluid`，不能同时填写。流体目标可选填 `amount`（非负整数）和 `nbt`（SNBT），这两个参数要求同时提供 `fluid`。位置、inputType、modifier 与 StructureLib 可见条件沿用现有规则。
+
+流体悬停信息包含名称、温度和气体/液体状态，加载 GregTech 时还会显示按 GT 设置生成的材料提示。显式数量遵循 L/mB 单位设置。ExportSite 的输入标注保留相同文字作为浏览器悬停提示，并保留格式化后的数量。
+
+```mdx
+<GameScene width="180" height="120">
+  <Block x="0" y="0" z="0" id="minecraft:stone" />
+  <InputAnnotation pos="0.5 1.5 0.5" inputType="rmb" fluid="water" amount={1000} />
+</GameScene>
+```
+
+注解只显示操作图标和流体信息，不会填充容器或改变场景世界。编辑、保存、重载和导出需要保留注册名、数量与 NBT。可放置的流体方块仍须在 Block / PlaceBlock 中使用真实方块 ID。
+
 ## `<BlockAnnotationTemplate>`
 
 当你希望把同一种注解盖到所有匹配方块上时使用它。
@@ -318,7 +332,7 @@ GuideNH 会在每个轴上自动交换反向提供的 min/max 坐标。
   <ImportStructure src="/assets/example_structure.snbt" />
   <BlockAnnotationTemplate id="minecraft:log">
     <DiamondAnnotation pos="0.5 0.5 0.5" color="#ff0000">
-      模板生成的工具提示
+      Template-generated tooltip
     </DiamondAnnotation>
   </BlockAnnotationTemplate>
 </GameScene>

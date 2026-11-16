@@ -1,73 +1,71 @@
 # Зображення та ресурси
 
-Ця документація описує синтаксис і функції виконання GuideNH. Код, теги, шляхи, ідентифікатори та значення атрибутів збережено без змін.
+Докладний довідник на цій сторінці доступний англійською. Назви тегів, атрибути, ідентифікатори та шляхи потрібно використовувати без перекладу.
 
+GuideNH supports both normal markdown images and several runtime-specific visual elements.
 
-GuideNH підтримує both normal Markdown зображення і several виконання-певний visual elements.
+## Asset Resolution Rules
 
-## ресурс Resolution Правила
+Guide assets resolve with the same rules used by page links.
 
-посібник ресурси розв’язати з  той самий Правила використовується by сторінка links.
-
-| шлях form | Приклад | Значення |
+| Path form | Example | Meaning |
 | --- | --- | --- |
-| відносний | `test1.png` | відносний до  поточний сторінка файл |
-| rooted | `/assets/example_structure.snbt` | відносний до  поточний посібник корінь |
-| явний ресурс id | `guidenh:textures/gui/example.png` | абсолютний `modid:path` lookup |
+| relative | `test1.png` | relative to the current page file |
+| rooted | `/assets/example_structure.snbt` | relative to the current guide root |
+| explicit resource id | `guidenh:textures/gui/example.png` | absolute `modid:path` lookup |
 
-## Markdown зображення
+## Markdown Images
 
-Normal Markdown зображення є Підтримувані:
+Normal markdown images are supported:
 
 ````md
 ![Example](test1.png)
 ````
 
-GuideNH resolves  шлях і завантажує  binary ресурс з  посібник вміст корінь.
+GuideNH resolves the path and loads the binary asset from the guide content root.
 
 ## `FloatingImage`
 
-За `wrap="inline"` зображення вирівнюється по вертикальному центру навколишнього тексту, а висота рядка збільшується, щоб умістити зображення повністю. Сусідні рядки тексту зберігають звичайну висоту; фіксованого обмеження висоти рядка немає. Якщо дуже високе зображення має займати окремий рядок, розмістіть тег в окремому абзаці з порожнім рядком перед ним і після нього.
+With `wrap="inline"`, the image is vertically centered with the surrounding text and its line expands to contain the full image. Adjacent text lines keep their normal height; there is no fixed line-height cap. For a very tall image that should occupy its own line, place the tag in a separate paragraph with blank lines before and after it.
 
-`<FloatingImage>` renders cropped bitmap region який може число з плаваючою комою з текст або sit truly inline усередині a
-paragraph. It також accepts явний `modid:path` texture ids, so it може reference texture ресурси з
+`<FloatingImage>` renders a cropped bitmap region that can float with text or sit truly inline inside a
+paragraph. It also accepts explicit `modid:path` texture ids, so it can reference texture assets from
 other mods directly.
 
-### атрибути
+### Attributes
 
-| Атрибут | Обов’язково | Значення |
+| Attribute | Required | Meaning |
 | --- | --- | --- |
-| `src` | yes | зображення шлях |
-| `x` | під час обрізання | crop початок X in source-зображення пікселі |
-| `y` | під час обрізання | crop початок Y in source-зображення пікселі |
-| `width` / `w` | під час обрізання | crop ширина in source-зображення пікселі; exactly один spelling має be використовується |
-| `height` / `h` | під час обрізання | crop висота in source-зображення пікселі; exactly один spelling має be використовується |
-| `scaleX` | no | horizontal відображати multiplier, Типове `1.0` |
-| `scaleY` | no | vertical відображати multiplier, Типове `1.0` |
-| `displayWidth` | no | кінцевий відображати ширина in пікселі; preserves  crop aspect ratio коли використовується alone |
-| `displayHeight` | no | кінцевий відображати висота in пікселі; preserves  crop aspect ratio коли використовується alone |
-| `wrap` | no | `inline` розміщує зображення в рядку; інакше `align` вибирає бік обтікання |
-| `align` | no | `left` або `right` для floating placement; ignored коли `wrap="inline"` |
-| `title` | no | підказка/заголовок текст |
-| `alt` | no | Альтернативний текст |
-| `sound` | no | sound event played by  whole зображення |
-| `soundSrc` | no | sound шлях до файлу для  whole зображення |
-| `trigger` | no | `click` by Типове, або `hover` для наведення playback |
+| `src` | yes | image path |
+| `x` | when cropping | crop start X in source-image pixels |
+| `y` | when cropping | crop start Y in source-image pixels |
+| `width` / `w` | when cropping | crop width in source-image pixels; exactly one spelling must be used |
+| `height` / `h` | when cropping | crop height in source-image pixels; exactly one spelling must be used |
+| `scaleX` | no | horizontal display multiplier, default `1.0` |
+| `scaleY` | no | vertical display multiplier, default `1.0` |
+| `displayWidth` | no | final display width in pixels; preserves the crop aspect ratio when used alone |
+| `displayHeight` | no | final display height in pixels; preserves the crop aspect ratio when used alone |
+| `wrap` | no | `inline` places the image on the text line; otherwise `align` chooses the floating side |
+| `align` | no | `left` or `right` for floating placement; ignored when `wrap="inline"` |
+| `title` | no | tooltip/title text |
+| `alt` | no | Alternative text |
+| `sound` | no | sound event played by the whole image |
+| `soundSrc` | no | sound file path for the whole image |
+| `trigger` | no | `click` by default, or `hover` for hover playback |
 
-### Примітки
+### Notes
 
-- `x`, `y`, `width` / `w`, і `height` / `h` є усі Обов’язково together коли cropping
-- коли  crop атрибути є усі пропущений, `displayWidth` або `displayHeight` displays  full source зображення
-- `width` і `height` задають розмір обрізання джерела. Для розміру показу використовуйте `displayWidth` / `displayHeight` або масштаб.
-- `scaleX` і `scaleY` обчислювати  кінцевий відображати розмір as `cropWidth * scaleX` by `cropHeight * scaleY`
-- `displayWidth` або `displayHeight` sets  кінцевий відображати розмір in пікселі; коли лише один is present,  other dimension is обчислений з  crop aspect ratio
-- providing both `displayWidth` і `displayHeight` дозволяє intentional non-proportional stretching
-- `displayWidth` / `displayHeight` не може be combined з `scaleX` / `scaleY`
-- один-вісь stretching is Підтримувані by setting лише один scale differently
-- `width` з `w`, або `height` з `h`, is недійсний і renders a видимий помилка
-- `src` може be відносний, rooted, або явний `modid:path` texture id наприклад `minecraft:textures/gui/options_background.png`
+- `x`, `y`, `width` / `w`, and `height` / `h` are all required together when cropping
+- when the crop attributes are all omitted, `displayWidth` or `displayHeight` displays the full source image
+- `width` and `height` specify the source crop size. Use `displayWidth` / `displayHeight` or scale multipliers for the displayed size.
+- `scaleX` and `scaleY` calculate the final display size as `cropWidth * scaleX` by `cropHeight * scaleY`
+- `displayWidth` or `displayHeight` sets the final display size in pixels; when only one is present, the other dimension is calculated from the crop aspect ratio
+- providing both `displayWidth` and `displayHeight` allows intentional non-proportional stretching
+- `displayWidth` / `displayHeight` cannot be combined with `scaleX` / `scaleY`
+- single-axis stretching is supported by setting only one scale differently
+- `width` with `w`, or `height` with `h`, is invalid and renders a visible error
 
-### Приклад
+### Example
 
 ````md
 <FloatingImage
@@ -85,58 +83,58 @@ other mods directly.
 
 ## `ImageAnnotation`
 
-`<ImageAnnotation>` is a дочірній елемент element of `<FloatingImage>` який attaches розширений-текст підказка (і
-an необов’язковий colored межа) до rectangular region of  зображення. координати є specified in
-**cropped-зображення пікселі** і є автоматично proportionally scaled коли  cropped зображення is resized
-або stretched.
+`<ImageAnnotation>` is a child element of `<FloatingImage>` that attaches a rich-text tooltip (and
+an optional colored border) to a rectangular region of the image. Coordinates are specified in
+**cropped-image pixels** and are automatically proportionally scaled when the cropped image is resized
+or stretched.
 
-### атрибути
+### Attributes
 
-| Атрибут | Обов’язково | Типове | Значення |
+| Attribute | Required | Default | Meaning |
 | --- | --- | --- | --- |
-| `x` | no | — | ліворуч край of  region in зображення пікселі |
-| `y` | no | — | угорі край of  region in зображення пікселі |
-| `w` | no | — | ширина of  region in зображення пікселі |
-| `h` | no | — | висота of  region in зображення пікселі |
-| `border` | no | `false` | показувати colored межа around  region |
-| `borderColor` | no | random | межа колір (`#RRGGBB` або `#AARRGGBB`) |
-| `borderThickness` | no | `1` | межа thickness in відображати пікселі |
-| `sound` | no | none | необов’язковий sound event played для Цей region |
-| `src` | no | none | необов’язковий sound шлях до файлу; converted до sound event id |
-| `trigger` | no | `click` | `click` або `hover` |
+| `x` | no | — | left edge of the region in image pixels |
+| `y` | no | — | top edge of the region in image pixels |
+| `w` | no | — | width of the region in image pixels |
+| `h` | no | — | height of the region in image pixels |
+| `border` | no | `false` | show a colored border around the region |
+| `borderColor` | no | random | border color (`#RRGGBB` or `#AARRGGBB`) |
+| `borderThickness` | no | `1` | border thickness in display pixels |
+| `sound` | no | none | optional sound event played for this region |
+| `src` | no | none | optional sound file path; converted to a sound event id |
+| `trigger` | no | `click` | `click` or `hover` |
 
-### Примітки
+### Notes
 
-- omitting усі four of `x`, `y`, `w`, `h` makes  анотація cover  **whole зображення**
-- Якщо any of  four is present,  remaining пропущений ones Типове до `0` (origin) або `1` (розмір)
-- межа is **не показано by Типове**; Додайте `border` або `border={true}` до enable it
-- коли `borderColor` is пропущений і `border` is увімкнено, random fully-opaque колір is використовується
-- дочірній елемент MDX вміст is відтворений as  підказка body і може включати any inline/блок elements
-- later Анотації (lower in  список) take наведення priority over earlier ones коли regions overlap
+- omitting all four of `x`, `y`, `w`, `h` makes the annotation cover the **whole image**
+- if any of the four is present, the remaining omitted ones default to `0` (origin) or `1` (size)
+- border is **not shown by default**; add `border` or `border={true}` to enable it
+- when `borderColor` is omitted and `border` is enabled, a random fully-opaque color is used
+- child MDX content is rendered as the tooltip body and may include any inline/block elements
+- later annotations (lower in the list) take hover priority over earlier ones when regions overlap
 
-### Приклад
+### Example
 
-Whole-зображення анотація:
+Whole-image annotation:
 
 ````md
 <FloatingImage displayWidth="128" displayHeight="128" src="test1.png" align="left" x="0" y="0" width="32" height="32">
   <ImageAnnotation>
-    Наведіть курсор на зображення, щоб побачити цю підказку.
+    Hover anywhere on the image to see this tooltip.
   </ImageAnnotation>
 </FloatingImage>
 ````
 
-Region анотація з a видимий межа:
+Region annotation with a visible border:
 
 ````md
 <FloatingImage displayWidth="128" displayHeight="128" src="test1.png" align="left" x="0" y="0" width="32" height="32">
   <ImageAnnotation x="2" y="2" w="15" h="10" border borderColor="#FFFF4444" borderThickness="2">
-    Це підказка для **підсвіченої області**.
+    This is the **highlighted region** tooltip.
   </ImageAnnotation>
 </FloatingImage>
 ````
 
-кілька regions on один зображення:
+Multiple regions on one image:
 
 ````md
 <FloatingImage displayWidth="128" displayHeight="128" src="test1.png" align="left" x="0" y="0" width="32" height="32">
@@ -149,8 +147,8 @@ Region анотація з a видимий межа:
 </FloatingImage>
 ````
 
-зображення regions може також play sounds. використовувати `<SoundArea>` коли you лише need sound, або put `sound`
-directly on `<ImageAnnotation>` коли  той самий region також має a підказка або межа.
+Image regions can also play sounds. Use `<SoundArea>` when you only need sound, or put `sound`
+directly on `<ImageAnnotation>` when the same region also has a tooltip or border.
 
 ````md
 <FloatingImage
@@ -165,25 +163,25 @@ directly on `<ImageAnnotation>` коли  той самий region також м
   <SoundArea x="0" y="0" w="16" h="32" sound="guidenh:guide.sample_left" />
   <SoundArea x="16" y="0" w="16" h="32" sound="guidenh:guide.sample_hover" trigger="hover" />
   <ImageAnnotation x="2" y="2" w="10" h="10" border sound="guidenh:guide.sample_click">
-    Ця область має текст підказки та звук натискання.
+    This region has both tooltip content and a click sound.
   </ImageAnnotation>
 </FloatingImage>
 ````
 
-`<FloatingImage sound="...">` covers  whole зображення. Region sounds використовувати cropped-зображення координати
-і obey  той самий overlap priority as tooltips: later regions win.
+`<FloatingImage sound="...">` covers the whole image. Region sounds use cropped-image coordinates
+and obey the same overlap priority as tooltips: later regions win.
 
-## Вбудовування вмісту та перенесення тексту
+## Content Embedding and Text Wrapping
 
-Блокові теги на основі `BlockTagCompiler`, зокрема `<Recipe>`, `<GameScene>` та `<BlockImage>`, приймають `wrap` і `align`.
+Block tags compiled by `BlockTagCompiler`, including `<Recipe>`, `<GameScene>`, and `<BlockImage>`, accept `wrap` and `align`.
 
-`<FloatingImage>` має власні правила: `wrap="inline"` розміщує зображення в рядку; інакше `align="left"` або `"right"` вибирає бік обтікання. `<ItemImage>` — вбудована піктограма; для вирівнювання використовуйте `<Column>` або `<Row>`.
+`<FloatingImage>` follows its own rules: `wrap="inline"` places it on the text line; otherwise `align="left"` or `"right"` floats it. `<ItemImage>` is an inline icon; place it in a `<Column>` or `<Row>` to control layout.
 
-| Атрибут | Типово | Значення |
+| Attribute | Default | Meaning |
 | --- | --- | --- |
-| `wrap` | `inline` | `inline`: звичайне розміщення. `square`, `tight`, `through`: обтікання ліворуч або праворуч. `top-bottom`, `behind`, `front`: наразі звичайне вирівняне розміщення без окремих шарів тексту. |
-| `align` | `left` | `left`, `center` або `right` у блоковому контексті. При обтіканні `right` вибирає правий бік, інші значення — лівий. Центрування: `wrap="inline" align="center"`. |
-| `float` | — | Застарілі `left` / `right` у тексті за відсутності `wrap` та `align`. Рекомендовано явні атрибути. |
+| `wrap` | `inline` | `inline`: normal placement. `square`, `tight`, and `through`: float left or right. `top-bottom`, `behind`, and `front` currently use normal aligned placement; they do not create separate text layers. |
+| `align` | `left` | `left`, `center`, or `right` in block context. With a floating wrap mode, `right` floats right; other values float left. For a centered block, use `wrap="inline" align="center"`. |
+| `float` | — | Legacy `left` / `right` in flow context when `wrap` and `align` are absent. Prefer those explicit attributes. |
 
 ```mdx
 <BlockImage id="minecraft:stone" wrap="square" align="right" />
@@ -195,9 +193,9 @@ directly on `<ImageAnnotation>` коли  той самий region також м
 </Column>
 ```
 
-## Навігація Texture Icons
+## Navigation Texture Icons
 
-frontmatter може використовувати `icon_texture` до показувати texture замість цього of an предмет in Навігація/пошук:
+Frontmatter can use `icon_texture` to show a texture instead of an item in navigation/search:
 
 ```yaml
 navigation:
@@ -205,40 +203,40 @@ navigation:
   icon_texture: test1.png
 ```
 
- файл має decode as an зображення.  шлях is розв’язаний like any other посібник ресурс шлях.
+The file must decode as an image. The path is resolved like any other guide asset path.
 
-## Non-зображення ресурси
+## Non-Image Assets
 
-GuideNH сторінки може також reference non-зображення виконання ресурси, especially структура files, для Приклад:
+GuideNH pages may also reference non-image runtime assets, especially structure files, for example:
 
 ````md
 <ImportStructure src="/assets/example_structure.snbt" />
 ````
 
-Ці ресурси є завантажений through  той самий посібник ресурс pipeline but є consumed by власний теги rather ніж відтворений directly as зображення.
+These assets are loaded through the same guide asset pipeline but are consumed by custom tags rather than rendered directly as images.
 
 ## Best Practices
 
-- Збережіть сторінка-локальний зображення near  сторінка який використовує їх
-- Збережіть reusable files under  посібник корінь `assets/` папка
-- prefer rooted `/assets/...` paths для shared files referenced by кілька сторінки
-- використовувати texture icons лише для real зображення ресурси
+- keep page-local images near the page that uses them
+- keep reusable files under the guide root `assets/` folder
+- prefer rooted `/assets/...` paths for shared files referenced by multiple pages
+- use texture icons only for real image assets
 
 ## `BlockImage`
 
-`<BlockImage>` показує розміщений блок як прозорий 3D-перегляд і підтримує наведені вище атрибути вирівнювання та обтікання.
+`<BlockImage>` renders a placed block as a transparent 3D preview. It supports the block layout attributes above, including horizontal alignment and floating text wrap.
 
-ключ поведінка:
+Key behavior:
 
-- прозорий тло і межа
-- no сцена buttons, no layer slider, no анотація authoring surface
-- наведення досі shows  вибраний блок outline і підказка
-- `scale` зміни камера масштаб і типові до `4`
-- `perspective` accepts `isometric-north-east`, `isometric-north-west`, і `up`
-- `nbt` supplies блок-сутність SNBT; inline `id="mod:block:meta:{...}"` SNBT досі works, but 
-  standalone `nbt` Атрибут is easier до читати і is бажаний
+- transparent background and border
+- no scene buttons, no layer slider, no annotation authoring surface
+- hover still shows the selected block outline and tooltip
+- `scale` changes camera zoom and defaults to `4`
+- `perspective` accepts `isometric-north-east`, `isometric-north-west`, and `up`
+- `nbt` supplies tile-entity SNBT; inline `id="mod:block:meta:{...}"` SNBT still works, but the
+  standalone `nbt` attribute is easier to read and is preferred
 
-Приклад:
+Example:
 
 ````md
 <BlockImage id="minecraft:stone" />
@@ -250,12 +248,12 @@ GuideNH сторінки може також reference non-зображення 
 />
 ````
 
-## виконання Приклад Files
+## Runtime Example Files
 
 - `wiki/resourcepack/assets/guidenh/guidenh/_en_us/test1.png`
 - `wiki/resourcepack/assets/guidenh/guidenh/assets/example_structure.snbt`
 
-## Пов’язані сторінки
+## Related Pages
 
 - [Guide Page Format](Guide-Page-Format)
 - [Tags Reference](Tags-Reference)

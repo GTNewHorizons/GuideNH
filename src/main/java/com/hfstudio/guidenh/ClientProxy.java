@@ -24,6 +24,7 @@ import com.hfstudio.guidenh.guide.internal.GuideME;
 import com.hfstudio.guidenh.guide.internal.GuideOnStartup;
 import com.hfstudio.guidenh.guide.internal.GuideReloadListener;
 import com.hfstudio.guidenh.guide.internal.compile.CompileWorker;
+import com.hfstudio.guidenh.guide.internal.fluid.FluidCatalog;
 import com.hfstudio.guidenh.guide.internal.host.LytHost;
 import com.hfstudio.guidenh.guide.internal.host.LytHostWorkItem;
 import com.hfstudio.guidenh.guide.internal.host.scripts.BlockImageScript;
@@ -31,6 +32,8 @@ import com.hfstudio.guidenh.guide.internal.host.scripts.CategoryScript;
 import com.hfstudio.guidenh.guide.internal.host.scripts.CommandLinkScript;
 import com.hfstudio.guidenh.guide.internal.host.scripts.CsvTableScript;
 import com.hfstudio.guidenh.guide.internal.host.scripts.FloatingImageScript;
+import com.hfstudio.guidenh.guide.internal.host.scripts.FluidImageScript;
+import com.hfstudio.guidenh.guide.internal.host.scripts.FluidLinkScript;
 import com.hfstudio.guidenh.guide.internal.host.scripts.ImageScript;
 import com.hfstudio.guidenh.guide.internal.host.scripts.ItemGridScript;
 import com.hfstudio.guidenh.guide.internal.host.scripts.ItemImageScript;
@@ -121,6 +124,8 @@ public class ClientProxy extends CommonProxy {
         ((IReloadableResourceManager) Minecraft.getMinecraft()
             .getResourceManager()).registerReloadListener(new GuideReloadListener());
         DefaultGuideResourcePackManager.init();
+        ((IReloadableResourceManager) Minecraft.getMinecraft()
+            .getResourceManager()).registerReloadListener(FluidCatalog.INSTANCE);
         ClientCommandHandler.instance.registerCommand(new GuideNhClientCommand());
         StructureExportBootstrap.registerClientCommands();
         GuideNhClientBridgeController.init();
@@ -154,6 +159,8 @@ public class ClientProxy extends CommonProxy {
         lytHost.registerScript("ItemGrid", new ItemGridScript());
         lytHost.registerScript("ItemImage", new ItemImageScript());
         lytHost.registerScript("ItemLink", new ItemLinkScript());
+        lytHost.registerScript("FluidImage", new FluidImageScript());
+        lytHost.registerScript("FluidLink", new FluidLinkScript());
         lytHost.registerScript("Category", new CategoryScript());
         lytHost.registerScript("Special", new SpecialScript());
         lytHost.registerScript("BlockImage", new BlockImageScript());

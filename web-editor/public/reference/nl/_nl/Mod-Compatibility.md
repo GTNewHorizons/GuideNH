@@ -1,25 +1,24 @@
 # Modcompatibiliteit
 
-Deze documentatie beschrijft de GuideNH-syntaxis en runtimefuncties. Code, tags, paden, ID's en attribuutwaarden blijven ongewijzigd.
+De uitgebreide naslag op deze pagina is beschikbaar in het Engels. Namen van tags, attributen, ID’s en paden worden zonder vertaling gebruikt.
 
-
-GuideNH ships met conditional integrations voor geselecteerd mods. elke integration is alleen activated wanneer its target mod is loaded; wanneer De target is absent, De related tags, indices en key bindings stay inert en De rest of De gids keeps working.
+GuideNH ships with conditional integrations for selected mods. Each integration is only activated when its target mod is loaded; when the target is absent, the related tags, indices and key bindings stay inert and the rest of the guide keeps working.
 
 ## StructureLib
 
-wanneer StructureLib is loaded, GuideNH kan import multiblock previews into `<GameScene>` met `<ImportStructureLib>`. De client command `/exportStructure structureLib` kan ook export those previews as PNG documentation screenshots. See [Structure Export](Structure-Export) voor De full command reference, StructureLib-specific opties, en De related `gameScene` export modus.
+When StructureLib is loaded, GuideNH can import multiblock previews into `<GameScene>` with `<ImportStructureLib>`. The client command `/exportStructure structureLib` can also export those previews as PNG documentation screenshots. See [Structure Export](Structure-Export) for the full command reference, StructureLib-specific options, and the related `gameScene` export mode.
 
 ## BetterQuesting
 
-wanneer [BetterQuesting](https://github.com/GTNewHorizons/BetterQuesting) is loaded, GuideNH unlocks three features:
+When [BetterQuesting](https://github.com/GTNewHorizons/BetterQuesting) is loaded, GuideNH unlocks three features:
 
-1. De `quest_ids` pagina-frontmatter key starts indexing pages by BetterQuesting quest id.
-2. Two new tags become available: `<QuestLink>` (inline) en `<QuestCard>` (blok).
-3. De standard "open gids" hotkey works terwijl hovering Een quest in De BetterQuesting GUI: holding De key looks up De hovered quest id en navigates naar De matching gids­pagina.
+1. The `quest_ids` page-frontmatter key starts indexing pages by BetterQuesting quest id.
+2. Two new tags become available: `<QuestLink>` (inline) and `<QuestCard>` (block).
+3. The standard "open guide" hotkey works while hovering a quest in the BetterQuesting GUI: holding the key looks up the hovered quest id and navigates to the matching guide page.
 
 ### Indexing pages by quest id
 
-Voeg toe a `quest_ids` lijst naar De frontmatter of any gids­pagina you want associated met one of more quests:
+Add a `quest_ids` list to the frontmatter of any guide page you want associated with one or more quests:
 
 ```yaml
 ---
@@ -31,128 +30,90 @@ quest_ids:
 ---
 ```
 
-De waarden kan be canonical UUID strings of BetterQuesting compact Base64 quest ids. Malformed of empty entries are skipped met Een warning in De log.
+The values may be canonical UUID strings or BetterQuesting compact Base64 quest ids. Malformed or empty entries are skipped with a warning in the log.
 
-Compact ids are decoded first, then GuideNH falls back naar canonical UUID parsing. Deze matches BetterQuesting's compact quest-id format such as `AAAAAAAAAAAAAAAAAAAMug==`.
+Compact ids are decoded first, then GuideNH falls back to canonical UUID parsing. This matches BetterQuesting's compact quest-id format such as `AAAAAAAAAAAAAAAAAAAMug==`.
 
-Do niet lijst both encodings voor De zelfde quest in one pagina's `quest_ids`; they normalize naar De zelfde internal UUID en would be treated as duplicates.
+Do not list both encodings for the same quest in one page's `quest_ids`; they normalize to the same internal UUID and would be treated as duplicates.
 
-wanneer Een quest id is indexed by Een pagina, both `<QuestLink>` en `<QuestCard>` zal route De klikken naar that gids­pagina instead of opening De BetterQuesting quest GUI directly.
+When a quest id is indexed by a page, both `<QuestLink>` and `<QuestCard>` will route the click to that guide page instead of opening the BetterQuesting quest GUI directly.
 
-### Linking van BetterQuesting descriptions naar GuideNH pages
+### Linking from BetterQuesting descriptions to GuideNH pages
 
-BetterQuesting quest descriptions kan link back into GuideNH met a `[guide]` tag. De tag is parsed by GuideNH alleen wanneer BetterQuesting is loaded, en then gerenderd through BetterQuesting's native hyperlink-aware tekst box, so BQ word wrapping, scrolling en klikken hit boxes stay compatible.
+BetterQuesting quest descriptions can link back into GuideNH with a `[guide]` tag. The tag is parsed by GuideNH only when BetterQuesting is loaded, and then rendered through BetterQuesting's native hyperlink-aware text box, so BQ word wrapping, scrolling and click hit boxes stay compatible.
 
-gebruiken De pagina-ID as De target:
+Use the page id as the target:
 
 ```text
 [guide]guidenh:navigation-guide[/guide]
 ```
 
-Als De target pagina exists, De zichtbaar link tekst is vervangen met that gids­pagina's title. De `.md` suffix is optioneel, so `guidenh:navigation-guide` en `guidenh:navigation-guide.md` punt naar De zelfde pagina wanneer De Markdown pagina exists.
+If the target page exists, the visible link text is replaced with that guide page's title. The `.md` suffix is optional, so `guidenh:navigation-guide` and `guidenh:navigation-guide.md` point to the same page when the markdown page exists.
 
-gebruiken `page=` wanneer you want aangepaste zichtbaar tekst:
+Use `page=` when you want custom visible text:
 
 ```text
 [guide page=guidenh:navigation-guide]Open the navigation guide[/guide]
 ```
 
-De link is getoond in BetterQuesting's normal hyperlink kleur met underline styling, shows Een GuideNH tooltip on zweven, en opens De target GuideNH pagina wanneer clicked. pagina anchors are ook supported:
+The link is shown in BetterQuesting's normal hyperlink color with underline styling, shows a GuideNH tooltip on hover, and opens the target GuideNH page when clicked. Page anchors are also supported:
 
 ```text
 [guide page=guidenh:navigation-guide#navigation-fields]Navigation fields[/guide]
 ```
 
-### `<QuestLink>` en `<QuestCard>`
+### `<QuestLink>` and `<QuestCard>`
 
-Both tags accept Een BetterQuesting quest id via `id` en decide their appearance van De player's progress at compile time:
+Both tags accept a BetterQuesting quest id via `id` and decide their appearance from the player's progress at compile time:
 
-| status | Source | Rendering |
+| State | Source | Rendering |
 | --- | --- | --- |
-| zichtbaar | quest is unlocked but niet completed | clickable link, Standaard style |
-| Completed | `quest.isComplete(player)` geeft terug true | clickable link, green kleur, trailing `✓` |
-| Locked | quest exists but is niet unlocked, zichtbaarheid ≠ verborgen/SECRET | italic gray placeholder, niet clickable |
-| verborgen | locked plus zichtbaarheid is verborgen of SECRET | italic dark-gray placeholder, no quest details leaked |
-| Missing | quest id doet niet oplossen naar any quest in De database | italic red placeholder |
+| Visible | quest is unlocked but not completed | clickable link, default style |
+| Completed | quest is completed | clickable link, green color, trailing `✓` |
+| Locked | quest exists but is not unlocked, visibility ≠ HIDDEN/SECRET | clickable quest link or card title |
+| Hidden | locked plus visibility is HIDDEN or SECRET | italic dark-gray placeholder, no quest details leaked |
+| Missing | quest id does not resolve to any quest in the database | italic red placeholder |
 
-Locked but non-verborgen quests are ook clickable. They gebruiken De zelfde Navigatie target Regels as zichtbaar en completed quests.
+Locked but non-hidden quests are also clickable. They use the same navigation target rules as visible and completed quests.
 
-voor zichtbaar / completed / locked quests, De klikken target is:
+For visible / completed / locked quests, the click target is:
 
-- De indexed gids­pagina Als De quest id is present in some pagina's `quest_ids`
-- otherwise BetterQuesting's quest-book quest scherm, using BetterQuesting's native bovenliggend-scherm flow
+- the indexed guide page if the quest id is present in some page's `quest_ids`
+- otherwise BetterQuesting's quest-book quest screen, using BetterQuesting's native parent-screen flow
 
-See [Tags Reference](Tags-Reference#questlink) voor Attribuut tabellen en inline Voorbeelden.
+See [Tags Reference](Tags-Reference#questlink) for attribute tables and inline examples.
 
-### verborgen-quest handling
+### Hidden-quest handling
 
-GuideNH never renders De title of description of Een quest whose zichtbaarheid is `HIDDEN` of `SECRET` terwijl De quest is still locked voor De player. De placeholder tekst is taken van Een vertaalsleutel so packs kan localize De wording:
+GuideNH never renders the title or description of a quest whose visibility is `HIDDEN` or `SECRET` while the quest is still locked for the player. The placeholder text is taken from a translation key so packs can localize the wording:
 
-| vertaalsleutel | Standaard (en_US) |
+| Translation key | Default (en_US) |
 | --- | --- |
 | `guidenh.compat.bq.locked` | `Locked Quest` |
 | `guidenh.compat.bq.hidden` | `Hidden Quest` |
 | `guidenh.compat.bq.missing` | `Unknown Quest` |
 | `guidenh.compat.bq.open_in_guide` | `Open in Guide` |
 
-Locked quests kan still tonen their description as Een zweven tooltip on `<QuestLink>` en on De clickable title binnen `<QuestCard>`, because BetterQuesting itself reveals De description on locked quest tooltips. Stel in `show_tooltip="false"` (of `showTooltip={false}`) naar suppress that tooltip. verborgen quests do niet expose any tooltip.
+Locked quests can still show their description as a hover tooltip on `<QuestLink>` and on the clickable title inside `<QuestCard>`, because BetterQuesting itself reveals the description on locked quest tooltips. Set `show_tooltip="false"` (or `showTooltip={false}`) to suppress that tooltip. Hidden quests do not expose any tooltip.
 
-> [!Opmerking]
-> Quest status is opgelost at pagina-compile time using De lokale player's progress. De compiled pagina is cached per gids; reopening De gids na completing of unlocking Een quest re-evaluates De status.
+> [!NOTE]
+> Reopen the guide after completing or unlocking a quest to refresh its displayed state.
 
-### Open-gids hotkey integration
+### Open-guide hotkey integration
 
-De Standaard open-gids hotkey (`G`, configurable under `key.guidenh.open_guide`) gains Een second activation pad wanneer BetterQuesting is loaded. terwijl De BetterQuesting quest-regel GUI is open:
+The default open-guide hotkey (`G`, configurable under `key.guidenh.open_guide`) gains a second activation path when BetterQuesting is loaded. While the BetterQuesting quest-line GUI is open:
 
-1. zweven over any quest button in De BQ panel
-2. Hold De open-gids hotkey
+1. Hover over any quest button in the BQ panel
+2. Hold the open-guide hotkey
 
-Als any registered gids indexes that quest id through `quest_ids`, GuideNH zal navigate naar De matching pagina (of open De gids Als it's niet al open). Als no pagina indexes De hovered id, De hotkey does nothing — it doet niet fall back naar opening De BetterQuesting quest GUI, since BQ al shows that information.
+If any registered guide indexes that quest id through `quest_ids`, GuideNH will navigate to the matching page (or open the guide if it's not already open). If no page indexes the hovered id, the hotkey does nothing — it does not fall back to opening the BetterQuesting quest GUI, since BQ already shows that information.
 
-Deze pad is independent of De inventory item-tooltip pad, so hovering items in your inventory still routes through De existing item / ore index lookups.
+This path is independent of the inventory item-tooltip path, so hovering items in your inventory still routes through the existing item / ore index lookups.
 
-### Behavior wanneer BetterQuesting is absent
+### Behavior when BetterQuesting is absent
 
-- `<QuestLink>` en `<QuestCard>` are niet registered, so pages that gebruiken them fall back naar De standard "onbekend tag" error rendering until you verwijderen De tag.
-- `quest_ids` frontmatter entries are still parsed en stored under `additionalProperties`, but nothing reads them.
-- De hotkey's quest-zweven branch becomes Een no-op.
-- BetterQuesting `[guide]...[/guide]` description links are never parsed because De BetterQuesting tekst box en related mixins are niet loaded.
+- `<QuestLink>` and `<QuestCard>` are not registered, so pages that use them fall back to the standard "unknown tag" error rendering until you remove the tag.
+- `quest_ids` does not create quest navigation, and quest-hover shortcuts are unavailable.
+- BetterQuesting description links require BetterQuesting.
 
-## Exporting your tags naar De site
-
-De exported site renders De tags that ship met GuideNH. Een mod whose tags are compiled by its own
-`TagCompiler` registers Een renderer so its tags are exported as well, instead of showing up in De book en
-disappearing van De site:
-
-```java
-public class MyModSiteTagRenderer implements GuideSiteTagRenderer {
-
-    @Override
-    public Set<String> getTagNames() {
-        return Set.of("MyMachine");
-    }
-
-    @Override
-    public String render(GuideSiteTagRenderContext context, MdxJsxElementFields element) {
-        String id = element.getAttributeString("id", "");
-        return "<div class=\"mymod-machine\">" + GuideSiteGraphRenderer.esc(id) + "</div>";
-    }
-}
-```
-
-```java
-GuideNhIntegrationRegistry.global().registerSiteTagRenderer(new MyModSiteTagRenderer());
-Guide.builder(id).extension(GuideSiteTagRenderer.EXTENSION_POINT, new MyModSiteTagRenderer()).build();
-```
-
-Registered renderers are asked voor De built-in ones, en De first one that geeft terug markup wins, so a
-renderer alleen has naar handle De tags it declares. Returning `null` leaves De element naar De next renderer
-of naar De built-in export. Een renderer that throws is reported in De log en skipped, so one broken plugin
-kan niet fail De export of Een pagina it doet niet own.
-
-De context carries De pagina being exported en De shared export services: `defaultNamespace`,
-`currentPageId`, `templates`, `sceneResolver` en `compiler`, De zelfde waarden De built-in renderers work
-met. Markup you write is inserted into De pagina as it is, so escape tekst met
-`GuideSiteGraphRenderer.esc(...)`.
-
-Deze betekent Een gids that targets BetterQuesting kan be authored once en silently degrade in environments where BetterQuesting is niet installed.
+For optional BetterQuesting pages, set `navigation.required_mod: betterquesting` to avoid unknown-tag errors when the mod is absent. Mod developers can find tag and site-export extensions in [Developer Integration](Developer-Integration).

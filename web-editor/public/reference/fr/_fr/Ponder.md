@@ -1,16 +1,15 @@
-# Ponder Animation Timeline
+# Chronologie Ponder
 
+La référence détaillée de cette page est disponible en anglais. Les noms des balises, attributs, identifiants et chemins s’utilisent sans traduction.
 
-Cette documentation décrit la syntaxe et les fonctions d’exécution de GuideNH. Le code, les balises, les chemins, les identifiants et les valeurs d’attributs restent inchangés.
+GuideNH supports Ponder-style animated timelines inside `<GameScene>` blocks. You supply an
+external JSON file that defines keyframes, camera movements and in-world annotations, and
+GuideNH renders an interactive progress bar with play/pause controls below the 3D scene.
 
-GuideNH prend en charge Ponder-style animated timelines dans `<GameScene>` blocs. You supply an
-externe JSON fichier que defines keyframes, caméra movements et dans-monde annotations, et
-GuideNH renders Un interactive progress bar avec play/pause controls en dessous Le 3D scène.
+## Quick Start
 
-## rapide début
-
-1. créer Un Ponder JSON fichier et placer it dans votre ressource pack (Voir [File Placement](#file-placement)).
-2. Ajoutez `<ImportPonder src="..."/>` dans a `<GameScene>` bloc alongside `<ImportStructure>`.
+1. Create a Ponder JSON file and place it in your resource pack (see [File Placement](#file-placement)).
+2. Add `<ImportPonder src="..."/>` inside a `<GameScene>` block alongside `<ImportStructure>`.
 
 ```mdx
 <GameScene zoom="4">
@@ -19,26 +18,26 @@ GuideNH renders Un interactive progress bar avec play/pause controls en dessous 
 </GameScene>
 ```
 
-> **Remarque:** `<ImportPonder>` doit appear dans a `<GameScene>` bloc. Le `src` attribut est
-> obligatoire. Structure données est encore fourni by `<ImportStructure>` ou `<ImportStructureLib>`.
+> **Note:** `<ImportPonder>` must appear inside a `<GameScene>` block. The `src` attribute is
+> required. Structure data is still provided by `<ImportStructure>` or `<ImportStructureLib>`.
 
-## fichier Placement
+## File Placement
 
-Ponder JSON files follow Le même ressource-pack chemin Règles as SNBT structures:
+Ponder JSON files follow the same resource-pack path rules as SNBT structures:
 
 ```
-assets/<modid>/guidebooks/
-  pages/machines/my_machine.mdx       <- guide page
-  pages/machines/my_machine.snbt      <- structure data
-  pages/machines/my_machine.json      <- Ponder JSON
+assets/<modid>/guidenh/
+  _en_us/machines/my_machine.md       <- guide page
+  _en_us/machines/my_machine.snbt      <- structure data
+  _en_us/machines/my_machine.json      <- Ponder JSON
 ```
 
-Le `src` attribut accepts les deux relatif et absolu IDs:
+The `src` attribute accepts both relative and absolute IDs:
 
-| Exemple | résolu as |
+| Example | Resolved as |
 |---------|-------------|
-| `src="my_machine.json"` | relatif vers Le actuel page's répertoire |
-| `src="mymod:guidebooks/pages/machines/my_machine.json"` | absolu (`mymod` namespace) |
+| `src="my_machine.json"` | Relative to the current page's directory |
+| `src="mymod:guidenh/_en_us/machines/my_machine.json"` | Absolute (`mymod` namespace) |
 
 ## JSON Format
 
@@ -86,59 +85,61 @@ Le `src` attribut accepts les deux relatif et absolu IDs:
 }
 ```
 
-### racine champs
+### Root fields
 
-| champ | type | obligatoire | description |
+| Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `totalTime` | entier | oui | Total duration dans ticks (20 ticks = 1 second). Minimum clamped vers 1. |
-| `keyframes` | array | oui | liste of keyframe objects. peut être vide. |
+| `totalTime` | integer | Yes | Total duration in ticks (20 ticks = 1 second). Minimum clamped to 1. |
+| `keyframes` | array | Yes | List of keyframe objects. May be empty. |
 
-### Keyframe champs
+For offline editor validation, add `"$schema": "guidenh://schema/ponder.json"` to the JSON root. The GuideNH mod exposes the bundled schema at `assets/guidenh/schema/ponder_schema.json`; the wiki example resource pack keeps a copy at `wiki/resourcepack/assets/guidenh/guidenh/assets/schema/ponder_schema.json`. Neither copy loads a remote URL.
 
-| champ | type | obligatoire | description |
+### Keyframe fields
+
+| Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `time` | entier | oui | Tick at qui ceci keyframe occurs (0 <= time <= totalTime). |
-| `hidden` | booléen | non | lorsque `true`, Le keyframe encore s’applique caméra/NBT/entity/annotation état at son `time`, but non visible node est drawn pour it on Le progress bar et visible keyframe navigation skips it. |
-| `label` | chaîne | non | facultatif repli étiquette affiché lorsque au survol Le keyframe node on Le progress bar. |
-| `labelKey` | chaîne | non | traduction clé pour Le keyframe étiquette. lorsque résolu, it remplace `label`. |
-| `camera` | object | non | caméra état at ceci keyframe. Null champs inherit depuis Le précédent keyframe. |
-| `cameraEaseTicks` | entier ou null | non | How many ticks Le caméra takes vers ease depuis Le **précédent** keyframe vers ceci un. `null` (par défaut) = ease sur Le complet segment. `0` = instant snap. `N > 0` = ease sur N ticks, alors hold at Le cible position. |
-| `layer` | entier ou null | non | visible layer remplacer. `null` (ou omitted) affiche tous layers. 1-based index. |
-| `annotations` | array | non | liste of annotation objects affiché pendant ceci keyframe est active. |
-| `sounds` | array | non | liste of sounds played once lorsque ceci keyframe devient active pendant forward playback. |
-| `particles` | array | non | liste of exécution particle bursts ou presets fired lorsque ceci keyframe devient active pendant forward playback. |
-| `blockChanges` | array | non | liste of bloc replacements applied lorsque ceci keyframe premier devient active. |
-| `mergeTileNBT` | array | non | Merge SNBT compounds dans tile entities at bloc positions. |
-| `modifyTileNBT` | array | non | Définissez un tile-entity NBT chemin vers Un SNBT valeur. |
-| `removeTileNBT` | array | non | supprimer un tile-entity NBT chemin. |
-| `createEntities` | array | non | créer Ponder-owned entities que peut être referenced by later entity NBT operations. |
-| `setEntityNBT` | array | non | remplacer Un referenced entity's NBT avec Le supplied SNBT compound. |
-| `mergeEntityNBT` | array | non | Merge Un SNBT compound dans Un referenced entity. |
-| `modifyEntityNBT` | array | non | Définissez un referenced entity NBT chemin vers Un SNBT valeur. |
-| `removeEntityNBT` | array | non | supprimer un referenced entity NBT chemin. |
-| `removeEntities` | array | non | supprimer un ou plus Ponder-owned entities by `ref` using Le stable scène-entity registry. |
+| `time` | integer | Yes | Tick at which this keyframe occurs (0 <= time <= totalTime). |
+| `hidden` | boolean | No | When `true`, the keyframe still applies camera/NBT/entity/annotation state at its `time`, but no visible node is drawn for it on the progress bar and visible keyframe navigation skips it. |
+| `label` | string | No | Optional fallback label shown when hovering the keyframe node on the progress bar. |
+| `labelKey` | string | No | Translation key for the keyframe label. When resolved, it overrides `label`. |
+| `camera` | object | No | Camera state at this keyframe. Null fields inherit from the previous keyframe. |
+| `cameraEaseTicks` | integer or null | No | How many ticks the camera takes to ease from the **previous** keyframe to this one. `null` (default) = ease over the full segment. `0` = instant snap. `N > 0` = ease over N ticks, then hold at the target position. |
+| `layer` | integer or null | No | Visible layer override. `null` (or omitted) shows all layers. 1-based index. |
+| `annotations` | array | No | List of annotation objects shown while this keyframe is active. |
+| `sounds` | array | No | List of sounds played once when this keyframe becomes active during forward playback. |
+| `particles` | array | No | List of runtime particle bursts or presets fired when this keyframe becomes active during forward playback. |
+| `blockChanges` | array | No | List of block replacements applied when this keyframe first becomes active. |
+| `mergeTileNBT` | array | No | Merge SNBT compounds into tile entities at block positions. |
+| `modifyTileNBT` | array | No | Set one tile-entity NBT path to an SNBT value. |
+| `removeTileNBT` | array | No | Remove one tile-entity NBT path. |
+| `createEntities` | array | No | Create Ponder-owned entities that can be referenced by later entity NBT operations. |
+| `setEntityNBT` | array | No | Replace a referenced entity's NBT with the supplied SNBT compound. |
+| `mergeEntityNBT` | array | No | Merge an SNBT compound into a referenced entity. |
+| `modifyEntityNBT` | array | No | Set one referenced entity NBT path to an SNBT value. |
+| `removeEntityNBT` | array | No | Remove one referenced entity NBT path. |
+| `removeEntities` | array | No | Remove one or more Ponder-owned entities by `ref` using the stable scene-entity registry. |
 
-masquées keyframes sont useful lorsque you want additional intermediate état modifications sans adding Un new visible node
-vers Le timeline. pour Exemple, you peut split several `modifyTileNBT` updates across plusieurs ticks, mark Le
-intermediate keyframes as masquées, et Conservez seulement Le major beats visible on Le progress bar.
+Hidden keyframes are useful when you want additional intermediate state changes without adding a new visible node
+to the timeline. For example, you can split several `modifyTileNBT` updates across multiple ticks, mark the
+intermediate keyframes as hidden, and keep only the major beats visible on the progress bar.
 
-### caméra champs
+### Camera fields
 
-tous caméra champs sont facultatif. quelconque `null` ou omitted champ inherits son valeur depuis Le nearest
-prior keyframe que defined it; Si non prior keyframe defined Le champ, Le scène's par défaut
-caméra valeur est utilisé.
+All camera fields are optional. Any `null` or omitted field inherits its value from the nearest
+prior keyframe that defined it; if no prior keyframe defined the field, the scene's default
+camera value is used.
 
-| champ | type | description |
+| Field | Type | Description |
 |-------|------|-------------|
-| `zoom` | flottant | caméra zoom level (0.1 - 10.0). |
-| `rotX` | flottant | X-axis rotation dans degrees. |
-| `rotY` | flottant | Y-axis rotation dans degrees. |
-| `rotZ` | flottant | Z-axis rotation dans degrees. |
-| `offX` | flottant | Horizontal pan offset dans écran pixels. |
-| `offY` | flottant | Vertical pan offset dans écran pixels. |
+| `zoom` | float | Camera zoom level (0.1 - 10.0). |
+| `rotX` | float | X-axis rotation in degrees. |
+| `rotY` | float | Y-axis rotation in degrees. |
+| `rotZ` | float | Z-axis rotation in degrees. |
+| `offX` | float | Horizontal pan offset in screen pixels. |
+| `offY` | float | Vertical pan offset in screen pixels. |
 
-Le caméra smoothly interpolates entre adjacent keyframes using an **ease-dans/ease-out** courbe.
-utiliser `cameraEaseTicks` on Le **destination** keyframe vers control Le easing duration:
+The camera smoothly interpolates between adjacent keyframes using an **ease-in/ease-out** curve.
+Use `cameraEaseTicks` on the **destination** keyframe to control the easing duration:
 
 ```json
 { "time": 60, "cameraEaseTicks": 0,  "camera": { "rotY": 90 } }   <- instant snap
@@ -146,11 +147,11 @@ utiliser `cameraEaseTicks` on Le **destination** keyframe vers control Le easing
 { "time": 180, "camera": { "rotY": 270 } }                         <- ease over full segment (default)
 ```
 
-## bloc modifications
+## Block Changes
 
-Le `blockChanges` array dans Un keyframe replaces blocs dans Le live structure lorsque que keyframe
-devient active. ceci permet Le animation vers afficher avant-et-après states, placer ou supprimer
-blocs, ou animate Un machine powering on.
+The `blockChanges` array in a keyframe replaces blocks in the live structure when that keyframe
+becomes active. This allows the animation to show before-and-after states, place or remove
+blocks, or animate a machine powering on.
 
 ```json
 {
@@ -166,26 +167,26 @@ blocs, ou animate Un machine powering on.
 }
 ```
 
-| champ | type | par défaut | description |
+| Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `x`, `y`, `z` | entier | - | **obligatoire.** position of Le bloc vers modifier (structure coordonnées). |
-| `block` | chaîne | - | **obligatoire.** Registry nom, e.g. `"minecraft:furnace"`. utiliser `"minecraft:air"` vers supprimer. |
-| `meta` | entier | `0` | bloc metadata / damage valeur. |
-| `particles` | booléen | `true` | Whether vers spawn bloc-texture particle effects lorsque ceci bloc modifier fires pendant forward playback. Particles sont taken depuis Le bloc's propre icon texture. Définissez vers `false` vers suppress (e.g., pour silent removal). |
-| `nbt` | chaîne | `null` | SNBT chaîne pour Un tile entity balise, e.g. pour chests, furnaces, etc. analysé avec `JsonToNBT`. clés doit être **unquoted** (standard SNBT format). Ignored Si Le bloc a non tile entity. |
+| `x`, `y`, `z` | integer | - | **Required.** Position of the block to change (structure coordinates). |
+| `block` | string | - | **Required.** Registry name, e.g. `"minecraft:furnace"`. Use `"minecraft:air"` to remove. |
+| `meta` | integer | `0` | Block metadata / damage value. |
+| `particles` | boolean | `true` | Whether to spawn block-texture particle effects when this block change fires during forward playback. Particles are taken from the block's own icon texture. Set to `false` to suppress (e.g., for silent removal). |
+| `nbt` | string | `null` | SNBT string for a tile entity tag, e.g. for chests, furnaces, etc. Parsed with `JsonToNBT`. Keys must be **unquoted** (standard SNBT format). Ignored if the block has no tile entity. |
 
-**Seek-safe:** lorsque seeking backwards Le exécution restores tous changed positions vers leurs
-original structure état, alors re-s’applique modifications depuis keyframes 0 à travers Le actuel un.
-Le displayed structure est toujours correct regardless of seek direction.
+**Seek-safe:** When seeking backwards the runtime restores all changed positions to their
+original structure state, then re-applies changes from keyframes 0 through the current one.
+The displayed structure is always correct regardless of seek direction.
 
-> **Remarque on particles:** bloc-texture particles fire once, seulement pendant forward playback lorsque Le
-> keyframe premier devient active. Elles sont cleared on seek, restart, ou initial charger.
+> **Note on particles:** Block-texture particles fire once, only during forward playback when the
+> keyframe first becomes active. They are cleared on seek, restart, or initial load.
 
 ## Keyframe Sounds
 
-Ajoutez a `sounds` array vers Un keyframe vers play un ou plus guide sounds lorsque Le keyframe devient active
-pendant forward playback. Seeking et initial charger do ne play keyframe sounds; restart clears Le
-play history so Le sounds peut fire again.
+Add a `sounds` array to a keyframe to play one or more guide sounds when the keyframe becomes active
+during forward playback. Seeking and initial load do not play keyframe sounds; restart clears the
+play history so the sounds can fire again.
 
 ```json
 {
@@ -198,28 +199,26 @@ play history so Le sounds peut fire again.
 }
 ```
 
-Sound champs:
+Sound fields:
 
-| champ | type | par défaut | description |
+| Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `sound` | chaîne | - | Sound event id, e.g. `guidenh:machine.start`. |
-| `src` | chaîne | - | Sound fichier id ou chemin; `guidenh:sounds/machine/start.ogg` devient `guidenh:machine.start`. |
-| `volume` | flottant | `1.0` | Playback volume avant attenuation. |
-| `pitch` | flottant | `1.0` | Playback pitch. |
-| `cooldown` | entier | `250` | Minimum milliseconds avant Le même sound peut play again. |
-| `x`, `y`, `z` | flottant | none | facultatif scène-espace source position pour écran-espace attenuation. |
-| `radius` | flottant | scène short côté * 0.75 | Attenuation radius dans écran pixels. |
-| `minVolume` | flottant | `0.15` | Minimum attenuation factor. |
+| `sound` | string | - | Sound event id, e.g. `guidenh:machine.start`. |
+| `src` | string | - | Sound file id or path; `guidenh:sounds/machine/start.ogg` becomes `guidenh:machine.start`. |
+| `volume` | float | `1.0` | Playback volume before attenuation. |
+| `pitch` | float | `1.0` | Playback pitch. |
+| `cooldown` | integer | `250` | Minimum milliseconds before the same sound can play again. |
+| `x`, `y`, `z` | float | none | Optional scene-space source position for screen-space attenuation. |
+| `radius` | float | scene short side * 0.75 | Attenuation radius in screen pixels. |
+| `minVolume` | float | `0.15` | Minimum attenuation factor. |
 
-
-Pour la validation hors ligne, ajoutez `"$schema": "guidenh://schema/ponder.json"` à la racine JSON. Le schéma intégré se trouve dans `wiki/resourcepack/assets/guidenh/guidenh/assets/schema/ponder_schema.json` et ne charge aucune URL distante.
 ---
 
 ## Keyframe Particles
 
-Ajoutez a `particles` array vers Un keyframe lorsque you want un-shot particle bursts ou timeline-local
-weather overlays pendant forward playback. These particles sont ne re-fired pendant reverse
-scrubbing, et seek/restart clears eux avant replaying Le active état.
+Add a `particles` array to a keyframe when you want one-shot particle bursts or timeline-local
+weather overlays during forward playback. These particles are not re-fired during reverse
+scrubbing, and seek/restart clears them before replaying the active state.
 
 Generic particles:
 
@@ -279,49 +278,49 @@ Weather preset:
 }
 ```
 
-Particle champs:
+Particle fields:
 
-| champ | type | par défaut | description |
+| Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `preset` | chaîne | none | Special preset. `explosion` spawns Un vanilla-style flash/smoke burst. `rain` enables Le weather preset. |
-| `weather` | chaîne | `rain` | Weather type utilisé by `preset: "rain"`. Pris en charge valeurs: `rain`, `snow`. |
-| `name` | chaîne | none | Generic particle appearance. Pris en charge valeurs: `billboard`, `smoke`, `largesmoke`, `explode`, `flash`, `largeexplode`, `hugeexplosion`. |
-| `particle` / `kind` | chaîne | none | Compatibility aliases pour `name`. |
-| `x`, `z` | flottant ou array | scène bounds | Particle origin ou weather coverage. Generic particles utiliser scalar coordonnées. pour `preset: "rain"`, scalar valeurs cible un precipitation colonne et arrays define rectangular coverage by endpoint pairs. |
-| `vx`, `vy`, `vz` | flottant | `0.0` | initial motion vector. `motionX/Y/Z` sont accepted aliases. |
-| `time` / `lifetime` | entier | preset-spécifique | Particle lifetime dans ticks. pour `preset: "rain"` ceci est Le total weather duration, including fade-dans et fade-out. |
-| `size` | flottant | preset-spécifique | Generic particle half-taille dans bloc units. |
-| `amount` | entier | preset-spécifique | Generic particle count. pour `explosion`, omitted amount scales depuis `power`. pour `preset: "rain"`, ceci est Le average per-tick weather density. |
-| `power` | flottant | `2.0` | Explosion strength pour Le `explosion` preset. |
+| `preset` | string | none | Special preset. `explosion` spawns a vanilla-style flash/smoke burst. `rain` enables the weather preset. |
+| `weather` | string | `rain` | Weather type used by `preset: "rain"`. Supported values: `rain`, `snow`. |
+| `name` | string | none | Generic particle appearance. Supported values: `billboard`, `smoke`, `largesmoke`, `explode`, `flash`, `largeexplode`, `hugeexplosion`. |
+| `particle` / `kind` | string | none | Compatibility aliases for `name`. |
+| `x`, `z` | float or array | scene bounds | Particle origin or weather coverage. Generic particles use scalar coordinates. For `preset: "rain"`, scalar values target one precipitation column and arrays define rectangular coverage by endpoint pairs. |
+| `vx`, `vy`, `vz` | float | `0.0` | Initial motion vector. `motionX/Y/Z` are accepted aliases. |
+| `time` / `lifetime` | integer | preset-specific | Particle lifetime in ticks. For `preset: "rain"` this is the total weather duration, including fade-in and fade-out. |
+| `size` | float | preset-specific | Generic particle half-size in block units. |
+| `amount` | integer | preset-specific | Generic particle count. For `explosion`, omitted amount scales from `power`. For `preset: "rain"`, this is the average per-tick weather density. |
+| `power` | float | `2.0` | Explosion strength for the `explosion` preset. |
 
-Weather preset Remarques:
+Weather preset notes:
 
-- `preset: "rain"` est Le shared weather preset entrée point. utiliser `weather: "rain"` pour rainfall ou
-  `weather: "snow"` pour snowfall.
-- ceci preset est timeline-owned weather. It prend en charge replay, pause, seek, et fast-forward together
-  avec Le rest of Le Ponder timeline.
-- pour toujours-on scène weather hors de Le Ponder timeline, utiliser Le `<Weather>` balise dans
-  `<GameScene>` à la placer.
-- Weather presets ignore `y`; Le vertical spawn range est derived depuis Le actuel scène bounds.
-- `x: 5, z: 8` targets un precipitation colonne. Arrays utiliser endpoint pairs:
-  `x: [1, 5, 10, 12], z: [2, 6, 20, 24]` crée deux covered rectangles.
-- Si un axis a extra unmatched array valeurs, Le unmatched tail est ignored.
-- Le exécution automatiquement shapes Le effect avec Un short début transition, Un steady middle
-  section, et Un fin transition.
+- `preset: "rain"` is the shared weather preset entry point. Use `weather: "rain"` for rainfall or
+  `weather: "snow"` for snowfall.
+- This preset is timeline-owned weather. It supports replay, pause, seek, and fast-forward together
+  with the rest of the Ponder timeline.
+- For always-on scene weather outside the Ponder timeline, use the `<Weather>` tag inside
+  `<GameScene>` instead.
+- Weather presets ignore `y`; the vertical spawn range is derived from the current scene bounds.
+- `x: 5, z: 8` targets one precipitation column. Arrays use endpoint pairs:
+  `x: [1, 5, 10, 12], z: [2, 6, 20, 24]` creates two covered rectangles.
+- If one axis has extra unmatched array values, the unmatched tail is ignored.
+- The runtime automatically shapes the effect with a short start transition, a steady middle
+  section, and an end transition.
 - Rain spawns fast falling drops plus occasional ground splashes. Snow spawns slower drifting
-  flakes sans splash particles.
-- Le weather area est derived depuis Le actuel GameScene bounds so Le effect scales avec Le
-  imported structure à la placer of Un hard-coded box.
-- Le même `x/z` colonne jamais stacks plusieurs weather types at Le même time. Earlier overlapping
-  weather declarations Conservez Le shared columns; later ones seulement rendent on Le remaining area.
+  flakes without splash particles.
+- The weather area is derived from the current GameScene bounds so the effect scales with the
+  imported structure instead of a hard-coded box.
+- The same `x/z` column never stacks multiple weather types at the same time. Earlier overlapping
+  weather declarations keep the shared columns; later ones only render on the remaining area.
 
 ---
 
 ## Tile Entity NBT Operations
 
-utiliser `mergeTileNBT`, `modifyTileNBT`, et `removeTileNBT` lorsque Le bloc stays dans placer but son
-tile entity données modifications. Operations sont seek-safe: GuideNH restores Le original tile NBT et
-alors replays tous operations depuis keyframe 0 à travers Le active keyframe.
+Use `mergeTileNBT`, `modifyTileNBT`, and `removeTileNBT` when the block stays in place but its
+tile entity data changes. Operations are seek-safe: GuideNH restores the original tile NBT and
+then replays all operations from keyframe 0 through the active keyframe.
 
 ```json
 {
@@ -345,23 +344,23 @@ alors replays tous operations depuis keyframe 0 à travers Le active keyframe.
 }
 ```
 
-| champ | utilisé by | description |
+| Field | Used by | Description |
 |-------|---------|-------------|
-| `x`, `y`, `z` | tous | Tile-entity bloc position dans structure coordonnées. |
-| `nbt` | `mergeTileNBT` | SNBT compound merged dans Le tile entity. Existing compound clés sont merged recursively; autre valeurs remplacer Le old valeur. |
-| `path` | `modifyTileNBT`, `removeTileNBT` | Dotted NBT chemin avec liste indexes, e.g. `Items[0].Count` ou `InputTanks[0].TankContent.Amount`. |
-| `value` | `modifyTileNBT` | SNBT valeur written at `path`, e.g. `3b`, `500`, `"\"text\""`, `{Count:1b,id:"minecraft:stone"}`. |
+| `x`, `y`, `z` | all | Tile-entity block position in structure coordinates. |
+| `nbt` | `mergeTileNBT` | SNBT compound merged into the tile entity. Existing compound keys are merged recursively; other values replace the old value. |
+| `path` | `modifyTileNBT`, `removeTileNBT` | Dotted NBT path with list indexes, e.g. `Items[0].Count` or `InputTanks[0].TankContent.Amount`. |
+| `value` | `modifyTileNBT` | SNBT value written at `path`, e.g. `3b`, `500`, `"\"text\""`, `{Count:1b,id:"minecraft:stone"}`. |
 
-Paths follow Le même idea as Minecraft's `/data` paths: utiliser dots pour compound clés et
-`[index]` pour liste entrées. liste traversal actuellement expects Le traversed liste entrées vers être
-compounds, qui correspond courant tile NBT comme inventories, tanks, et recipe slots.
+Paths follow the same idea as Minecraft's `/data` paths: use dots for compound keys and
+`[index]` for list entries. List traversal currently expects the traversed list entries to be
+compounds, which matches common tile NBT such as inventories, tanks, and recipe slots.
 
 ---
 
 ## Entity Actions
 
-Regular `<Entity>` balises sont déjà Pris en charge dans `GameScene`. Ponder timelines peut aussi créer
-leurs propre entities avec `createEntities`, alors cible those entities by `ref` dans later keyframes.
+Regular `<Entity>` tags are already supported in `GameScene`. Ponder timelines can also create
+their own entities with `createEntities`, then target those entities by `ref` in later keyframes.
 
 ```json
 {
@@ -379,20 +378,20 @@ leurs propre entities avec `createEntities`, alors cible those entities by `ref`
 }
 ```
 
-| champ | description |
+| Field | Description |
 |-------|-------------|
-| `ref` | obligatoire local reference nom pour later operations. |
-| `sceneEntityId` | facultatif stable scène-local id utilisé pour mount relations, replay-safe replacement, import/export restore, et quelconque later removal of ceci logical entity. Defaults vers Un interne id derived depuis `ref`. |
-| `id` | Entity ID, e.g. `minecraft:pig`, `Pig`, ou Un mod entity ID Pris en charge by Le scène entity loader. |
-| `x`, `y`, `z` | facultatif spawn position. Defaults vers `0, 0, 0` sauf `nbt` supplies `Pos`. |
-| `yaw`, `pitch` | facultatif spawn rotation. Defaults vers `0, 0` sauf `nbt` supplies `Rotation`. |
-| `bodyYaw`, `headYaw` | facultatif living-entity corps/head yaw remplace. Si omitted pendant `yaw` est present, Elles follow `yaw`. |
-| `nbt` | facultatif SNBT compound applied lorsque Le entity est créé. |
-| `name`, `nameKey`, `uuid` | facultatif aperçu-player profile champs lorsque creating Un aperçu player entity. |
-| `mount` | facultatif stable `sceneEntityId` of Le vehicle que ceci entity devrait ride après creation ou later replay. |
-| `unmount` | facultatif booléen que clears Le entity's actuel stable mount relation avant quelconque later `mount` est applied. |
+| `ref` | Required local reference name for later operations. |
+| `sceneEntityId` | Optional stable scene-local id used for mount relations, replay-safe replacement, import/export restore, and any later removal of this logical entity. Defaults to an internal id derived from `ref`. |
+| `id` | Entity ID, e.g. `minecraft:pig`, `Pig`, or a mod entity ID supported by the scene entity loader. |
+| `x`, `y`, `z` | Optional spawn position. Defaults to `0, 0, 0` unless `nbt` supplies `Pos`. |
+| `yaw`, `pitch` | Optional spawn rotation. Defaults to `0, 0` unless `nbt` supplies `Rotation`. |
+| `bodyYaw`, `headYaw` | Optional living-entity body/head yaw overrides. If omitted while `yaw` is present, they follow `yaw`. |
+| `nbt` | Optional SNBT compound applied when the entity is created. |
+| `name`, `nameKey`, `uuid` | Optional preview-player profile fields when creating a preview player entity. `nameKey` overrides `name` when its translation is available and falls back to `name`. |
+| `mount` | Optional stable `sceneEntityId` of the vehicle that this entity should ride after creation or later replay. |
+| `unmount` | Optional boolean that clears the entity's current stable mount relation before any later `mount` is applied. |
 
-après creation, utiliser Le entity NBT operations:
+After creation, use the entity NBT operations:
 
 ```json
 {
@@ -409,7 +408,7 @@ après creation, utiliser Le entity NBT operations:
 }
 ```
 
-`setEntityNBT` est aussi disponible lorsque you want vers remplacer Le entity's NBT à la placer of merging:
+`setEntityNBT` is also available when you want to replace the entity's NBT instead of merging:
 
 ```json
 {
@@ -420,7 +419,7 @@ après creation, utiliser Le entity NBT operations:
 }
 ```
 
-Entity actions peut aussi mettre à jour transform, aperçu-player pose, et stable mount état sans
+Entity actions can also update transform, preview-player pose, and stable mount state without
 changing NBT:
 
 ```json
@@ -436,7 +435,7 @@ changing NBT:
 }
 ```
 
-vers detach ou supprimer Un timeline entity, utiliser `unmount` ou `removeEntities`:
+To detach or remove a timeline entity, use `unmount` or `removeEntities`:
 
 ```json
 {
@@ -450,39 +449,38 @@ vers detach ou supprimer Un timeline entity, utiliser `unmount` ou `removeEntiti
 }
 ```
 
-Like tile operations, entity operations sont replayed depuis Le beginning whenever Le active
-keyframe modifications, so seeking backwards removes Ponder-créé entities et recreates Le correct
-état pour Le cible tick.
+Like tile operations, entity operations are replayed from the beginning whenever the active
+keyframe changes, so seeking backwards removes Ponder-created entities and recreates the correct
+state for the target tick.
 
-Remarques:
+Notes:
 
-- `ref` identifies qui Ponder-owned entity Le actuel action devrait edit ou supprimer.
-- `sceneEntityId` et `mount` identify stable cross-entity relations. `mount` toujours points vers a
-  stable scène id, ne vers another `ref`.
-- Relying on brut passenger NBT alone est ne recommended pour cross-entity scène relationships. Le
-  stable registry est what keeps mount et removal behavior deterministic across replay, rebuild,
-  import/export, et éditeur aperçu refresh.
-
----
-
-## annotation Fade
-
-annotations smoothly fade dans sur **5 game ticks** (250 ms) whenever Le active keyframe
-modifications pendant playback. Seeking ou pausing toujours affiche annotations at complet opacity.
+- `ref` identifies which Ponder-owned entity the current action should edit or remove.
+- `sceneEntityId` and `mount` identify stable cross-entity relations. `mount` always points to a
+  stable scene id, not to another `ref`.
+- Relying on raw passenger NBT alone is not recommended for cross-entity scene relationships. The
+  stable registry is what keeps mount and removal behavior deterministic across replay, rebuild,
+  import/export, and editor preview refresh.
 
 ---
 
-## annotation Types
+## Annotation Fade
 
-chaque entrée dans Le `annotations` array requires a `type` champ. Seven types sont disponible.
+Annotations smoothly fade in over **5 game ticks** (250 ms) whenever the active keyframe
+changes during playback. Seeking or pausing always shows annotations at full opacity.
 
 ---
 
-Toutes les annotations Ponder acceptent `tooltip` et `tooltipKey`. La clé est résolue depuis les fichiers `lang` actifs et le texte original est utilisé si elle est absente.
+## Annotation Types
+
+Every Ponder annotation accepts `tooltip` and `tooltipKey`. The key is resolved from the active `lang` files and falls back to the original text when it is missing.
+Each entry in the `annotations` array requires a `type` field. Seven types are available.
+
+---
 
 ### `diamond`
 
-Renders Un 3D diamond marker at Un monde position.
+Renders a 3D diamond marker at a world position.
 
 ```json
 {
@@ -496,19 +494,19 @@ Renders Un 3D diamond marker at Un monde position.
 }
 ```
 
-| champ | type | par défaut | description |
+| Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `x`, `y`, `z` | flottant | `0.0` | monde-espace position of Le diamond tip. |
-| `color` | chaîne | `"0xFF00E000"` | ARGB couleur as `"0xAARRGGBB"`. |
-| `tooltip` | chaîne | `""` | repli texte affiché on survol. |
-| `tooltipKey` | chaîne | `""` | traduction clé pour Le survol texte. lorsque résolu, it remplace `tooltip`. |
-| `alwaysOnTop` | booléen | `false` | Si true, rendu à travers solid blocs. |
+| `x`, `y`, `z` | float | `0.0` | World-space position of the diamond tip. |
+| `color` | string | `"0xFF00E000"` | ARGB color as `"0xAARRGGBB"`. |
+| `tooltip` | string | `""` | Fallback text shown on hover. |
+| `tooltipKey` | string | `""` | Translation key for the hover text. When resolved, it overrides `tooltip`. |
+| `alwaysOnTop` | boolean | `false` | If true, rendered through solid blocks. |
 
 ---
 
 ### `box`
 
-Renders Un wireframe axis-aligned box depuis `min` vers `max`.
+Renders a wireframe axis-aligned box from `min` to `max`.
 
 ```json
 {
@@ -521,20 +519,20 @@ Renders Un wireframe axis-aligned box depuis `min` vers `max`.
 }
 ```
 
-| champ | type | par défaut | description |
+| Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `minX/Y/Z` | flottant | `0.0` | Minimum corner. |
-| `maxX/Y/Z` | flottant | `1.0` | Maximum corner. |
-| `color` | chaîne | `"0xFFFFFFFF"` | ARGB ligne couleur. |
-| `lineWidth` | flottant | par défaut | GL ligne largeur. |
-| `alwaysOnTop` | booléen | `false` | rendent à travers blocs. |
+| `minX/Y/Z` | float | `0.0` | Minimum corner. |
+| `maxX/Y/Z` | float | `1.0` | Maximum corner. |
+| `color` | string | `"0xFFFFFFFF"` | ARGB line color. |
+| `lineWidth` | float | default | GL line width. |
+| `alwaysOnTop` | boolean | `false` | Render through blocks. |
 
 ---
 
 ### `block`
 
-Renders Un wireframe around un whole bloc. ceci est Le Ponder JSON equivalent of
-`<BlockAnnotation pos="x y z">` dans Un regular `GameScene`.
+Renders a wireframe around one whole block. This is the Ponder JSON equivalent of
+`<BlockAnnotation pos="x y z">` in a regular `GameScene`.
 
 ```json
 {
@@ -546,23 +544,23 @@ Renders Un wireframe around un whole bloc. ceci est Le Ponder JSON equivalent of
 }
 ```
 
-`"type": "blockBox"` et `"type": "block_box"` sont accepted aliases.
+`"type": "blockBox"` and `"type": "block_box"` are accepted aliases.
 
-| champ | type | par défaut | description |
+| Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `pos` | nombre[3] ou chaîne | `[0, 0, 0]` | bloc coordonnée as `[x, y, z]` ou `"x y z"`. |
-| `x`, `y`, `z` | nombre | `0` | Alternative bloc coordonnée champs. valeurs sont floored. |
-| `blockX/Y/Z` | entier | `0` | Legacy-style bloc coordonnée champs. |
-| `color` | chaîne | `"0xFFFFFFFF"` | ARGB ligne couleur. |
-| `lineWidth` | flottant | par défaut | GL ligne largeur. |
-| `alwaysOnTop` | booléen | `false` | rendent à travers blocs. |
+| `pos` | number[3] or string | `[0, 0, 0]` | Block coordinate as `[x, y, z]` or `"x y z"`. |
+| `x`, `y`, `z` | number | `0` | Alternative block coordinate fields. Values are floored. |
+| `blockX/Y/Z` | integer | `0` | Legacy-style block coordinate fields. |
+| `color` | string | `"0xFFFFFFFF"` | ARGB line color. |
+| `lineWidth` | float | default | GL line width. |
+| `alwaysOnTop` | boolean | `false` | Render through blocks. |
 
 ---
 
 ### `line`
 
-Renders Un ligne segment ou polyline entre monde positions. `points` takes priority sur
-`fromX/Y/Z` et `toX/Y/Z` lorsque it contient at least deux valide points.
+Renders a line segment or polyline between world positions. `points` takes priority over
+`fromX/Y/Z` and `toX/Y/Z` when it contains at least two valid points.
 
 ```json
 {
@@ -576,7 +574,7 @@ Renders Un ligne segment ou polyline entre monde positions. `points` takes prior
 }
 ```
 
-Polyline points peut être written l’un ou l’autre as Un chaîne ou as Un array:
+Polyline points can be written either as a string or as an array:
 
 ```json
 {
@@ -587,21 +585,21 @@ Polyline points peut être written l’un ou l’autre as Un chaîne ou as Un ar
 }
 ```
 
-| champ | type | par défaut | description |
+| Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `fromX/Y/Z` | flottant | `0.0` | début point. |
-| `toX/Y/Z` | flottant | `1.0` | fin point. |
-| `points` | chaîne ou array | `null` | Polyline points. utiliser `"x y z; x y z; ..."` ou `[[x,y,z], ...]`. |
-| `color` | chaîne | `"0xFFFFFFFF"` | ARGB ligne couleur. |
-| `arrow` | chaîne | `null` | `start` ou `end`; omitted ou invalide valeurs dessiner non arrow. |
-| `lineWidth` | flottant | par défaut | GL ligne largeur. |
-| `alwaysOnTop` | booléen | `false` | rendent à travers blocs. |
+| `fromX/Y/Z` | float | `0.0` | Start point. |
+| `toX/Y/Z` | float | `1.0` | End point. |
+| `points` | string or array | `null` | Polyline points. Use `"x y z; x y z; ..."` or `[[x,y,z], ...]`. |
+| `color` | string | `"0xFFFFFFFF"` | ARGB line color. |
+| `arrow` | string | `null` | `start` or `end`; omitted or invalid values draw no arrow. |
+| `lineWidth` | float | default | GL line width. |
+| `alwaysOnTop` | boolean | `false` | Render through blocks. |
 
 ---
 
 ### `blockface`
 
-Met en surbrillance toutes les faces d’un bloc unique avec un revêtement plein translucide.
+Highlights all faces of a single block with a translucent solid overlay.
 
 ```json
 {
@@ -612,23 +610,23 @@ Met en surbrillance toutes les faces d’un bloc unique avec un revêtement plei
 }
 ```
 
-`"type": "blockFace"` et `"type": "block_face"` sont accepted aliases.
+`"type": "blockFace"` and `"type": "block_face"` are accepted aliases.
 
-| champ | type | par défaut | description |
+| Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `pos` | nombre[3] ou chaîne | `[0, 0, 0]` | bloc coordonnée as `[x, y, z]` ou `"x y z"`. |
-| `x`, `y`, `z` | nombre | `0` | Alternative bloc coordonnée champs. valeurs sont floored. |
-| `blockX/Y/Z` | entier | `0` | Legacy-style bloc coordonnée champs. |
-| `color` | chaîne | `"0x80FFFFFF"` | ARGB overlay couleur. |
-| `alwaysOnTop` | booléen | `false` | rendent à travers blocs. |
+| `pos` | number[3] or string | `[0, 0, 0]` | Block coordinate as `[x, y, z]` or `"x y z"`. |
+| `x`, `y`, `z` | number | `0` | Alternative block coordinate fields. Values are floored. |
+| `blockX/Y/Z` | integer | `0` | Legacy-style block coordinate fields. |
+| `color` | string | `"0x80FFFFFF"` | ARGB overlay color. |
+| `alwaysOnTop` | boolean | `false` | Render through blocks. |
 
 ---
 
 ### `text`
 
-Renders Un speech-bubble étiquette anchored vers Un monde position. Le box appears au-dessus de Le anchor by
-par défaut et est connected vers it avec Un short vertical ligne. texte contenu est keyframe-driven: utiliser
-différent `text` annotation entrées on différent keyframes vers modifier Le displayed texte sur time.
+Renders a speech-bubble label anchored to a world position. The box appears above the anchor by
+default and is connected to it with a short vertical line. Text content is keyframe-driven: use
+different `text` annotation entries on different keyframes to change the displayed text over time.
 
 ```json
 {
@@ -644,9 +642,9 @@ différent `text` annotation entrées on différent keyframes vers modifier Le d
 }
 ```
 
-pour Un fixe écran-espace position que fait ne project depuis monde coordonnées, utiliser
-**independent mode**. Le bubble est centered horizontally dans Le scène et placed at
-`yOffset` pixels en dessous Le scène's vertical centre.
+For a fixed screen-space position that does not project from world coordinates, use
+**independent mode**. The bubble is centered horizontally in the scene and placed at
+`yOffset` pixels below the scene's vertical centre.
 
 ```json
 {
@@ -659,45 +657,45 @@ pour Un fixe écran-espace position que fait ne project depuis monde coordonnée
 }
 ```
 
-| champ | type | par défaut | description |
+| Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `x`, `y`, `z` | flottant | `0.0` | monde-espace anchor position (ignored dans independent mode). |
-| `text` | chaîne | — | Texte de secours affiché dans la bulle. |
-| `textKey` | chaîne | — | Clé de traduction du texte de la bulle ; une fois résolue, elle remplace `text`. |
-| `color` | chaîne | `"0xFFAAAAAA"` | ARGB couleur of Le bubble bordure. |
-| `backgroundAlpha` | entier | `204` | arrière-plan opacity depuis `0` (transparent) vers `255` (opaque). Le RGB couleur remains Le par défaut dark navy. |
-| `maxWidth` | entier | `0` | Si &gt; 0, wraps texte at ceci largeur dans pixels. Omit ou Définissez vers `0` pour Un unique-ligne étiquette. |
-| `independent` | booléen | `false` | Si `true`, position est relatif vers Le scène centre rather que Un monde point. |
-| `yOffset` | entier | `0` | Pixel offset depuis Le scène's vertical centre (positive = downward). utilisé avec `independent: true`. |
-| `connectorSide` | chaîne | `"bottom"` | `bottom`, `top`, `left`, `right`, ou `none`. Ignored dans independent mode. |
-| `connectorOffset` | entier | `0` | Pixel offset along Le sélectionné bubble edge; positive moves droite pour haut/bas et down pour gauche/droite. |
-| `connectorLength` | entier | `6` | Pixel length of Le connector ligne. `0` masque Le ligne pendant keeping côté-based placement. |
-| `hlMinX/Y/Z` | flottant | `0.0` | Minimum corner of Un facultatif surligner box drawn alongside Le texte bubble. |
-| `hlMaxX/Y/Z` | flottant | `1.0` | Maximum corner of Le facultatif surligner box. |
-| `highlightColor` | chaîne | `"0x8000FFAA"` | ARGB couleur of Le surligner box. |
+| `x`, `y`, `z` | float | `0.0` | World-space anchor position (ignored in independent mode). |
+| `text` | string | — | Fallback text to display inside the bubble. |
+| `textKey` | string | — | Translation key for the bubble text; when resolved it overrides `text`. |
+| `color` | string | `"0xFFAAAAAA"` | ARGB color of the bubble border. |
+| `backgroundAlpha` | integer | `204` | Background opacity from `0` (transparent) to `255` (opaque). The RGB color remains the default dark navy. |
+| `maxWidth` | integer | `0` | If &gt; 0, wraps text at this width in pixels. Omit or set to `0` for a single-line label. |
+| `independent` | boolean | `false` | If `true`, position is relative to the scene centre rather than a world point. |
+| `yOffset` | integer | `0` | Pixel offset from the scene's vertical centre (positive = downward). Used with `independent: true`. |
+| `connectorSide` | string | `"bottom"` | `bottom`, `top`, `left`, `right`, or `none`. Ignored in independent mode. |
+| `connectorOffset` | integer | `0` | Pixel offset along the selected bubble edge; positive moves right for top/bottom and down for left/right. |
+| `connectorLength` | integer | `6` | Pixel length of the connector line. `0` hides the line while keeping side-based placement. |
+| `hlMinX/Y/Z` | float | `0.0` | Minimum corner of an optional highlight box drawn alongside the text bubble. |
+| `hlMaxX/Y/Z` | float | `1.0` | Maximum corner of the optional highlight box. |
+| `highlightColor` | string | `"0x8000FFAA"` | ARGB color of the highlight box. |
 
-lorsque `hlMinX` (ou quelconque `hlMin/Max` coordonnée) est present, an `InWorldBoxAnnotation` est aussi
-créé at Le specified bounds avec `highlightColor`. ceci est useful pour pointing at spécifique
-bloc regions pendant explaining eux.
+When `hlMinX` (or any `hlMin/Max` coordinate) is present, an `InWorldBoxAnnotation` is also
+created at the specified bounds with `highlightColor`. This is useful for pointing at specific
+block regions while explaining them.
 
-Le arrière-plan est un dark navy bubble by par défaut (`#CC0E0E20`), et `backgroundAlpha` controls son
-opacity. dans monde-anchored mode Un connector ligne liens Le box vers Le anchor. texte prend en charge Le
-complet GuideNH inline riche-texte syntaxe: markdown formatting et MDX inline balises. It est rendu avec
+The background is a dark navy bubble by default (`#CC0E0E20`), and `backgroundAlpha` controls its
+opacity. In world-anchored mode a connector line links the box to the anchor. Text supports the
+full GuideNH inline rich-text syntax: markdown formatting and MDX inline tags. It is rendered with
 drop-shadow.
 
-> **riche texte:** Le `text` champ prend en charge Le même inline markup utilisé dans GuideNH guide pages:
+> **Rich text:** The `text` field supports the same inline markup used in GuideNH guide pages:
 > `**bold**`, `*italic*`, `~~strikethrough~~`, `<Color id="RED">colored</Color>`,
-> `<ItemLink id="minecraft:iron_ingot" />`, et tous autre inline MDX balises.
-> simple Minecraft `§` format codes sont **ne** Pris en charge; utiliser MDX syntaxe à la placer.
+> `<ItemLink id="minecraft:iron_ingot" />`, and all other inline MDX tags.
+> Plain Minecraft `§` format codes are **not** supported; use MDX syntax instead.
 
-> A `text` annotation sans a `text` champ (ou Un vide chaîne) est silently ignored.
+> A `text` annotation without a `text` field (or an empty string) is silently ignored.
 
 ---
 
 ### `input`
 
-Renders Un mouse-entrée icon (gauche button, droite button, ou défiler wheel) anchored vers Un monde
-position. ceci est utilisé vers hint que Le player devrait perform Un spécifique interaction.
+Renders a mouse-input icon (left button, right button, or scroll wheel) anchored to a world
+position. This is used to hint that the player should perform a specific interaction.
 
 ```json
 {
@@ -709,7 +707,7 @@ position. ceci est utilisé vers hint que Le player devrait perform Un spécifiq
 }
 ```
 
-avec Un facultatif modifier clé prefix et an élément icon:
+With an optional modifier key prefix and an item icon:
 
 ```json
 {
@@ -723,30 +721,30 @@ avec Un facultatif modifier clé prefix et an élément icon:
 }
 ```
 
-| champ | type | par défaut | description |
+| Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `x`, `y`, `z` | flottant | `0.0` | monde-espace anchor position. |
-| `inputType` | chaîne | `"lmb"` | un of `"lmb"`, `"rmb"`, ou `"scroll"`. Case-insensitive. |
-| `modifier` | chaîne | `null` | facultatif modifier clé: `"sneak"` ou `"ctrl"`. affiche prefix texte au-dessus de Le icon. |
-| `item` | chaîne | `null` | facultatif élément registry ID (e.g. `"minecraft:iron_ingot"`). Renders Le élément icon vers Le gauche of Le mouse icon. prend en charge `"modid:item:meta"` format pour meta valeurs. |
+| `x`, `y`, `z` | float | `0.0` | World-space anchor position. |
+| `inputType` | string | `"lmb"` | One of `"lmb"`, `"rmb"`, or `"scroll"`. Case-insensitive. |
+| `modifier` | string | `null` | Optional modifier key: `"sneak"` or `"ctrl"`. Shows prefix text above the icon. |
+| `item` | string | `null` | Optional item registry ID (e.g. `"minecraft:iron_ingot"`). Renders the item icon to the left of the mouse icon. Supports `"modid:item:meta"` format for meta values. |
 
-Le icon est un 16x16 sprite drawn depuis `ponder_widgets.png`. Le box arrière-plan est semi-transparent
-dark (`#CC0E0E20`) avec Un light-blue bordure (`#80AAAADD`). lorsque an `item` est specified Le box
-expands vers accommodate les deux Le élément icon et Le mouse icon côté by côté.
+The icon is a 16x16 sprite drawn from `ponder_widgets.png`. The box background is semi-transparent
+dark (`#CC0E0E20`) with a light-blue border (`#80AAAADD`). When an `item` is specified the box
+expands to accommodate both the item icon and the mouse icon side by side.
 
 ---
 
-## couleur Format
+## Color Format
 
-Colors sont ARGB hexadecimal strings. les deux `"0xFFFFFF00"` (avec `0x` prefix) et
-`"FFFF00"` (sans prefix) sont accepted.
+Colors are ARGB hexadecimal strings. Both `"0xFFFFFF00"` (with `0x` prefix) and
+`"FFFF00"` (without prefix) are accepted.
 
 - `FF` alpha = fully opaque
 - `80` alpha = 50% transparent
 - `00` alpha = invisible
-- `"0xFF00E000"` - fully opaque green (par défaut diamond couleur)
+- `"0xFF00E000"` - fully opaque green (default diamond color)
 - `"0x8022CCFF"` - semi-transparent blue
-- `"0xFFAAAAAA"` - light grey (par défaut texte bubble bordure)
+- `"0xFFAAAAAA"` - light grey (default text bubble border)
 
 ## Playback Behavior
 
@@ -754,51 +752,51 @@ Colors sont ARGB hexadecimal strings. les deux `"0xFFFFFF00"` (avec `0x` prefix)
 
 | Control | Action |
 |---------|--------|
-| **Prev keyframe** | Jump vers Le début of Le précédent visible keyframe segment. masquées keyframes sont skipped. |
-| **Play/Pause** | Toggle playback; restarts depuis Le beginning Si déjà finished. |
-| **Restart** | retourner vers tick 0, reset état, et begin playing. |
-| Progress bar | clic ou faire glisser vers seek vers quelconque position. Seeking toujours pauses playback. |
-| Keyframe nodes | Small tick marks on Le bar pour visible keyframes; survol vers Voir Le étiquette et direction arrow. |
+| **Prev keyframe** | Jump to the start of the previous visible keyframe segment. Hidden keyframes are skipped. |
+| **Play/Pause** | Toggle playback; restarts from the beginning if already finished. |
+| **Restart** | Return to tick 0, reset state, and begin playing. |
+| Progress bar | Click or drag to seek to any position. Seeking always pauses playback. |
+| Keyframe nodes | Small tick marks on the bar for visible keyframes; hover to see the label and direction arrow. |
 
-### initial état
+### Initial state
 
-lorsque Un page containing `<ImportPonder>` est premier opened, Le scène starts **paused at tick 0**.
-Press Play vers begin.
+When a page containing `<ImportPonder>` is first opened, the scene starts **paused at tick 0**.
+Press Play to begin.
 
-### caméra lock
+### Camera lock
 
-pendant playback est **active** (ne paused):
-- Le caméra follows Le interpolated chemin defined by keyframes.
-- Mouse faire glisser et défiler zoom sont **désactivé**.
-- Le layer slider et StructureLib sliders sont **masquées**.
+While playback is **active** (not paused):
+- The camera follows the interpolated path defined by keyframes.
+- Mouse drag and scroll zoom are **disabled**.
+- The layer slider and StructureLib sliders are **hidden**.
 
-pendant playback est **paused** ou **finished**:
-- complet interactive caméra faire glisser, zoom, et layer/StructureLib control sont restored.
+While playback is **paused** or **finished**:
+- Full interactive camera drag, zoom, and layer/StructureLib control are restored.
 
 ### Keyframe node labels
 
-lorsque you survol sur Un keyframe node on Le progress bar:
-- Le node grows slightly vers indicate it est hovered.
-- Si Le keyframe a a `label`, it est displayed beside Le node.
-- masquées keyframes do ne créer hoverable nodes, but Elles encore apply leurs timeline état lorsque playback ou seeking reaches eux.
+When you hover over a keyframe node on the progress bar:
+- The node grows slightly to indicate it is hovered.
+- If the keyframe has a `label`, it is displayed beside the node.
+- Hidden keyframes do not create hoverable nodes, but they still apply their timeline state when playback or seeking reaches them.
 
-### Layer control pendant playback
+### Layer control during playback
 
-Le `layer` champ of Le active keyframe remplace Le visible-layer filtre pendant playback:
-- `null` (ou omitted) -> afficher tous layers.
-- `1`, `2`, `3`, ... -> restrict vers que 1-based layer index.
+The `layer` field of the active keyframe overrides the visible-layer filter during playback:
+- `null` (or omitted) -> show all layers.
+- `1`, `2`, `3`, ... -> restrict to that 1-based layer index.
 
-## complet Exemple
+## Complete Example
 
-Le following Exemple demonstrates chaque annotation type across Un four-keyframe scène.
+The following example demonstrates every annotation type across a four-keyframe scene.
 
-### répertoire mise en page
+### Directory layout
 
 ```
 assets/mymod/guidebooks/
-  pages/machines/grinder.mdx
-  pages/machines/grinder.snbt
-  pages/machines/grinder.json
+  _en_us/machines/grinder.md
+  _en_us/machines/grinder.snbt
+  _en_us/machines/grinder.json
 ```
 
 ### `grinder.json`
@@ -908,10 +906,9 @@ assets/mymod/guidebooks/
 
 ### `grinder.snbt`
 
-Un standard NBT structure fichier (créé avec Le `/structure save` command ou Un tool comme
-Litematica). Voir [Getting Started](Guide-Page-Format) pour Le complet SNBT format reference.
+Use an SNBT/NBT structure accepted by `<ImportStructure>`. See [GameScene](GameScene#importstructure) for supported formats.
 
-### `grinder.mdx`
+### `grinder.md`
 
 ```mdx
 # Grinder
@@ -921,34 +918,34 @@ Litematica). Voir [Getting Started](Guide-Page-Format) pour Le complet SNBT form
   <ImportPonder src="grinder.json" />
 </GameScene>
 
-Le broyeur transforme les minerais en double quantité de poussière. Appuyez sur **Lecture** pour voir la visite animée.
+The Grinder turns ores into doubled dust. Press **Play** to see the animated walkthrough.
 ```
 
-## Remarques
+## Notes
 
-- Le Ponder progress bar est drawn au-dessus de Le layer/StructureLib sliders. pendant playback Le
-  structural sliders sont masquées vers Conservez Le UI clean; Elles reappear lorsque paused.
-- caméra interpolation est toujours smooth (ease-dans/out) even Si some keyframes seulement modifier a
-  subset of caméra axes. utiliser `cameraEaseTicks` on Un keyframe vers snap Le caméra instantly (`0`)
-  ou ease sur Un fixe nombre of ticks avant holding Le cible position.
-- annotations belong vers Un unique keyframe - Elles appear seulement pendant que keyframe est active
-  (i.e., depuis son `time` tick until Le suivant keyframe's `time` tick). Overlay texte annotations
-  fade out smoothly lorsque Le keyframe modifications pendant playback.
-- Ponder `line` annotations utiliser Le même exécution renderer as regular `LineAnnotation`, including
-  polyline bends et début/fin arrows. point marker cubes remain Un MDX-seulement feature.
-- Ponder `text` annotations utiliser Le même exécution renderer as regular `TextAnnotation`, including
-  connector côté, offset, et length. Dynamic texte est keyframe-based rather que interpolated per tick.
-- seulement un `<ImportPonder>` balise est effective per `<GameScene>`. Un second balise overwrites Le premier.
-- A `text` annotation avec Un vide ou absent `text` champ est silently skipped.
-- Le `inputType` champ defaults vers `"lmb"` Si omitted ou unrecognised.
-- `blockChanges` sont applied dans ordre depuis Le premier vers Le actuel keyframe chaque time Le
-  active keyframe modifications, so changing Le même position dans plusieurs keyframes works correctly.
-- Tile/entity NBT operations utiliser Le même replay model as `blockChanges`; Elles sont safe vers seek
-  forwards ou backwards.
-- `text` annotations avec a `maxWidth` &gt; 0 sont word-wrapped using Le vanilla font renderer;
-  Le bubble box hauteur adjusts automatiquement pour multi-ligne texte.
-- `nbt` strings dans `blockChanges` doit utiliser **unquoted** SNBT clés (standard MC 1.7.10 format).
-  Quoted clés sera être rejected by Le analyseur. chaîne valeurs encore require quotes:
+- The Ponder progress bar is drawn above the layer/StructureLib sliders. During playback the
+  structural sliders are hidden to keep the UI clean; they reappear when paused.
+- Camera interpolation is always smooth (ease-in/out) even if some keyframes only change a
+  subset of camera axes. Use `cameraEaseTicks` on a keyframe to snap the camera instantly (`0`)
+  or ease over a fixed number of ticks before holding the target position.
+- Annotations belong to a single keyframe - they appear only while that keyframe is active
+  (i.e., from its `time` tick until the next keyframe's `time` tick). Overlay text annotations
+  fade out smoothly when the keyframe changes during playback.
+- Ponder `line` annotations use the same runtime renderer as regular `LineAnnotation`, including
+  polyline bends and start/end arrows. Point marker cubes remain an MDX-only feature.
+- Ponder `text` annotations use the same runtime renderer as regular `TextAnnotation`, including
+  connector side, offset, and length. Dynamic text is keyframe-based rather than interpolated per tick.
+- Only one `<ImportPonder>` tag is effective per `<GameScene>`. A second tag overwrites the first.
+- A `text` annotation with an empty or absent `text` field is silently skipped.
+- The `inputType` field defaults to `"lmb"` if omitted or unrecognised.
+- `blockChanges` are applied in order from the first to the current keyframe every time the
+  active keyframe changes, so changing the same position in multiple keyframes works correctly.
+- Tile/entity NBT operations use the same replay model as `blockChanges`; they are safe to seek
+  forwards or backwards.
+- `text` annotations with a `maxWidth` &gt; 0 are word-wrapped using the vanilla font renderer;
+  the bubble box height adjusts automatically for multi-line text.
+- `nbt` strings in `blockChanges` must use **unquoted** SNBT keys (standard MC 1.7.10 format).
+  Quoted keys will be rejected by the parser. String values still require quotes:
   `{id:"minecraft:iron_ingot",Count:8b}`.
-- `modifyTileNBT` et `modifyEntityNBT` valeurs sont SNBT valeurs, ne JSON valeurs. pour Un chaîne
-  valeur, escape Le SNBT quotes dans JSON: `"value": "\"hello\""`.
+- `modifyTileNBT` and `modifyEntityNBT` values are SNBT values, not JSON values. For a string
+  value, escape the SNBT quotes inside JSON: `"value": "\"hello\""`.

@@ -2,6 +2,7 @@ package com.hfstudio.guidenh.guide.internal.markdown;
 
 import com.hfstudio.guidenh.guide.compiler.IdUtils;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
+import com.hfstudio.guidenh.guide.compiler.tags.CalloutIconSupport;
 import com.hfstudio.guidenh.guide.document.block.LytBlock;
 import com.hfstudio.guidenh.guide.document.block.LytFileTree;
 import com.hfstudio.guidenh.guide.document.block.LytImage;
@@ -80,6 +81,13 @@ public class FileTreeCompiler {
         FileTreeIconKind kind = icon.kind();
         String value = icon.value();
         switch (kind) {
+            case FLUID -> {
+                try {
+                    return CalloutIconSupport.buildFluidIcon(value, 1);
+                } catch (IllegalArgumentException exception) {
+                    return LytParagraph.error(exception.getMessage());
+                }
+            }
             case TEXT -> {
                 LytParagraph paragraph = new LytParagraph();
                 paragraph.setMarginTop(0);

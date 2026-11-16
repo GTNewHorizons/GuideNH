@@ -26,6 +26,8 @@ import com.hfstudio.guidenh.guide.compiler.tags.DivTagCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.EmphasisCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.FileTreeTagCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.FloatingImageCompiler;
+import com.hfstudio.guidenh.guide.compiler.tags.FluidImageCompiler;
+import com.hfstudio.guidenh.guide.compiler.tags.FluidLinkCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.FootnoteListCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.HeadingCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.HrCompiler;
@@ -145,6 +147,8 @@ public class DefaultExtensions {
                 new FileTreeTagCompiler(),
                 new RecipeCompiler(),
                 new ItemGridCompiler(),
+                new FluidImageCompiler(),
+                new FluidLinkCompiler(),
                 new CategoryCompiler(),
                 new SpecialCompiler(),
                 new TemplateCompiler(),

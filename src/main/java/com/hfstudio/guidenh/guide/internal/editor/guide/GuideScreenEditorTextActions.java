@@ -35,6 +35,43 @@ public class GuideScreenEditorTextActions {
             return new Result(source, start, end);
         }
         return switch (action) {
+            case FLUID_INPUT_ANNOTATION -> applyNamedTag(
+                source,
+                start,
+                end,
+                "InputAnnotation",
+                "fluid",
+                "water",
+                " pos=\"0.5 1.5 0.5\" inputType=\"rmb\" amount={1000}",
+                true);
+            case QUOTE_ICON_FLUID -> applyQuoteDirective(
+                source,
+                start,
+                end,
+                "title=\"Callout\" color=\"#7C8795\" iconFluid=\"water\"");
+            case PAGE_FLUID_IDS -> applyTopLevelListFrontmatter(source, start, end, "fluid_ids", "water");
+            case NAV_FLUID_ICONS -> applyNavigationListFrontmatter(source, start, end, "icon_fluids", "water");
+            case NAV_FLUID_ICON -> applyNavigationScalarFrontmatter(source, start, end, "icon_fluid", "water", false);
+            case FLUID_USAGE -> applyNamedTag(
+                source,
+                start,
+                end,
+                "RecipesUsage",
+                "fluid",
+                "water",
+                " limit=\"3\"",
+                true);
+            case FLUID_RECIPE -> applyNamedTag(source, start, end, "RecipeFor", "fluid", "steam", "", true);
+            case FLUID_LINK -> applyNamedTag(
+                source,
+                start,
+                end,
+                "FluidLink",
+                "id",
+                "water",
+                " showIcon=\"left\"",
+                true);
+            case FLUID_IMAGE -> applyNamedTag(source, start, end, "FluidImage", "id", "water", "", true);
             case HEADING_1 -> applyLinePrefix(source, start, end, "# ", 0, 0);
             case HEADING_2 -> applyLinePrefix(source, start, end, "## ", 0, 0);
             case HEADING_3 -> applyLinePrefix(source, start, end, "### ", 0, 0);

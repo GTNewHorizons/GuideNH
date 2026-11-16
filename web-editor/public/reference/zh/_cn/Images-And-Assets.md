@@ -1,5 +1,3 @@
-[English](Images-And-Assets)
-
 # 图片与资源
 
 GuideNH 同时支持普通 Markdown 图片，以及若干运行时专用的视觉元素。

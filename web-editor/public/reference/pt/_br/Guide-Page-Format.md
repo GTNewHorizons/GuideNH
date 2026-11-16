@@ -1,66 +1,65 @@
-# Formato da página do guia
+# Formato das páginas do guia
 
-Esta documentação descreve a sintaxe e os recursos de execução do GuideNH. Código, tags, caminhos, IDs e valores de atributos permanecem intactos.
+A referência detalhada desta página está disponível em inglês. Os nomes de tags, atributos, identificadores e caminhos são usados sem tradução.
 
+GuideNH runtime pages are markdown files parsed with:
 
-GuideNH execução pages são Markdown files analisado com:
-
-- padrão Markdown bloco e inline sintaxe
+- standard markdown block and inline syntax
 - YAML frontmatter
-- GFM tabelas
+- GFM tables
 - strikethrough
-- mark destacar com `==text==`
+- mark highlight with `==text==`
 - GuideNH inline underline extensions: `++text++` (straight underline), `^^text^^` (wavy underline), `::text::` (emphasis dots / dotted underline)
 - MDX comments using `{/* ... */}`
-- MDX-style personalizado tags
+- MDX-style custom tags
 
-## Markdown compatível
+## Supported Markdown
 
-GuideNH pages suporte O comum Markdown features usado em O Exemplo guia:
+GuideNH pages support the common markdown features used in the example guide:
 
 - headings
 - paragraphs
-- inline emphasis, bold, strike, e code
-- inline mark destacar (`==text==`)
-- inline underline (`++text++`), wavy underline (`^^text^^`), e emphasis dots (`::text::`)
-- links e imagens
-- literal autolinks para direto URLs, `www.` hosts, e email addresses
-- reference links e reference imagens
-- unordered e ordered lists
+- inline emphasis, bold, strike, and code
+- inline mark highlight (`==text==`)
+- inline underline (`++text++`), wavy underline (`^^text^^`), and emphasis dots (`::text::`)
+- links and images
+- literal autolinks for direct URLs, `www.` hosts, and email addresses
+- reference links and reference images
+- unordered and ordered lists
 - GFM task lists
 - blockquotes
-- GitHub-style alert blockquotes como `[!NOTE]`
-- horizontal Regras
-- fenced blocos de código
-- indented blocos de código
-- GFM tabelas
+- GitHub-style alert blockquotes such as `[!NOTE]`
+- horizontal rules
+- fenced code blocks
+- indented code blocks
+- GFM tables
 - HTML tables with captions, column groups, row groups, and merged cells
 - footnotes
-- lowercase HTML fragments como `<a>`, `<br>`, `<kbd>`, `<sub>`, `<sup>`, e `<details>`
-- MDX comments em página texto
+- lowercase HTML fragments such as `<a>`, `<br>`, `<kbd>`, `<sub>`, `<sup>`, and `<details>`
+- MDX comments in page text
 
-Consulte `wiki/resourcepack/assets/guidenh/guidenh/_en_us/markdown.md` para Uma live sample página.
+See `wiki/resourcepack/assets/guidenh/guidenh/_en_us/markdown.md` for a live sample page.
 
-## destacar
+## Highlight
 
-usar `==text==` para inline highlighted texto. usar `<mark color="#8A6A00">text</mark>` quando Uma personalizado destacar cor é needed. O Padrão mark fundo é Uma dark golden yellow escolhido para Mantenha white texto readable.
+Use `==text==` for inline highlighted text. Use `<mark color="#8A6A00">text</mark>` when a custom highlight color is needed. The default mark background is a dark golden yellow chosen to keep white text readable.
 
-## blocos de código
+## Code Blocks
 
-execução blocos de código atualmente suporte:
+Runtime code blocks currently support:
 
-- explícito fence languages como `java`, `lua`, `scala`, `csv`, e `mermaid`
-- automático idioma inference quando O fence idioma é omitted
-- Uma idioma rótulo exibido acima de O bloco
-- Uma topo-direita copy button em O em-game viewer
-- lightweight execução sintaxe highlighting para O detected idioma
+- explicit fence languages such as `java`, `lua`, `scala`, `csv`, and `mermaid`
+- automatic language inference when the fence language is omitted
+- a language label shown above the block
+- a top-right copy button in the in-game viewer
+- lightweight runtime syntax highlighting for the detected language
 
-Exemplo:
+Example:
 
 ````md
 ```lua
-local valor = 42
-print(valor)
+local value = 42
+print(value)
 ```
 
 ```
@@ -70,68 +69,68 @@ object Demo extends App {
 ```
 ````
 
-Indented blocos de código são também Compatível:
+Indented code blocks are also supported:
 
 ````md
     print("indented code")
 ````
 
-quando Uma fenced bloco resolves para `mermaid` e O origem é Uma Compatível `mindmap`, GuideNH renders it as Um interativo execução mindmap em vez disso of Uma simples bloco de código.
+When a fenced block resolves to `mermaid` and the source is a supported `mindmap`, GuideNH renders it as an interactive runtime mindmap instead of a plain code block.
 
-quando Uma fenced bloco é explicitly marked as `csv`, GuideNH renders it as Uma execução tabela em vez disso of Uma simples bloco de código. Se O fence idioma é omitted, CSV-shaped texto ainda stays Uma bloco de código e somente usa CSV idioma detection para labeling/highlighting.
+When a fenced block is explicitly marked as `csv`, GuideNH renders it as a runtime table instead of a plain code block. If the fence language is omitted, CSV-shaped text still stays a code block and only uses CSV language detection for labeling/highlighting.
 
-explícito CSV tabelas pode também fornecer coluna largura hints:
+Explicit CSV tables can also provide column width hints:
 
 ````md
 ```csv widths=120,80
-nome,valor
+name,value
 iron,42
 gold,17
 ```
 ````
 
-Fence metadata também suporta `header=false` e quoted largura lists:
+Fence metadata also supports `header=false` and quoted width lists:
 
 ````md
 ```csv widths="120,80" header=false
-nome,valor
+name,value
 iron,42
 gold,17
 ```
 ````
 
-direto GFM-style literal autolinks são também Compatível em normal paragraph texto:
+Direct GFM-style literal autolinks are also supported in normal paragraph text:
 
 ````md
 Visit https://example.com/docs, www.example.org, or guide@example.com
 ````
 
-## Mapas mentais Mermaid
+## Mermaid Mindmaps
 
-GuideNH execução Mermaid suporte é atualmente focused on `mindmap` diagrams:
+GuideNH runtime Mermaid support is currently focused on `mindmap` diagrams:
 
-- fenced ```` ```mermaid ```` blocos
-- auto-detected mermaid code fences whose conteúdo starts com `mindmap`
-- explícito `<Mermaid>...</Mermaid>` tags
-- explícito `<Mermaid src="./diagram.mmd" />` imports
-- rico inline Markdown labels dentro de Mermaid node texto
-- opcional `<NodeContent id="...">...</NodeContent>` filhos para arbitrary execução blocos dentro de correspondente nodes
-- whole-diagram arrastar-para-pan interaction em O em-game viewer
-- `layout: tidy-tree` frontmatter dentro de Mermaid origem
-- comum mindmap node shapes como square, rounded, circle, bang, cloud, e hexagon
-- analisado `::icon(...)` e `:::class` metadata
+- fenced ```` ```mermaid ```` blocks
+- auto-detected mermaid code fences whose content starts with `mindmap`
+- explicit `<Mermaid>...</Mermaid>` tags
+- explicit `<Mermaid src="./diagram.mmd" />` imports
+- rich inline markdown labels inside Mermaid node text
+- optional `<NodeContent id="...">...</NodeContent>` children for arbitrary runtime blocks inside matching nodes
+- whole-diagram drag-to-pan interaction in the in-game viewer
+- `layout: tidy-tree` frontmatter inside Mermaid source
+- common mindmap node shapes such as square, rounded, circle, bang, cloud, and hexagon
+- parsed `::icon(...)` and `:::class` metadata
 
-Exemplo:
+Example:
 
 ````md
 ```mermaid
 mindmap
-  raiz((GuideNH))
-    execução
+  root((GuideNH))
+    Runtime
       Markdown
       CSV
     Mindmap::icon(fa fa-sitemap)
-      arrastar para pan
+      Drag to pan
 ```
 
 <Mermaid src="./markdown-mindmap.mmd" />
@@ -143,50 +142,50 @@ mindmap
     export["Site export"]
 
 <NodeContent id="runtime">
-Os nós de execução podem combinar texto, links e blocos.
+Runtime nodes can mix text, links, and blocks.
 
 <ItemImage id="minecraft:diamond" />
 </NodeContent>
 
 <NodeContent id="export">
-![Machine Diagram](./resourcepack/assets/guidenh/guidenh/_en_us/test1.png)
+![Machine Diagram](./test1.png)
 </NodeContent>
 </Mermaid>
 ````
 
-Mermaid diagrams que são não Compatível at execução yet ainda fall back para regular Mermaid-labeled blocos de código.
+Mermaid diagrams that are not supported at runtime yet still fall back to regular Mermaid-labeled code blocks.
 
-## Importação de tabela CSV
+## CSV Table Import
 
-GuideNH também suporta execução CSV arquivo imports por Um explícito tag:
+GuideNH also supports runtime CSV file imports through an explicit tag:
 
 ````md
 <CsvTable src="./markdown-table.csv" />
 ````
 
-O `src` caminho resolves relativo para O atual página, O mesmo way execução recurso links e cena `src` imports do.
+The `src` path resolves relative to the current page, the same way runtime asset links and scene `src` imports do.
 
-Imported CSV tabelas pode também fornecer largura hints:
+Imported CSV tables can also provide width hints:
 
 ````md
 <CsvTable src="./markdown-table.csv" widths="120,80" />
 ````
 
-You pode também escrever Uma CSV tabela inline com Um explícito fence:
+You can also write a CSV table inline with an explicit fence:
 
 ````md
 ```csv
-nome,valor
+name,value
 iron,42
 gold,17
 ```
 ````
 
-## Tabelas Markdown
+## Markdown Tables
 
-### Largura das colunas
+### Column Widths
 
-Ordinary GFM Markdown tabelas pode também fornecer execução coluna largura hints by adding Uma trailing execução Atributo linha immediately depois de O tabela:
+Ordinary GFM markdown tables can also provide runtime column width hints by adding a runtime attribute line immediately before the table:
 
 ````md
 {: widths="120,80" }
@@ -196,16 +195,16 @@ Ordinary GFM Markdown tabelas pode também fornecer execução coluna largura hi
 | Gold | 17 |
 ````
 
-Este keeps O tabela itself padrão Markdown enquanto letting GuideNH apply execução-somente preferido coluna widths.
+This keeps the table itself standard markdown while letting GuideNH apply runtime-only preferred column widths.
 
-### Células mescladas e atributos
+### Merged Cells and Cell Attributes
 
-- Um `|` extra após a célula ocupa mais uma coluna: `||` mescla duas colunas e `|||` mescla três.
-- Uma célula iniciada por `^^` é mesclada com a de cima; o conteúdo é acrescentado em uma nova linha.
-- Dois-pontos nas bordas controlam o alinhamento: `: esquerda`, `direita :`, `: centro :`.
-- Um IAL final (`{: ... }`) define `color`, `background` / `bgcolor`, `style` seguro, `align`, `valign`, `id` ou `class`. `{:name: ...}` define atributos reutilizáveis. CSS inseguro e URLs externas são ignorados.
-- Um `\` no fim continua a linha na próxima linha física. Uma linha delimitadora inicial (`|--|--|`) cria uma tabela sem cabeçalho.
-- As células aceitam Markdown e MDX em linha, incluindo links, imagens, ênfase e LaTeX. HTML também aceita `<thead>`, `<tbody>` e `<tfoot>`.
+- An extra `|` after a cell adds one spanned column: `||` spans two columns, `|||` spans three.
+- Start a cell with `^^` to merge it into the cell above; its content is added on a new line.
+- Edge colons set cell alignment: `: left`, `right :`, or `: centered :`.
+- A trailing IAL (`{: ... }`) sets `color`, `background` / `bgcolor`, safe `style`, `align`, `valign`, `id`, or `class`. Define reusable attributes with `{:name: ...}`. Unsafe CSS and external URLs are ignored.
+- End a physical row with `\` to continue it on the next line. A delimiter row first (`|--|--|`) creates a headerless table.
+- Cells accept ordinary inline Markdown and MDX, including links, images, emphasis, and LaTeX. HTML tables also support explicit `<thead>`, `<tbody>`, and `<tfoot>` groups.
 
 ```markdown
 {:warning: style="background: #4b2418; color: #ffd8c2; font-weight: bold"}
@@ -216,9 +215,9 @@ Este keeps O tabela itself padrão Markdown enquanto letting GuideNH apply execu
 | Total ||| {: style="text-align: right; background: #26364d"}
 ```
 
-### Tabelas HTML
+### HTML Tables
 
-HTML tables support captions, column groups, semantic row groups, merged cells, and alignment. `col` accepts pixel `width`; `span` repeats a width. `th` and `td` support `colspan`, `rowspan`, and `align`; `th` supports `scope`:
+Use an HTML table for explicit row groups and multi-row headers. `<caption>` is shown above the table. Use `<colgroup>` and `<col>` to set preferred pixel or percentage column widths; `width` accepts pixels or percentages (with an optional `px` suffix), and `span` repeats one width for several columns. Group rows with `<thead>`, `<tbody>`, and `<tfoot>`. Header and data cells support `colspan`, `rowspan`, `align`, and `valign`; `th` also supports `scope`, `abbr`, and `headers`. Site export preserves common table attributes such as `width`, `border`, `cellpadding`, `cellspacing`, `frame`, `rules`, `summary`, `bgcolor`, and `bordercolor`. A table-level `widths` attribute can also provide comma-separated pixel hints:
 
 ````md
 <table widths="150,70,70,150">
@@ -229,28 +228,45 @@ HTML tables support captions, column groups, semantic row groups, merged cells, 
     <col width="150" />
   </colgroup>
   <thead>
-    <tr><th scope="col" rowspan="2" align="left">Fuel</th><th scope="colgroup" colspan="2" align="center">Rate</th><th scope="col" rowspan="2" align="right">Notes</th></tr>
-    <tr><th scope="col" align="right">Charcoal</th><th scope="col" align="right">Coal</th></tr>
+    <tr>
+      <th scope="col" rowspan="2" align="left">Fuel</th>
+      <th scope="colgroup" colspan="2" align="center">Burn rate</th>
+      <th scope="col" rowspan="2" align="right">Notes</th>
+    </tr>
+    <tr>
+      <th scope="col" align="right">Charcoal</th>
+      <th scope="col" align="right">Coal</th>
+    </tr>
   </thead>
   <tbody>
-    <tr><th scope="row" rowspan="2" align="left">Solid fuel</th><td align="right">42</td><td align="right">17</td><td rowspan="2" align="left">Per tick</td></tr>
-    <tr><td colspan="2" align="right">59 combined</td></tr>
+    <tr>
+      <th scope="row" rowspan="2" align="left">Solid fuel</th>
+      <td align="right">42</td>
+      <td align="right">17</td>
+      <td rowspan="2" align="left">Per tick</td>
+    </tr>
+    <tr>
+      <td colspan="2" align="right">59 combined</td>
+    </tr>
   </tbody>
   <tfoot>
-    <tr><th scope="rowgroup" align="left">Total</th><td colspan="3" align="right">59 units</td></tr>
+    <tr>
+      <th scope="rowgroup" align="left">Total</th>
+      <td colspan="3" align="right">59 units</td>
+    </tr>
   </tfoot>
 </table>
 ````
 
-## Listas de tarefas, alertas e notas de rodapé
+## Task Lists, Alerts, And Footnotes
 
-GuideNH execução também suporta several useful GFM-style behaviors:
+GuideNH runtime also supports several useful GFM-style behaviors:
 
-- task lists using `- [ ]` e `- [x]`
-- GitHub alert blockquotes como `[!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]`, e `[!CAUTION]`
-- footnote references e definitions
+- task lists using `- [ ]` and `- [x]`
+- GitHub alert blockquotes such as `[!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]`, and `[!CAUTION]`
+- footnote references and definitions
 
-Exemplo:
+Example:
 
 ````md
 - [x] done item
@@ -264,11 +280,11 @@ Footnote ref[^one]
 [^one]: tooltip text
 ````
 
-Footnote references renderizar as dica-style inline markers, e GuideNH appends Uma compact execução footnote lista perto O baixo of O página.
+Footnote references render as tooltip-style inline markers, and GuideNH appends a compact runtime footnote list near the bottom of the page.
 
-## Personalização da largura da lista
+## List Width Customization
 
-padrão Markdown lists do não define largura controls, but GuideNH execução containers pode constrain eles:
+Standard markdown lists do not define width controls, but GuideNH runtime containers can constrain them:
 
 ````md
 <Column width="220">
@@ -277,11 +293,11 @@ padrão Markdown lists do não define largura controls, but GuideNH execução c
 </Column>
 ````
 
-Este é atualmente O recommended way para customize lista linha largura at execução.
+This is currently the recommended way to customize list line width at runtime.
 
-## links e imagens de referência
+## Reference Links And Images
 
-GuideNH suporta CommonMark reference definitions:
+GuideNH supports CommonMark reference definitions:
 
 ````md
 [Guide Ref][doc]
@@ -291,9 +307,9 @@ GuideNH suporta CommonMark reference definitions:
 [img]: ./test1.png "Machine Diagram"
 ````
 
-## Lowercase HTML execução tags
+## Lowercase HTML Runtime Tags
 
-GuideNH execução suporta Uma focused subset of lowercase HTML-style tags directly:
+GuideNH runtime supports a focused subset of lowercase HTML-style tags directly:
 
 ````md
 Press <kbd>Shift</kbd> + <sub>1</sub>
@@ -307,14 +323,14 @@ Body text
 </details>
 ````
 
-outro bruto HTML fragments ainda fall back para literal texto-style handling em vez disso of browser-grade HTML renderização.
+Other raw HTML fragments still fall back to literal text-style handling instead of browser-grade HTML rendering.
 
 ## MDX Comments
 
-GuideNH suporta O MDX comment form e ignores it antes de Markdown compilation:
+GuideNH supports the MDX comment form and ignores it before markdown compilation:
 
 ````md
-Texto visível. {/* comentário embutido oculto */}
+Visible text. {/* hidden inline comment */}
 
 {/*
 multiline comment
@@ -323,107 +339,111 @@ multiline comment
 More visible text.
 ````
 
-## frontmatter
+## Frontmatter
 
-GuideNH reads O primeiro YAML frontmatter bloco e parses Estes known chaves:
+GuideNH reads the first YAML frontmatter block and parses these known keys:
 
-| chave | Tipo | Significado |
+| Key | Type | Meaning |
 | --- | --- | --- |
-| `navigation` | map | Adds O página para O Navegação tree |
-| `categories` | lista of strings | Adds O página para MediaWiki-style categories; cada entrada pode optionally usar `category|sort key` |
-| `item_id` | item filtro expressão | A único NEI-style item expressão que makes O página discoverable by `<ItemLink>` |
-| `item_ids` | lista of item filtro expressions | lista form of `item_id`; qualquer correspondente expressão makes O página discoverable by `<ItemLink>` |
-| `ore_ids` | lista of ore dictionary names | Makes O página discoverable by ore-dictionary itens (e.g. `ingotIron`, `oreCopper`) |
-| `quest_ids` | lista of BetterQuesting quest ids | Makes O página discoverable by `<QuestLink>` / `<QuestCard>` e by O open-guia hotkey quando Uma quest é hovered em O BQ GUI. Accepts canonical UUID strings e BetterQuesting's compact Base64 form. somente consumed quando BetterQuesting é carregado. Consulte [Mod Compatibility](Mod-Compatibility) |
-| `author` | texto | único author nome. Displayed em O baixo bar. |
-| `authors` | lista of strings ou `{name: ...}` maps | vários author names. At most dois são displayed; additional ones são substituído com `...`. Takes precedence sobre `author` Se ambos são present. |
-| `date` | texto ou YYYY-MM-DD date | conteúdo creation date. Displayed em O baixo bar. |
-| `updated` | texto ou YYYY-MM-DD date | último atualizado date. Displayed em O baixo bar. |
-| `zoom` | positive decimal | Per-página conteúdo zoom multiplier (e.g. `1.5` = 150 %). Multiplied com O global `contentZoom` setting em ModConfig. Padrão `1.0`. |
-| qualquer outro chave | qualquer YAML valor | Preserved em `additionalProperties` para extensions ou tooling |
+| `navigation` | map | Adds the page to the navigation tree |
+| `categories` | list of strings | Adds the page to MediaWiki-style categories; each entry can optionally use `category|sort key` |
+| `item_id` | item filter expression | A single NEI-style item expression that makes the page discoverable by `<ItemLink>` |
+| `item_ids` | list of item filter expressions | List form of `item_id`; any matching expression makes the page discoverable by `<ItemLink>` |
+| `fluid_id` / `fluid_ids` | string / string list | Exact fluid registry-name binding, optionally with #anchor |
+| `ore_ids` | list of ore dictionary names | Makes the page discoverable by ore-dictionary items (e.g. `ingotIron`, `oreCopper`) |
+| `quest_ids` | list of BetterQuesting quest ids | Makes the page discoverable by `<QuestLink>` / `<QuestCard>` and by the open-guide hotkey when a quest is hovered in the BQ GUI. Accepts canonical UUID strings and BetterQuesting's compact Base64 form. Only consumed when BetterQuesting is loaded. See [Mod Compatibility](Mod-Compatibility) |
+| `author` | string | Single author name. Displayed in the bottom bar. |
+| `authors` | list of strings or `{name: ...}` maps | Multiple author names. At most two are displayed; additional ones are replaced with `...`. Takes precedence over `author` if both are present. |
+| `date` | string or YYYY-MM-DD date | Content creation date. Displayed in the bottom bar. |
+| `updated` | string or YYYY-MM-DD date | Last updated date. Displayed in the bottom bar. |
+| `zoom` | positive float | Per-page content zoom multiplier (e.g. `1.5` = 150 %). Multiplied with the global `contentZoom` setting in ModConfig. Default `1.0`. |
+| any other key | any YAML value | Available to extensions and authoring tools |
+
+### Native fluid bindings and navigation icons
+
+`fluid_id` accepts one registry-name binding. `fluid_ids` accepts a string list. Both may coexist and are merged without duplicate destinations. Append `#anchor` to target a section; distinct anchors remain distinct. Bindings use exact names and ignore displayed amount and NBT.
+
+```yaml
+fluid_id: water
+fluid_ids:
+  - water#coolant
+  - steam#uses
+navigation:
+  title: Fluid handling
+  icon_fluid: water
+```
+
+Choose either `navigation.icon_fluid` for one registry name or `icon_fluids` for a nonempty list cycling once per second. These fields are mutually exclusive and cannot be combined with item or texture icon sources. They select page icons, not page bindings. Validate fluid availability in the running game; offline previews cannot verify registry contents.
 
 ### `navigation`
 
-| campo | Obrigatório | Tipo | Observações |
+| Field | Required | Type | Notes |
 | --- | --- | --- | --- |
-| `title` | sim | texto | exibir nome em Navegação e pesquisa título reserva |
-| `keyword` | não | texto | um additional pesquisa keyword ou alias; suporta prefix correspondente |
-| `keywords` | não | lista of strings | Additional Palavras-chave de pesquisa ou aliases; valores são combined e deduplicated |
-| `parent` | não | ID da página | pai ID da página; omitted significa topo-level node |
-| `position` | não | inteiro | Sibling sort ordem; Padrão `0`, larger valores appear earlier |
-| `priority` | não | inteiro | Prioridade de carregamento para mesmo-caminho página substitui; Padrão `0`, higher wins, equal priority lets O later pacote de recursos entrada win |
-| `icon` | não | item id | item icon exibido em Navegação/pesquisa. Accepts `modid:name`, `modid:name:meta`, ou `modid:name:meta:{snbt}`. O inline SNBT tail é O preferido way para attach NBT como Uma personalizado exibir nome. |
-| `icons` | não | lista of item ids | lista of item icons para animated cycling (um per second). cada entrada usa O mesmo sintaxe as `icon`, including inline `:{snbt}` tails. quando present takes priority sobre `icon`. |
-| `icon_texture` | não | recurso caminho | Texture icon caminho resolvido like qualquer outro recurso link |
-| `icon_textures` | não | lista of recurso paths | lista of texture icons para animated cycling (um per second). quando present takes priority sobre `icon_texture`. |
-| `required_mod` | não | mod id | oculta O página a menos que Este mod é carregado. |
-| `required_mods` | não | lista of mod ids | oculta O página a menos que cada listed mod é carregado. |
-| `excluded_mod` | não | mod id | oculta O página quando Este mod é carregado. |
-| `excluded_mods` | não | lista of mod ids | oculta O página quando qualquer listed mod é carregado. |
+| `title` | yes | string | Display name in navigation and search title fallback |
+| `keyword` | no | string | One additional search keyword or alias; supports prefix matching |
+| `keywords` | no | list of strings | Additional search keywords or aliases; values are combined and deduplicated |
+| `parent` | no | page id | Parent page id; omitted means top-level node |
+| `position` | no | integer | Sibling sort order; default `0`, larger values appear earlier |
+| `recommend` | no | integer | Home recommendation priority; only included when set, larger values first |
+| `priority` | no | integer | Load priority for same-path page overrides; default `0`, higher wins, equal priority lets the later resource pack entry win |
+| `icon` | no | item id | Item icon shown in navigation/search. Accepts `modid:name`, `modid:name:meta`, or `modid:name:meta:{snbt}`. The inline SNBT tail is the preferred way to attach NBT such as a custom display name. |
+| `icons` | no | list of item ids | List of item icons for animated cycling (one per second). Each entry uses the same syntax as `icon`, including inline `:{snbt}` tails. When present takes priority over `icon`. |
+| `icon_texture` | no | asset path | Texture icon path resolved like any other asset link |
+| `icon_textures` | no | list of asset paths | List of texture icons for animated cycling (one per second). When present takes priority over `icon_texture`. |
+| `icon_fluid` | no | string | One fluid registry name; excludes `icon_fluids` and item/texture sources |
+| `icon_fluids` | no | string list | Nonempty fluid registry names cycling once per second; excludes `icon_fluid` and item/texture sources |
+| `required_mod` | no | mod id | Hides the page unless this mod is loaded. |
+| `required_mods` | no | list of mod ids | Hides the page unless every listed mod is loaded. |
+| `excluded_mod` | no | mod id | Hides the page when this mod is loaded. |
+| `excluded_mods` | no | list of mod ids | Hides the page when any listed mod is loaded. |
 
-### Exemplo frontmatter
+### Example Frontmatter
 
 ```yaml
-item_id: minecraft:potion 16384-16462,!16386
 item_ids:
-  - ae2:white_paint_ball:*
-  - "<minecraft:wool:14>"
+  - minecraft:book
+fluid_id: water#coolant
 navigation:
-  title: Root
+  title: Guide Overview
   parent: index.md
   position: 10
-  priority: 0
-  icon: minecraft:book:0:{display:{Name:"My Custom Book"}}
-  # Use meta/damage to select a specific subtype:
-  # icon: minecraft:wool:1       (orange wool, colon form)
-  # Cycling icons list — cycles one per second:
-  # icons:
-  #   - minecraft:wool:1
-  #   - minecraft:wool:4:{display:{Name:"Custom Green Wool"}}
-  #   - minecraft:wool:14
-
-  icon_texture: test1.png
-  # Cycling textures:
-  # icon_textures:
-  #   - test1.png
-  #   - test2.png
+  recommend: 0
+  icon: minecraft:book
 categories:
   - basics
-  - examples|Examples Overview
-ore_ids:
-  - ingotIron
-  - oreCopper
-quest_ids:
-  - 01234567-89ab-cdef-0123-456789abcdef
-  - AAAAAAAAAAAAAAAAAAAMug==
+  - examples|Overview
 author: ExampleAuthor
 date: 2024-01-15
 updated: 2024-06-01
 ```
 
-`categories` accepts qualquer um simples category names ou `category|sort key` entradas.
-usar `<Category name="examples" rows="3" />` para renderizar Uma category listing bloco, e
-`<Special name="SpecialPages" rows="3" />` para embed O gerado MediaWiki-style special-página index.
+`categories` accepts either plain category names or `category|sort key` entries.
+Use `<Category name="examples" rows="3" />` to render a category listing block, and
+`<Special name="SpecialPages" rows="3" />` to embed the generated MediaWiki-style special-page index.
 
-para BetterQuesting integration, `quest_ids` accepts qualquer um of Estes formats:
+The `templates/` folder under a language folder is reserved for template pages. Templates are written
+like any other page but are excluded from listings and the navigation tree. See
+[Templates](Templates).
 
-- canonical UUID strings como `01234567-89ab-cdef-0123-456789abcdef`
-- BetterQuesting compact quest ids como `AAAAAAAAAAAAAAAAAAAMug==`
+For BetterQuesting integration, `quest_ids` accepts either of these formats:
 
-Do não lista ambos forms para O mesmo quest em um página's `quest_ids`; Elas normalize para O mesmo interno UUID e would ser treated as duplicates.
+- canonical UUID strings such as `01234567-89ab-cdef-0123-456789abcdef`
+- BetterQuesting compact quest ids such as `AAAAAAAAAAAAAAAAAAAMug==`
 
-quando qualquer of `author`, `authors`, `date`, ou `updated` é present, GuideNH mostra a
-baixo bar em O guia tela (correspondente O topo toolbar style) com direita-aligned
-texto like: *conteúdo de MyMod, Author ExampleAuthor, Date 2024-01-15, atualizado 2024-06-01*.
+Do not list both forms for the same quest in one page's `quest_ids`; they normalize to the same internal UUID and would be treated as duplicates.
 
-vários authors Exemplo:
+When any of `author`, `authors`, `date`, or `updated` is present, GuideNH shows a
+bottom bar in the guide screen (matching the top toolbar style) with right-aligned
+text like: *Content from MyMod, Author ExampleAuthor, Date 2024-01-15, Updated 2024-06-01*.
+
+Multiple authors example:
 ```yaml
 authors:
   - Alice
   - Bob
-  - Charlie   # only Alice and Bob are shown, "..." appended
+  - Charlie
 ```
-ou com structured entradas:
+Or with structured entries:
 ```yaml
 authors:
   - name: Alice
@@ -432,20 +452,20 @@ authors:
 
 ### `zoom`
 
-O `zoom` chave lets you enlarge ou shrink O conteúdo of a único página sem
-affecting qualquer outro página. O valor é Uma positive decimal treated as Uma multiplier:
+The `zoom` key lets you enlarge or shrink the content of a single page without
+affecting any other page. The value is a positive float treated as a multiplier:
 
-| Exemplo valor | Effect |
+| Example value | Effect |
 | --- | --- |
-| `1.0` (Padrão) | normal tamanho |
-| `1.5` | 150 % — conteúdo 50 % larger |
-| `0.75` | 75 % — conteúdo 25 % smaller |
+| `1.0` (default) | Normal size |
+| `1.5` | 150 % — content 50 % larger |
+| `0.75` | 75 % — content 25 % smaller |
 
-O per-página zoom é multiplied com O global **contentZoom** slider em
-ModConfig → GuideNH → UI. Este lets server packs Defina Uma sensible baseline enquanto
-ainda allowing individual pages para fine-tune layout para narrow ou wide conteúdo.
+The per-page zoom is multiplied with the global **contentZoom** slider in
+ModConfig → GuideNH → UI. This lets server packs set a sensible baseline while
+still allowing individual pages to fine-tune layout for narrow or wide content.
 
-Exemplo: Defina Este página para exibir at 150 % of O base zoom:
+Example: set this page to display at 150 % of the base zoom:
 
 ```yaml
 zoom: 1.5
@@ -453,49 +473,49 @@ navigation:
   title: My Dense Page
 ```
 
-página layout é recomputed at O zoom-adjusted largura, so texto wrapping e todos
-bloco geometria remain correct at qualquer zoom level.
+Page layout is recomputed at the zoom-adjusted width, so text wrapping and all
+block geometry remain correct at any zoom level.
 
-## Resolução de links
+## Link Resolution
 
-GuideNH resolves ids e paths using Estes Regras:
+GuideNH resolves ids and paths using these rules:
 
-### página links
+### Page links
 
-| entrada | Significado |
+| Input | Meaning |
 | --- | --- |
-| `subpage.md` | relativo para O atual página, em O atual página namespace |
-| `./subpage.md` | relativo para O atual página, em O atual página namespace |
-| `/guide.md` | rooted para O atual página namespace, equivalent para `currentmod:guide.md` |
-| `gregtech:guide.md` | explícito namespace; opens `gregtech:guidenh` quando O atual guia caminho é `guidenh` |
-| `gregtech:/guide.md` | explícito namespace plus rooted caminho, normalized para `gregtech:guide.md` |
-| `subpage.md#anchor` | página plus anchor fragment |
-| `guidenh:other.md#anchor` | explícito `modid:path#anchor` |
-| `https://example.com` | externo HTTP/HTTPS link |
+| `subpage.md` | relative to the current page, in the current page namespace |
+| `./subpage.md` | relative to the current page, in the current page namespace |
+| `/guide.md` | rooted to the current page namespace, equivalent to `currentmod:guide.md` |
+| `gregtech:guide.md` | explicit namespace; opens `gregtech:guidenh` when the current guide path is `guidenh` |
+| `gregtech:/guide.md` | explicit namespace plus rooted path, normalized to `gregtech:guide.md` |
+| `subpage.md#anchor` | page plus anchor fragment |
+| `guidenh:other.md#anchor` | explicit `modid:path#anchor` |
+| `https://example.com` | external HTTP/HTTPS link |
 
-página links são isolated by namespace. Uma link written de `assets/guidenh/guidenh/_en_us/index.md` as
-`[Guide](guide.md)` resolves para `guidenh:guide.md`; O mesmo texto em
-`assets/gregtech/guidenh/_en_us/index.md` resolves para `gregtech:guide.md`. Se que página é ausente em O
-atual namespace, GuideNH reports it as Uma broken link em vez disso of falling back para another mod's página.
+Page links are isolated by namespace. A link written from `assets/guidenh/guidenh/_en_us/index.md` as
+`[Guide](guide.md)` resolves to `guidenh:guide.md`; the same text in
+`assets/gregtech/guidenh/_en_us/index.md` resolves to `gregtech:guide.md`. If that page is missing in the
+current namespace, GuideNH reports it as a broken link instead of falling back to another mod's page.
 
-explícito `modid:path` links pode cross de um mod's dados-driven guia para another. O guia id é derived de
-O destino página namespace e O atual guia caminho, so Uma link de `guidenh:guidenh` para `gregtech:guide.md`
-opens página `gregtech:guide.md` em guia `gregtech:guidenh`.
+Explicit `modid:path` links can cross from one mod's data-driven guide to another. The guide id is derived from
+the target page namespace and the current guide path, so a link from `guidenh:guidenh` to `gregtech:guide.md`
+opens page `gregtech:guide.md` in guide `gregtech:guidenh`.
 
-Anchor fragments rolar O guia para Uma heading whose texto lowercased e spaces substituído com hyphens
-corresponde O fragment (e.g. `#crafting-recipe` scrolls para `## Crafting Recipe`), ou para a `<a name="...">` anchor.
+Anchor fragments scroll the guide to a heading whose text lowercased and spaces replaced with hyphens
+matches the fragment (e.g. `#crafting-recipe` scrolls to `## Crafting Recipe`), or to a `<a name="...">` anchor.
 
-### recurso links
+### Asset links
 
-Assets usar O mesmo resolution Regras as links. para Exemplo:
+Assets use the same resolution rules as links. For example:
 
-- `test1.png` resolves relativo para O atual página arquivo.
-- `/assets/example_structure.snbt` resolves para O guia's recurso raiz.
-- `guidenh:textures/gui/example.png` resolves as Um explícito recurso location.
+- `test1.png` resolves relative to the current page file.
+- `/assets/example_structure.snbt` resolves to the guide's asset root.
+- `guidenh:textures/gui/example.png` resolves as an explicit resource location.
 
-## Sintaxe de referência de itens
+## Item Reference Syntax
 
-Navegação `icon` e `icons`, along com tags que aceitam Um item id, usar ordinary item references:
+Navigation `icon` and `icons`, along with tags that accept an item id, use ordinary item references:
 
 ```text
 modid:name
@@ -503,10 +523,10 @@ modid:name:meta
 modid:name:meta:{snbt}
 ```
 
-Um omitted `meta` defaults para `0`. Um SNBT tail starts at O primeiro `{` e é analisado as item NBT. Where wildcard
-metadata é Compatível, `*` pode ser combined com O SNBT tail.
+An omitted `meta` defaults to `0`. An SNBT tail starts at the first `{` and is parsed as item NBT. Where wildcard
+metadata is supported, `*` can be combined with the SNBT tail.
 
-Exemplos:
+Examples:
 
 ```text
 minecraft:diamond
@@ -515,18 +535,18 @@ minecraft:written_book:0:{title:TestBook,author:GuideNH}
 minecraft:written_book:*:{title:TestBook,author:GuideNH}
 ```
 
-### Expressões de índice de itens
+### Item Index Expressions
 
-`item_id` accepts um NEI-style expressão e `item_ids` accepts Uma YAML lista of O mesmo expressions. cada
-`item_ids` entrada é independent; O página é linked quando qualquer entrada corresponde. Whitespace combines terms, `|`
-combines alternatives, e `,` combines Regras dentro de um term.
+`item_id` accepts one NEI-style expression and `item_ids` accepts a YAML list of the same expressions. Each
+`item_ids` entry is independent; the page is linked when any entry matches. Whitespace combines terms, `|`
+combines alternatives, and `,` combines rules within one term.
 
-- `minecraft:lava` performs Uma case-insensitive partial registry-id corresponder, so it também corresponde `minecraft:lava_bucket`.
-- `<minecraft:wool:14>` strictly corresponde um item e meta valor.
-- `ae2:white_paint_ball:*`, `:32767`, e uppercase meta tokens como `:ANY` são compatible strict todos-meta forms.
-- `16384-16462,!16386` corresponde Uma metadata range enquanto excluding `16386`.
-- `!minecraft:portal` excludes Uma correspondente registry id.
-- `r/^m\\w{6}ft$/` usa Uma Java regular expressão against O registry id.
+- `minecraft:lava` performs a case-insensitive partial registry-id match, so it also matches `minecraft:lava_bucket`.
+- `<minecraft:wool:14>` strictly matches one item and meta value.
+- `ae2:white_paint_ball:*`, `:32767`, and uppercase meta tokens such as `:ANY` are compatible strict all-meta forms.
+- `16384-16462,!16386` matches a metadata range while excluding `16386`.
+- `!minecraft:portal` excludes a matching registry id.
+- `r/^m\\w{6}ft$/` uses a Java regular expression against the registry id.
 
 ```yaml
 item_id: "minecraft:potion 16384-16462,!16386 | ae2:white_paint_ball:*"
@@ -540,20 +560,20 @@ item_ids:
   - minecraft:diamond#Usage
 ```
 
-em Este Exemplo, whitespace combines condições, `,` combines Regras dentro de um term, `!` excludes Uma corresponder, e
-`|` separates alternatives. O primeiro expressão portanto accepts potion metadata de `16384` por `16462`
-except `16386`, ou qualquer metadata of `ae2:white_paint_ball`. O second expressão demonstrates Uma wildcard item
-reference em Uma comma-separated expressão com Uma reverse (`!`) regra. O último dois entradas mostrar Uma metadata union
-com `28` excluded e Um item mapping que opens O `Usage` heading anchor.
+In this example, whitespace combines conditions, `,` combines rules within one term, `!` excludes a match, and
+`|` separates alternatives. The first expression therefore accepts potion metadata from `16384` through `16462`
+except `16386`, or any metadata of `ae2:white_paint_ball`. The second expression demonstrates a wildcard item
+reference in a comma-separated expression with a reverse (`!`) rule. The last two entries show a metadata union
+with `28` excluded and an item mapping that opens the `Usage` heading anchor.
 
-Um opcional `#anchor` suffix opens Uma correspondente página at Uma heading anchor. Exact item e explícito-meta mappings usar
-O direto index primeiro; expressions são evaluated somente quando needed.
+An optional `#anchor` suffix opens a matching page at a heading anchor. Exact item and explicit-meta mappings use
+the direct index first; expressions are evaluated only when needed.
 
-## Tratamento de erros
+## Error Handling
 
-Se Uma página fails para analisar, GuideNH cria Um erro página em vez disso of crashing O guia. inválido tags, ids, e atributos são reported inline as guia-renderizado erro texto.
+If a page fails to parse, GuideNH creates an error page instead of crashing the guide. Invalid tags, ids, and attributes are reported inline as guide-rendered error text.
 
-## Páginas relacionadas
+## Related Pages
 
 - [Navigation](Navigation)
 - [Images And Assets](Images-And-Assets)

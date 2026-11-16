@@ -27,6 +27,11 @@ import com.hfstudio.guidenh.guide.GuideAnchor;
 import com.hfstudio.guidenh.guide.PageAnchor;
 import com.hfstudio.guidenh.guide.compiler.GuideItemReferenceResolver;
 import com.hfstudio.guidenh.guide.compiler.tags.BlockImageCompiler.BlockImagePlaceholder;
+import com.hfstudio.guidenh.guide.compiler.tags.FluidImageCompiler.FluidImagePlaceholder;
+import com.hfstudio.guidenh.guide.compiler.tags.FluidImageOptions;
+import com.hfstudio.guidenh.guide.compiler.tags.ItemGridCompiler.FluidEntry;
+import com.hfstudio.guidenh.guide.compiler.tags.ItemGridCompiler.ItemEntry;
+import com.hfstudio.guidenh.guide.compiler.tags.ItemGridCompiler.ItemGridPlaceholder;
 import com.hfstudio.guidenh.guide.compiler.tags.ItemImageCompiler.ItemImagePlaceholder;
 import com.hfstudio.guidenh.guide.compiler.tags.MermaidCompiler.MermaidPlaceholder;
 import com.hfstudio.guidenh.guide.document.block.ImageRegionAnnotation;
@@ -39,6 +44,7 @@ import com.hfstudio.guidenh.guide.document.block.LytDetailsBlock;
 import com.hfstudio.guidenh.guide.document.block.LytDocument;
 import com.hfstudio.guidenh.guide.document.block.LytDocumentFloat;
 import com.hfstudio.guidenh.guide.document.block.LytFileTree;
+import com.hfstudio.guidenh.guide.document.block.LytFluidImage;
 import com.hfstudio.guidenh.guide.document.block.LytGuiSprite;
 import com.hfstudio.guidenh.guide.document.block.LytHBox;
 import com.hfstudio.guidenh.guide.document.block.LytHeading;
@@ -53,6 +59,7 @@ import com.hfstudio.guidenh.guide.document.block.LytListItem;
 import com.hfstudio.guidenh.guide.document.block.LytMermaidFlowchart;
 import com.hfstudio.guidenh.guide.document.block.LytMermaidMindmap;
 import com.hfstudio.guidenh.guide.document.block.LytNode;
+import com.hfstudio.guidenh.guide.document.block.LytPageFluidIcon;
 import com.hfstudio.guidenh.guide.document.block.LytParagraph;
 import com.hfstudio.guidenh.guide.document.block.LytQuoteBox;
 import com.hfstudio.guidenh.guide.document.block.LytSizeBox;
@@ -397,6 +404,35 @@ public class GuideSiteTooltipRenderer {
             case LytSizeBox sizeBox -> {
                 appendBlockChildren(html, node, currentPageId, assetExporter, itemIconResolver, templates,
                     allowNestedItemTooltips);
+                return;
+            }
+            case FluidImagePlaceholder fluid -> {
+                appendFluidImage(html, fluid.getOptions(), itemIconResolver, templates);
+                return;
+            }
+            case ItemGridPlaceholder grid -> {
+                html.append("<div class=\"guide-tooltip-item-grid\">");
+                for (var entry : grid.getEntries()) {
+                    html.append("<div class=\"ingredient-box\">");
+                    if (entry instanceof FluidEntry fluid) {
+                        appendFluidImage(html, new FluidImageOptions(fluid.fluid(), 1, fluid.showTooltip(), true, null, null, null, null), itemIconResolver, templates);
+                    } else if (entry instanceof ItemEntry item) {
+                        ItemStack stack = item.id() == null ? null : GuideDisplayItemStacks.resolveItemStack(item.id(), "minecraft");
+                        if (stack == null && item.ore() != null) stack = GuideDisplayItemStacks.resolveOreStack(item.ore());
+                        if (stack != null) appendItemStacks(html, List.of(stack), itemIconResolver, currentPageId, assetExporter, templates, allowNestedItemTooltips);
+                    }
+                    html.append("</div>");
+                }
+                html.append("</div>");
+                return;
+            }
+            case LytFluidImage fluid -> {
+                appendFluidImage(html, FluidImageOptions.fromImage(fluid), itemIconResolver, templates);
+                return;
+            }
+            case LytPageFluidIcon fluid -> {
+                appendFluidImage(html, new FluidImageOptions(fluid.getFluidSpec(), fluid.getScale(),
+                    fluid.getTooltip(0, 0).isPresent(), true, null, null, null, null), itemIconResolver, templates);
                 return;
             }
             case ItemImagePlaceholder itemImage -> {
@@ -1532,6 +1568,27 @@ public class GuideSiteTooltipRenderer {
         return result;
     }
 
+    private void appendFluidImage(StringBuilder html, FluidImageOptions options, GuideSiteItemIconResolver icons,
+        @Nullable GuideSiteTemplateRegistry templates) {
+        String template = options.showTooltip() && templates != null
+            ? templates.create(GuideSiteFluidHtml.tooltip(options.fluid()))
+            : null;
+        String href = templates == null ? ""
+            : templates.resolveFluidHref(
+                options.fluid()
+                    .id());
+        html.append(
+            GuideSiteFluidHtml.image(
+                options,
+                GuideSiteFluidIconResolver.from(icons),
+                template,
+                href,
+                templates == null ? List.of()
+                    : templates.resolveFluidTargets(
+                        options.fluid()
+                            .id())));
+    }
+
     private void appendItemImage(StringBuilder html, ItemImagePlaceholder image,
         @Nullable ResourceLocation currentPageId, @Nullable GuideSitePageAssetExporter assetExporter,
         GuideSiteItemIconResolver itemIconResolver, @Nullable GuideSiteTemplateRegistry templates,
@@ -1715,6 +1772,25 @@ public class GuideSiteTooltipRenderer {
         @Nullable GuideSiteTemplateRegistry templates, boolean allowNestedItemTooltips) {
         html.append("<div class=\"guide-tooltip-item-grid\">");
         for (LytNode child : grid.getChildren()) {
+            if (child instanceof LytFluidImage fluid) {
+                html.append("<div class=\"ingredient-box\">");
+                appendFluidImage(
+                    html,
+                    new FluidImageOptions(
+                        fluid.getFluidSpec(),
+                        fluid.getScale(),
+                        fluid.getTooltip(0, 0)
+                            .isPresent(),
+                        true,
+                        null,
+                        null,
+                        null,
+                        null),
+                    itemIconResolver,
+                    templates);
+                html.append("</div>");
+                continue;
+            }
             if (!(child instanceof LytSlot slot)) {
                 continue;
             }
