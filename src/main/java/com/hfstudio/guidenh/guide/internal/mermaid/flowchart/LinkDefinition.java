@@ -116,7 +116,9 @@ public enum LinkDefinition {
         return minRepeat;
     }
 
-    /** True if this link has variable length (repeatChar is significant). */
+    /**
+     * True if this link has variable length (repeatChar is significant).
+     */
     public boolean isVariableLength() {
         return repeatChar != '\0' && minRepeat > 0 && repeatChar != '.';
     }

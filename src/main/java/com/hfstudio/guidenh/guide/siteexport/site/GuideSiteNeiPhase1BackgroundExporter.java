@@ -40,7 +40,9 @@ public class GuideSiteNeiPhase1BackgroundExporter implements AutoCloseable {
      */
     public static final int VIEWPORT_MARGIN_PX = 6;
 
-    /** Upper bound avoids extreme handler sizes blowing memory during export. */
+    /**
+     * Upper bound avoids extreme handler sizes blowing memory during export.
+     */
     private static final int MAX_EXPORT_EDGE = 1024;
     private static final int RASTER_SCALE = 2;
 
@@ -277,7 +279,9 @@ public class GuideSiteNeiPhase1BackgroundExporter implements AutoCloseable {
         pixelBuffer = null;
     }
 
-    /** Non-null fields when capture succeeds; use {@link #relativeUrl} in HTML/CSS. */
+    /**
+     * Non-null fields when capture succeeds; use {@link #relativeUrl} in HTML/CSS.
+     */
     public static class Result {
 
         public final String relativeUrl;

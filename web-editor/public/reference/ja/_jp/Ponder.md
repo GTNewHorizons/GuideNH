@@ -1,16 +1,15 @@
-# Ponder Animation Timeline
+# Ponder タイムライン
 
-GuideNH の構文と実行時機能を説明します。コード、タグ、パス、ID、属性値は仕様のためそのまま保持しています。
+このページの詳細なリファレンスは英語で提供しています。タグ名、属性、ID、パスは翻訳せずに使用してください。
 
+GuideNH supports Ponder-style animated timelines inside `<GameScene>` blocks. You supply an
+external JSON file that defines keyframes, camera movements and in-world annotations, and
+GuideNH renders an interactive progress bar with play/pause controls below the 3D scene.
 
-GuideNH 対応します Ponder アニメーション-style animated timelines 内部 `<GameScene>` ブロック. You supply an
-外部 JSON ファイル that defines keyframes, カメラ movements と で-ワールド 注釈, と
-GuideNH 描画 an インタラクティブ progress bar とともに play/pause controls below  3D シーン.
+## Quick Start
 
-## クイックスタート
-
-1. 作成 Ponder アニメーション JSON ファイル と 配置 it で 自身の リソースパック (参照してください [File Placement](#file-placement)).
-2. 追加します `<ImportPonder src="..."/>` 内部 a `<GameScene>` ブロック alongside `<ImportStructure>`.
+1. Create a Ponder JSON file and place it in your resource pack (see [File Placement](#file-placement)).
+2. Add `<ImportPonder src="..."/>` inside a `<GameScene>` block alongside `<ImportStructure>`.
 
 ```mdx
 <GameScene zoom="4">
@@ -19,28 +18,28 @@ GuideNH 描画 an インタラクティブ progress bar とともに play/pause 
 </GameScene>
 ```
 
-> **注記:** `<ImportPonder>` 必要があります appear 内部 a `<GameScene>` ブロック.  `src` 属性 です
-> 必須. Structure データ です 引き続き 指定された by `<ImportStructure>` または `<ImportStructureLib>`.
+> **Note:** `<ImportPonder>` must appear inside a `<GameScene>` block. The `src` attribute is
+> required. Structure data is still provided by `<ImportStructure>` or `<ImportStructureLib>`.
 
-## ファイル配置
+## File Placement
 
-Ponder アニメーション JSON files follow  同じ リソース-pack パス 規則 as SNBT structures:
+Ponder JSON files follow the same resource-pack path rules as SNBT structures:
 
 ```
-assets/<modid>/guidebooks/
-  pages/machines/my_machine.mdx       <- guide page
-  pages/machines/my_machine.snbt      <- structure data
-  pages/machines/my_machine.json      <- Ponder JSON
+assets/<modid>/guidenh/
+  _en_us/machines/my_machine.md       <- guide page
+  _en_us/machines/my_machine.snbt      <- structure data
+  _en_us/machines/my_machine.json      <- Ponder JSON
 ```
 
- `src` 属性 accepts 両方 相対 と 絶対 IDs:
+The `src` attribute accepts both relative and absolute IDs:
 
-| 例 | 解決された as |
+| Example | Resolved as |
 |---------|-------------|
-| `src="my_machine.json"` | 相対 へ  現在の ページ's ディレクトリ |
-| `src="mymod:guidebooks/pages/machines/my_machine.json"` | 絶対 (`mymod` namespace) |
+| `src="my_machine.json"` | Relative to the current page's directory |
+| `src="mymod:guidenh/_en_us/machines/my_machine.json"` | Absolute (`mymod` namespace) |
 
-## JSON 形式
+## JSON Format
 
 ```json
 {
@@ -86,59 +85,61 @@ assets/<modid>/guidebooks/
 }
 ```
 
-### ルートフィールド
+### Root fields
 
-| フィールド | 型 | 必須 | 説明 |
+| Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `totalTime` | 整数 | はい | Total duration で ticks (20 ticks = 1 second). Minimum clamped へ 1. |
-| `keyframes` | array | はい | 一覧 of keyframe objects. 可能性があります なる 空. |
+| `totalTime` | integer | Yes | Total duration in ticks (20 ticks = 1 second). Minimum clamped to 1. |
+| `keyframes` | array | Yes | List of keyframe objects. May be empty. |
 
-### キーフレームフィールド
+For offline editor validation, add `"$schema": "guidenh://schema/ponder.json"` to the JSON root. The GuideNH mod exposes the bundled schema at `assets/guidenh/schema/ponder_schema.json`; the wiki example resource pack keeps a copy at `wiki/resourcepack/assets/guidenh/guidenh/assets/schema/ponder_schema.json`. Neither copy loads a remote URL.
 
-| フィールド | 型 | 必須 | 説明 |
+### Keyframe fields
+
+| Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `time` | 整数 | はい | Tick at これらは この keyframe occurs (0 <= time <= totalTime). |
-| `hidden` | 真偽値 | いいえ | 場合 `true`,  keyframe 引き続き 適用します カメラ/NBT/entity/注釈 状態 at its `time`, but いいえ 表示 node です drawn 用 it on  progress bar と 表示 keyframe ナビゲーション skips it. |
-| `label` | 文字列 | いいえ | 任意の フォールバック ラベル 表示される 場合 ホバーすると  keyframe node on  progress bar. |
-| `labelKey` | 文字列 | いいえ | 翻訳キー 用  keyframe ラベル. 場合 解決された, it 上書きします `label`. |
-| `camera` | object | いいえ | カメラ 状態 at この keyframe. Null フィールド inherit から  前の keyframe. |
-| `cameraEaseTicks` | 整数 または null | いいえ | How many ticks  カメラ takes へ ease から  **前の** keyframe へ この 1 つ. `null` (既定値) = ease 上  完全な segment. `0` = instant snap. `N > 0` = ease 上 N ticks, then hold at  対象 位置. |
-| `layer` | 整数 または null | いいえ | 表示 layer 上書き. `null` (または omitted) shows すべての layers. 1-based index. |
-| `annotations` | array | いいえ | 一覧 of 注釈 objects 表示される 中 この keyframe です active. |
-| `sounds` | array | いいえ | 一覧 of sounds played once 場合 この keyframe になります active 中 forward playback. |
-| `particles` | array | いいえ | 一覧 of 実行時 particle bursts または presets fired 場合 この keyframe になります active 中 forward playback. |
-| `blockChanges` | array | いいえ | 一覧 of ブロック replacements applied 場合 この keyframe 最初の になります active. |
-| `mergeTileNBT` | array | いいえ | Merge SNBT compounds into tile entities at ブロック positions. |
-| `modifyTileNBT` | array | いいえ | 設定します 1 つ tile-entity NBT パス へ SNBT 値. |
-| `removeTileNBT` | array | いいえ | 削除 1 つ tile-entity NBT パス. |
-| `createEntities` | array | いいえ | 作成 Ponder アニメーション-owned entities that できます なる referenced by later entity NBT operations. |
-| `setEntityNBT` | array | いいえ | 置き換え referenced entity's NBT とともに  supplied SNBT compound. |
-| `mergeEntityNBT` | array | いいえ | Merge SNBT compound into referenced entity. |
-| `modifyEntityNBT` | array | いいえ | 設定します 1 つ referenced entity NBT パス へ SNBT 値. |
-| `removeEntityNBT` | array | いいえ | 削除 1 つ referenced entity NBT パス. |
-| `removeEntities` | array | いいえ | 削除 1 つ または さらに Ponder アニメーション-owned entities by `ref` using  stable シーン-entity registry. |
+| `time` | integer | Yes | Tick at which this keyframe occurs (0 <= time <= totalTime). |
+| `hidden` | boolean | No | When `true`, the keyframe still applies camera/NBT/entity/annotation state at its `time`, but no visible node is drawn for it on the progress bar and visible keyframe navigation skips it. |
+| `label` | string | No | Optional fallback label shown when hovering the keyframe node on the progress bar. |
+| `labelKey` | string | No | Translation key for the keyframe label. When resolved, it overrides `label`. |
+| `camera` | object | No | Camera state at this keyframe. Null fields inherit from the previous keyframe. |
+| `cameraEaseTicks` | integer or null | No | How many ticks the camera takes to ease from the **previous** keyframe to this one. `null` (default) = ease over the full segment. `0` = instant snap. `N > 0` = ease over N ticks, then hold at the target position. |
+| `layer` | integer or null | No | Visible layer override. `null` (or omitted) shows all layers. 1-based index. |
+| `annotations` | array | No | List of annotation objects shown while this keyframe is active. |
+| `sounds` | array | No | List of sounds played once when this keyframe becomes active during forward playback. |
+| `particles` | array | No | List of runtime particle bursts or presets fired when this keyframe becomes active during forward playback. |
+| `blockChanges` | array | No | List of block replacements applied when this keyframe first becomes active. |
+| `mergeTileNBT` | array | No | Merge SNBT compounds into tile entities at block positions. |
+| `modifyTileNBT` | array | No | Set one tile-entity NBT path to an SNBT value. |
+| `removeTileNBT` | array | No | Remove one tile-entity NBT path. |
+| `createEntities` | array | No | Create Ponder-owned entities that can be referenced by later entity NBT operations. |
+| `setEntityNBT` | array | No | Replace a referenced entity's NBT with the supplied SNBT compound. |
+| `mergeEntityNBT` | array | No | Merge an SNBT compound into a referenced entity. |
+| `modifyEntityNBT` | array | No | Set one referenced entity NBT path to an SNBT value. |
+| `removeEntityNBT` | array | No | Remove one referenced entity NBT path. |
+| `removeEntities` | array | No | Remove one or more Ponder-owned entities by `ref` using the stable scene-entity registry. |
 
-非表示 keyframes です useful 場合 you want additional intermediate 状態 変更 なしで adding new 表示 node
-へ  timeline. 用 例, you できます split several `modifyTileNBT` updates across 複数の ticks, mark 
-intermediate keyframes as 非表示, と 保持します のみ  major beats 表示 on  progress bar.
+Hidden keyframes are useful when you want additional intermediate state changes without adding a new visible node
+to the timeline. For example, you can split several `modifyTileNBT` updates across multiple ticks, mark the
+intermediate keyframes as hidden, and keep only the major beats visible on the progress bar.
 
-### カメラフィールド
+### Camera fields
 
-すべての カメラフィールド です 任意の. 任意の `null` または omitted フィールド inherits its 値 から  nearest
-prior keyframe that defined it; もし いいえ prior keyframe defined  フィールド,  シーン's 既定値
-カメラ 値 です 使用されます.
+All camera fields are optional. Any `null` or omitted field inherits its value from the nearest
+prior keyframe that defined it; if no prior keyframe defined the field, the scene's default
+camera value is used.
 
-| フィールド | 型 | 説明 |
+| Field | Type | Description |
 |-------|------|-------------|
-| `zoom` | 浮動小数点数 | カメラ ズーム level (0.1 - 10.0). |
-| `rotX` | 浮動小数点数 | X-axis 回転 で degrees. |
-| `rotY` | 浮動小数点数 | Y-axis 回転 で degrees. |
-| `rotZ` | 浮動小数点数 | Z-axis 回転 で degrees. |
-| `offX` | 浮動小数点数 | Horizontal pan offset で 画面 pixels. |
-| `offY` | 浮動小数点数 | Vertical pan offset で 画面 pixels. |
+| `zoom` | float | Camera zoom level (0.1 - 10.0). |
+| `rotX` | float | X-axis rotation in degrees. |
+| `rotY` | float | Y-axis rotation in degrees. |
+| `rotZ` | float | Z-axis rotation in degrees. |
+| `offX` | float | Horizontal pan offset in screen pixels. |
+| `offY` | float | Vertical pan offset in screen pixels. |
 
- カメラ smoothly interpolates 間 adjacent keyframes using an **ease-で/ease-out** 曲線.
-使用 `cameraEaseTicks` on  **destination** keyframe へ control  easing duration:
+The camera smoothly interpolates between adjacent keyframes using an **ease-in/ease-out** curve.
+Use `cameraEaseTicks` on the **destination** keyframe to control the easing duration:
 
 ```json
 { "time": 60, "cameraEaseTicks": 0,  "camera": { "rotY": 90 } }   <- instant snap
@@ -146,11 +147,11 @@ prior keyframe that defined it; もし いいえ prior keyframe defined  フィ�
 { "time": 180, "camera": { "rotY": 270 } }                         <- ease over full segment (default)
 ```
 
-## ブロック変更
+## Block Changes
 
- `blockChanges` array で keyframe replaces ブロック で  live structure 場合 that keyframe
-になります active. この 許可します  animation へ 表示 前-と-後 states, 配置 または 削除
-ブロック, または animate machine powering on.
+The `blockChanges` array in a keyframe replaces blocks in the live structure when that keyframe
+becomes active. This allows the animation to show before-and-after states, place or remove
+blocks, or animate a machine powering on.
 
 ```json
 {
@@ -166,26 +167,26 @@ prior keyframe that defined it; もし いいえ prior keyframe defined  フィ�
 }
 ```
 
-| フィールド | 型 | 既定値 | 説明 |
+| Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `x`, `y`, `z` | 整数 | - | **必須.** 位置 of  ブロック へ 変更 (structure 座標). |
-| `block` | 文字列 | - | **必須.** Registry 名前, e.g. `"minecraft:furnace"`. 使用 `"minecraft:air"` へ 削除. |
-| `meta` | 整数 | `0` | ブロック metadata / damage 値. |
-| `particles` | 真偽値 | `true` | Whether へ spawn ブロック-texture particle effects 場合 この ブロック 変更 fires 中 forward playback. Particles です taken から  ブロック's 独自の icon texture. 設定します へ `false` へ suppress (e.g., 用 silent removal). |
-| `nbt` | 文字列 | `null` | SNBT 文字列 用 tile entity タグ, e.g. 用 chests, furnaces, etc. 解析済み とともに `JsonToNBT`. キー 必要があります なる **unquoted** (標準 SNBT format). Ignored もし  ブロック has いいえ tile entity. |
+| `x`, `y`, `z` | integer | - | **Required.** Position of the block to change (structure coordinates). |
+| `block` | string | - | **Required.** Registry name, e.g. `"minecraft:furnace"`. Use `"minecraft:air"` to remove. |
+| `meta` | integer | `0` | Block metadata / damage value. |
+| `particles` | boolean | `true` | Whether to spawn block-texture particle effects when this block change fires during forward playback. Particles are taken from the block's own icon texture. Set to `false` to suppress (e.g., for silent removal). |
+| `nbt` | string | `null` | SNBT string for a tile entity tag, e.g. for chests, furnaces, etc. Parsed with `JsonToNBT`. Keys must be **unquoted** (standard SNBT format). Ignored if the block has no tile entity. |
 
-**参照k-safe:** 場合 seeking backwards  実行時 restores すべての changed positions へ their
-original structure 状態, then re-適用します 変更 から keyframes 0 通じて  現在の 1 つ.
- displayed structure です 常に correct に関係なく seek direction.
+**Seek-safe:** When seeking backwards the runtime restores all changed positions to their
+original structure state, then re-applies changes from keyframes 0 through the current one.
+The displayed structure is always correct regardless of seek direction.
 
-> **注記 on particles:** ブロック-texture particles fire once, のみ 中 forward playback 場合 
-> keyframe 最初の になります active. これらは です cleared on seek, restart, または 初期 読み込み.
+> **Note on particles:** Block-texture particles fire once, only during forward playback when the
+> keyframe first becomes active. They are cleared on seek, restart, or initial load.
 
-## キーフレームのサウンド
+## Keyframe Sounds
 
-追加します a `sounds` array へ keyframe へ play 1 つ または さらに ガイド sounds 場合  keyframe になります active
-中 forward playback. 参照king と 初期 読み込み do ない play キーフレームのサウンド; restart clears 
-play history so  sounds できます fire again.
+Add a `sounds` array to a keyframe to play one or more guide sounds when the keyframe becomes active
+during forward playback. Seeking and initial load do not play keyframe sounds; restart clears the
+play history so the sounds can fire again.
 
 ```json
 {
@@ -198,28 +199,26 @@ play history so  sounds できます fire again.
 }
 ```
 
-Sound フィールド:
+Sound fields:
 
-| フィールド | 型 | 既定値 | 説明 |
+| Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `sound` | 文字列 | - | Sound event id, e.g. `guidenh:machine.start`. |
-| `src` | 文字列 | - | Sound ファイル id または パス; `guidenh:sounds/machine/start.ogg` になります `guidenh:machine.start`. |
-| `volume` | 浮動小数点数 | `1.0` | Playback volume 前 attenuation. |
-| `pitch` | 浮動小数点数 | `1.0` | Playback pitch. |
-| `cooldown` | 整数 | `250` | Minimum milliseconds 前  同じ sound できます play again. |
-| `x`, `y`, `z` | 浮動小数点数 | none | 任意の シーン-空間 ソース 位置 用 画面空間 attenuation. |
-| `radius` | 浮動小数点数 | シーン short 側 * 0.75 | Attenuation radius で 画面 pixels. |
-| `minVolume` | 浮動小数点数 | `0.15` | Minimum attenuation factor. |
+| `sound` | string | - | Sound event id, e.g. `guidenh:machine.start`. |
+| `src` | string | - | Sound file id or path; `guidenh:sounds/machine/start.ogg` becomes `guidenh:machine.start`. |
+| `volume` | float | `1.0` | Playback volume before attenuation. |
+| `pitch` | float | `1.0` | Playback pitch. |
+| `cooldown` | integer | `250` | Minimum milliseconds before the same sound can play again. |
+| `x`, `y`, `z` | float | none | Optional scene-space source position for screen-space attenuation. |
+| `radius` | float | scene short side * 0.75 | Attenuation radius in screen pixels. |
+| `minVolume` | float | `0.15` | Minimum attenuation factor. |
 
-
-オフラインでエディター検証を行うには、JSON ルートに `"$schema": "guidenh://schema/ponder.json"` を追加します。同梱スキーマは `wiki/resourcepack/assets/guidenh/guidenh/assets/schema/ponder_schema.json` にあり、リモート URL は読み込みません。
 ---
 
-## キーフレームのパーティクル
+## Keyframe Particles
 
-追加します a `particles` array へ keyframe 場合 you want 1 つ-shot particle bursts または timeline-ローカル
-天候 overlays 中 forward playback. これらの particles です ない re-fired 中 reverse
-scrubbing, と seek/restart clears them 前 replaying  active 状態.
+Add a `particles` array to a keyframe when you want one-shot particle bursts or timeline-local
+weather overlays during forward playback. These particles are not re-fired during reverse
+scrubbing, and seek/restart clears them before replaying the active state.
 
 Generic particles:
 
@@ -261,7 +260,7 @@ Explosion preset:
 }
 ```
 
-天候 preset:
+Weather preset:
 
 ```json
 {
@@ -279,49 +278,49 @@ Explosion preset:
 }
 ```
 
-Particle フィールド:
+Particle fields:
 
-| フィールド | 型 | 既定値 | 説明 |
+| Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `preset` | 文字列 | none | Special preset. `explosion` spawns vanilla-style flash/smoke burst. `rain` enables  天候 preset. |
-| `weather` | 文字列 | `rain` | 天候 型 使用されます by `preset: "rain"`. 対応 値: `rain`, `snow`. |
-| `name` | 文字列 | none | Generic particle appearance. 対応 値: `billboard`, `smoke`, `largesmoke`, `explode`, `flash`, `largeexplode`, `hugeexplosion`. |
-| `particle` / `kind` | 文字列 | none | Compatibility aliases 用 `name`. |
-| `x`, `z` | 浮動小数点数 または array | シーン bounds | Particle origin または 天候 coverage. Generic particles 使用 scalar 座標. 用 `preset: "rain"`, scalar 値 対象 1 つ precipitation 列 と arrays define rectangular coverage by endpoint pairs. |
-| `vx`, `vy`, `vz` | 浮動小数点数 | `0.0` | 初期 motion ベクトル. `motionX/Y/Z` です accepted aliases. |
-| `time` / `lifetime` | 整数 | preset-特定の | Particle lifetime で ticks. 用 `preset: "rain"` この です  total 天候 duration, including fade-で と fade-out. |
-| `size` | 浮動小数点数 | preset-特定の | Generic particle half-サイズ で ブロック units. |
-| `amount` | 整数 | preset-特定の | Generic particle count. 用 `explosion`, omitted amount scales から `power`. 用 `preset: "rain"`, この です  average per-tick 天候 density. |
-| `power` | 浮動小数点数 | `2.0` | Explosion strength 用  `explosion` preset. |
+| `preset` | string | none | Special preset. `explosion` spawns a vanilla-style flash/smoke burst. `rain` enables the weather preset. |
+| `weather` | string | `rain` | Weather type used by `preset: "rain"`. Supported values: `rain`, `snow`. |
+| `name` | string | none | Generic particle appearance. Supported values: `billboard`, `smoke`, `largesmoke`, `explode`, `flash`, `largeexplode`, `hugeexplosion`. |
+| `particle` / `kind` | string | none | Compatibility aliases for `name`. |
+| `x`, `z` | float or array | scene bounds | Particle origin or weather coverage. Generic particles use scalar coordinates. For `preset: "rain"`, scalar values target one precipitation column and arrays define rectangular coverage by endpoint pairs. |
+| `vx`, `vy`, `vz` | float | `0.0` | Initial motion vector. `motionX/Y/Z` are accepted aliases. |
+| `time` / `lifetime` | integer | preset-specific | Particle lifetime in ticks. For `preset: "rain"` this is the total weather duration, including fade-in and fade-out. |
+| `size` | float | preset-specific | Generic particle half-size in block units. |
+| `amount` | integer | preset-specific | Generic particle count. For `explosion`, omitted amount scales from `power`. For `preset: "rain"`, this is the average per-tick weather density. |
+| `power` | float | `2.0` | Explosion strength for the `explosion` preset. |
 
-天候 preset 注意:
+Weather preset notes:
 
-- `preset: "rain"` です  shared 天候 preset エントリ 点. 使用 `weather: "rain"` 用 rainfall または
-  `weather: "snow"` 用 snowfall.
-- この preset です timeline-owned 天候. It 対応します replay, pause, seek, と fast-forward together
-  とともに  rest of  Ponder アニメーション timeline.
-- 用 常に-on シーン 天候 外部  Ponder アニメーション timeline, 使用  `<Weather>` タグ 内部
-  `<GameScene>` 代わりに.
-- 天候 presets ignore `y`;  vertical spawn range です derived から  現在の シーン bounds.
-- `x: 5, z: 8` targets 1 つ precipitation 列. Arrays 使用 endpoint pairs:
-  `x: [1, 5, 10, 12], z: [2, 6, 20, 24]` 作成します 2 つ covered rectangles.
-- もし 1 つ axis has extra unmatched array 値,  unmatched tail です ignored.
--  実行時 自動的に shapes  effect とともに short 開始 transition, steady middle
-  section, と an 終端 transition.
+- `preset: "rain"` is the shared weather preset entry point. Use `weather: "rain"` for rainfall or
+  `weather: "snow"` for snowfall.
+- This preset is timeline-owned weather. It supports replay, pause, seek, and fast-forward together
+  with the rest of the Ponder timeline.
+- For always-on scene weather outside the Ponder timeline, use the `<Weather>` tag inside
+  `<GameScene>` instead.
+- Weather presets ignore `y`; the vertical spawn range is derived from the current scene bounds.
+- `x: 5, z: 8` targets one precipitation column. Arrays use endpoint pairs:
+  `x: [1, 5, 10, 12], z: [2, 6, 20, 24]` creates two covered rectangles.
+- If one axis has extra unmatched array values, the unmatched tail is ignored.
+- The runtime automatically shapes the effect with a short start transition, a steady middle
+  section, and an end transition.
 - Rain spawns fast falling drops plus occasional ground splashes. Snow spawns slower drifting
-  flakes なしで splash particles.
--  天候 area です derived から  現在の GameScene bounds so  effect scales とともに 
-  imported structure 代わりに of hard-coded box.
--  同じ `x/z` 列 決して stacks 複数の 天候 types at  同じ time. Earlier overlapping
-  天候 declarations 保持します  shared columns; later ones のみ 描画 on  remaining area.
+  flakes without splash particles.
+- The weather area is derived from the current GameScene bounds so the effect scales with the
+  imported structure instead of a hard-coded box.
+- The same `x/z` column never stacks multiple weather types at the same time. Earlier overlapping
+  weather declarations keep the shared columns; later ones only render on the remaining area.
 
 ---
 
 ## Tile Entity NBT Operations
 
-使用 `mergeTileNBT`, `modifyTileNBT`, と `removeTileNBT` 場合  ブロック stays で 配置 but its
-tile entity データ 変更. Operations です seek-safe: GuideNH restores  original tile NBT と
-then replays すべての operations から keyframe 0 通じて  active keyframe.
+Use `mergeTileNBT`, `modifyTileNBT`, and `removeTileNBT` when the block stays in place but its
+tile entity data changes. Operations are seek-safe: GuideNH restores the original tile NBT and
+then replays all operations from keyframe 0 through the active keyframe.
 
 ```json
 {
@@ -345,23 +344,23 @@ then replays すべての operations から keyframe 0 通じて  active keyfram
 }
 ```
 
-| フィールド | 使用されます by | 説明 |
+| Field | Used by | Description |
 |-------|---------|-------------|
-| `x`, `y`, `z` | すべての | Tile-entity ブロック 位置 で structure 座標. |
-| `nbt` | `mergeTileNBT` | SNBT compound merged into  tile entity. Existing compound キー です merged recursively; 他の 値 置き換え  old 値. |
-| `path` | `modifyTileNBT`, `removeTileNBT` | Dotted NBT パス とともに 一覧 indexes, e.g. `Items[0].Count` または `InputTanks[0].TankContent.Amount`. |
-| `value` | `modifyTileNBT` | SNBT 値 written at `path`, e.g. `3b`, `500`, `"\"text\""`, `{Count:1b,id:"minecraft:stone"}`. |
+| `x`, `y`, `z` | all | Tile-entity block position in structure coordinates. |
+| `nbt` | `mergeTileNBT` | SNBT compound merged into the tile entity. Existing compound keys are merged recursively; other values replace the old value. |
+| `path` | `modifyTileNBT`, `removeTileNBT` | Dotted NBT path with list indexes, e.g. `Items[0].Count` or `InputTanks[0].TankContent.Amount`. |
+| `value` | `modifyTileNBT` | SNBT value written at `path`, e.g. `3b`, `500`, `"\"text\""`, `{Count:1b,id:"minecraft:stone"}`. |
 
-Paths follow  同じ idea as Minecraft's `/data` paths: 使用 dots 用 compound キー と
-`[index]` 用 一覧 エントリ. 一覧 traversal 現在 expects  traversed 一覧 エントリ へ なる
-compounds, これらは 一致します 一般的な tile NBT 例として inventories, tanks, と recipe slots.
+Paths follow the same idea as Minecraft's `/data` paths: use dots for compound keys and
+`[index]` for list entries. List traversal currently expects the traversed list entries to be
+compounds, which matches common tile NBT such as inventories, tanks, and recipe slots.
 
 ---
 
-## エンティティ操作
+## Entity Actions
 
-Regular `<Entity>` タグ です すでに 対応 で `GameScene`. Ponder アニメーション timelines できます も 作成
-their 独自の entities とともに `createEntities`, then 対象 those entities by `ref` で later keyframes.
+Regular `<Entity>` tags are already supported in `GameScene`. Ponder timelines can also create
+their own entities with `createEntities`, then target those entities by `ref` in later keyframes.
 
 ```json
 {
@@ -379,20 +378,20 @@ their 独自の entities とともに `createEntities`, then 対象 those entiti
 }
 ```
 
-| フィールド | 説明 |
+| Field | Description |
 |-------|-------------|
-| `ref` | 必須 ローカル reference 名前 用 later operations. |
-| `sceneEntityId` | 任意の stable シーン-ローカル id 使用されます 用 mount relations, replay-safe replacement, import/export restore, と 任意の later removal of この logical entity. Defaults へ 内部 id derived から `ref`. |
-| `id` | Entity ID, e.g. `minecraft:pig`, `Pig`, または mod entity ID 対応 by  シーン entity loader. |
-| `x`, `y`, `z` | 任意の spawn 位置. Defaults へ `0, 0, 0` 場合を除き `nbt` supplies `Pos`. |
-| `yaw`, `pitch` | 任意の spawn 回転. Defaults へ `0, 0` 場合を除き `nbt` supplies `Rotation`. |
-| `bodyYaw`, `headYaw` | 任意の living-entity 本文/head yaw 上書きします. もし omitted 中 `yaw` です present, これらは follow `yaw`. |
-| `nbt` | 任意の SNBT compound applied 場合  entity です 作成された. |
-| `name`, `nameKey`, `uuid` | 任意の プレビュー-player profile フィールド 場合 creating a プレビュー player entity. |
-| `mount` | 任意の stable `sceneEntityId` of  vehicle that この entity する必要があります ride 後 creation または later replay. |
-| `unmount` | 任意の 真偽値 that clears  entity's 現在の stable mount relation 前 任意の later `mount` です applied. |
+| `ref` | Required local reference name for later operations. |
+| `sceneEntityId` | Optional stable scene-local id used for mount relations, replay-safe replacement, import/export restore, and any later removal of this logical entity. Defaults to an internal id derived from `ref`. |
+| `id` | Entity ID, e.g. `minecraft:pig`, `Pig`, or a mod entity ID supported by the scene entity loader. |
+| `x`, `y`, `z` | Optional spawn position. Defaults to `0, 0, 0` unless `nbt` supplies `Pos`. |
+| `yaw`, `pitch` | Optional spawn rotation. Defaults to `0, 0` unless `nbt` supplies `Rotation`. |
+| `bodyYaw`, `headYaw` | Optional living-entity body/head yaw overrides. If omitted while `yaw` is present, they follow `yaw`. |
+| `nbt` | Optional SNBT compound applied when the entity is created. |
+| `name`, `nameKey`, `uuid` | Optional preview-player profile fields when creating a preview player entity. `nameKey` overrides `name` when its translation is available and falls back to `name`. |
+| `mount` | Optional stable `sceneEntityId` of the vehicle that this entity should ride after creation or later replay. |
+| `unmount` | Optional boolean that clears the entity's current stable mount relation before any later `mount` is applied. |
 
-後 creation, 使用  entity NBT operations:
+After creation, use the entity NBT operations:
 
 ```json
 {
@@ -409,7 +408,7 @@ their 独自の entities とともに `createEntities`, then 対象 those entiti
 }
 ```
 
-`setEntityNBT` です も 利用可能 場合 you want へ 置き換え  entity's NBT 代わりに of merging:
+`setEntityNBT` is also available when you want to replace the entity's NBT instead of merging:
 
 ```json
 {
@@ -420,7 +419,7 @@ their 独自の entities とともに `createEntities`, then 対象 those entiti
 }
 ```
 
-エンティティ操作 できます も 更新 transform, プレビュー-player pose, と stable mount 状態 なしで
+Entity actions can also update transform, preview-player pose, and stable mount state without
 changing NBT:
 
 ```json
@@ -436,7 +435,7 @@ changing NBT:
 }
 ```
 
-へ detach または 削除 timeline entity, 使用 `unmount` または `removeEntities`:
+To detach or remove a timeline entity, use `unmount` or `removeEntities`:
 
 ```json
 {
@@ -450,39 +449,38 @@ changing NBT:
 }
 ```
 
-Like tile operations, entity operations です replayed から  beginning whenever  active
-keyframe 変更, so seeking backwards removes Ponder アニメーション-作成された entities と recreates  correct
-状態 用  対象 tick.
+Like tile operations, entity operations are replayed from the beginning whenever the active
+keyframe changes, so seeking backwards removes Ponder-created entities and recreates the correct
+state for the target tick.
 
-注記:
+Notes:
 
-- `ref` identifies これらは Ponder アニメーション-owned entity  現在の action する必要があります edit または 削除.
-- `sceneEntityId` と `mount` identify stable cross-entity relations. `mount` 常に 点 へ a
-  stable シーン id, ない へ another `ref`.
-- Relying on 未加工 passenger NBT alone です ない recommended 用 cross-entity シーン relationships. 
-  stable registry です what keeps mount と removal behavior deterministic across replay, rebuild,
-  import/export, と エディター プレビュー refresh.
-
----
-
-## 注釈 Fade
-
-注釈 smoothly fade で 上 **5 game ticks** (250 ms) whenever  active keyframe
-変更 中 playback. 参照king または pausing 常に shows 注釈 at 完全な opacity.
+- `ref` identifies which Ponder-owned entity the current action should edit or remove.
+- `sceneEntityId` and `mount` identify stable cross-entity relations. `mount` always points to a
+  stable scene id, not to another `ref`.
+- Relying on raw passenger NBT alone is not recommended for cross-entity scene relationships. The
+  stable registry is what keeps mount and removal behavior deterministic across replay, rebuild,
+  import/export, and editor preview refresh.
 
 ---
 
-## 注釈の種類
+## Annotation Fade
 
-各 エントリ で  `annotations` array requires a `type` フィールド. Seven types です 利用可能.
+Annotations smoothly fade in over **5 game ticks** (250 ms) whenever the active keyframe
+changes during playback. Seeking or pausing always shows annotations at full opacity.
 
 ---
 
-すべての Ponder アノテーションで `tooltip` と `tooltipKey` を使用できます。キーは有効な `lang` ファイルから解決され、見つからない場合は元のテキストに戻ります。
+## Annotation Types
+
+Every Ponder annotation accepts `tooltip` and `tooltipKey`. The key is resolved from the active `lang` files and falls back to the original text when it is missing.
+Each entry in the `annotations` array requires a `type` field. Seven types are available.
+
+---
 
 ### `diamond`
 
-描画 3D diamond marker at a ワールド 位置.
+Renders a 3D diamond marker at a world position.
 
 ```json
 {
@@ -496,19 +494,19 @@ keyframe 変更, so seeking backwards removes Ponder アニメーション-作�
 }
 ```
 
-| フィールド | 型 | 既定値 | 説明 |
+| Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `x`, `y`, `z` | 浮動小数点数 | `0.0` | ワールド空間 位置 of  diamond tip. |
-| `color` | 文字列 | `"0xFF00E000"` | ARGB 色 as `"0xAARRGGBB"`. |
-| `tooltip` | 文字列 | `""` | フォールバック テキスト 表示される on ホバー. |
-| `tooltipKey` | 文字列 | `""` | 翻訳キー 用  ホバー テキスト. 場合 解決された, it 上書きします `tooltip`. |
-| `alwaysOnTop` | 真偽値 | `false` | もし true, 描画される 通じて solid ブロック. |
+| `x`, `y`, `z` | float | `0.0` | World-space position of the diamond tip. |
+| `color` | string | `"0xFF00E000"` | ARGB color as `"0xAARRGGBB"`. |
+| `tooltip` | string | `""` | Fallback text shown on hover. |
+| `tooltipKey` | string | `""` | Translation key for the hover text. When resolved, it overrides `tooltip`. |
+| `alwaysOnTop` | boolean | `false` | If true, rendered through solid blocks. |
 
 ---
 
 ### `box`
 
-描画 wireframe 軸に揃った box から `min` へ `max`.
+Renders a wireframe axis-aligned box from `min` to `max`.
 
 ```json
 {
@@ -521,20 +519,20 @@ keyframe 変更, so seeking backwards removes Ponder アニメーション-作�
 }
 ```
 
-| フィールド | 型 | 既定値 | 説明 |
+| Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `minX/Y/Z` | 浮動小数点数 | `0.0` | Minimum corner. |
-| `maxX/Y/Z` | 浮動小数点数 | `1.0` | Maximum corner. |
-| `color` | 文字列 | `"0xFFFFFFFF"` | ARGB 行 色. |
-| `lineWidth` | 浮動小数点数 | 既定値 | GL 行 幅. |
-| `alwaysOnTop` | 真偽値 | `false` | 描画 通じて ブロック. |
+| `minX/Y/Z` | float | `0.0` | Minimum corner. |
+| `maxX/Y/Z` | float | `1.0` | Maximum corner. |
+| `color` | string | `"0xFFFFFFFF"` | ARGB line color. |
+| `lineWidth` | float | default | GL line width. |
+| `alwaysOnTop` | boolean | `false` | Render through blocks. |
 
 ---
 
 ### `block`
 
-描画 wireframe around 1 つ whole ブロック. この です  Ponder アニメーション JSON equivalent of
-`<BlockAnnotation pos="x y z">` で regular `GameScene`.
+Renders a wireframe around one whole block. This is the Ponder JSON equivalent of
+`<BlockAnnotation pos="x y z">` in a regular `GameScene`.
 
 ```json
 {
@@ -546,23 +544,23 @@ keyframe 変更, so seeking backwards removes Ponder アニメーション-作�
 }
 ```
 
-`"type": "blockBox"` と `"type": "block_box"` です accepted aliases.
+`"type": "blockBox"` and `"type": "block_box"` are accepted aliases.
 
-| フィールド | 型 | 既定値 | 説明 |
+| Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `pos` | 数値[3] または 文字列 | `[0, 0, 0]` | ブロック 座標 as `[x, y, z]` または `"x y z"`. |
-| `x`, `y`, `z` | 数値 | `0` | Alternative ブロック 座標 フィールド. 値 です floored. |
-| `blockX/Y/Z` | 整数 | `0` | Legacy-style ブロック 座標 フィールド. |
-| `color` | 文字列 | `"0xFFFFFFFF"` | ARGB 行 色. |
-| `lineWidth` | 浮動小数点数 | 既定値 | GL 行 幅. |
-| `alwaysOnTop` | 真偽値 | `false` | 描画 通じて ブロック. |
+| `pos` | number[3] or string | `[0, 0, 0]` | Block coordinate as `[x, y, z]` or `"x y z"`. |
+| `x`, `y`, `z` | number | `0` | Alternative block coordinate fields. Values are floored. |
+| `blockX/Y/Z` | integer | `0` | Legacy-style block coordinate fields. |
+| `color` | string | `"0xFFFFFFFF"` | ARGB line color. |
+| `lineWidth` | float | default | GL line width. |
+| `alwaysOnTop` | boolean | `false` | Render through blocks. |
 
 ---
 
 ### `line`
 
-描画 a 線分 または 折れ線 間 ワールド positions. `points` takes priority 上
-`fromX/Y/Z` と `toX/Y/Z` 場合 it 含みます at least 2 つ 有効 点.
+Renders a line segment or polyline between world positions. `points` takes priority over
+`fromX/Y/Z` and `toX/Y/Z` when it contains at least two valid points.
 
 ```json
 {
@@ -576,7 +574,7 @@ keyframe 変更, so seeking backwards removes Ponder アニメーション-作�
 }
 ```
 
-折れ線 点 できます なる written いずれか as a 文字列 または as array:
+Polyline points can be written either as a string or as an array:
 
 ```json
 {
@@ -587,21 +585,21 @@ keyframe 変更, so seeking backwards removes Ponder アニメーション-作�
 }
 ```
 
-| フィールド | 型 | 既定値 | 説明 |
+| Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `fromX/Y/Z` | 浮動小数点数 | `0.0` | 開始 点. |
-| `toX/Y/Z` | 浮動小数点数 | `1.0` | 終端 点. |
-| `points` | 文字列 または array | `null` | 折れ線 点. 使用 `"x y z; x y z; ..."` または `[[x,y,z], ...]`. |
-| `color` | 文字列 | `"0xFFFFFFFF"` | ARGB 行 色. |
-| `arrow` | 文字列 | `null` | `start` または `end`; omitted または 無効 値 描画 いいえ 矢印. |
-| `lineWidth` | 浮動小数点数 | 既定値 | GL 行 幅. |
-| `alwaysOnTop` | 真偽値 | `false` | 描画 通じて ブロック. |
+| `fromX/Y/Z` | float | `0.0` | Start point. |
+| `toX/Y/Z` | float | `1.0` | End point. |
+| `points` | string or array | `null` | Polyline points. Use `"x y z; x y z; ..."` or `[[x,y,z], ...]`. |
+| `color` | string | `"0xFFFFFFFF"` | ARGB line color. |
+| `arrow` | string | `null` | `start` or `end`; omitted or invalid values draw no arrow. |
+| `lineWidth` | float | default | GL line width. |
+| `alwaysOnTop` | boolean | `false` | Render through blocks. |
 
 ---
 
 ### `blockface`
 
-単一ブロックのすべての面を半透明の塗りつぶしで強調表示します。
+Highlights all faces of a single block with a translucent solid overlay.
 
 ```json
 {
@@ -612,23 +610,23 @@ keyframe 変更, so seeking backwards removes Ponder アニメーション-作�
 }
 ```
 
-`"type": "blockFace"` と `"type": "block_face"` です accepted aliases.
+`"type": "blockFace"` and `"type": "block_face"` are accepted aliases.
 
-| フィールド | 型 | 既定値 | 説明 |
+| Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `pos` | 数値[3] または 文字列 | `[0, 0, 0]` | ブロック 座標 as `[x, y, z]` または `"x y z"`. |
-| `x`, `y`, `z` | 数値 | `0` | Alternative ブロック 座標 フィールド. 値 です floored. |
-| `blockX/Y/Z` | 整数 | `0` | Legacy-style ブロック 座標 フィールド. |
-| `color` | 文字列 | `"0x80FFFFFF"` | ARGB overlay 色. |
-| `alwaysOnTop` | 真偽値 | `false` | 描画 通じて ブロック. |
+| `pos` | number[3] or string | `[0, 0, 0]` | Block coordinate as `[x, y, z]` or `"x y z"`. |
+| `x`, `y`, `z` | number | `0` | Alternative block coordinate fields. Values are floored. |
+| `blockX/Y/Z` | integer | `0` | Legacy-style block coordinate fields. |
+| `color` | string | `"0x80FFFFFF"` | ARGB overlay color. |
+| `alwaysOnTop` | boolean | `false` | Render through blocks. |
 
 ---
 
 ### `text`
 
-描画 speech-bubble ラベル anchored へ a ワールド 位置.  box appears 上に  anchor by
-既定値 と です connected へ it とともに short vertical 行. テキスト コンテンツ です keyframe-driven: 使用
-異なる `text` 注釈 エントリ on 異なる keyframes へ 変更  displayed テキスト 上 time.
+Renders a speech-bubble label anchored to a world position. The box appears above the anchor by
+default and is connected to it with a short vertical line. Text content is keyframe-driven: use
+different `text` annotation entries on different keyframes to change the displayed text over time.
 
 ```json
 {
@@ -644,9 +642,9 @@ keyframe 変更, so seeking backwards removes Ponder アニメーション-作�
 }
 ```
 
-用 a 固定 画面空間 位置 that しません project から ワールド 座標, 使用
-**independent モード**.  bubble です centered horizontally で  シーン と placed at
-`yOffset` pixels below  シーン's vertical centre.
+For a fixed screen-space position that does not project from world coordinates, use
+**independent mode**. The bubble is centered horizontally in the scene and placed at
+`yOffset` pixels below the scene's vertical centre.
 
 ```json
 {
@@ -659,45 +657,45 @@ keyframe 変更, so seeking backwards removes Ponder アニメーション-作�
 }
 ```
 
-| フィールド | 型 | 既定値 | 説明 |
+| Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `x`, `y`, `z` | 浮動小数点数 | `0.0` | ワールド空間 anchor 位置 (ignored で independent モード). |
-| `text` | 文字列 | — | 吹き出しに表示するフォールバック本文。 |
-| `textKey` | 文字列 | — | 吹き出し本文の翻訳キー。解決できた場合は `text` より優先されます。 |
-| `color` | 文字列 | `"0xFFAAAAAA"` | ARGB 色 of  bubble 境界線. |
-| `backgroundAlpha` | 整数 | `204` | 背景 opacity から `0` (transparent) へ `255` (opaque).  RGB 色 remains  既定値 dark navy. |
-| `maxWidth` | 整数 | `0` | もし &gt; 0, wraps テキスト at この 幅 で pixels. Omit または 設定します へ `0` 用 a 単一の-行 ラベル. |
-| `independent` | 真偽値 | `false` | もし `true`, 位置 です 相対 へ  シーン centre rather than a ワールド 点. |
-| `yOffset` | 整数 | `0` | Pixel offset から  シーン's vertical centre (positive = downward). 使用されます とともに `independent: true`. |
-| `connectorSide` | 文字列 | `"bottom"` | `bottom`, `top`, `left`, `right`, または `none`. Ignored で independent モード. |
-| `connectorOffset` | 整数 | `0` | Pixel offset along  選択済み bubble edge; positive moves 右 用 上/下 と down 用 左/右. |
-| `connectorLength` | 整数 | `6` | Pixel length of  connector 行. `0` hides  行 中 keeping 側-based placement. |
-| `hlMinX/Y/Z` | 浮動小数点数 | `0.0` | Minimum corner of an 任意の 強調表示 box drawn alongside  テキスト bubble. |
-| `hlMaxX/Y/Z` | 浮動小数点数 | `1.0` | Maximum corner of  任意の 強調表示 box. |
-| `highlightColor` | 文字列 | `"0x8000FFAA"` | ARGB 色 of  強調表示 box. |
+| `x`, `y`, `z` | float | `0.0` | World-space anchor position (ignored in independent mode). |
+| `text` | string | — | Fallback text to display inside the bubble. |
+| `textKey` | string | — | Translation key for the bubble text; when resolved it overrides `text`. |
+| `color` | string | `"0xFFAAAAAA"` | ARGB color of the bubble border. |
+| `backgroundAlpha` | integer | `204` | Background opacity from `0` (transparent) to `255` (opaque). The RGB color remains the default dark navy. |
+| `maxWidth` | integer | `0` | If &gt; 0, wraps text at this width in pixels. Omit or set to `0` for a single-line label. |
+| `independent` | boolean | `false` | If `true`, position is relative to the scene centre rather than a world point. |
+| `yOffset` | integer | `0` | Pixel offset from the scene's vertical centre (positive = downward). Used with `independent: true`. |
+| `connectorSide` | string | `"bottom"` | `bottom`, `top`, `left`, `right`, or `none`. Ignored in independent mode. |
+| `connectorOffset` | integer | `0` | Pixel offset along the selected bubble edge; positive moves right for top/bottom and down for left/right. |
+| `connectorLength` | integer | `6` | Pixel length of the connector line. `0` hides the line while keeping side-based placement. |
+| `hlMinX/Y/Z` | float | `0.0` | Minimum corner of an optional highlight box drawn alongside the text bubble. |
+| `hlMaxX/Y/Z` | float | `1.0` | Maximum corner of the optional highlight box. |
+| `highlightColor` | string | `"0x8000FFAA"` | ARGB color of the highlight box. |
 
-場合 `hlMinX` (または 任意の `hlMin/Max` 座標) です present, an `InWorldBoxAnnotation` です も
-作成された at  specified bounds とともに `highlightColor`. この です useful 用 pointing at 特定の
-ブロック regions 中 explaining them.
+When `hlMinX` (or any `hlMin/Max` coordinate) is present, an `InWorldBoxAnnotation` is also
+created at the specified bounds with `highlightColor`. This is useful for pointing at specific
+block regions while explaining them.
 
- 背景 は dark navy bubble by 既定値 (`#CC0E0E20`), と `backgroundAlpha` controls its
-opacity. で ワールド-anchored モード connector 行 リンク  box へ  anchor. テキスト 対応します 
-完全な GuideNH inline リッチ-テキスト 構文: Markdown formatting と MDX inline タグ. It です 描画される とともに
+The background is a dark navy bubble by default (`#CC0E0E20`), and `backgroundAlpha` controls its
+opacity. In world-anchored mode a connector line links the box to the anchor. Text supports the
+full GuideNH inline rich-text syntax: markdown formatting and MDX inline tags. It is rendered with
 drop-shadow.
 
-> **リッチ テキスト:**  `text` フィールド 対応します  同じ inline markup 使用されます で GuideNH ガイド pages:
+> **Rich text:** The `text` field supports the same inline markup used in GuideNH guide pages:
 > `**bold**`, `*italic*`, `~~strikethrough~~`, `<Color id="RED">colored</Color>`,
-> `<ItemLink id="minecraft:iron_ingot" />`, と すべての 他の inline MDX タグ.
-> プレーン Minecraft `§` format codes です **ない** 対応; 使用 MDX 構文 代わりに.
+> `<ItemLink id="minecraft:iron_ingot" />`, and all other inline MDX tags.
+> Plain Minecraft `§` format codes are **not** supported; use MDX syntax instead.
 
-> A `text` 注釈 なしで a `text` フィールド (または 空 文字列) です silently ignored.
+> A `text` annotation without a `text` field (or an empty string) is silently ignored.
 
 ---
 
 ### `input`
 
-描画 mouse-入力 icon (左 button, 右 button, または スクロール wheel) anchored へ a ワールド
-位置. この です 使用されます へ hint that  player する必要があります perform 特定の interaction.
+Renders a mouse-input icon (left button, right button, or scroll wheel) anchored to a world
+position. This is used to hint that the player should perform a specific interaction.
 
 ```json
 {
@@ -709,7 +707,7 @@ drop-shadow.
 }
 ```
 
-とともに an 任意の modifier キー prefix と an アイテム icon:
+With an optional modifier key prefix and an item icon:
 
 ```json
 {
@@ -723,82 +721,82 @@ drop-shadow.
 }
 ```
 
-| フィールド | 型 | 既定値 | 説明 |
+| Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `x`, `y`, `z` | 浮動小数点数 | `0.0` | ワールド空間 anchor 位置. |
-| `inputType` | 文字列 | `"lmb"` | 1 つ of `"lmb"`, `"rmb"`, または `"scroll"`. Case-insensitive. |
-| `modifier` | 文字列 | `null` | 任意の modifier キー: `"sneak"` または `"ctrl"`. Shows prefix テキスト 上に  icon. |
-| `item` | 文字列 | `null` | 任意の アイテム registry ID (e.g. `"minecraft:iron_ingot"`). 描画  アイテム icon へ  左 of  mouse icon. 対応します `"modid:item:meta"` format 用 meta 値. |
+| `x`, `y`, `z` | float | `0.0` | World-space anchor position. |
+| `inputType` | string | `"lmb"` | One of `"lmb"`, `"rmb"`, or `"scroll"`. Case-insensitive. |
+| `modifier` | string | `null` | Optional modifier key: `"sneak"` or `"ctrl"`. Shows prefix text above the icon. |
+| `item` | string | `null` | Optional item registry ID (e.g. `"minecraft:iron_ingot"`). Renders the item icon to the left of the mouse icon. Supports `"modid:item:meta"` format for meta values. |
 
- icon は 16x16 sprite drawn から `ponder_widgets.png`.  box 背景 です semi-transparent
-dark (`#CC0E0E20`) とともに light-blue 境界線 (`#80AAAADD`). 場合 an `item` です specified  box
-expands へ accommodate 両方  アイテム icon と  mouse icon 側 by 側.
+The icon is a 16x16 sprite drawn from `ponder_widgets.png`. The box background is semi-transparent
+dark (`#CC0E0E20`) with a light-blue border (`#80AAAADD`). When an `item` is specified the box
+expands to accommodate both the item icon and the mouse icon side by side.
 
 ---
 
-## 色の形式
+## Color Format
 
-Colors です ARGB hexadecimal strings. 両方 `"0xFFFFFF00"` (とともに `0x` prefix) と
-`"FFFF00"` (なしで prefix) です accepted.
+Colors are ARGB hexadecimal strings. Both `"0xFFFFFF00"` (with `0x` prefix) and
+`"FFFF00"` (without prefix) are accepted.
 
 - `FF` alpha = fully opaque
 - `80` alpha = 50% transparent
 - `00` alpha = invisible
-- `"0xFF00E000"` - fully opaque green (既定値 diamond 色)
+- `"0xFF00E000"` - fully opaque green (default diamond color)
 - `"0x8022CCFF"` - semi-transparent blue
-- `"0xFFAAAAAA"` - light grey (既定値 テキスト bubble 境界線)
+- `"0xFFAAAAAA"` - light grey (default text bubble border)
 
-## 再生動作
+## Playback Behavior
 
 ### Controls
 
 | Control | Action |
 |---------|--------|
-| **Prev keyframe** | Jump へ  開始 of  前の 表示 keyframe segment. 非表示 keyframes です skipped. |
-| **Play/Pause** | Toggle playback; restarts から  beginning もし すでに finished. |
-| **Restart** | Return へ tick 0, reset 状態, と begin playing. |
-| Progress bar | クリック または ドラッグ へ seek へ 任意の 位置. 参照king 常に pauses playback. |
-| Keyframe nodes | Small tick marks on  bar 用 表示 keyframes; ホバー へ 参照してください  ラベル と direction 矢印. |
+| **Prev keyframe** | Jump to the start of the previous visible keyframe segment. Hidden keyframes are skipped. |
+| **Play/Pause** | Toggle playback; restarts from the beginning if already finished. |
+| **Restart** | Return to tick 0, reset state, and begin playing. |
+| Progress bar | Click or drag to seek to any position. Seeking always pauses playback. |
+| Keyframe nodes | Small tick marks on the bar for visible keyframes; hover to see the label and direction arrow. |
 
-### 初期状態
+### Initial state
 
-場合 a ページ containing `<ImportPonder>` です 最初の opened,  シーン starts **paused at tick 0**.
-Press Play へ begin.
+When a page containing `<ImportPonder>` is first opened, the scene starts **paused at tick 0**.
+Press Play to begin.
 
-### カメラロック
+### Camera lock
 
-中 playback です **active** (ない paused):
--  カメラ follows  interpolated パス defined by keyframes.
-- Mouse ドラッグ と スクロール ズーム です **無効**.
--  layer slider と StructureLib sliders です **非表示**.
+While playback is **active** (not paused):
+- The camera follows the interpolated path defined by keyframes.
+- Mouse drag and scroll zoom are **disabled**.
+- The layer slider and StructureLib sliders are **hidden**.
 
-中 playback です **paused** または **finished**:
-- 完全な インタラクティブ カメラ ドラッグ, ズーム, と layer/StructureLib control です restored.
+While playback is **paused** or **finished**:
+- Full interactive camera drag, zoom, and layer/StructureLib control are restored.
 
 ### Keyframe node labels
 
-場合 you ホバー 上 keyframe node on  progress bar:
--  node grows slightly へ indicate it です hovered.
-- もし  keyframe has a `label`, it です displayed beside  node.
-- 非表示 keyframes do ない 作成 hoverable nodes, but これらは 引き続き apply their timeline 状態 場合 playback または seeking reaches them.
+When you hover over a keyframe node on the progress bar:
+- The node grows slightly to indicate it is hovered.
+- If the keyframe has a `label`, it is displayed beside the node.
+- Hidden keyframes do not create hoverable nodes, but they still apply their timeline state when playback or seeking reaches them.
 
-### Layer control 中 playback
+### Layer control during playback
 
- `layer` フィールド of  active keyframe 上書きします  表示-layer フィルター 中 playback:
-- `null` (または omitted) -> 表示 すべての layers.
-- `1`, `2`, `3`, ... -> restrict へ that 1-based layer index.
+The `layer` field of the active keyframe overrides the visible-layer filter during playback:
+- `null` (or omitted) -> show all layers.
+- `1`, `2`, `3`, ... -> restrict to that 1-based layer index.
 
-## 完全な例
+## Complete Example
 
- following 例 demonstrates すべての 注釈 型 across four-keyframe シーン.
+The following example demonstrates every annotation type across a four-keyframe scene.
 
-### ディレクトリ構成
+### Directory layout
 
 ```
 assets/mymod/guidebooks/
-  pages/machines/grinder.mdx
-  pages/machines/grinder.snbt
-  pages/machines/grinder.json
+  _en_us/machines/grinder.md
+  _en_us/machines/grinder.snbt
+  _en_us/machines/grinder.json
 ```
 
 ### `grinder.json`
@@ -908,10 +906,9 @@ assets/mymod/guidebooks/
 
 ### `grinder.snbt`
 
-標準 NBT structure ファイル (作成された とともに  `/structure save` command または tool 例として
-Litematica). 参照 [Getting Started](Guide-Page-Format) 用  完全な SNBT format reference.
+Use an SNBT/NBT structure accepted by `<ImportStructure>`. See [GameScene](GameScene#importstructure) for supported formats.
 
-### `grinder.mdx`
+### `grinder.md`
 
 ```mdx
 # Grinder
@@ -921,34 +918,34 @@ Litematica). 参照 [Getting Started](Guide-Page-Format) 用  完全な SNBT for
   <ImportPonder src="grinder.json" />
 </GameScene>
 
-粉砕機は鉱石を2倍の粉末にします。**再生**を押すとアニメーション手順を確認できます。
+The Grinder turns ores into doubled dust. Press **Play** to see the animated walkthrough.
 ```
 
-## 注記
+## Notes
 
--  Ponder アニメーション progress bar です drawn 上に  layer/StructureLib sliders. 中 playback 
-  structural sliders です 非表示 へ 保持します  UI clean; これらは reappear 場合 paused.
-- カメラ interpolation です 常に smooth (ease-で/out) even もし some keyframes のみ 変更 a
-  subset of カメラ axes. 使用 `cameraEaseTicks` on keyframe へ snap  カメラ instantly (`0`)
-  または ease 上 a 固定 数値 of ticks 前 holding  対象 位置.
-- 注釈 belong へ a 単一の keyframe - これらは appear のみ 中 that keyframe です active
-  (i.e., から its `time` tick until  次の keyframe's `time` tick). Overlay テキスト 注釈
-  fade out smoothly 場合  keyframe 変更 中 playback.
-- Ponder アニメーション `line` 注釈 使用  同じ 実行時 renderer as regular `LineAnnotation`, including
-  折れ線 bends と 開始/終端 arrows. 点 marker cubes remain MDX-のみ feature.
-- Ponder アニメーション `text` 注釈 使用  同じ 実行時 renderer as regular `TextAnnotation`, including
-  connector 側, offset, と length. Dynamic テキスト です keyframe-based rather than interpolated per tick.
-- のみ 1 つ `<ImportPonder>` タグ です effective per `<GameScene>`. second タグ overwrites  最初の.
-- A `text` 注釈 とともに 空 または absent `text` フィールド です silently skipped.
--  `inputType` フィールド defaults へ `"lmb"` もし omitted または unrecognised.
-- `blockChanges` です applied で 順序 から  最初の へ  現在の keyframe すべての time 
-  active keyframe 変更, so changing  同じ 位置 で 複数の keyframes works correctly.
-- Tile/entity NBT operations 使用  同じ replay model as `blockChanges`; これらは です safe へ seek
-  forwards または backwards.
-- `text` 注釈 とともに a `maxWidth` &gt; 0 です word-wrapped using  vanilla font renderer;
-   bubble box 高さ adjusts 自動的に 用 multi-行 テキスト.
-- `nbt` strings で `blockChanges` 必要があります 使用 **unquoted** SNBT キー (標準 MC 1.7.10 format).
-  Quoted キー します なる rejected by  parser. 文字列 値 引き続き require quotes:
+- The Ponder progress bar is drawn above the layer/StructureLib sliders. During playback the
+  structural sliders are hidden to keep the UI clean; they reappear when paused.
+- Camera interpolation is always smooth (ease-in/out) even if some keyframes only change a
+  subset of camera axes. Use `cameraEaseTicks` on a keyframe to snap the camera instantly (`0`)
+  or ease over a fixed number of ticks before holding the target position.
+- Annotations belong to a single keyframe - they appear only while that keyframe is active
+  (i.e., from its `time` tick until the next keyframe's `time` tick). Overlay text annotations
+  fade out smoothly when the keyframe changes during playback.
+- Ponder `line` annotations use the same runtime renderer as regular `LineAnnotation`, including
+  polyline bends and start/end arrows. Point marker cubes remain an MDX-only feature.
+- Ponder `text` annotations use the same runtime renderer as regular `TextAnnotation`, including
+  connector side, offset, and length. Dynamic text is keyframe-based rather than interpolated per tick.
+- Only one `<ImportPonder>` tag is effective per `<GameScene>`. A second tag overwrites the first.
+- A `text` annotation with an empty or absent `text` field is silently skipped.
+- The `inputType` field defaults to `"lmb"` if omitted or unrecognised.
+- `blockChanges` are applied in order from the first to the current keyframe every time the
+  active keyframe changes, so changing the same position in multiple keyframes works correctly.
+- Tile/entity NBT operations use the same replay model as `blockChanges`; they are safe to seek
+  forwards or backwards.
+- `text` annotations with a `maxWidth` &gt; 0 are word-wrapped using the vanilla font renderer;
+  the bubble box height adjusts automatically for multi-line text.
+- `nbt` strings in `blockChanges` must use **unquoted** SNBT keys (standard MC 1.7.10 format).
+  Quoted keys will be rejected by the parser. String values still require quotes:
   `{id:"minecraft:iron_ingot",Count:8b}`.
-- `modifyTileNBT` と `modifyEntityNBT` 値 です SNBT 値, ない JSON 値. 用 a 文字列
-  値, escape  SNBT quotes 内部 JSON: `"value": "\"hello\""`.
+- `modifyTileNBT` and `modifyEntityNBT` values are SNBT values, not JSON values. For a string
+  value, escape the SNBT quotes inside JSON: `"value": "\"hello\""`.

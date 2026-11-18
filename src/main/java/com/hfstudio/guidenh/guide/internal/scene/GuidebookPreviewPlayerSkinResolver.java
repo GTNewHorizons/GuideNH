@@ -308,7 +308,9 @@ public class GuidebookPreviewPlayerSkinResolver {
         return resourceLocation;
     }
 
-    /** The texture location for a skin hash, keeping the map bounded. */
+    /**
+     * The texture location for a skin hash, keeping the map bounded.
+     */
     private static ResourceLocation previewSkinTextureLocation(String textureHash) {
         List<ResourceLocation> evicted = null;
         ResourceLocation location;

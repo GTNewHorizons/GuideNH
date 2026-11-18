@@ -21,7 +21,9 @@ import com.hfstudio.guidenh.integration.Mods;
  */
 public class Ae2BaseTileNetworkRegistration {
 
-    /** Session key parallel to {@link Ae2ServerPreviewRegistration} cable snapshot key. */
+    /**
+     * Session key parallel to {@link Ae2ServerPreviewRegistration} cable snapshot key.
+     */
     static final String SHARED_BASE_TILE_MP_SNAPSHOT = "guidenh.ae2.previewAuthority.baseTileXpSnapshot_v1";
 
     private Ae2BaseTileNetworkRegistration() {}

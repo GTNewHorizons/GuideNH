@@ -86,7 +86,9 @@ public class GuideScreenNeiBridge {
         }
     }
 
-    /** Ensures the NEI GuiContainerManager is initialized for a non-standard container screen. */
+    /**
+     * Ensures the NEI GuiContainerManager is initialized for a non-standard container screen.
+     */
     public static void ensureManagerInitialized(GuiContainer gui) {
         if (Mods.NotEnoughItems.isModLoaded()) {
             GuideScreenNeiNativeBridge.ensureManagerInitialized(gui);

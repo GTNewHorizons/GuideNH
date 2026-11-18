@@ -1,6 +1,6 @@
 # Tags Reference
 
-This page lists the built-in runtime tags registered by `DefaultExtensions`.
+This page describes the built-in tags available to guide authors.
 
 ## Usage Rules
 
@@ -11,7 +11,6 @@ This page lists the built-in runtime tags registered by `DefaultExtensions`.
   - [Recipes](Recipes)
   - [GameScene](GameScene)
   - [Annotations](Annotations)
-- Cross-renderer changes to `ContentTabs` should follow the [maintenance checklist](ContentTabs-Maintenance).
 
 ## Inline And Flow Tags
 
@@ -24,14 +23,16 @@ This page lists the built-in runtime tags registered by `DefaultExtensions`.
 | `<sub>` | smaller inline subscript-style text | none |
 | `<sup>` | smaller inline superscript-style text | none |
 | `<Color>` | colored inline text | `id` or `color` |
+| `<Amount>` | format a numeric quantity | `value`, `unit`, `format`, `decimals` |
 | `<Spoiler>` | hidden inline text revealed on hover | none |
 | `<Tooltip>` | rich hover tooltip with markdown/tag children | `label` |
 | `<SoundLink>` | clickable rich-text sound trigger | `sound` or `src`, `volume`, `pitch`, `cooldown` |
 | `<mark>` | inline highlighted text; equivalent to `==text==` with optional color control | `color` |
 | `<PlayerName>` | inserts current player username | none |
 | `<KeyBind>` | inserts keybinding display name | `id` or `action` |
-| `<ItemImage>` | inline item icon | `id` or `ore`, `scale`, `noTooltip`, `showTooltip`, `showIcon`, `label`, `format`, `yOffset`, `labelYOffset` |
+| `<ItemImage>` | inline item icon | `id`, `ore`, `nbt`, `scale`, `noTooltip`, `showTooltip`, `showIcon`, `label`, `format`, `yOffset`, `labelYOffset` |
 | `<ItemLink>` | item tooltip + optional navigation link | `id` or `ore`, `linksTo`, `showTooltip`, `noTooltip`, `showIcon` |
+| `<FluidImage>` / `<FluidLink>` | native fluid icon and page navigation | `id`, `amount`, `nbt`, `scale`, `showTooltip`, `noTooltip`, `showIcon`, `label`, `linksTo` |
 | `<CommandLink>` | clickable chat command link | `command`, `title`, `close` |
 | `<Latex>` | LaTeX math formula; inline in flow context, centered display block in block context | `formula`, `color`, `scale`, `sourceScale`, `tooltip`, `showTooltip` |
 | `<QuestLink>` | BetterQuesting quest link with state-aware styling (compat tag, only registered when BetterQuesting is loaded) | `id`, `text`, `show_tooltip` |
@@ -48,15 +49,15 @@ Inline markdown also supports action links for sound playback:
 | Tag | Purpose | Key attributes |
 | --- | --- | --- |
 | `<div>` | pass-through block wrapper | none |
-| `<ContentTabs>` | groups alternative rich content under independent tabs | `title`, `color`, `background`, `icon`, `iconPng`, `icon_png`, `iconItem`, `icon_item`, `default`, `defaultIndex` |
+| `<ContentTabs>` | groups alternative rich content under independent tabs | `title`, `color`, `background`, `icon`, `iconPng`, `icon_png`, `iconItem`, `icon_item`, `iconFluid`, `icon_fluid`, `default`, `defaultIndex` |
 | `<Tab>` | one content panel inside `<ContentTabs>` | `title` |
 | `<details>` | collapsible runtime block | `open`, `width`, `height`, `wrap`, `align` |
 | `<FileTree>` | directory-style outline with connector lines | `indent`, `gap` |
 | `<Row>` | horizontal flex layout | `gap`, `alignItems`, `fullWidth`, `width` |
 | `<Column>` | vertical flex layout | `gap`, `alignItems`, `fullWidth`, `width` |
 | `<FootnoteList>` | width-constrained footnote container used by runtime markdown footnotes | `width` |
-| `<ItemGrid>` | compact grid of item icons | children must be `<ItemIcon id="..."/>` or `<ItemIcon ore="..."/>` |
-| `<BlockImage>` | non-interactive 3D single-block preview | `id` or `ore`, optional `scale` (defaults to `4`), `float`, `perspective`, `nbt` |
+| `<ItemGrid>` | compact grid of item and fluid icons | mix `<ItemIcon id="..."/>`, `<ItemIcon ore="..."/>`, and `<FluidIcon id="..."/>` |
+| `<BlockImage>` | non-interactive 3D single-block preview | `id`, `ore`, `meta`, `nbt`, `scale`, `width`, `height`, `perspective`, `wrap`, `align` |
 | `<FloatingImage>` | cropped image block with float or true inline placement | `src`, `x`, `y`, `width` / `w`, `height` / `h`, `scaleX`, `scaleY`, `displayWidth`, `displayHeight`, `wrap`, `align`, `title` |
 | `<SubPages>` | navigation child listing | `id`, `alphabetical` |
 | `<Category>` | list pages from a category | `name`, `rows` |
@@ -194,6 +195,8 @@ Groups alternative rich content under independent tabs. Only direct `<Tab>` chil
 
 Renders a directory-style outline with real connector lines drawn from the prefix glyphs on each row. Both Unicode box-drawing (`│ ├ └ ─`) and ASCII (`| +-- \-- ` / four spaces) forms are accepted and may be mixed. Payload text supports the usual inline markdown (links, **bold**, `code`, …), and those links are clickable both in-game and in the built-in site export. The same content can also be written as a fenced ` ```tree ` or ` ```filetree ` block.
 
+Narrow layouts reduce the indentation to leave room for text. Long paths prefer breaks after `/`, `\`, `_`, and `-`; unbroken names can wrap between characters. Continuation lines align with the name, while icons and branch connectors stay aligned with the first line.
+
 ````md
 <FileTree indent="14" gap="0">
 project
@@ -312,6 +315,25 @@ Sound attributes:
 - `cooldown` is milliseconds between repeated plays, default `250`
 - `radius` and `minVolume` control screen-space attenuation when used in scenes
 
+### `<Amount>`
+
+`<Amount>` formats a numeric amount. Omitting `unit` (or using `unit="none"`) displays only the number. `unit="item"` is also suffix-free. `unit="fluid"` follows the GTNHLib fluid preference and displays `mB` or `L`. The optional `format` is `default`, `plain`, `compact`, or `scientific`; `decimals` limits fractional digits. Keep rate suffixes such as `/s` outside the tag.
+
+| Attribute | Meaning |
+| --- | --- |
+| `value` | required finite decimal value |
+| `unit` | optional `none`, `item`, or `fluid`; defaults to `none` |
+| `format` | optional number format; defaults to `default` |
+| `decimals` | optional non-negative maximum fractional digits |
+
+Example:
+
+````md
+<Amount value="250" />
+<Amount value="250" unit="fluid" />/s
+<Amount value="1200000" format="compact" /> items
+````
+
 ### `<PlayerName>`
 
 Inserts the current Minecraft session username:
@@ -362,8 +384,8 @@ Shows an inline item icon.
 
 | Attribute | Meaning |
 | --- | --- |
-| `ore` | ore dictionary name; the first match wins |
-| `id` | item reference used when `ore` is absent |
+| `ore` | optional ore-dictionary selector; provide `id` as well |
+| `id` | required item reference, including when `ore` is used |
 | `nbt` | optional SNBT item data; merged onto any inline SNBT in `id` |
 | `scale` | float, default `1` |
 | `noTooltip` | truthy string or empty attribute suppresses tooltip (legacy; prefer `showTooltip`) |
@@ -371,8 +393,8 @@ Shows an inline item icon.
 | `showIcon` | boolean, default `true`; `false` hides the item icon graphic |
 | `label` | `left` or `right` — shows the item display name as text on the specified side of the icon; omit for no label |
 | `format` | format pattern for the label text; supports Markdown-style wrappers (`**bold**`, `*italic*`, `~~strike~~`, `__underline__`, `^^wavy^^`, `::dotted::`) with optional `%s` placeholder for the item name; default (no attribute) renders the name in italic |
-| `yOffset` | integer pixel offset override for the **icon** at scale `1`; does not affect the label text |
-| `labelYOffset` | integer pixel offset override for the **label text** at scale `1`; does not affect the icon |
+| `yOffset` | inline vertical offset at scale `1`; default `0`; positive moves down |
+| `labelYOffset` | label-only vertical offset at scale `1`; default `0` |
 
 Notes:
 
@@ -386,7 +408,7 @@ Example:
 
 ````md
 <ItemImage id="minecraft:diamond" scale="2" />
-<ItemImage ore="ingotIron" />
+<ItemImage id="minecraft:iron_ingot" ore="ingotIron" />
 <ItemImage id="minecraft:diamond_sword" noTooltip="true" />
 <ItemImage id="minecraft:diamond" label="right" />
 <ItemImage id="minecraft:iron_ingot" label="left" format="**%s**" />
@@ -396,7 +418,7 @@ Example:
 <ItemImage
   id="minecraft:chest"
   scale="2"
-  nbt='{id:"Chest",Items:[{Slot:0b,id:"minecraft:diamond",Count:1b,Damage:0s}]}'
+  nbt='{display:{Name:"Storage Chest"}}'
 />
 ````
 
@@ -425,6 +447,39 @@ Examples:
 <ItemLink id="minecraft:compass" linksTo="#usage" />
 ````
 
+### `<FluidImage>`, `<FluidLink>`, and `<FluidIcon>`
+
+Native fluid icons resolve the exact Forge fluid registry name, such as `water`, `steam`, or `molten.iron`. Persist names, never numeric fluid IDs or NEI display-item metadata. Rendering uses the Forge fluid texture and tint and does not require NEI.
+
+Default hover tooltips show the fluid name, temperature in kelvin and gas/liquid state. An explicit `amount`, including zero, adds the quantity in the selected L/mB unit; an omitted amount adds no quantity. Advanced tooltips also show the registry name. When GregTech is loaded, material information such as chemical formulas follows its tooltip settings. Native tooltips, connected runtime previews and ExportSite share these details; disconnected Web previews only know the supplied name and amount. NEI is not required.
+
+ExportSite displays item counts and fluid amounts as text overlays using its bundled Pixeloid Mono font. Item durability bars remain part of the icon image.
+
+| Attribute | Contract |
+| --- | --- |
+| `id` | Required complete fluid registry name; no implicit namespace or item metadata |
+| `amount` | Optional integer amount; display follows the selected fluid unit |
+| `nbt` | Optional SNBT describing a private fluid stack tag |
+| `showTooltip`, `noTooltip` | Same visibility precedence as item icons; hiding a tooltip does not disable G navigation |
+| `scale`, `showIcon`, `label`, `format`, `yOffset`, `labelYOffset` | FluidImage shares ItemImage presentation options; scale must be finite and positive |
+| `showIcon`, `showText`, `linksTo` | FluidLink shares ItemLink label, icon-side, and explicit page/anchor behavior |
+
+`FluidIcon` is an ItemGrid child and accepts only `id`, `amount`, `nbt`, `showTooltip`, and `noTooltip`. A single ItemGrid may mix ItemIcon and FluidIcon children in source order. There is no separate FluidGrid. `ore` and item metadata are not fluid selectors.
+
+```mdx
+<FluidImage id="water" amount={1000} scale="2" label="right" />
+<FluidLink id="steam" showIcon="left">Steam</FluidLink>
+<ItemGrid>
+  <ItemIcon id="minecraft:bucket" />
+  <FluidIcon id="water" amount={1000} />
+  <FluidIcon id="steam" />
+</ItemGrid>
+```
+
+Bind pages with `fluid_id` / `fluid_ids`. Hold the remappable open-guide key (G by default) over native fluid icons or supported container/display representations. One match opens directly; multiple matches show a chooser with fluid pages before container pages. Amount and NBT affect display, while bindings match the registry name. Empty containers retain ordinary item navigation. Unrecognized fluid GUIs require a registered hover provider.
+
+Use `navigation.icon_fluid` / `icon_fluids` for single/cycling page icons, and `iconFluid` in ContentTabs, FileTree directives, quote directives, chart Series / LineSeries / Slice. Fluid icon sources must not be combined with item, PNG, or text icon sources. Six Recipe/Usage tags accept `fluid`, `inputFluid`, and `outputFluid`; InputAnnotation accepts `fluid`, `amount`, and `nbt`. See Recipes, Guide Page Format, and Annotations for the remaining contracts.
+
 ### `<CommandLink>`
 
 Sends a chat command when clicked.
@@ -438,7 +493,7 @@ Sends a chat command when clicked.
 Example:
 
 ````md
-<CommandLink command="/tp @s 0 90 0" title="Teleport">Teleport!</CommandLink>
+<CommandLink command="/tp @p 0 90 0" title="Teleport">Teleport!</CommandLink>
 ````
 
 ### `<Row>` And `<Column>`
@@ -483,7 +538,7 @@ GuideNH uses this block tag internally when runtime markdown footnotes are expan
 
 ### `<ItemGrid>`
 
-Renders a compact item grid. Children must be raw `<ItemIcon>` elements, which are parsed directly by the grid compiler. Each child can use either `id` or `ore`.
+Renders a compact icon grid. ItemIcon and FluidIcon children appear in source order. Item children select `id` or `ore`; fluid children select a registry-name `id` with optional amount and NBT.
 
 ````md
 <ItemGrid>
@@ -505,6 +560,10 @@ selection outline and tooltip. `ore` must resolve to a block item stack.
 | `id` | block id; supports the normal `modid:block[:meta][:{snbt}]` spelling |
 | `ore` | ore dictionary lookup; the first matching block item wins |
 | `scale` | camera zoom multiplier, default `4` |
+| `meta` | block metadata; overrides metadata in `id` |
+| `width` / `height` | preview viewport in pixels; default `128` for each dimension |
+| `wrap` | text wrapping mode; default `inline` |
+| `align` | horizontal alignment: `left` (default), `center`, or `right` |
 | `float` | legacy flow float support: `left` or `right` |
 | `perspective` | `isometric-north-east` (default), `isometric-north-west`, or `up` |
 | `nbt` | optional SNBT tile-entity data merged onto any inline SNBT from `id` |
@@ -532,15 +591,11 @@ Notes:
 
 See [Images And Assets](Images-And-Assets) for the full behavior.
 
-Quick rules:
+```mdx
+<FloatingImage src="test1.png" displayWidth="128" wrap="inline" />
 
-- `src` supports relative paths, rooted paths, and explicit `modid:path` texture ids
-- `x`, `y`, `width` / `w`, and `height` / `h` define the crop rectangle on the original image and must all be present
-- `scaleX` and `scaleY` resize the cropped result and support independent horizontal / vertical stretching
-- `displayWidth` and `displayHeight` set final dimensions in pixels; one value preserves the crop aspect ratio, while two values allow stretching
-- `displayWidth` / `displayHeight` cannot be combined with `scaleX` / `scaleY`
-- `wrap="inline"` places the image truly inline inside text flow; in that mode `align` is ignored
-- old content that used `width` / `height` as final display size must be migrated manually
+<FloatingImage src="test1.png" x="8" y="8" width="16" height="16" displayWidth="128" wrap="inline" />
+```
 
 ### `<SubPages>`, `<Category>`, And `<Special>`
 
@@ -709,7 +764,12 @@ These tags only work inside `<GameScene>` / `<Scene>`:
 | `<ImportStructure>` | import an external SNBT/NBT structure asset | `src`, `x`, `y`, `z`, `offsetX`, `offsetY`, `offsetZ`, `formed` |
 | `<ImportStructureLib>` | import a StructureLib multiblock by controller id | `controller`, `name`, `piece`, `facing`, `rotation`, `flip`, `tier`, `channel`, `channelName`, `value`, `locked`, `offsetX`, `offsetY`, `offsetZ`, `formed` |
 | `<RemoveBlocks>` | remove already-placed blocks that match a block matcher | `id` |
+| `<BlockAnnotation>` | highlight one block | `pos`, `color`, `colorMode`, `colorPeriod`, `thickness`, `alwaysOnTop` |
+| `<BoxAnnotation>` | highlight an arbitrary axis-aligned box | `min`, `max`, `color`, `colorMode`, `colorPeriod`, `thickness`, `alwaysOnTop` |
+| `<OutlineAnnotation>` | outline the rendered silhouette of blocks or entities | `pos`, `min`, `max`, `entity`, `target`, `mode`, `color`, `colorMode`, `colorPeriod`, `thickness`, `alwaysOnTop`, `pulse`, `pulsePeriod` |
 | `<BlockAnnotationTemplate>` | stamp the same child annotations onto every matching placed block | `id` |
+
+`colorMode`: `solid` (default) or `rainbow`; rainbow rotates through 360 degrees around the projected annotation center, replacing RGB while preserving the alpha of `color`. `colorPeriod`: positive finite rainbow cycle period in seconds; default `2.4`; invalid values produce a page error. Game and Site Export use the same rainbow gradient and cycle duration.
 
 See [GameScene](GameScene) for scene import/removal behavior and [Annotations](Annotations) for annotation template rules.
 
@@ -732,11 +792,16 @@ See [GameScene](GameScene) for scene import/removal behavior and [Annotations](A
 
 Cartesian charts (Column / Bar / Line / Scatter) additionally accept axis attributes `xAxisLabel`, `xAxisMin`, `xAxisMax`, `xAxisStep`, `xAxisUnit`, `xAxisTickFormat` and the matching `yAxis*` set, plus `showXGrid={true}` / `showYGrid={true}` to toggle gridlines.
 
+Invalid or oversized tick formats fall back to automatic number formatting. Format strings are limited to 256 characters, field widths to 128, and precision to 20. Overlapping numeric tick labels are omitted as needed without removing their grid lines.
+
+`ColumnChart`, `LineChart`, and `ScatterChart` show a horizontal gold dashed guide while the pointer is inside the plot, including empty space; the current Y value is highlighted beside the left axis. `BarChart` uses a vertical guide and highlights the X value below the plot. Labels follow the axis tick format and unit. The guide has no text on the line and disappears outside the plot. Both axes use faint, sparse dashed grids; `showXGrid` and `showYGrid` control them independently. Extremely small positive tick steps are coarsened automatically to bound rendering work.
+
 Children:
 
 * `<Series name="..." color="#..." data="10,20,30"/>` for category-based charts (Column / Bar / categorical Line).
 * `<Series name="..." color="#..." points="x:y,x:y,..."/>` for numeric X (Line `numericX={true}`, Scatter).
 * `<Slice name="..." value="..." color="#..."/>` for `<PieChart>` only.
+* `<ReferenceLine y="100"/>` draws a fixed horizontal line in `ColumnChart`, `LineChart`, and `ScatterChart`. `BarChart` uses `<ReferenceLine x="100"/>` for a vertical line, with `y` accepted as an alias. The coordinate must be finite. Multiple lines are allowed; `color` overrides the translucent gray default and optional `label` appears inside the plot without covering axis tick labels. References remain visible when grids are disabled, do not expand the automatic range, and are hidden outside it. `PieChart` does not support this tag.
 
 When `color` is omitted on a `<Series>` or `<Slice>`, GuideNH cycles through a built-in 16-color palette.
 
@@ -765,6 +830,8 @@ Extra attributes: `categories` (X-axis or Y-axis labels, comma separated), `barW
 
 - `<LineSeries name="…" data="v1,v2,…" color="#rrggbb" icon="…"/>` — drawn as a polyline overlay on top of the bars. Each line point sits at the cluster center of the matching category index; the overlay shares the host chart's value axis. You can declare multiple `<LineSeries>` to overlay several trends.
 - `<PieInset size="60" position="topRight" title="…" startAngleDeg="-90" direction="clockwise" titleColor="#rrggbb">` — a small pie chart drawn inside one of the four corners (`topRight`, `topLeft`, `bottomRight`, `bottomLeft`) of the plot area. Its `<Slice>` children share the same syntax as in `<PieChart>`.
+
+`PieInset` slices take hover priority over the bars and lines below them: tooltips show the name, value, percentage, and optional `tooltip` text; in-game item tooltips are retained when an item icon is present. The main guide is hidden while a slice is hovered. Only the first inset is used. `position="rightOutside"` reserves a separate area on the right. `startAngleDeg="0"`, `direction="counterclockwise"`, and a single full-circle slice are supported.
 
 ```mdx
 <ColumnChart title="Quarterly output" categories="Q1,Q2,Q3,Q4">
@@ -876,15 +943,3 @@ Example:
 <QuestCard id="01234567-89ab-cdef-0123-456789abcdef" show_tooltip="false" />
 <QuestCard id="AAAAAAAAAAAAAAAAAAAMug==" />
 ````
-
-### `<Amount>`
-
-`<Amount>` formats a numeric quantity without changing ordinary text. With no `unit` attribute it renders only the number. `unit="item"` is also suffix-free. `unit="fluid"` delegates the displayed suffix (`mB` or `L`) to GTNHLib's fluid preference. Keep rates outside the tag:
-
-```md
-Consumes <Amount value="250" unit="fluid" /> L/s
-<Amount value="1000000" unit="fluid" format="plain" /> L/t
-<Amount value="1200000" format="compact" /> items
-```
-
-`format` accepts `default`, `plain`, `compact`, or `scientific`. `default` follows GTNHLib number-format settings; `plain` disables exponential notation; `compact` uses abbreviated notation; `scientific` enables exponential notation. `decimals` optionally sets the number of decimal places. Unknown units and formats are reported as page errors.

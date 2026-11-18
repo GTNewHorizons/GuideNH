@@ -18,8 +18,8 @@ GuideNH の実行時ページは Markdown ファイルです。標準 Markdown �
 
 ````md
 ```lua
-ローカル 値 = 42
-print(値)
+local value = 42
+print(value)
 ```
 
 ```
@@ -97,7 +97,7 @@ mindmap
 </NodeContent>
 
 <NodeContent id="export">
-![Machine Diagram](./resourcepack/assets/guidenh/guidenh/_en_us/test1.png)
+![Machine Diagram](./test1.png)
 </NodeContent>
 </Mermaid>
 ````
@@ -132,7 +132,9 @@ gold,17
 ````
 
 
-## Markdown 表の幅ヒント
+## Markdown テーブル
+
+### 列幅
 
 表の直後に実行時属性行を置くと、GFM 表に表示列幅を指定できます。
 
@@ -147,7 +149,25 @@ gold,17
 
 表自体は標準 Markdown のまま、GuideNH が実行時だけ列幅を適用します。
 
-## HTML Tables
+### セルの結合と属性
+
+- セルの後ろに `|` を追加すると、その分だけ列を結合します。`||` は 2 列、`|||` は 3 列です。
+- `^^` で始まるセルは上のセルと結合し、内容は改行して追加されます。
+- 両端のコロンで配置を指定します。`: 左寄せ`、`右寄せ :`、`: 中央 :`。
+- 末尾の IAL（`{: ... }`）は `color`、`background` / `bgcolor`、安全な `style`、`align`、`valign`、`id`、`class` を指定します。`{:name: ...}` で再利用できます。危険な CSS と外部 URL は無視されます。
+- 行末の `\` は次の物理行を同じ行に結合します。先頭が区切り行（`|--|--|`）なら見出しなしのテーブルです。
+- セル内ではリンク、画像、強調、LaTeX などの行内 Markdown と MDX が使用できます。HTML では `<thead>`、`<tbody>`、`<tfoot>` も使用できます。
+
+```markdown
+{:warning: style="background: #4b2418; color: #ffd8c2; font-weight: bold"}
+| Stage | Products | Notes |
+| --- | --- | --- |
+| : First stage : | 2 ATP ||
+| ^^ Next step | 3 ATP | {: warning } |
+| Total ||| {: style="text-align: right; background: #26364d"}
+```
+
+### HTML テーブル
 
 HTML tables support captions, column groups, semantic row groups, merged cells, and alignment. `col` accepts pixel `width`; `span` repeats a width. `th` and `td` support `colspan`, `rowspan`, and `align`; `th` supports `scope`:
 
@@ -258,50 +278,47 @@ More visible text.
 | `navigation` | map | ページをナビゲーションツリーへ追加 |
 | `categories` | 文字列リスト | MediaWiki 形式カテゴリへ追加 |
 | `item_id` / `item_ids` | アイテムフィルター式 | `<ItemLink>` から発見可能にする |
+| `fluid_id` / `fluid_ids` | 登録名 / 登録名リスト | 流体からページへ移動。`#anchor` に対応 |
 | `ore_ids` | 鉱石辞書名リスト | 鉱石辞書アイテムから発見可能にする |
 | `quest_ids` | BetterQuesting ID リスト | `<QuestLink>`/`<QuestCard>` とキー操作に対応 |
 | `author` / `authors` | 文字列またはリスト | 下部バーに作者を表示 |
 | `date` / `updated` | 文字列または日付 | 作成日/更新日を表示 |
 | `zoom` | 正の浮動小数点数 | ページごとのコンテンツ倍率 |
-| その他 | YAML 値 | `additionalProperties` に保持 |
+| その他 | YAML 値 | 拡張機能や編集ツールで利用可能 |
+
+### 流体のバインドとアイコン
+
+`fluid_id` は登録名を 1 つ、`fluid_ids` は登録名のリストを受け取ります。両方を併用でき、`#anchor` でページ内の節へ移動できます。数量や NBT は照合しません。
+
+```yaml
+fluid_id: water
+fluid_ids:
+  - water#coolant
+  - steam#uses
+navigation:
+  title: Fluid handling
+  icon_fluid: water
+```
+
+ページアイコンは `navigation.icon_fluid` または `icon_fluids` で指定します。両方の併用やアイテム/テクスチャーアイコンとの併用は不可です。`icon_fluids` は空でないリストで、1 秒ごとに切り替わります。アイコンの設定はページをバインドしません。流体の存在は実行中のゲームで確認してください。
 
 ### `navigation`
 
-`title` は必須です。`keyword`、`keywords`、`parent`、`position`、`priority`、`icon`、`icons`、`icon_texture`、`icon_textures`、`required_mod`、`required_mods`、`excluded_mod`、`excluded_mods` を指定できます。
+`title` は必須です。`keyword`、`keywords`、`parent`、`position`、`recommend`、`priority`、`icon`、`icons`、`icon_texture`、`icon_textures`、`icon_fluid`、`icon_fluids`、`required_mod`、`required_mods`、`excluded_mod`、`excluded_mods` を指定できます。
 
 ```yaml
-item_id: minecraft:potion 16384-16462,!16386
 item_ids:
-  - ae2:white_paint_ball:*
-  - "<minecraft:wool:14>"
+  - minecraft:book
+fluid_id: water#coolant
 navigation:
-  title: Root
+  title: Guide Overview
   parent: index.md
   position: 10
-  priority: 0
-  icon: minecraft:book:0:{display:{Name:"My Custom Book"}}
-  # Use meta/damage to select a specific subtype:
-  # icon: minecraft:wool:1       (orange wool, colon form)
-  # Cycling icons list — cycles one per second:
-  # icons:
-  #   - minecraft:wool:1
-  #   - minecraft:wool:4:{display:{Name:"Custom Green Wool"}}
-  #   - minecraft:wool:14
-
-  icon_texture: test1.png
-  # Cycling textures:
-  # icon_textures:
-  #   - test1.png
-  #   - test2.png
+  recommend: 0
+  icon: minecraft:book
 categories:
   - basics
-  - examples|Examples Overview
-ore_ids:
-  - ingotIron
-  - oreCopper
-quest_ids:
-  - 01234567-89ab-cdef-0123-456789abcdef
-  - AAAAAAAAAAAAAAAAAAAMug==
+  - examples|Overview
 author: ExampleAuthor
 date: 2024-01-15
 updated: 2024-06-01
@@ -334,6 +351,11 @@ navigation:
   title: My Dense Page
 ```
 
+## ナビゲーションと埋め込み
+
+ページ内リンクには `<a>` を使い、ナビゲーション分類には `<Category>` と `<Special>` を使います。
+Mermaid の `<Mermaid>` コンテナは複数の `<NodeContent>` を持てます。アイテム参照には既存の
+`<ItemLink>` 構文を使用します。
 
 ## リンクの解決
 
@@ -379,7 +401,6 @@ item_ids:
 
 `item_id` は 1 式、`item_ids` は同じ式の YAML リストです。空白は項、`|` は選択肢、`,` は規則、`!` は除外を表します。完全一致、メタワイルドカード、式の順に検索されます。
 
-undefined
 
 ## エラー処理
 
@@ -390,38 +411,3 @@ undefined
 - [ナビゲーション](Navigation)
 - [画像とアセット](Images-And-Assets)
 - [タグリファレンス](Tags-Reference)
-
-## 追加の構文例
-
-ページ内リンクには `<a>` を使い、ナビゲーション分類には `<Category>` と `<Special>` を使います。
-Mermaid の `<Mermaid>` コンテナは複数の `<NodeContent>` を持てます。アイテム参照には既存の
-`<ItemLink>` 構文を使用します。
-
-### Markdown table spans and cell attributes
-
-GuideNH extends GFM tables with the same compact span notation used by jekyll-spaceship:
-
-- Add one extra `|` after a cell for each additional column it occupies. `||` therefore means `colspan="2"`, and `|||` means `colspan="3"`.
-- Start a cell with `^^` to continue the cell directly above it. The content is appended with a line break and the original cell receives a larger `rowspan`.
-- A cell can use edge colons for alignment (`: left`, `right :`, or `: centered :`).
-- A trailing IAL (`{: ... }`) applies safe attributes to that cell. Supported properties are `color`, `background`/`bgcolor`, `style` (color, background, font-weight, text-decoration, and alignment declarations), `align`, `valign`, `id`, and `class`.
-- Reusable IAL definitions use `{:name: ...}` on their own line and can be referenced from a cell IAL. Unsafe CSS and external URLs are ignored.
-
-```markdown
-{:warning: style="background: #4b2418; color: #ffd8c2; font-weight: bold"}
-| Stage | Products | Notes |
-| --- | --- | --- |
-| : Glycolysis : | 2 ATP ||
-| ^^ A. Peach | 3 ATP | {: warning } |
-| Final total ||| {: style="text-align: right; background: #26364d"}
-```
-
-The syntax remains ordinary Markdown when the extension is not available: extra empty cells are harmless, while `^^` and IAL text stay visible. HTML tables remain supported for complex headers and explicit `rowspan`/`colspan` attributes.
-### Extended Markdown table syntax
-
-GuideNH also supports the jekyll-spaceship table extensions in every preview:
-
-- End a physical row with `\` to append the next physical row to the same cells; each part is rendered on a new line.
-- Use a delimiter row as the first row (`|--|--|`) for a headerless table. Its rows remain data rows and are not bolded.
-- Cell contents keep normal GuideNH Markdown and MDX inline syntax, including links, images, emphasis, and LaTeX.
-- Use HTML `<thead>`, `<tbody>`, and `<tfoot>` when explicit row groups are needed.

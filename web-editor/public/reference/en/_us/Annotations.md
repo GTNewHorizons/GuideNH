@@ -9,6 +9,7 @@ GuideNH scene annotations are child tags inside `<GameScene>` / `<Scene>`. They 
 - annotations can be hidden with the scene UI toggle
 - `alwaysOnTop` draws above scene geometry when supported by the annotation type
 - all scene annotations also accept optional `showWhenStructure`, `showWhenTier`, and `showWhenChannels` gates when the scene uses `<ImportStructureLib>`
+- Game and Site Export use the same rainbow gradient and cycle duration.
 
 ## Supported Annotation Tags
 
@@ -18,6 +19,7 @@ GuideNH scene annotations are child tags inside `<GameScene>` / `<Scene>`. They 
 - `<DiamondAnnotation>`
 - `<OutlineAnnotation>`
 - `<TextAnnotation>`
+- `<InputAnnotation>`
 
 GuideNH also supports `<BlockAnnotationTemplate>`, which applies its child annotations to every already-placed matching block in the current scene.
 
@@ -65,8 +67,11 @@ Highlights a single 1x1x1 block volume.
 | --- | --- | --- |
 | `pos` | yes | `x y z` vector |
 | `color` | no | `#RRGGBB`, `#AARRGGBB`, or `transparent` |
+| `colorMode` | no | `solid` (default) or `rainbow`; rainbow rotates through 360 degrees around the projected annotation center, replacing RGB while preserving the alpha of `color` |
+| `colorPeriod` | no | positive finite rainbow cycle period in seconds; default `2.4`; invalid values produce a page error |
 | `thickness` | no | line thickness float |
 | `alwaysOnTop` | no | boolean expression |
+
 
 Example:
 
@@ -74,6 +79,7 @@ Example:
 <BlockAnnotation pos="2 0 2" color="#33DDEE" alwaysOnTop={true}>
   Highlights the controller block.
 </BlockAnnotation>
+<BlockAnnotation pos="4 0 2" color="#80FFFFFF" colorMode="rainbow" colorPeriod="4.8" />
 ````
 
 ## `<BoxAnnotation>`
@@ -85,8 +91,11 @@ Highlights an arbitrary axis-aligned box.
 | `min` | yes | `x y z` minimum vector |
 | `max` | yes | `x y z` maximum vector |
 | `color` | no | annotation color |
+| `colorMode` | no | `solid` (default) or `rainbow`; rainbow rotates through 360 degrees around the projected annotation center, replacing RGB while preserving the alpha of `color` |
+| `colorPeriod` | no | positive finite rainbow cycle period in seconds; default `2.4`; invalid values produce a page error |
 | `thickness` | no | line thickness float |
 | `alwaysOnTop` | no | boolean expression |
+
 
 GuideNH automatically swaps min/max coordinates per axis when they are provided in reverse order.
 
@@ -96,6 +105,7 @@ Example:
 <BoxAnnotation min="0 1 0" max="1 1.6 0.6" color="#EE3333" thickness="0.04">
   Half-height area highlight.
 </BoxAnnotation>
+<BoxAnnotation min="2 0 0" max="4 1.5 0.5" color="#80FFFFFF" colorMode="rainbow" colorPeriod="2.4" />
 ````
 
 ## `<LineAnnotation>`
@@ -173,10 +183,13 @@ Draws a glow-style silhouette outline around blocks and entities, like the Glowi
 | `target` | no | `blocks` (default), `entities`, or `all`: what is outlined inside the region; `entities` without a region outlines every entity |
 | `mode` | no | `auto` (default), `geometry`, `cutout`, or `bounds` |
 | `color` | no | outline color; omitted uses white, or the scoreboard team color for entities |
+| `colorMode` | no | `solid` (default) or `rainbow`; rainbow rotates through 360 degrees around the projected annotation center, replacing RGB while preserving the alpha of `color` |
+| `colorPeriod` | no | positive finite rainbow cycle period in seconds; default `2.4`; invalid values produce a page error |
 | `thickness` | no | outline width in GUI pixels, `0.25` to `8`, default `1` |
 | `alwaysOnTop` | no | boolean expression; occluded parts keep full brightness instead of being dimmed |
 | `pulse` | no | boolean expression; makes the outline breathe |
 | `pulsePeriod` | no | breathing period in seconds, default `2` |
+
 
 Silhouette modes:
 
@@ -206,7 +219,7 @@ Example:
   <OutlineAnnotation pos="0 0 0" color="#55FFFF">
     Glass is outlined as a full cube.
   </OutlineAnnotation>
-  <OutlineAnnotation pos="2 0 0" color="#FFFF55" thickness="1.5" />
+  <OutlineAnnotation pos="2 0 0" color="#80FFFFFF" colorMode="rainbow" colorPeriod="2.4" thickness="1.5" />
   <OutlineAnnotation entity="sheep" color="#FFAA00" alwaysOnTop={true} pulse={true} />
 </GameScene>
 ````
@@ -290,6 +303,21 @@ Example:
   <RecipeFor id="minecraft:furnace" />
 </DiamondAnnotation>
 ````
+
+## `<InputAnnotation>` fluid targets
+
+InputAnnotation accepts either `item` or `fluid`, never both. A fluid target also accepts optional `amount` (integer) and `nbt` (SNBT). Amount and NBT require `fluid`. Existing position, inputType, modifier, and StructureLib visibility conditions remain available.
+
+Fluid hover information includes the name, temperature and gas/liquid state, plus configured GregTech material details when available. Explicit amounts use the selected L/mB unit. ExportSite input annotations retain the same text as a browser hover hint and preserve the formatted amount.
+
+```mdx
+<GameScene width="180" height="120">
+  <Block x="0" y="0" z="0" id="minecraft:stone" />
+  <InputAnnotation pos="0.5 1.5 0.5" inputType="rmb" fluid="water" amount={1000} />
+</GameScene>
+```
+
+The annotation displays an interaction icon and fluid information. It does not fill a tank or change the scene world. Fluid blocks still use real block IDs in Block / PlaceBlock.
 
 ## `<BlockAnnotationTemplate>`
 

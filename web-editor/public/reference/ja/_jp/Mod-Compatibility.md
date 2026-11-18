@@ -57,8 +57,8 @@ quest_ids:
 | 状態 | 条件 | 描画 |
 | --- | --- | --- |
 | 表示 | 解放済みで未完了 | クリック可能な通常リンク |
-| 完了 | `quest.isComplete(player)` が true | 緑色リンクと末尾の `✓` |
-| ロック | 未解放だが 非表示/SECRET ではない | 斜体の灰色プレースホルダー |
+| 完了 | クエスト完了 | 緑色リンクと末尾の `✓` |
+| ロック | 未解放だが 非表示/SECRET ではない | クリック可能なクエストリンク/カードのタイトル |
 | 非表示 | ロック中で 非表示 または SECRET | 詳細を漏らさない濃い灰色プレースホルダー |
 | 欠落 | ID がデータベースにない | 斜体の赤色プレースホルダー |
 
@@ -77,8 +77,8 @@ quest_ids:
 
 ロック済みで公開されているクエストは、`<QuestLink>` または `<QuestCard>` 内のタイトルに説明ツールチップを表示できます。`show_tooltip="false"` または `showTooltip={false}` で非表示にできます。
 
-> [!注記]
-> クエスト状態はページのコンパイル時に現在のプレイヤーの進行状況から解決されます。ページはガイドごとにキャッシュされるため、解放後はガイドを開き直すと再評価されます。
+> [!NOTE]
+> 解放または完了後にガイドを開き直すと、表示状態が更新されます。
 
 ### ガイドを開くキー
 
@@ -92,35 +92,7 @@ BetterQuesting が読み込まれていると、既定のキー `G`（`key.guide
 ### BetterQuesting がない場合
 
 - `<QuestLink>` と `<QuestCard>` は登録されず、通常の 不明-タグ エラーになります。
-- `quest_ids` は `additionalProperties` に保存されますが、読み取られません。
 - クエストホバー用のキー処理は何もしません。
 - `[guide]...[/guide]` の説明リンクは解析されません。
 
-## タグをサイトへエクスポートする
-
-エクスポートサイトは GuideNH 標準タグを描画します。独自 `TagCompiler` のタグは `GuideSiteTagRenderer` を登録すると描画できます。
-
-```java
-public class MyModSiteTagRenderer implements GuideSiteTagRenderer {
-
-    @Override
-    public Set<String> getTagNames() {
-        return Set.of("MyMachine");
-    }
-
-    @Override
-    public String render(GuideSiteTagRenderContext context, MdxJsxElementFields element) {
-        String id = element.getAttributeString("id", "");
-        return "<div class=\"mymod-machine\">" + GuideSiteGraphRenderer.esc(id) + "</div>";
-    }
-}
-```
-
-```java
-GuideNhIntegrationRegistry.global().registerSiteTagRenderer(new MyModSiteTagRenderer());
-Guide.builder(id).extension(GuideSiteTagRenderer.EXTENSION_POINT, new MyModSiteTagRenderer()).build();
-```
-
-登録済みレンダラーは組み込みレンダラーより先に呼ばれ、最初にマークアップを返したものが採用されます。担当外では `null` を返してください。例外はログに記録され、そのレンダラーだけがスキップされます。
-
-コンテキストには `defaultNamespace`、`currentPageId`、`templates`、`sceneResolver`、`compiler` とエクスポート対象ページが含まれます。出力するテキストは `GuideSiteGraphRenderer.esc(...)` でエスケープしてください。
+BetterQuesting が任意の場合は `navigation.required_mod: betterquesting` でページを非表示にできます。Mod 開発者向けの拡張方法は [Developer Integration](Developer-Integration) を参照してください。

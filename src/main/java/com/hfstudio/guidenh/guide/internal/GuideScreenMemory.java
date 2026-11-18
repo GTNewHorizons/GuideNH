@@ -6,8 +6,10 @@ import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.PageAnchor;
 import com.hfstudio.guidenh.guide.internal.screen.GuideNavBarState;
+import com.hfstudio.guidenh.guide.internal.search.GuideFluidLinksPage;
 import com.hfstudio.guidenh.guide.internal.search.GuideItemLinksPage;
 import com.hfstudio.guidenh.guide.internal.search.GuideSearchPage;
+import com.hfstudio.guidenh.guide.internal.search.GuideTargetSelection;
 
 public class GuideScreenMemory {
 
@@ -74,7 +76,9 @@ public class GuideScreenMemory {
 
     public static boolean isSupportedContentAnchor(@Nullable PageAnchor anchor) {
         return anchor != null && !GuideSearchPage.isSearchAnchor(anchor)
-            && !GuideItemLinksPage.isItemLinksAnchor(anchor);
+            && !GuideItemLinksPage.isItemLinksAnchor(anchor)
+            && !GuideFluidLinksPage.isFluidLinksAnchor(anchor)
+            && !GuideTargetSelection.PAGE_ID.equals(anchor.pageId());
     }
 
     public static boolean isValidContentRoute(@Nullable GuideScreenRoute route) {

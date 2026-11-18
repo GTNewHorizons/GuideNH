@@ -4,13 +4,17 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.jetbrains.annotations.Nullable;
+import org.joml.Vector3f;
+import org.joml.Vector3fc;
+
+import com.hfstudio.guidenh.guide.scene.annotation.AnnotationColorStyle;
 
 /**
  * Reusable per-frame container of outline batches. Batches and scratch positions are pooled, so a
  * steady scene does not allocate while its outlines are rebuilt every frame. The frame also keeps the
  * world-space union of everything its targets may draw, which lets backends skip untouched pixels.
  */
-public final class OutlineFrame {
+public class OutlineFrame {
 
     private final List<OutlineBatch> batches = new ArrayList<>();
     private final List<int[]> positions = new ArrayList<>();
@@ -19,6 +23,11 @@ public final class OutlineFrame {
     private final float[] bounds = new float[6];
     private boolean hasBounds;
     private boolean unbounded;
+    private final Vector3f colorCenterScratch = new Vector3f();
+
+    Vector3f colorCenterScratch() {
+        return colorCenterScratch;
+    }
 
     public void clear() {
         batchCount = 0;
@@ -88,10 +97,34 @@ public final class OutlineFrame {
         return max;
     }
 
-    OutlineBatch batchFor(int visibleArgb, int occludedArgb, float thickness) {
+    public OutlineBatch batchFor(int visibleArgb, int occludedArgb, float thickness) {
+        return batchFor(visibleArgb, occludedArgb, thickness, AnnotationColorStyle.SOLID, 0f, 0f);
+    }
+
+    public OutlineBatch batchFor(int visibleArgb, int occludedArgb, float thickness, AnnotationColorStyle colorStyle,
+        float visibleColorOffset, float occludedColorOffset) {
+        return batchFor(
+            visibleArgb,
+            occludedArgb,
+            thickness,
+            colorStyle,
+            visibleColorOffset,
+            occludedColorOffset,
+            null);
+    }
+
+    public OutlineBatch batchFor(int visibleArgb, int occludedArgb, float thickness, AnnotationColorStyle colorStyle,
+        float visibleColorOffset, float occludedColorOffset, @Nullable Vector3fc colorCenter) {
         for (int i = 0; i < batchCount; i++) {
             OutlineBatch batch = batches.get(i);
-            if (batch.hasStyle(visibleArgb, occludedArgb, thickness)) {
+            if (batch.hasStyle(
+                visibleArgb,
+                occludedArgb,
+                thickness,
+                colorStyle,
+                visibleColorOffset,
+                occludedColorOffset,
+                colorCenter)) {
                 return batch;
             }
         }
@@ -99,7 +132,14 @@ public final class OutlineFrame {
             batches.add(new OutlineBatch());
         }
         OutlineBatch batch = batches.get(batchCount++);
-        batch.reset(visibleArgb, occludedArgb, thickness);
+        batch.reset(
+            visibleArgb,
+            occludedArgb,
+            thickness,
+            colorStyle,
+            visibleColorOffset,
+            occludedColorOffset,
+            colorCenter);
         return batch;
     }
 

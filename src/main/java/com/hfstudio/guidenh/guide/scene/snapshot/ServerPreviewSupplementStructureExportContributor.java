@@ -1,6 +1,8 @@
 package com.hfstudio.guidenh.guide.scene.snapshot;
 
-/** Fans out structure export hooks to registered server-preview supplements. */
+/**
+ * Fans out structure export hooks to registered server-preview supplements.
+ */
 public class ServerPreviewSupplementStructureExportContributor implements StructureExportContributor {
 
     @Override

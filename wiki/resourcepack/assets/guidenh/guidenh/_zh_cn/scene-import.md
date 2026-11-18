@@ -35,10 +35,9 @@ StructureLib 默认值可以写成子标签，点击 reset view 时会恢复这�
 
 将光标移到 StructureLib 结构方块上可以看到额外的结构说明；按住 `Shift` 会展开候选替换方块。如果该结构提供仓室或信道元数据，还会自动出现仓室高亮按钮和底部滑条。
 
-`facing`、`rotation` 和 `flip` 使用与 StructureLib 导出一致的朝向词汇。如果控制器不允许请求的组合，GuideNH 会自动回退到第一个有效对齐。GregTech 控制器预览的默认朝向也已经相对旧预览方向绕 Y 轴旋转 180 度。
+`facing`、`rotation` 和 `flip` 使用与 StructureLib 导出一致的朝向词汇。如果控制器不允许请求的组合，GuideNH 会自动回退到第一个有效对齐。
 
-如果某个控制器即使周围结构完整也需要保持未成型，可添加 `formed={false}`。目前最常见的内置示例
-仍然是 GregTech 控制器。
+GregTech 控制器默认保持未成型，即使周围结构完整。需要展示成型状态时，设置 `formed={true}`。
 
 控制器默认未成型的预览示例：
 

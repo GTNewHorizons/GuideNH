@@ -3,8 +3,6 @@ package com.hfstudio.guidenh.guide.document.block.chart;
 import java.util.ArrayList;
 import java.util.List;
 
-import net.minecraft.item.ItemStack;
-
 import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.render.RenderContext;
@@ -115,6 +113,9 @@ public class LytScatterChart extends LytChartBase {
             ChartSeries s = series.get(si);
             int n = Math.min(s.getXs().length, s.getYs().length);
             for (int i = 0; i < n; i++) {
+                if (s.getXs()[i] < xRange.min || s.getXs()[i] > xRange.max
+                    || s.getYs()[i] < yRange.min
+                    || s.getYs()[i] > yRange.max) continue;
                 float x = CartesianChartRenderer.mapX(s.getXs()[i], xRange, inner);
                 float y = CartesianChartRenderer.mapY(s.getYs()[i], yRange, inner);
                 boolean hovered = hoveredKey >= 0 && hoveredSeries == si && hoveredPoint == i;
@@ -144,6 +145,8 @@ public class LytScatterChart extends LytChartBase {
                 }
             }
         }
+        CartesianChartRenderer.drawReferenceLines(context, inner, yAxis, yRange);
+        drawHoverCursor(context, inner, yAxis, yRange);
     }
 
     private static int brighten(int argb) {
@@ -215,12 +218,12 @@ public class LytScatterChart extends LytChartBase {
     }
 
     @Override
-    protected ItemStack getHitItemStack(int key) {
+    protected ChartIcon getHitIcon(int key) {
         int si = decodeSeries(key);
         if (si < 0 || si >= series.size()) return null;
         ChartIcon icon = series.get(si)
             .getIcon();
-        return icon != null && icon.hasItemStack() ? icon.getStack() : null;
+        return icon;
     }
 
     @Override

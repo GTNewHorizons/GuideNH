@@ -6,22 +6,12 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 /**
- * Describes one item contributed to a registered Scene Editor dropdown menu.
+ * A dropdown contribution identified by an id unique within its menu. Visible entries are sorted by {@link
+ * #order()}. A checked supplier makes an entry checkable; {@link #widget()} replaces its text interaction
+ * with an embedded control.
  *
- * <p>
- * An item is identified by its id within the menu it is registered under. The registry evaluates
- * the visibility and enabled suppliers when it builds a menu, orders visible items by {@link #order()},
- * and invokes {@link #activate(SceneEditorActionContext)} for an accepted interaction. A non-null
- * checked supplier makes the item a checkable menu entry; a non-null {@link #widget()} replaces the
- * normal text-only interaction with an embedded control while retaining the item's registration and
- * enabled state.
- * </p>
- *
- * <p>
- * Suppliers and the action may be evaluated on the client thread more than once. Implementations
- * should therefore keep them side-effect free except for the action itself, and should use the action
- * context for all editor state changes.
- * </p>
+ * Suppliers run on the client thread and must be side-effect free. Actions change editor state through
+ * {@link SceneEditorActionContext}.
  */
 public class SceneEditorMenuItem {
 

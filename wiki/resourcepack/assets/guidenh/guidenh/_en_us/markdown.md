@@ -14,6 +14,20 @@ This page is a runtime sample sheet for checking what GuideNH currently renders 
 
 See also: [Charts](./charts.md) · [Function Graphs](./function-graph.md) · [Markdown Table Extensions](./markdown-table.md)
 
+## Native fluid icons
+
+Default hover tooltips show the fluid name, temperature in kelvin and gas/liquid state. An explicit `amount`, including zero, adds the quantity in the selected L/mB unit; an omitted amount adds no quantity. Advanced tooltips also show the registry name. When GregTech is loaded, material information such as chemical formulas follows its tooltip settings. Native tooltips, connected runtime previews and ExportSite share these details; disconnected Web previews only know the supplied name and amount. NEI is not required.
+
+<FluidImage id="water" amount={1000} label="right" />
+
+<FluidLink id="steam" showIcon="left" />
+
+<ItemGrid>
+  <ItemIcon id="minecraft:bucket" />
+  <FluidIcon id="water" amount={1000} />
+  <FluidIcon id="steam" />
+</ItemGrid>
+
 ## LaTeX Formulas
 
 Render LaTeX math inline with `<Latex formula="..." />`, or as a centered display block by using the same tag
@@ -120,6 +134,25 @@ Press <kbd>Shift</kbd> + <sub>1</sub>
 
 <a href="./index.md" title="Open index">Back to index</a><br clear="all" />
 
+## Amount formatting
+
+`<Amount>` defaults to a suffix-free number. Registered unit families can add their own display rules; `fluid` follows GTNHLib's `mB`/`L` preference.
+
+| Attribute | Meaning |
+| --- | --- |
+| `value` | required finite decimal value |
+| `unit` | optional `none`, `item`, or `fluid`; defaults to `none` |
+| `format` | optional number format; defaults to `default` |
+| `decimals` | optional non-negative maximum fractional digits |
+
+```md
+<Amount value="250" unit="fluid" />/s
+<Amount value="1200000" unit="fluid" format="compact" />/s
+```
+
+<Amount value="250" unit="fluid" />/s
+<Amount value="1200000" unit="fluid" format="compact" />/s
+
 ## Headings
 
 Headings can be defined by prefixing them with `#`.
@@ -222,6 +255,9 @@ Result:
 </Column>
 
 ## Tables
+
+For copy-ready examples of column spans, row spans, multiline cells, headerless tables, cell IAL attributes, and full HTML tables, see [Markdown Table Extensions](./markdown-table.md). The same syntax is available in the game, Web Editor, and Site Export.
+
 
 Markdown:
 
@@ -587,6 +623,82 @@ docs
 </FileTree>
 ```
 
+### Long paths and deep directories
+
+This example includes long paths, unbroken names, mixed English and Chinese, sibling files, and nine directory levels. Narrow the window or increase the guide scale to see names wrap: continuation lines align with the name, icons stay on the first line, and vertical connectors span the wrapped row. Deep levels reduce their indentation to preserve room for text.
+
+```filetree
+GuideNH-Large-Project/
+├── assets/
+│   ├── guidenh/
+│   │   ├── guides/
+│   │   │   ├── zh_cn/
+│   │   │   │   ├── progression/
+│   │   │   │   │   ├── electrical_age/
+│   │   │   │   │   │   ├── high_voltage/
+│   │   │   │   │   │   │   ├── advanced_processing/
+│   │   │   │   │   │   │   │   ├── `superconductingwirefactorycontrollerconfiguration.json`
+│   │   │   │   │   │   │   │   ├── `大型化工厂连续生产线与副产物回收配置说明.md`
+│   │   │   │   │   │   │   │   └── `configuration/processing/machines/very_long_machine_recipe_with_multiple_byproducts.json`
+│   │   │   │   │   │   │   ├── `高压时代的能源输入与多方块机器排布建议.md`
+│   │   │   │   │   │   │   └── `machine_maintenance_and_energy_distribution_checklist.md`
+│   │   │   │   │   │   └── `README-high-voltage-machine-progression-and-material-requirements.md`
+│   │   │   │   │   ├── medium_voltage/
+│   │   │   │   │   │   ├── `ore_processing_with_secondary_products_and_recycling.json`
+│   │   │   │   │   │   └── `电路生产线 从原料准备到成品自动化.md`
+│   │   │   │   │   └── low_voltage/
+│   │   │   │   │       └── [Low-voltage machines and setup](./index.md)
+│   │   │   │   ├── `跨维度物流与远程物品传输网络的完整使用手册.md`
+│   │   │   │   └── `installation-and-troubleshooting-for-custom-resource-packs.md`
+│   │   │   ├── en_us/
+│   │   │   │   ├── `getting_started_with_large_multiblock_factory_layouts.md`
+│   │   │   │   └── `configuration_reference_for_automated_processing_networks.md`
+│   │   │   └── `shared_navigation_and_localization_fallback_configuration.json`
+│   │   ├── textures/
+│   │   │   ├── {:iconPng=test1.png} `machine_controller_front_panel_with_active_indicator.png`
+│   │   │   ├── `超大型生产线总览图 与机器连接方向说明.png`
+│   │   │   └── `high_resolution_resource_pack_preview_for_all_voltage_tiers.png`
+│   │   └── lang/
+│   │       ├── `zh_CN.lang`
+│   │       ├── `en_US.lang`
+│   │       └── `additional_localization_entries_for_factory_controllers.lang`
+│   └── minecraft/
+│       └── `textures/blocks/custom_machine_casing_with_connected_textures.png`
+├── config/
+│   ├── {:iconItem=minecraft:iron_ingot} `industrial_material_processing_and_energy_balance.json`
+│   ├── `client_rendering_options_for_small_screens_and_large_gui_scales.json`
+│   ├── `世界生成、矿脉分布与大型矿场自动化配置.toml`
+│   └── `server_side_recipe_overrides_and_machine_compatibility_settings.cfg`
+├── documentation/
+│   ├── **安装与升级说明（包含旧版配置迁移步骤）**
+│   ├── [Chart interaction and value examples](./charts.md)
+│   ├── `known-issues-and-workarounds-for-complex-directory-layouts.md`
+│   └── `Frequently Asked Questions for Guide Authors and Resource Pack Maintainers.md`
+├── `README-with-installation-steps-and-supported-modpack-versions.md`
+├── `CHANGELOG-for-machine-recipe-updates-and-localization-improvements.md`
+└── `LICENSE`
+```
+
+### Unbroken names in a shallow tree
+
+The larger row gap makes it easier to inspect connectors across wrapped names and the alignment of icons with the first line.
+
+<FileTree indent="16" gap="3">
+factory-backups/
+├── {:iconItem=minecraft:chest} `2026-11-14-complete-factory-backup-including-machine-settings-and-item-routing.zip`
+├── {:icon=F} `连续生产线配置备份（包含全部机器参数、物品过滤与流体路由规则）.json`
+├── `aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.json`
+├── `LV-MV-HV-EV-IV-LuV-ZPM-UV-UHV-UEV-UIV-UMV-UXV-complete-progression-checklist.md`
+├── [Resource packs and guide authoring](./index.md)
+└── `最后一个超长文件名用于检查多行内容下方的末端分支是否正确结束.md`
+</FileTree>
+
+## Function Graphs
+
+<Function expr="sin(x)" xRange="-pi..pi" yRange="-2..2" />
+
+See [Function Graphs](./function-graph.md) for panel, curve, and point attributes.
+
 ## Mermaid Mindmaps
 
 Inline Mermaid fence:
@@ -657,19 +769,3 @@ Flowchart showcase featuring all shapes, extended properties, icons, and a recip
 Footnote ref[^one]
 
 [^one]: tooltip text for the footnote
-
-## Amount formatting
-
-`<Amount>` defaults to a suffix-free number. Registered unit families can add their own display rules; `fluid` follows GTNHLib's `mB`/`L` preference.
-
-```md
-<Amount value="250" unit="fluid" />/s
-<Amount value="1200000" unit="fluid" format="compact" />/s
-```
-
-<Amount value="250" unit="fluid" />/s
-<Amount value="1200000" unit="fluid" format="compact" />/s
-
-## Extended table reference
-
-For copy-ready examples of column spans, row spans, multiline cells, headerless tables, cell IAL attributes, and full HTML tables, see [Markdown Table Extensions](./markdown-table.md). The same syntax is available in the game, Web Editor, and Site Export.

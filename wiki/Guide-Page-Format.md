@@ -1,4 +1,4 @@
-﻿# Guide Page Format
+# Guide Page Format
 
 GuideNH runtime pages are markdown files parsed with:
 
@@ -146,7 +146,7 @@ Runtime nodes can mix text, links, and blocks.
 </NodeContent>
 
 <NodeContent id="export">
-![Machine Diagram](./resourcepack/assets/guidenh/guidenh/_en_us/test1.png)
+![Machine Diagram](./test1.png)
 </NodeContent>
 </Mermaid>
 ````
@@ -179,7 +179,9 @@ gold,17
 ```
 ````
 
-## Markdown Table Width Hints
+## Markdown Tables
+
+### Column Widths
 
 Ordinary GFM markdown tables can also provide runtime column width hints by adding a runtime attribute line immediately before the table:
 
@@ -193,7 +195,27 @@ Ordinary GFM markdown tables can also provide runtime column width hints by addi
 
 This keeps the table itself standard markdown while letting GuideNH apply runtime-only preferred column widths.
 
-For multi-row headers and merged cells, use an HTML table. `<caption>` is shown above the table. Use `<colgroup>` and `<col>` to set preferred pixel or percentage column widths; `width` accepts pixels or percentages (with an optional `px` suffix), and `span` repeats one width for several columns. Group rows with `<thead>`, `<tbody>`, and `<tfoot>`. Header and data cells support `colspan`, `rowspan`, `align`, and `valign`; `th` also supports `scope`, `abbr`, and `headers`. Site export preserves common table attributes such as `width`, `border`, `cellpadding`, `cellspacing`, `frame`, `rules`, `summary`, `bgcolor`, and `bordercolor`. A table-level `widths` attribute can also provide comma-separated pixel hints:
+### Merged Cells and Cell Attributes
+
+- An extra `|` after a cell adds one spanned column: `||` spans two columns, `|||` spans three.
+- Start a cell with `^^` to merge it into the cell above; its content is added on a new line.
+- Edge colons set cell alignment: `: left`, `right :`, or `: centered :`.
+- A trailing IAL (`{: ... }`) sets `color`, `background` / `bgcolor`, safe `style`, `align`, `valign`, `id`, or `class`. Define reusable attributes with `{:name: ...}`. Unsafe CSS and external URLs are ignored.
+- End a physical row with `\` to continue it on the next line. A delimiter row first (`|--|--|`) creates a headerless table.
+- Cells accept ordinary inline Markdown and MDX, including links, images, emphasis, and LaTeX. HTML tables also support explicit `<thead>`, `<tbody>`, and `<tfoot>` groups.
+
+```markdown
+{:warning: style="background: #4b2418; color: #ffd8c2; font-weight: bold"}
+| Stage | Products | Notes |
+| --- | --- | --- |
+| : First stage : | 2 ATP ||
+| ^^ Next step | 3 ATP | {: warning } |
+| Total ||| {: style="text-align: right; background: #26364d"}
+```
+
+### HTML Tables
+
+Use an HTML table for explicit row groups and multi-row headers. `<caption>` is shown above the table. Use `<colgroup>` and `<col>` to set preferred pixel or percentage column widths; `width` accepts pixels or percentages (with an optional `px` suffix), and `span` repeats one width for several columns. Group rows with `<thead>`, `<tbody>`, and `<tfoot>`. Header and data cells support `colspan`, `rowspan`, `align`, and `valign`; `th` also supports `scope`, `abbr`, and `headers`. Site export preserves common table attributes such as `width`, `border`, `cellpadding`, `cellspacing`, `frame`, `rules`, `summary`, `bgcolor`, and `bordercolor`. A table-level `widths` attribute can also provide comma-separated pixel hints:
 
 ````md
 <table widths="150,70,70,150">
@@ -325,6 +347,7 @@ GuideNH reads the first YAML frontmatter block and parses these known keys:
 | `categories` | list of strings | Adds the page to MediaWiki-style categories; each entry can optionally use `category|sort key` |
 | `item_id` | item filter expression | A single NEI-style item expression that makes the page discoverable by `<ItemLink>` |
 | `item_ids` | list of item filter expressions | List form of `item_id`; any matching expression makes the page discoverable by `<ItemLink>` |
+| `fluid_id` / `fluid_ids` | string / string list | Exact fluid registry-name binding, optionally with #anchor |
 | `ore_ids` | list of ore dictionary names | Makes the page discoverable by ore-dictionary items (e.g. `ingotIron`, `oreCopper`) |
 | `quest_ids` | list of BetterQuesting quest ids | Makes the page discoverable by `<QuestLink>` / `<QuestCard>` and by the open-guide hotkey when a quest is hovered in the BQ GUI. Accepts canonical UUID strings and BetterQuesting's compact Base64 form. Only consumed when BetterQuesting is loaded. See [Mod Compatibility](Mod-Compatibility) |
 | `author` | string | Single author name. Displayed in the bottom bar. |
@@ -332,7 +355,23 @@ GuideNH reads the first YAML frontmatter block and parses these known keys:
 | `date` | string or YYYY-MM-DD date | Content creation date. Displayed in the bottom bar. |
 | `updated` | string or YYYY-MM-DD date | Last updated date. Displayed in the bottom bar. |
 | `zoom` | positive float | Per-page content zoom multiplier (e.g. `1.5` = 150 %). Multiplied with the global `contentZoom` setting in ModConfig. Default `1.0`. |
-| any other key | any YAML value | Preserved in `additionalProperties` for extensions or tooling |
+| any other key | any YAML value | Available to extensions and authoring tools |
+
+### Native fluid bindings and navigation icons
+
+`fluid_id` accepts one registry-name binding. `fluid_ids` accepts a string list. Both may coexist and are merged without duplicate destinations. Append `#anchor` to target a section; distinct anchors remain distinct. Bindings use exact names and ignore displayed amount and NBT.
+
+```yaml
+fluid_id: water
+fluid_ids:
+  - water#coolant
+  - steam#uses
+navigation:
+  title: Fluid handling
+  icon_fluid: water
+```
+
+Choose either `navigation.icon_fluid` for one registry name or `icon_fluids` for a nonempty list cycling once per second. These fields are mutually exclusive and cannot be combined with item or texture icon sources. They select page icons, not page bindings. Validate fluid availability in the running game; offline previews cannot verify registry contents.
 
 ### `navigation`
 
@@ -343,11 +382,14 @@ GuideNH reads the first YAML frontmatter block and parses these known keys:
 | `keywords` | no | list of strings | Additional search keywords or aliases; values are combined and deduplicated |
 | `parent` | no | page id | Parent page id; omitted means top-level node |
 | `position` | no | integer | Sibling sort order; default `0`, larger values appear earlier |
+| `recommend` | no | integer | Home recommendation priority; only included when set, larger values first |
 | `priority` | no | integer | Load priority for same-path page overrides; default `0`, higher wins, equal priority lets the later resource pack entry win |
 | `icon` | no | item id | Item icon shown in navigation/search. Accepts `modid:name`, `modid:name:meta`, or `modid:name:meta:{snbt}`. The inline SNBT tail is the preferred way to attach NBT such as a custom display name. |
 | `icons` | no | list of item ids | List of item icons for animated cycling (one per second). Each entry uses the same syntax as `icon`, including inline `:{snbt}` tails. When present takes priority over `icon`. |
 | `icon_texture` | no | asset path | Texture icon path resolved like any other asset link |
 | `icon_textures` | no | list of asset paths | List of texture icons for animated cycling (one per second). When present takes priority over `icon_texture`. |
+| `icon_fluid` | no | string | One fluid registry name; excludes `icon_fluids` and item/texture sources |
+| `icon_fluids` | no | string list | Nonempty fluid registry names cycling once per second; excludes `icon_fluid` and item/texture sources |
 | `required_mod` | no | mod id | Hides the page unless this mod is loaded. |
 | `required_mods` | no | list of mod ids | Hides the page unless every listed mod is loaded. |
 | `excluded_mod` | no | mod id | Hides the page when this mod is loaded. |
@@ -356,38 +398,18 @@ GuideNH reads the first YAML frontmatter block and parses these known keys:
 ### Example Frontmatter
 
 ```yaml
-item_id: minecraft:potion 16384-16462,!16386
 item_ids:
-  - ae2:white_paint_ball:*
-  - "<minecraft:wool:14>"
+  - minecraft:book
+fluid_id: water#coolant
 navigation:
-  title: Root
+  title: Guide Overview
   parent: index.md
   position: 10
-  priority: 0
-  icon: minecraft:book:0:{display:{Name:"My Custom Book"}}
-  # Use meta/damage to select a specific subtype:
-  # icon: minecraft:wool:1       (orange wool, colon form)
-  # Cycling icons list — cycles one per second:
-  # icons:
-  #   - minecraft:wool:1
-  #   - minecraft:wool:4:{display:{Name:"Custom Green Wool"}}
-  #   - minecraft:wool:14
-
-  icon_texture: test1.png
-  # Cycling textures:
-  # icon_textures:
-  #   - test1.png
-  #   - test2.png
+  recommend: 0
+  icon: minecraft:book
 categories:
   - basics
-  - examples|Examples Overview
-ore_ids:
-  - ingotIron
-  - oreCopper
-quest_ids:
-  - 01234567-89ab-cdef-0123-456789abcdef
-  - AAAAAAAAAAAAAAAAAAAMug==
+  - examples|Overview
 author: ExampleAuthor
 date: 2024-01-15
 updated: 2024-06-01
@@ -417,7 +439,7 @@ Multiple authors example:
 authors:
   - Alice
   - Bob
-  - Charlie   # only Alice and Bob are shown, "..." appended
+  - Charlie
 ```
 Or with structured entries:
 ```yaml
@@ -554,31 +576,3 @@ If a page fails to parse, GuideNH creates an error page instead of crashing the 
 - [Navigation](Navigation)
 - [Images And Assets](Images-And-Assets)
 - [Tags Reference](Tags-Reference)
-
-### Markdown table spans and cell attributes
-
-GuideNH extends GFM tables with the same compact span notation used by jekyll-spaceship:
-
-- Add one extra `|` after a cell for each additional column it occupies. `||` therefore means `colspan="2"`, and `|||` means `colspan="3"`.
-- Start a cell with `^^` to continue the cell directly above it. The content is appended with a line break and the original cell receives a larger `rowspan`.
-- A cell can use edge colons for alignment (`: left`, `right :`, or `: centered :`).
-- A trailing IAL (`{: ... }`) applies safe attributes to that cell. Supported properties are `color`, `background`/`bgcolor`, `style` (color, background, font-weight, text-decoration, and alignment declarations), `align`, `valign`, `id`, and `class`.
-- Reusable IAL definitions use `{:name: ...}` on their own line and can be referenced from a cell IAL. Unsafe CSS and external URLs are ignored.
-
-Additional jekyll-spaceship compatible forms are supported:
-
-- End a physical row with `\\` to append the following physical row to the same cells. Each appended part is rendered on a new line.
-- A delimiter row can be used as the first row (`|--|--|`) to create a headerless table. Every following row is rendered as data and is not bolded.
-- Markdown inside cells keeps the normal GuideNH inline syntax, including links, images, inline MDX tags, emphasis, and LaTeX.
-- HTML tables can group rows with `<thead>`, `<tbody>`, and `<tfoot>` when a table needs explicit header and data sections.
-
-```markdown
-{:warning: style="background: #4b2418; color: #ffd8c2; font-weight: bold"}
-| Stage | Products | Notes |
-| --- | --- | --- |
-| : Glycolysis : | 2 ATP ||
-| ^^ A. Peach | 3 ATP | {: warning } |
-| Final total ||| {: style="text-align: right; background: #26364d"}
-```
-
-The syntax remains ordinary Markdown when the extension is not available: extra empty cells are harmless, while `^^` and IAL text stay visible. HTML tables remain supported for complex headers and explicit `rowspan`/`colspan` attributes.

@@ -2,8 +2,9 @@ import { installSearchUi } from "./search.js";
 import { disposeHydratedScenes, hydrateVisibleScenes } from "./viewer.js";
 import { loadSharedText } from "./sharedAssets.js";
 import { rememberSiteLanguage } from "./languagePreference.js";
-import { installGuideItemNavigation } from "./itemNavigation.js";
+import { installGuideItemNavigation, readGuideNavigationTarget } from "./itemNavigation.js";
 import { ensureSiteLanguage, siteText } from "./locale.js";
+import { installChartCursors } from "./chart-cursor.js";
 
 const AMOUNT_UNIT_STORAGE_KEY = "guidenh.amount.fluidUnit";
 let configuredFluidUnit = "mB";
@@ -215,7 +216,15 @@ function stopGuideSounds(root) {
 function installIngredientCycling(root) {
   stopIngredientCycling(root);
   const cyclingBoxes = root.querySelectorAll("[data-ingredient-cycling]");
-  if (!cyclingBoxes.length) {
+  const fluidCycles = Array.from(root.querySelectorAll("[data-fluid-cycle]"), box => {
+    try {
+      const frames = JSON.parse(box.dataset.fluidCycle);
+      return Array.isArray(frames) && frames.length > 1 ? { box, frames, index: 0 } : null;
+    } catch {
+      return null;
+    }
+  }).filter(Boolean);
+  if (!cyclingBoxes.length && !fluidCycles.length) {
     return;
   }
 
@@ -230,6 +239,20 @@ function installIngredientCycling(root) {
     cyclingBoxes.forEach((box) => {
       cycleChildren(box);
     });
+    if (document.hidden) return;
+    for (const cycle of fluidCycles) {
+      cycle.index = (cycle.index + 1) % cycle.frames.length;
+      const frame = cycle.frames[cycle.index];
+      const icon = cycle.box.querySelector(".fluid-icon");
+      if (!(icon instanceof HTMLElement)) continue;
+      icon.dataset.fluidId = frame.id;
+      if (icon instanceof HTMLImageElement) {
+        icon.src = frame.src;
+        icon.alt = frame.name;
+      } else {
+        icon.textContent = frame.id;
+      }
+    }
   }, 1000);
 }
 
@@ -910,22 +933,21 @@ function installTooltips(root) {
     if (template?.content?.childElementCount !== 1) return null;
     let item = template?.content?.firstElementChild;
     // Unwrap layout containers, but do not borrow links from items inside rich content.
-    while (item && !item.hasAttribute("data-guide-item-href")) {
+    while (item && !readGuideNavigationTarget(item)) {
       if (item.childElementCount !== 1 || item.hasAttribute("data-template")
         || Array.from(item.childNodes).some(node => node.nodeType === Node.TEXT_NODE && node.textContent.trim())) {
         return null;
       }
       item = item.firstElementChild;
     }
-    const href = item?.getAttribute("data-guide-item-href");
-    return href ? { key, source, href } : null;
+    const target = readGuideNavigationTarget(item, key);
+    return target ? { ...target, source } : null;
   };
   const sourceNavigationTarget = source => {
-    const item = source.closest("[data-guide-item-href]");
+    const item = source.closest("[data-guide-item-href], [data-guide-fluid-href], [data-guide-fluid-targets]");
     if (source.hasAttribute("data-template") && isInsideTooltipRoot(source)
       && item === tooltipRoot.firstElementChild && item !== source) return null;
-    const href = item?.getAttribute("data-guide-item-href");
-    return href ? { key: item, source: item, href } : null;
+    return readGuideNavigationTarget(item);
   };
   itemNavigation = installGuideItemNavigation(tooltipRoot, () => {
     if (!activeState || tooltipRoot.hidden) return null;
@@ -1592,6 +1614,7 @@ function installMermaidPanZoom(root) {
 }
 
 function installChartHoverTooltips(root) {
+  installChartCursors(root);
   const svgs = root.querySelectorAll("svg.guide-chart, svg.guide-chart-svg, svg.guide-function-graph");
   for (const svg of svgs) {
     const isFunctionGraph = svg.classList.contains("guide-function-graph");

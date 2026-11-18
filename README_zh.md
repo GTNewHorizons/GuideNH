@@ -30,7 +30,7 @@
 * 支持 `<ItemLink>`、`<ItemImage>`、`<Recipe>`、`<GameScene>`、`<ContentTabs>`、`<BlockStats>`、`<Tooltip>`、`<KeyBind>`、`<PlayerName>` 等 MDX 风格运行时标签。
 * 支持交互式 3D GameScene 预览，包括方块/实体放置、StructureLib 导入、Ponder 播放、层滑条、网格按钮、注解与方块统计表。
 * 支持游戏内指南编辑模式，包括编辑/预览分屏、工具栏操作、短延迟自动保存、外部变更处理与资源包页面创建。
-* 支持多语言指南目录与回退、物品索引跳转、搜索、服务端集成和资源重载。
+* 支持多语言指南目录与回退、物品与流体索引跳转、搜索、服务端集成和资源重载。
 
 ## **作者**
 
@@ -51,16 +51,12 @@
 
 ## **快速开始**
 
-```powershell
-.\gradlew.bat spotlessApply
-.\gradlew.bat build
-.\gradlew.bat runClient
-```
+将 GuideNH 和 GTNHLib 安装到客户端的 `mods/` 目录。编写指南不需要编译模组；可使用 [在线编辑器](https://www.gtnewhorizons.com/GuideNH) 或直接编辑 UTF-8 Markdown。
 
 进入游戏后：
 
 * 按 `G` 打开指南主页。
-* 鼠标悬停在已建立索引的物品上并按住 `G`，可以跳转到对应指南页面。
+* 鼠标悬停在已建立索引的物品或可识别的流体展示/容器上并按住 `G`，可以跳转到对应指南页面。
 * 按 `F3+T` 可以重新加载已编辑的指南资源。
 
 ## **DefaultGuide**
@@ -121,60 +117,12 @@ date: 2026-05-10
 
 ## **开发**
 
-### **指南目录**
-
-```text
-assets/<modid>/guidenh/
-|-- assets/
-|   `-- shared_structure.snbt
-|-- _en_us/
-|   |-- index.md
-|   `-- machines.md
-`-- _zh_cn/
-    |-- index.md
-    `-- machines.md
-```
-
-### **DefaultGuide 目录**
-
-```text
-config/guidenh/DefaultGuide/
-`-- <modid>/
-    `-- guidenh/
-        |-- assets/
-        |   `-- shared_structure.snbt
-        |-- _en_us/
-        |   `-- index.md
-        `-- _zh_cn/
-            `-- index.md
-```
-
-### **DefaultGuide Zip**
-
-```text
-config/guidenh/DefaultGuide.zip
-`-- assets/
-    `-- <modid>/
-        `-- guidenh/
-            |-- assets/
-            |   `-- shared_structure.snbt
-            |-- _en_us/
-            |   `-- index.md
-            `-- _zh_cn/
-                `-- index.md
-```
-
-### **注册指南**
-
-```java
-Guide.builder(new ResourceLocation("yourmod", "guidenh")).build();
-```
-
-### **验证**
+内置指南源位于 `wiki/resourcepack/assets/`，编写说明见 [实时预览](wiki/Live-Preview-zh-CN.md)。模组扩展 API 见 [开发者集成](wiki/Developer-Integration-zh-CN.md)。
 
 ```powershell
 .\gradlew.bat spotlessApply
-.\gradlew.bat build --rerun-tasks
+.\gradlew.bat build
+.\gradlew.bat runClient
 ```
 
 ## **致谢**

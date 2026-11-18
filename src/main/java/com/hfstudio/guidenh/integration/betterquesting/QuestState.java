@@ -14,15 +14,25 @@ public class QuestState {
 
     private static final Map<String, QuestState> STATES = new LinkedHashMap<>();
 
-    /** The quest exists, is shown by BetterQuesting for the player, and is not yet completed. */
+    /**
+     * The quest exists, is shown by BetterQuesting for the player, and is not yet completed.
+     */
     public static final QuestState VISIBLE = register("guidenh:betterquesting_visible");
-    /** The quest exists and the player has completed it. */
+    /**
+     * The quest exists and the player has completed it.
+     */
     public static final QuestState COMPLETED = register("guidenh:betterquesting_completed");
-    /** The quest exists but is not unlocked; visibility allows showing it as a locked placeholder. */
+    /**
+     * The quest exists but is not unlocked; visibility allows showing it as a locked placeholder.
+     */
     public static final QuestState LOCKED = register("guidenh:betterquesting_locked");
-    /** The quest exists and is hidden from the player (visibility == HIDDEN/SECRET while locked). */
+    /**
+     * The quest exists and is hidden from the player (visibility == HIDDEN/SECRET while locked).
+     */
     public static final QuestState HIDDEN = register("guidenh:betterquesting_hidden");
-    /** The UUID does not resolve to any known quest in the database. */
+    /**
+     * The UUID does not resolve to any known quest in the database.
+     */
     public static final QuestState MISSING = register("guidenh:betterquesting_missing");
 
     private final String id;

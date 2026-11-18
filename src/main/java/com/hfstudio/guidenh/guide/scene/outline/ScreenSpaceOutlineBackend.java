@@ -19,6 +19,7 @@ import org.lwjgl.opengl.GLContext;
 
 import com.hfstudio.guidenh.guide.internal.util.DisplayScale;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
+import com.hfstudio.guidenh.guide.scene.render.SceneShaderProgram;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 
 /**
@@ -27,10 +28,12 @@ import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
  * scene. Every pass is clipped to the screen rectangle the targets can reach, so the cost follows the
  * outlined area instead of the scene size.
  */
-final class ScreenSpaceOutlineBackend implements OutlineRenderBackend {
+public class ScreenSpaceOutlineBackend implements OutlineRenderBackend {
 
     private static final int STYLE_SLOTS = 256;
-    private static final int STYLE_COLUMNS = 4;
+    private static final int STYLE_COLUMNS = 5;
+    private static final int COLUMN_COLOR_EFFECT = 3;
+    private static final int COLUMN_COLOR_CENTER = 4;
     private static final int COLUMN_VISIBLE = 0;
     private static final int COLUMN_OCCLUDED = 1;
     private static final int COLUMN_THICKNESS = 2;
@@ -46,9 +49,9 @@ final class ScreenSpaceOutlineBackend implements OutlineRenderBackend {
     private final Vector4f corner = new Vector4f();
     private final Runnable maskState = this::applyMaskState;
 
-    private OutlineShaderProgram maskProgram;
-    private OutlineShaderProgram spanProgram;
-    private OutlineShaderProgram compositeProgram;
+    private SceneShaderProgram maskProgram;
+    private SceneShaderProgram spanProgram;
+    private SceneShaderProgram compositeProgram;
     private int styleTexture;
     private int maskTexture;
     private int spanTexture;
@@ -122,7 +125,7 @@ final class ScreenSpaceOutlineBackend implements OutlineRenderBackend {
                 | GL11.GL_LIGHTING_BIT);
         try {
             ensureResources(viewportWidth, viewportHeight);
-            uploadStyles(frame);
+            uploadStyles(frame, viewProjection);
             if (!depth.isEmpty()) {
                 copySceneDepth(depth, viewportX, viewportY);
             }
@@ -159,7 +162,7 @@ final class ScreenSpaceOutlineBackend implements OutlineRenderBackend {
             GL11.glDeleteTextures(styleTexture);
             styleTexture = 0;
         }
-        for (OutlineShaderProgram program : new OutlineShaderProgram[] { maskProgram, spanProgram, compositeProgram }) {
+        for (SceneShaderProgram program : new SceneShaderProgram[] { maskProgram, spanProgram, compositeProgram }) {
             if (program != null) {
                 program.delete();
             }
@@ -259,6 +262,7 @@ final class ScreenSpaceOutlineBackend implements OutlineRenderBackend {
         GL11.glDepthMask(false);
         compositeProgram.use();
         compositeProgram.setVec2("uTexel", 1f / width, 1f / height);
+        compositeProgram.setVec2("uViewportScale", (float) width / viewportWidth, (float) height / viewportHeight);
         compositeProgram.setVec2("uSpanRows", (float) mask.y0() / height, (float) mask.y1() / height);
         compositeProgram.setInt("uRadius", radius);
         GL11.glBindTexture(GL11.GL_TEXTURE_2D, spanTexture);
@@ -325,7 +329,7 @@ final class ScreenSpaceOutlineBackend implements OutlineRenderBackend {
         OpenGlHelper.setActiveTexture(OpenGlHelper.defaultTexUnit);
     }
 
-    private void uploadStyles(OutlineFrame frame) {
+    private void uploadStyles(OutlineFrame frame, Matrix4fc viewProjection) {
         float scale = DisplayScale.scaleFactor();
         ByteBuffer data = styleData;
         int usedSlots = 1;
@@ -336,7 +340,30 @@ final class ScreenSpaceOutlineBackend implements OutlineRenderBackend {
             putArgb(data, slot, COLUMN_VISIBLE, batch.getVisibleArgb());
             putArgb(data, slot, COLUMN_OCCLUDED, batch.getOccludedArgb());
             int thickness = Math.clamp(Math.round(batch.getThickness() * scale * THICKNESS_SCALE), 1, 255);
-            putArgb(data, slot, COLUMN_THICKNESS, 0xFF000000 | thickness << 16);
+            putArgb(
+                data,
+                slot,
+                COLUMN_THICKNESS,
+                0xFF000000 | thickness << 16
+                    | (batch.getColorStyle()
+                        .isRainbow() ? 0xFF00 : 0));
+            if (batch.getColorStyle()
+                .isRainbow()) {
+                int phase = Math.round(
+                    batch.getColorStyle()
+                        .phase(System.currentTimeMillis()) * 65535f);
+                int visibleOffset = Math.clamp(Math.round(batch.getVisibleColorOffset() * 255f) + 127, 0, 255);
+                int occludedOffset = Math.clamp(Math.round(batch.getOccludedColorOffset() * 255f) + 127, 0, 255);
+                putArgb(data, slot, COLUMN_COLOR_EFFECT, occludedOffset << 24 | phase << 8 | visibleOffset);
+                corner.set(batch.getColorCenter(), 1f)
+                    .mul(viewProjection);
+                float centerX = corner.w > MIN_CLIP_W ? corner.x / corner.w * 0.5f + 0.5f : 0.5f;
+                float centerY = corner.w > MIN_CLIP_W ? corner.y / corner.w * 0.5f + 0.5f : 0.5f;
+                // Binary16 pairs preserve offscreen origins in the existing byte style texture.
+                int x = Short.toUnsignedInt(Float.floatToFloat16(centerX));
+                int y = Short.toUnsignedInt(Float.floatToFloat16(centerY));
+                putArgb(data, slot, COLUMN_COLOR_CENTER, (y & 255) << 24 | (x >>> 8) << 16 | (x & 255) << 8 | y >>> 8);
+            }
         }
         data.clear();
         OpenGlHelper.setActiveTexture(OpenGlHelper.defaultTexUnit);
@@ -367,13 +394,13 @@ final class ScreenSpaceOutlineBackend implements OutlineRenderBackend {
 
     private void ensureResources(int viewportWidth, int viewportHeight) {
         if (maskProgram == null) {
-            maskProgram = OutlineShaderProgram.load("mask.vsh", "mask.fsh")
+            maskProgram = SceneShaderProgram.load("outline/mask.vsh", "outline/mask.fsh")
                 .sampler("uTexture", 0)
                 .sampler("uSceneDepth", AUX_TEXTURE_UNIT);
-            spanProgram = OutlineShaderProgram.load("fullscreen.vsh", "spans.fsh")
+            spanProgram = SceneShaderProgram.load("outline/fullscreen.vsh", "outline/spans.fsh")
                 .sampler("uMask", 0)
                 .sampler("uStyles", AUX_TEXTURE_UNIT);
-            compositeProgram = OutlineShaderProgram.load("fullscreen.vsh", "composite.fsh")
+            compositeProgram = SceneShaderProgram.load("outline/fullscreen.vsh", "outline/composite.fsh")
                 .sampler("uSpans", 0)
                 .sampler("uStyles", AUX_TEXTURE_UNIT);
             styleTexture = createTexture(

@@ -14,11 +14,14 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 
 /**
- * Packs AE2 cable-bus {@link IPart#writeToStream} bytes per facing ({@code 0}鈥搟@code 5}) for preview wire and MP batch.
+ * Packs AE2 cable-bus {@link IPart#writeToStream} bytes per facing (0 through 5) for preview wire and MP
+ * batch.
  */
 public class Ae2CableBusPartStreamCodec {
 
-    /** Keeps Forge packet chunks bounded; oversized streams are skipped. */
+    /**
+     * Keeps Forge packet chunks bounded; oversized streams are skipped.
+     */
     public static final int MAX_SIDE_PAYLOAD = 8192;
 
     private Ae2CableBusPartStreamCodec() {}

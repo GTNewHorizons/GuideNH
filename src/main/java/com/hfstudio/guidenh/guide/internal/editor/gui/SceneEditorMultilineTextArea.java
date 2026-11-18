@@ -85,7 +85,9 @@ public class SceneEditorMultilineTextArea {
     private int pendingImePhysicalDuplicateChar;
     private int recentPhysicalAsciiChar;
     private long recentPhysicalAsciiAtMillis;
-    /** Preferred pixel column used by repeated vertical cursor movement. */
+    /**
+     * Preferred pixel column used by repeated vertical cursor movement.
+     */
     @Nullable
     private Integer preferredVerticalPixel;
     /**
@@ -266,7 +268,9 @@ public class SceneEditorMultilineTextArea {
         syncImeFocusProxy();
     }
 
-    /** Applies a programmatic replacement while keeping the current viewport when possible. */
+    /**
+     * Applies a programmatic replacement while keeping the current viewport when possible.
+     */
     public void applyEditPreservingViewport(String text, int selectionStart, int selectionEnd) {
         int verticalOffset = scrollState.getOffsetPixels();
         int horizontalOffset = horizontalOffsetPixels;
@@ -771,7 +775,6 @@ public class SceneEditorMultilineTextArea {
         String text = selectionModel.getText();
         int cursor = selectionModel.getCursorIndex();
 
-        // 1. Try AST-based list continuation
         MdAstRoot root = MdAst.fromMarkdown(text, GuideMarkdownOptions.runtime());
         MdAstToMdxConverter.convert(root, Collections.emptyMap());
         MdAstListItem item = findEnclosingListItem(root, cursor);
@@ -789,7 +792,7 @@ public class SceneEditorMultilineTextArea {
             }
         }
 
-        // 2. Fallback: manual list marker continuation (for YAML and non-Markdown lists)
+        // YAML and non-Markdown lists do not have Markdown AST list nodes.
         int lineStart = findLineStart(text, Math.max(0, cursor - 1));
         int lineEnd = findLineEnd(text, cursor);
         String line = text.substring(lineStart, lineEnd);
@@ -1410,7 +1413,9 @@ public class SceneEditorMultilineTextArea {
         return getCursorIndexAt(mouseX, mouseY);
     }
 
-    /** Returns the pixel X position of the cursor relative to this text area. */
+    /**
+     * Returns the pixel X position of the cursor relative to this text area.
+     */
     public int getCursorPixelX() {
         List<SceneEditorMultilineTextLayoutCache.VisualLine> lines = layoutCache.getVisualLines();
         if (lines.isEmpty()) return PADDING;
@@ -1419,7 +1424,9 @@ public class SceneEditorMultilineTextArea {
             - visualHorizontalOffsetPixels.rounded();
     }
 
-    /** Returns the pixel Y position of the cursor relative to this text area. */
+    /**
+     * Returns the pixel Y position of the cursor relative to this text area.
+     */
     public int getCursorPixelY() {
         List<SceneEditorMultilineTextLayoutCache.VisualLine> lines = layoutCache.getVisualLines();
         if (lines.isEmpty()) return PADDING;

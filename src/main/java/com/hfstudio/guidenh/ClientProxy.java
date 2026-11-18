@@ -24,6 +24,7 @@ import com.hfstudio.guidenh.guide.internal.GuideME;
 import com.hfstudio.guidenh.guide.internal.GuideOnStartup;
 import com.hfstudio.guidenh.guide.internal.GuideReloadListener;
 import com.hfstudio.guidenh.guide.internal.compile.CompileWorker;
+import com.hfstudio.guidenh.guide.internal.fluid.FluidCatalog;
 import com.hfstudio.guidenh.guide.internal.host.LytHost;
 import com.hfstudio.guidenh.guide.internal.host.LytHostWorkItem;
 import com.hfstudio.guidenh.guide.internal.host.scripts.BlockImageScript;
@@ -31,6 +32,8 @@ import com.hfstudio.guidenh.guide.internal.host.scripts.CategoryScript;
 import com.hfstudio.guidenh.guide.internal.host.scripts.CommandLinkScript;
 import com.hfstudio.guidenh.guide.internal.host.scripts.CsvTableScript;
 import com.hfstudio.guidenh.guide.internal.host.scripts.FloatingImageScript;
+import com.hfstudio.guidenh.guide.internal.host.scripts.FluidImageScript;
+import com.hfstudio.guidenh.guide.internal.host.scripts.FluidLinkScript;
 import com.hfstudio.guidenh.guide.internal.host.scripts.ImageScript;
 import com.hfstudio.guidenh.guide.internal.host.scripts.ItemGridScript;
 import com.hfstudio.guidenh.guide.internal.host.scripts.ItemImageScript;
@@ -121,6 +124,8 @@ public class ClientProxy extends CommonProxy {
         ((IReloadableResourceManager) Minecraft.getMinecraft()
             .getResourceManager()).registerReloadListener(new GuideReloadListener());
         DefaultGuideResourcePackManager.init();
+        ((IReloadableResourceManager) Minecraft.getMinecraft()
+            .getResourceManager()).registerReloadListener(FluidCatalog.INSTANCE);
         ClientCommandHandler.instance.registerCommand(new GuideNhClientCommand());
         StructureExportBootstrap.registerClientCommands();
         GuideNhClientBridgeController.init();
@@ -142,7 +147,6 @@ public class ClientProxy extends CommonProxy {
         MasterScheduler.getInstance()
             .submit(new ElkWarmupWorkItem());
 
-        // Phase 3: LytScript registrations
         lytHost.registerScript("CommandLink", new CommandLinkScript());
         lytHost.registerScript("Img", new ImageScript());
         lytHost.registerScript("FloatingImage", new FloatingImageScript());
@@ -155,6 +159,8 @@ public class ClientProxy extends CommonProxy {
         lytHost.registerScript("ItemGrid", new ItemGridScript());
         lytHost.registerScript("ItemImage", new ItemImageScript());
         lytHost.registerScript("ItemLink", new ItemLinkScript());
+        lytHost.registerScript("FluidImage", new FluidImageScript());
+        lytHost.registerScript("FluidLink", new FluidLinkScript());
         lytHost.registerScript("Category", new CategoryScript());
         lytHost.registerScript("Special", new SpecialScript());
         lytHost.registerScript("BlockImage", new BlockImageScript());
@@ -162,11 +168,9 @@ public class ClientProxy extends CommonProxy {
         lytHost.registerScript("Mermaid", new MermaidScript());
         lytHost.registerScript("QuestLink", new QuestLinkScript());
         lytHost.registerScript("QuestCard", new QuestCardScript());
-        // Phase 3: SceneScript handles Scene and GameScene
         SceneScript sceneScript = new SceneScript();
         lytHost.registerScript("Scene", sceneScript);
         lytHost.registerScript("GameScene", sceneScript);
-        // Phase 3: RecipeScript handles Recipe, Usage, RecipeFor, RecipeUsage, RecipesFor, RecipesUsage
         RecipeScript recipeScript = new RecipeScript();
         lytHost.registerScript("Recipe", recipeScript);
         lytHost.registerScript("Usage", recipeScript);
@@ -235,9 +239,8 @@ public class ClientProxy extends CommonProxy {
     }
 
     /**
-     * WorldClient is reachable from tile entities, entities, RenderBlocks, and the preview
-     * player. Clear all GuideNH-owned links at both lifecycle boundaries; the operation is
-     * intentionally idempotent because Forge can emit unload and disconnect in either order.
+     * Releases client references to preview worlds on unload and disconnect. Idempotent because Forge may emit
+     * either event first.
      */
     private static void clearClientRuntimeState(String reason) {
         if (!GuideNhClientTaskScheduler.isOnClientThread()) {

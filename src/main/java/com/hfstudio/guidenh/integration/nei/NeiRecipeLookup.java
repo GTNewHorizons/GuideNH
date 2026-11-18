@@ -13,8 +13,10 @@ import net.minecraft.item.ItemStack;
 
 import org.jetbrains.annotations.Nullable;
 
+import com.hfstudio.guidenh.guide.internal.fluid.FluidStackSpec;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.integration.Mods;
+import com.hfstudio.guidenh.integration.api.RecipeSlot;
 
 public class NeiRecipeLookup {
 
@@ -29,16 +31,30 @@ public class NeiRecipeLookup {
         public final int rely;
         public final List<ItemStack> stacks;
         public final @Nullable ItemStack current;
+        public final List<FluidStackSpec> fluids;
+        public final @Nullable FluidStackSpec currentFluid;
 
         public Slot(int relx, int rely, List<ItemStack> stacks) {
             this(relx, rely, stacks, null);
         }
 
         public Slot(int relx, int rely, List<ItemStack> stacks, @Nullable ItemStack current) {
+            this(relx, rely, stacks, current, List.of(), null);
+        }
+
+        public Slot(int relx, int rely, List<ItemStack> stacks, @Nullable ItemStack current,
+            List<FluidStackSpec> fluids, @Nullable FluidStackSpec currentFluid) {
             this.relx = relx;
             this.rely = rely;
             this.stacks = stacks;
             this.current = current;
+            this.fluids = List.copyOf(fluids);
+            this.currentFluid = currentFluid;
+        }
+
+        public static @Nullable Slot fromRecipeSlot(@Nullable RecipeSlot slot) {
+            return slot == null ? null
+                : new Slot(slot.x(), slot.y(), slot.stacks(), slot.currentStack(), slot.fluids(), slot.currentFluid());
         }
     }
 
@@ -60,7 +76,9 @@ public class NeiRecipeLookup {
         }
     }
 
-    /** NEI crafting recipe tied to {@code handler} index for Phase1/OpenGL snapshots; mirrors {@link #Entry}. */
+    /**
+     * NEI crafting recipe tied to {@code handler} index for Phase1/OpenGL snapshots; mirrors {@link #Entry}.
+     */
     public static class CraftingRecipeRef {
 
         public final Object handler;
@@ -287,6 +305,21 @@ public class NeiRecipeLookup {
             .append('{');
         if (slot.stacks != null) {
             for (ItemStack stack : slot.stacks) appendStack(out, stack);
+        }
+        for (var fluid : slot.fluids) {
+            out.append("fluid:")
+                .append(
+                    fluid.id()
+                        .length())
+                .append(':')
+                .append(fluid.id())
+                .append(':')
+                .append(fluid.amount())
+                .append(':');
+            String nbt = fluid.nbt();
+            out.append(nbt == null ? -1 : nbt.length())
+                .append(':');
+            if (nbt != null) out.append(nbt);
         }
         out.append("};");
     }
@@ -540,7 +573,9 @@ public class NeiRecipeLookup {
         }
     }
 
-    /** Returns the {@code HandlerInfo} display stack for a handler's recipe tab icon. */
+    /**
+     * Returns the {@code HandlerInfo} display stack for a handler's recipe tab icon.
+     */
     public static @Nullable ItemStack lookupHandlerIcon(Object handler) {
         if (!Mods.NotEnoughItems.isModLoaded() || handler == null) return null;
         try {
@@ -591,7 +626,9 @@ public class NeiRecipeLookup {
         }
     }
 
-    /** Native pixel width of a {@code DrawableResource} (includes padding). */
+    /**
+     * Native pixel width of a {@code DrawableResource} (includes padding).
+     */
     public static int drawableWidth(Object drawable) {
         if (drawable == null || !Mods.NotEnoughItems.isModLoaded()) return 0;
         try {
@@ -601,7 +638,9 @@ public class NeiRecipeLookup {
         }
     }
 
-    /** Native pixel height of a {@code DrawableResource} (includes padding). */
+    /**
+     * Native pixel height of a {@code DrawableResource} (includes padding).
+     */
     public static int drawableHeight(Object drawable) {
         if (drawable == null || !Mods.NotEnoughItems.isModLoaded()) return 0;
         try {

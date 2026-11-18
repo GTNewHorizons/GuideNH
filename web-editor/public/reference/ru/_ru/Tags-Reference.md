@@ -23,14 +23,16 @@
 | `<sub>` | меньший строчный текст в виде нижнего индекса. | нет |
 | `<sup>` | меньший встроенный текст в виде надстрочного индекса. | нет |
 | `<Color>` | цветной встроенный текст. | `id` или `color` |
+| `<Amount>` | форматирование числового количества | `value`, `unit`, `format`, `decimals` |
 | `<Spoiler>` | скрытый встроенный текст отображается при наведении курсора мыши. | нет |
 | `<Tooltip>` | расширенная всплывающая подсказка с дочерними элементами markdown/tag. | `label` |
 | `<SoundLink>` | кликабельный звуковой триггер с форматированным текстом | `sound` или `src`, `volume`, `pitch`, `cooldown` |
 | `<mark>` | встроенный выделенный текст; эквивалент `==text==` с дополнительным управлением цветом | `color` |
 | `<PlayerName>` | вставляет имя текущего игрока. | нет |
 | `<KeyBind>` | вставляет отображаемое имя привязки клавиш. | `id` или `action` |
-| `<ItemImage>` | значок встроенного элемента | `id` или `ore`, `scale`, `noTooltip`, `showTooltip`, `showIcon`, `label`, `format`, `yOffset`, `labelYOffset` |
+| `<ItemImage>` | значок встроенного элемента | `id`, `ore`, `nbt`, `scale`, `noTooltip`, `showTooltip`, `showIcon`, `label`, `format`, `yOffset`, `labelYOffset` |
 | `<ItemLink>` | всплывающая подсказка к элементу + дополнительная ссылка навигации. | `id` или `ore`, `linksTo`, `showTooltip`, `noTooltip`, `showIcon` |
+| `<FluidImage>` / `<FluidLink>` | native fluid icon and page navigation | `id`, `amount`, `nbt`, `scale`, `showTooltip`, `noTooltip`, `showIcon`, `label`, `linksTo` |
 | `<CommandLink>` | интерактивная ссылка на команду чата. | `command`, `title`, `close` |
 | `<Latex>` | LaTeX математическая формула; встроенный в контексте потока, центрированный блок отображения в контексте блока | `formula`, `color`, `scale`, `sourceScale`, `tooltip`, `showTooltip` |
 | `<QuestLink>` | ссылка на квест BetterQuesting со стилем, учитывающим состояние (тег совместимости, регистрируется только при загрузке BetterQuesting) | `id`, `text`, `show_tooltip` |
@@ -47,15 +49,15 @@
 | Тег | Цель | Ключевые атрибуты |
 | --- | --- | --- |
 | `<div>` | оболочка сквозного блока | нет |
-| `<ContentTabs>` | альтернативный мультимедийный контент группируется на отдельных вкладках. | `title`, `color`, `background`, `icon`, `iconPng`, `icon_png`, `iconItem`, `icon_item`, `default`, `defaultIndex` |
+| `<ContentTabs>` | альтернативный мультимедийный контент группируется на отдельных вкладках. | `title`, `color`, `background`, `icon`, `iconPng`, `icon_png`, `iconItem`, `icon_item`, `iconFluid`, `icon_fluid`, `default`, `defaultIndex` |
 | `<Tab>` | одна панель содержимого внутри `<ContentTabs>`. | `title` |
 | `<details>` | складной блок времени выполнения. | `open`, `width`, `height`, `wrap`, `align` |
 | `<FileTree>` | контур в виде каталога с соединительными линиями. | `indent`, `gap` |
 | `<Row>` | горизонтальная гибкая компоновка | `gap`, `alignItems`, `fullWidth`, `width` |
 | `<Column>` | вертикальный гибкий макет | `gap`, `alignItems`, `fullWidth`, `width` |
 | `<FootnoteList>` | контейнер сносок с ограничением по ширине, используемый средой выполнения. markdown сносок. | `width` |
-| `<ItemGrid>` | компактная сетка значков предметов. | дочерние элементы должны быть `<ItemIcon id="..."/>` или `<ItemIcon ore="..."/>`. |
-| `<BlockImage>` | неинтерактивный просмотр одного блока в 3D. | `id` или `ore`, дополнительно `scale` (по умолчанию `4`), `float`, `perspective`, `nbt` |
+| `<ItemGrid>` | compact grid of item and fluid icons | mix `<ItemIcon id="..."/>`, `<ItemIcon ore="..."/>`, and `<FluidIcon id="..."/>` |
+| `<BlockImage>` | неинтерактивный просмотр одного блока в 3D. | `id`, `ore`, `meta`, `nbt`, `scale`, `width`, `height`, `perspective`, `wrap`, `align` |
 | `<FloatingImage>` | обрезанный блок изображения с плавающим или встроенным размещением. | `src`, `x`, `y`, `width` / `w`, `height` / `h`, `scaleX`, `scaleY`, `displayWidth`, `displayHeight`, `wrap`, `align`, `title` |
 | `<SubPages>` | дочерний список навигации | `id`, `alphabetical` |
 | `<Category>` | список страниц из категории. | `name`, `rows` |
@@ -193,6 +195,8 @@ GuideNH также поддерживает тег разрыва MDX с очи�
 
 Отображает структуру каталогов с настоящими соединительными линиями, построенными из глифов в начале строк. Допускаются и Unicode-рамки (`│ ├ └ ─`), и ASCII (`| +-- \-- ` / четыре пробела); формы можно смешивать. Текст строк поддерживает обычный встроенный Markdown (ссылки, **жирный**, `код` и т. д.), а ссылки работают и в игре, и во встроенном экспорте сайта. То же содержимое можно записать в fenced-блоке ` ```tree ` или ` ```filetree `.
 
+В узком окне отступы уровней уменьшаются, оставляя место для текста. Длинные пути предпочтительно переносятся после `/`, `\`, `_` и `-`; имена без разделителей могут переноситься между символами. Продолжение строки выравнивается по началу имени, а значки и ответвления — по первой строке.
+
 ````md
 <FileTree indent="14" gap="0">
 project
@@ -311,6 +315,25 @@ GuideNH также поддерживает пользовательскую д�
 - `cooldown` — это миллисекунды между повторными воспроизведениями, по умолчанию `250`.
 - `radius` и `minVolume` управляют затуханием экранного пространства при использовании в сценах.
 
+### `<Amount>`
+
+`<Amount>` форматирует числовое количество. Если `unit` не указан (или равен `unit="none"`), отображается только число. `unit="item"` также не добавляет суффикс. `unit="fluid"` использует настройку жидкостей GTNHLib и показывает `mB` или `L`. `format` может быть `default`, `plain`, `compact` или `scientific`, а `decimals` ограничивает число знаков после запятой. Скорость, например `L/s`, указывайте вне тега.
+
+| Атрибут | Значение |
+| --- | --- |
+| `value` | обязательное конечное десятичное число |
+| `unit` | необязательное `none`, `item` или `fluid`; по умолчанию `none` |
+| `format` | необязательный числовой формат; по умолчанию `default` |
+| `decimals` | необязательное неотрицательное максимальное число знаков |
+
+Пример:
+
+````md
+<Amount value="250" />
+<Amount value="250" unit="fluid" />/s
+<Amount value="1200000" format="compact" /> items
+````
+
 ### `<PlayerName>`
 
 вставляет текущее имя пользователя сеанса Minecraft:
@@ -361,8 +384,8 @@ GuideNH также игнорирует явные теги `<Comment>`:
 
 | Атрибут | Значение |
 | --- | --- |
-| `ore` | имя словаря руды; первый матч выигрывает |
-| `id` | ссылка на элемент, используемая, когда `ore` отсутствует. |
+| `ore` | необязательный выбор из словаря руд; укажите также `id` |
+| `id` | обязательная ссылка на предмет, в том числе при использовании `ore` |
 | `nbt` | дополнительные данные элемента SNBT; объединено с любым встроенным SNBT в `id` |
 | `scale` | float, по умолчанию `1` |
 | `noTooltip` | правдивая строка или пустой атрибут подавляют всплывающую подсказку (устаревшая версия; предпочитаете `showTooltip`). |
@@ -370,8 +393,8 @@ GuideNH также игнорирует явные теги `<Comment>`:
 | `showIcon` | логическое значение, по умолчанию `true`; `false` скрывает изображение значка элемента. |
 | `label` | `left` или `right` — отображаемое имя элемента отображается в виде текста на указанной стороне значка; опустить, чтобы не было метки |
 | `format` | шаблон формата текста метки; поддерживает оболочки в стиле Markdown (`**bold**`, `*italic*`, `~~strike~~`, `__underline__`, `^^wavy^^`, `::dotted::`) с дополнительным заполнителем `%s` для имени элемента; по умолчанию (без атрибута) имя отображается курсивом |
-| `yOffset` | переопределение целочисленного смещения в пикселях для **значка** в масштабе `1`; не влияет на текст метки |
-| `labelYOffset` | переопределение целочисленного смещения в пикселях для **текста метки** в масштабе `1`; не влияет на иконку |
+| `yOffset` | вертикальный сдвиг в строке при `scale=1`; по умолчанию `0`; положительный вниз |
+| `labelYOffset` | вертикальный сдвиг только подписи при `scale=1`; по умолчанию `0` |
 
 Примечания:
 
@@ -385,7 +408,7 @@ GuideNH также игнорирует явные теги `<Comment>`:
 
 ````md
 <ItemImage id="minecraft:diamond" scale="2" />
-<ItemImage ore="ingotIron" />
+<ItemImage id="minecraft:iron_ingot" ore="ingotIron" />
 <ItemImage id="minecraft:diamond_sword" noTooltip="true" />
 <ItemImage id="minecraft:diamond" label="right" />
 <ItemImage id="minecraft:iron_ingot" label="left" format="**%s**" />
@@ -395,7 +418,7 @@ GuideNH также игнорирует явные теги `<Comment>`:
 <ItemImage
   id="minecraft:chest"
   scale="2"
-  nbt='{id:"Chest",Items:[{Slot:0b,id:"minecraft:diamond",Count:1b,Damage:0s}]}'
+  nbt='{display:{Name:"Storage Chest"}}'
 />
 ````
 
@@ -424,6 +447,39 @@ GuideNH также игнорирует явные теги `<Comment>`:
 <ItemLink id="minecraft:compass" linksTo="#usage" />
 ````
 
+### `<FluidImage>`, `<FluidLink>`, and `<FluidIcon>`
+
+Native fluid icons resolve the exact Forge fluid registry name, such as `water`, `steam`, or `molten.iron`. Persist names, never numeric fluid IDs or NEI display-item metadata. Rendering uses the Forge fluid texture and tint and does not require NEI.
+
+Default hover tooltips show the fluid name, temperature in kelvin and gas/liquid state. An explicit `amount`, including zero, adds the quantity in the selected L/mB unit; an omitted amount adds no quantity. Advanced tooltips also show the registry name. When GregTech is loaded, material information such as chemical formulas follows its tooltip settings. Native tooltips, connected runtime previews and ExportSite share these details; disconnected Web previews only know the supplied name and amount. NEI is not required.
+
+ExportSite displays item counts and fluid amounts as text overlays using its bundled Pixeloid Mono font. Item durability bars remain part of the icon image.
+
+| Attribute | Contract |
+| --- | --- |
+| `id` | Required complete fluid registry name; no implicit namespace or item metadata |
+| `amount` | Optional integer amount; display follows the selected fluid unit |
+| `nbt` | Optional SNBT describing a private fluid stack tag |
+| `showTooltip`, `noTooltip` | Same visibility precedence as item icons; hiding a tooltip does not disable G navigation |
+| `scale`, `showIcon`, `label`, `format`, `yOffset`, `labelYOffset` | FluidImage shares ItemImage presentation options; scale must be finite and positive |
+| `showIcon`, `showText`, `linksTo` | FluidLink shares ItemLink label, icon-side, and explicit page/anchor behavior |
+
+`FluidIcon` is an ItemGrid child and accepts only `id`, `amount`, `nbt`, `showTooltip`, and `noTooltip`. A single ItemGrid may mix ItemIcon and FluidIcon children in source order. There is no separate FluidGrid. `ore` and item metadata are not fluid selectors.
+
+```mdx
+<FluidImage id="water" amount={1000} scale="2" label="right" />
+<FluidLink id="steam" showIcon="left">Steam</FluidLink>
+<ItemGrid>
+  <ItemIcon id="minecraft:bucket" />
+  <FluidIcon id="water" amount={1000} />
+  <FluidIcon id="steam" />
+</ItemGrid>
+```
+
+Bind pages with `fluid_id` / `fluid_ids`. Hold the remappable open-guide key (G by default) over native fluid icons or supported container/display representations. One match opens directly; multiple matches show a chooser with fluid pages before container pages. Amount and NBT affect display, while bindings match the registry name. Empty containers retain ordinary item navigation. Unrecognized fluid GUIs require a registered hover provider.
+
+Use `navigation.icon_fluid` / `icon_fluids` for single/cycling page icons, and `iconFluid` in ContentTabs, FileTree directives, quote directives, chart Series / LineSeries / Slice. Fluid icon sources must not be combined with item, PNG, or text icon sources. Six Recipe/Usage tags accept `fluid`, `inputFluid`, and `outputFluid`; InputAnnotation accepts `fluid`, `amount`, and `nbt`. See Recipes, Guide Page Format, and Annotations for the remaining contracts.
+
 ### `<CommandLink>`
 
 при нажатии отправляет команду в чат.
@@ -437,7 +493,7 @@ GuideNH также игнорирует явные теги `<Comment>`:
 Пример:
 
 ````md
-<CommandLink command="/tp @s 0 90 0" title="Teleport">Teleport!</CommandLink>
+<CommandLink command="/tp @p 0 90 0" title="Teleport">Teleport!</CommandLink>
 ````
 
 ### `<Row>` и `<Column>`
@@ -482,7 +538,7 @@ GuideNH использует этот тег блока внутри, когда
 
 ### `<ItemGrid>`
 
-отображает компактную сетку элементов. Дочерние элементы должны быть необработанными элементами `<ItemIcon>`, которые анализируются непосредственно компилятором сетки. Каждый ребенок может использовать либо `id`, либо `ore`.
+Renders a compact icon grid. ItemIcon and FluidIcon children appear in source order. Item children select `id` or `ore`; fluid children select a registry-name `id` with optional amount and NBT.
 
 ````md
 <ItemGrid>
@@ -504,6 +560,10 @@ GuideNH использует этот тег блока внутри, когда
 | `id` | идентификатор блока; поддерживает нормальное написание `modid:block[:meta][:{snbt}]` |
 | `ore` | поиск по словарю руд; побеждает первый совпадающий элемент блока |
 | `scale` | множитель масштабирования камеры, по умолчанию `4`. |
+| `meta` | метаданные блока; заменяют метаданные в `id` |
+| `width` / `height` | размеры предпросмотра в пикселях; по умолчанию `128` каждый |
+| `wrap` | обтекание текстом; по умолчанию `inline` |
+| `align` | горизонтальное выравнивание: `left` (по умолчанию), `center` или `right` |
 | `float` | поддержка устаревшего потока с плавающей запятой: `left` или `right`. |
 | `perspective` | `isometric-north-east` (по умолчанию), `isometric-north-west` или `up`. |
 | `nbt` | дополнительные данные объекта тайла SNBT, объединенные с любым встроенным SNBT из `id`. |
@@ -531,15 +591,11 @@ GuideNH использует этот тег блока внутри, когда
 
 Полное описание поведения см. в разделе [Изображения и ресурсы](Images-And-Assets).
 
-Краткие правила:
+```mdx
+<FloatingImage src="test1.png" displayWidth="128" wrap="inline" />
 
-- `src` поддерживает относительные пути, корневые пути и явные идентификаторы текстур `modid:path`.
-- `x`, `y`, `width` / `w` и `height` / `h` определяют прямоугольник обрезки на исходном изображении и все они должны присутствовать.
-- `scaleX` и `scaleY` изменяют размер обрезанного результата и поддерживают независимое горизонтальное/вертикальное растяжение.
-- `displayWidth` и `displayHeight` задают окончательные размеры в пикселях; одно значение сохраняет соотношение сторон обрезки, а два значения позволяют растягивать
-- `displayWidth`/`displayHeight` нельзя комбинировать с `scaleX`/`scaleY`
-- `wrap="inline"` помещает изображение действительно внутри текстового потока; в этом режиме `align` игнорируется
-- старый контент, в котором в качестве окончательного размера отображения использовался `width`/`height`, необходимо перенести вручную.
+<FloatingImage src="test1.png" x="8" y="8" width="16" height="16" displayWidth="128" wrap="inline" />
+```
 
 ### `<SubPages>`, `<Category>` и `<Special>`.
 
@@ -695,7 +751,12 @@ $$\begin{pmatrix} a & b \\ c & d \end{pmatrix}$$
 | `<ImportStructure>` | импорт внешнего актива структуры SNBT/NBT. | `src`, `x`, `y`, `z`, `offsetX`, `offsetY`, `offsetZ`, `formed` |
 | `<ImportStructureLib>` | импортируйте мультиблок StructureLib по идентификатору контроллера. | `controller`, `name`, `piece`, `facing`, `rotation`, `flip`, `tier`, `channel`, `channelName`, `value`, `locked`, `offsetX`, `offsetY`, `offsetZ`, `formed` |
 | `<RemoveBlocks>` | удалить уже размещенные блоки, соответствующие сопоставителю блоков. | `id` |
+| `<BlockAnnotation>` | выделение одного блока | `pos`, `color`, `colorMode`, `colorPeriod`, `thickness`, `alwaysOnTop` |
+| `<BoxAnnotation>` | выделение произвольного параллелепипеда вдоль осей | `min`, `max`, `color`, `colorMode`, `colorPeriod`, `thickness`, `alwaysOnTop` |
+| `<OutlineAnnotation>` | обводка отрисованного силуэта блоков или сущностей | `pos`, `min`, `max`, `entity`, `target`, `mode`, `color`, `colorMode`, `colorPeriod`, `thickness`, `alwaysOnTop`, `pulse`, `pulsePeriod` |
 | `<BlockAnnotationTemplate>` | наносить одни и те же дочерние аннотации на каждый соответствующий размещенный блок. | `id` |
+
+`colorMode`: `solid` (по умолчанию) или `rainbow`; радуга вращается на 360° вокруг проекции центра, заменяет RGB и сохраняет альфа-канал `color`. `colorPeriod`: положительный конечный период радуги в секундах; по умолчанию `2.4`; неверные значения вызывают ошибку страницы. Игра и Site Export используют одинаковый радужный градиент и длительность цикла.
 
 см. [GameScene](GameScene), где описано поведение импорта/удаления сцены, и [Аннотации](Annotations), где описаны правила шаблона аннотаций).
 
@@ -718,11 +779,16 @@ $$\begin{pmatrix} a & b \\ c & d \end{pmatrix}$$
 
 декартовы диаграммы (столбец/столбец/линия/разброс) дополнительно принимают атрибуты оси `xAxisLabel`, `xAxisMin`, `xAxisMax`, `xAxisStep`, `xAxisUnit`, `xAxisTickFormat` и соответствующие им атрибуты. Набор `yAxis*` плюс `showXGrid={true}` / `showYGrid={true}` для переключения линий сетки.
 
+Неверные или слишком большие форматы делений заменяются автоматическим форматированием чисел. Ограничения: 256 символов, ширина поля 128 и точность 20. При наложении числовых подписей часть из них скрывается, а соответствующие линии сетки сохраняются.
+
+`ColumnChart`, `LineChart` и `ScatterChart` показывают золотую горизонтальную направляющую внутри области построения, включая пустые участки, и выделяют текущее значение Y слева. `BarChart` использует вертикальную направляющую со значением X внизу. Значения следуют формату и единицам оси. На самой линии текста нет; за пределами области она скрывается. Обе оси используют бледную сетку с редкими штрихами, отдельно управляемую через `showXGrid` и `showYGrid`. Чрезмерно малый положительный шаг делений автоматически увеличивается, чтобы ограничить объём отрисовки.
+
 Дети:
 
 * `<Series name="..." color="#..." data="10,20,30"/>` для диаграмм на основе категорий (столбец/столбец/категориальная линия).
 * `<Series name="..." color="#..." points="x:y,x:y,..."/>` для числового X (строка `numericX={true}`, Scatter).
 * `<Slice name="..." value="..." color="#..."/>` только для `<PieChart>`.
+* `<ReferenceLine y="100"/>` рисует неподвижную горизонтальную линию в `ColumnChart`, `LineChart` и `ScatterChart`. Для вертикальной линии в `BarChart` используется `<ReferenceLine x="100"/>`; `y` также принимается как псевдоним. Координата должна быть конечной. Допускается несколько линий; `color` меняет полупрозрачный серый цвет, а необязательный `label` отображается внутри графика, не перекрывая подписи делений. Линии не зависят от сетки, не расширяют автоматический диапазон и скрываются за его пределами. `PieChart` не поддерживает этот тег.
 
 если `color` опущен в `<Series>` или `<Slice>`, GuideNH циклически перебирает встроенную 16-цветную палитру.
 
@@ -751,6 +817,8 @@ $$\begin{pmatrix} a & b \\ c & d \end{pmatrix}$$
 
 - `<LineSeries name="…" data="v1,v2,…" color="#rrggbb" icon="…"/>` — отображается в виде полилинии, наложенной поверх полос. Каждая точка линии находится в центре кластера индекса соответствующей категории; наложение разделяет ось значений главной диаграммы. Вы можете объявить несколько `<LineSeries>`, чтобы наложить несколько трендов.
 - `<PieInset size="60" position="topRight" title="…" startAngleDeg="-90" direction="clockwise" titleColor="#rrggbb">` — небольшая круговая диаграмма, нарисованная внутри одного из четырех углов (`topRight`, `topLeft`, `bottomRight`, `bottomLeft`) области графика. Его дочерние элементы `<Slice>` имеют тот же синтаксис, что и `<PieChart>`.
+
+Секторы `PieInset` имеют приоритет при наведении над расположенными под ними столбцами и линиями: подсказка содержит название, значение, процент и дополнительный текст `tooltip`. В игре сохраняются подсказки предметов. Над сектором основная направляющая скрывается. Используется только первая вставленная диаграмма. `position="rightOutside"` выделяет отдельное место справа. Поддерживаются `startAngleDeg="0"`, `direction="counterclockwise"` и один сектор в виде полного круга.
 
 ```mdx
 <ColumnChart title="Quarterly output" categories="Q1,Q2,Q3,Q4">
@@ -861,23 +929,4 @@ See <QuestLink id="AAAAAAAAAAAAAAAAAAAMug==" text="Compact quest id example" /> 
 <QuestCard id="01234567-89ab-cdef-0123-456789abcdef" show_desc="false" />
 <QuestCard id="01234567-89ab-cdef-0123-456789abcdef" show_tooltip="false" />
 <QuestCard id="AAAAAAAAAAAAAAAAAAAMug==" />
-````
-
-### `<Amount>`
-
-`<Amount>` форматирует числовое количество. Если `unit` не указан (или равен `unit="none"`), отображается только число. `unit="item"` также не добавляет суффикс. `unit="fluid"` использует настройку жидкостей GTNHLib и показывает `mB` или `L`. `format` может быть `default`, `plain`, `compact` или `scientific`, а `decimals` ограничивает число знаков после запятой. Скорость, например `L/s`, указывайте вне тега.
-
-| Атрибут | Значение |
-| --- | --- |
-| `value` | обязательное конечное десятичное число |
-| `unit` | необязательное `none`, `item` или `fluid`; по умолчанию `none` |
-| `format` | необязательный числовой формат; по умолчанию `default` |
-| `decimals` | необязательное неотрицательное максимальное число знаков |
-
-Пример:
-
-````md
-<Amount value="250" />
-<Amount value="250" unit="fluid" /> L/s
-<Amount value="1200000" format="compact" /> items
 ````

@@ -3,7 +3,7 @@ package com.hfstudio.guidenh.integration.ae2;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Unified server-authoritative preview payload for an AE2 {@link appeng.tile.networking.TileCableBus}.
+ * Server-supplied AE2 cable-bus preview state.
  */
 public class Ae2CablePreviewSnapshot {
 

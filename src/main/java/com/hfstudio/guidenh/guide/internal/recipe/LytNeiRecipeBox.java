@@ -17,10 +17,12 @@ import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.block.LytBlock;
 import com.hfstudio.guidenh.guide.document.interaction.DocumentDragTarget;
+import com.hfstudio.guidenh.guide.document.interaction.FluidContent;
 import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;
 import com.hfstudio.guidenh.guide.document.interaction.TextTooltip;
 import com.hfstudio.guidenh.guide.internal.GuidebookText;
+import com.hfstudio.guidenh.guide.internal.fluid.FluidStackSpec;
 import com.hfstudio.guidenh.guide.internal.item.GuideDisplayItemStacks;
 import com.hfstudio.guidenh.guide.internal.screen.GuideIconButton;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
@@ -56,7 +58,7 @@ import lombok.Getter;
  * "recipe pool" category; hovering a slot yields an {@link NeiItemTooltip} carrying the extra
  * tooltip lines that NEI's tab normally contributes. The icon itself has no tooltip.
  */
-public class LytNeiRecipeBox extends LytBlock implements InteractiveElement, DocumentDragTarget {
+public class LytNeiRecipeBox extends LytBlock implements InteractiveElement, DocumentDragTarget, FluidContent {
 
     public static final int FRAME_BORDER = 4;
     public static final int ICON_SIZE = 8;
@@ -81,7 +83,9 @@ public class LytNeiRecipeBox extends LytBlock implements InteractiveElement, Doc
     private final int recipeIndex;
     private final String handlerName;
     private final @Nullable ItemStack iconStack;
-    /** Raw {@code codechicken.nei.drawable.DrawableResource} (kept opaque via Object). */
+    /**
+     * Raw {@code codechicken.nei.drawable.DrawableResource} (kept opaque via Object).
+     */
     private final @Nullable Object iconImage;
     private final int iconImageW;
     private final int iconImageH;
@@ -426,6 +430,8 @@ public class LytNeiRecipeBox extends LytBlock implements InteractiveElement, Doc
         }
 
         RecipeSlots slots = recipeSlots(registry);
+        RecipeSlot fluidHit = fluidSlotAt(slots, bodyX, bodyY, px, py);
+        if (fluidHit != null) return Optional.ofNullable(FluidRecipeRenderer.tooltip(fluidHit));
         ItemStack hit = findSlotHit(slots.ingredients, bodyX, bodyY, px, py);
         if (hit == null) {
             hit = findSlotHit(slots.others, bodyX, bodyY, px, py);
@@ -490,6 +496,34 @@ public class LytNeiRecipeBox extends LytBlock implements InteractiveElement, Doc
             if (shown != null) return shown;
         }
         return null;
+    }
+
+    @Override
+    public @Nullable FluidStackSpec getFluidSpec() {
+        return null;
+    }
+
+    @Override
+    public @Nullable FluidStackSpec getFluidSpecAt(int x, int y) {
+        int bodyX = bounds.x() + FRAME_BORDER + BODY_HORIZONTAL_BLEED;
+        int bodyY = bounds.y() + FRAME_BORDER + titleHeight + BODY_MARGIN + bodyTopInset + bodyYShift;
+        var hit = fluidSlotAt(recipeSlots(GuideNhIntegrationRegistry.global()), bodyX, bodyY, x, y);
+        return hit == null ? null : hit.currentFluid();
+    }
+
+    private static @Nullable RecipeSlot fluidSlotAt(RecipeSlots slots, int originX, int originY, int x, int y) {
+        for (var slot : slots.ingredients) {
+            if (isFluidHit(slot, originX, originY, x, y)) return slot;
+        }
+        for (var slot : slots.others) {
+            if (isFluidHit(slot, originX, originY, x, y)) return slot;
+        }
+        return isFluidHit(slots.result, originX, originY, x, y) ? slots.result : null;
+    }
+
+    private static boolean isFluidHit(@Nullable RecipeSlot slot, int originX, int originY, int x, int y) {
+        return slot != null && slot.currentFluid() != null
+            && isOver(originX + slot.x(), originY + slot.y(), SLOT_SIZE, SLOT_SIZE, x, y);
     }
 
     public static @Nullable ItemStack pickVisibleStack(RecipeSlot s) {

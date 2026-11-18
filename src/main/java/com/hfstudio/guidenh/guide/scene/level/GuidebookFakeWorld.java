@@ -47,7 +47,9 @@ public class GuidebookFakeWorld extends WorldClient implements GuidebookPreviewW
     public static volatile boolean gregTechDummyWorldRegistrationAttempted;
 
     private final GuidebookLevel level;
-    /** Stable read-only chunk views; renderer/CTM asks for the same coordinates repeatedly. */
+    /**
+     * Stable read-only chunk views; renderer/CTM asks for the same coordinates repeatedly.
+     */
     private final Long2ObjectOpenHashMap<GuidebookFakeChunk> chunkViews = new Long2ObjectOpenHashMap<>();
     private final Long2ObjectOpenHashMap<TileEntity> trackedTileEntities = new Long2ObjectOpenHashMap<>();
     @Nullable

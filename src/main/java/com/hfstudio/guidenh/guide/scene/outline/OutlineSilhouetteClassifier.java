@@ -11,14 +11,9 @@ import net.minecraft.block.BlockWeb;
 import net.minecraftforge.common.IPlantable;
 
 /**
- * Picks the {@link OutlineSilhouette} that matches how a target is actually drawn.
- *
- * <p>
- * The rule of thumb is "does the geometry already describe the shape?". Closed models (cubes, panes,
- * multipart boxes, OBJ/TESR models, glass and fluids) do, so their rendered geometry is used and
- * transparent texels such as a glass frame's interior cannot punch holes into the outline. Sprite-like
- * renders (crossed plants, torches, rails, ladders, vines, redstone, entity skins) only show their shape
- * through texture alpha, so those keep the alpha-tested silhouette.
+ * Uses model geometry for closed shapes and texture alpha for sprite-like shapes. Closed transparent
+ * models retain their full silhouette; plants, rails, torches, and entity skins follow their opaque
+ * texels.
  */
 public final class OutlineSilhouetteClassifier {
 

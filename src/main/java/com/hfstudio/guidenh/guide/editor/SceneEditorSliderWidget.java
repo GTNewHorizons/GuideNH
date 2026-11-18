@@ -22,7 +22,9 @@ public class SceneEditorSliderWidget implements SceneEditorMenuWidget {
     protected double maximum;
     protected String label;
 
-    /** Creates a slider whose emitted values are clamped to the inclusive minimum/maximum range. */
+    /**
+     * Creates a slider whose emitted values are clamped to the inclusive minimum/maximum range.
+     */
     public SceneEditorSliderWidget(DoubleSupplier value, DoubleConsumer valueConsumer, double minimum, double maximum,
         String label) {
         if (minimum > maximum) throw new IllegalArgumentException("minimum must not exceed maximum");
@@ -33,13 +35,17 @@ public class SceneEditorSliderWidget implements SceneEditorMenuWidget {
         this.label = label == null ? "" : label;
     }
 
-    /** Returns the pixel height reserved for this slider row. */
+    /**
+     * Returns the pixel height reserved for this slider row.
+     */
     @Override
     public int height() {
         return 26;
     }
 
-    /** Returns the preferred pixel width for this slider row. */
+    /**
+     * Returns the preferred pixel width for this slider row.
+     */
     @Override
     public int preferredWidth() {
         return 150;

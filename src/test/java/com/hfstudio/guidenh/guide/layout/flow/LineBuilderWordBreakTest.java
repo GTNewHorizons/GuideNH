@@ -19,7 +19,9 @@ class LineBuilderWordBreakTest {
 
     private static final String WBR = String.valueOf(LineBuilder.WORD_BREAK_OPPORTUNITY);
 
-    /** Every glyph is 6 wide, so a 60 wide line holds ten characters. */
+    /**
+     * Every glyph is 6 wide, so a 60 wide line holds ten characters.
+     */
     private static final FontMetrics MONOSPACE = new FontMetrics() {
 
         @Override
@@ -32,6 +34,11 @@ class LineBuilderWordBreakTest {
             return 9;
         }
     };
+
+    @Test
+    void longWordAtTheStartOfALineUsesEmergencyWrapping() {
+        assertEquals(List.of("supercondu", "ctingwiref", "actory"), layout(60, "superconductingwirefactory"));
+    }
 
     @Test
     void wbrTextNodeLetsTheNextWordWrap() {

@@ -4,8 +4,10 @@ import com.gtnewhorizon.gtnhlib.config.Config;
 import com.gtnewhorizon.gtnhlib.config.Config.Comment;
 import com.gtnewhorizon.gtnhlib.config.Config.DefaultBoolean;
 import com.gtnewhorizon.gtnhlib.config.Config.DefaultFloat;
+import com.gtnewhorizon.gtnhlib.config.Config.DefaultInt;
 import com.gtnewhorizon.gtnhlib.config.Config.DefaultStringList;
 import com.gtnewhorizon.gtnhlib.config.Config.RangeFloat;
+import com.gtnewhorizon.gtnhlib.config.Config.RangeInt;
 import com.gtnewhorizon.gtnhlib.config.Config.RequiresMcRestart;
 import com.gtnewhorizon.gtnhlib.config.ConfigException;
 import com.gtnewhorizon.gtnhlib.config.ConfigurationManager;
@@ -141,6 +143,11 @@ public class ModConfig {
         @Comment("Whether the guide navigation sidebar is pinned open by default.")
         @DefaultBoolean(false)
         public boolean guideNavigationPinned = false;
+
+        @Comment("Guide navigation width in scaled pixels. Set to 0 to size it automatically.")
+        @DefaultInt(0)
+        @RangeInt(min = 0)
+        public int guideNavigationWidth = 0;
 
         @Comment("Global content zoom factor for the guide screen. "
             + "Individual pages can override this with the 'zoom' frontmatter field. "

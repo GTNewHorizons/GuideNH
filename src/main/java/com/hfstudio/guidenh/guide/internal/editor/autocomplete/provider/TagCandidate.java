@@ -7,7 +7,9 @@ import org.jetbrains.annotations.Nullable;
 import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.syntax.InsertTemplate;
 
-/** A tag suggestion. Container tags close themselves around the caret, self-closing tags get the {@code />} tail. */
+/**
+ * A tag suggestion. Container tags close themselves around the caret, self-closing tags get the {@code />} tail.
+ */
 public class TagCandidate implements AutocompleteCandidate {
 
     private static final int LABEL_COLOR = ColorUtils.TEXT.getColor();
@@ -26,17 +28,7 @@ public class TagCandidate implements AutocompleteCandidate {
         this.tagName = tagName;
         this.container = container;
         this.template = template;
-        this.display = buildDisplay(tagName, container, template);
-    }
-
-    private static String buildDisplay(String tagName, boolean container, @Nullable InsertTemplate template) {
-        if (template != null) {
-            return template.text()
-                .replace('\n', ' ')
-                .replaceAll("\\s+", " ")
-                .trim();
-        }
-        return container ? tagName + "  </" + tagName + ">" : tagName;
+        this.display = CompletionPreview.summarize(container ? tagName + "  </" + tagName + ">" : tagName);
     }
 
     @Override

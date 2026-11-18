@@ -9,6 +9,7 @@ GuideNH のシーン注釈は `<GameScene>` / `<Scene>` 内の子タグです。
 - シーン UI の切り替えで注釈を非表示にできます。
 - 注釈の種類が対応していれば、`alwaysOnTop` はシーンのジオメトリより前に描画します。
 - `<ImportStructureLib>` を使うシーンでは `showWhenStructure`、`showWhenTier`、`showWhenChannels` の条件も指定できます。
+- ゲームと Site Export は同じ虹色のグラデーションと周期を使用します。
 
 ## 対応する注釈タグ
 
@@ -18,6 +19,7 @@ GuideNH のシーン注釈は `<GameScene>` / `<Scene>` 内の子タグです。
 - `<DiamondAnnotation>`
 - `<OutlineAnnotation>`
 - `<TextAnnotation>`
+- `<InputAnnotation>`
 
 `<BlockAnnotationTemplate>` は、現在のシーンにすでに配置された一致ブロックごとに子注釈を適用します。
 
@@ -56,13 +58,17 @@ GuideNH のシーン注釈は `<GameScene>` / `<Scene>` 内の子タグです。
 | --- | --- | --- |
 | `pos` | はい | `x y z` ベクトル |
 | `color` | いいえ | `#RRGGBB`、`#AARRGGBB`、または `transparent` |
+| `colorMode` | いいえ | `solid`（既定）または `rainbow`。虹色は投影中心の周囲を 360° 回転し、RGB を置き換えて `color` のアルファを保持します |
+| `colorPeriod` | いいえ | 虹色の周期（秒）。正の有限値で、既定値は `2.4`。不正な値はページエラーになります |
 | `thickness` | いいえ | 線の太さ |
 | `alwaysOnTop` | いいえ | 真偽値の式 |
+
 
 ````md
 <BlockAnnotation pos="2 0 2" color="#33DDEE" alwaysOnTop={true}>
   コントローラーブロックを強調表示します。
 </BlockAnnotation>
+<BlockAnnotation pos="4 0 2" color="#80FFFFFF" colorMode="rainbow" colorPeriod="4.8" />
 ````
 
 ## `<BoxAnnotation>`
@@ -74,13 +80,17 @@ GuideNH のシーン注釈は `<GameScene>` / `<Scene>` 内の子タグです。
 | `min` | はい | 最小 `x y z` ベクトル |
 | `max` | はい | 最大 `x y z` ベクトル |
 | `color` | いいえ | 注釈の色 |
+| `colorMode` | いいえ | `solid`（既定）または `rainbow`。虹色は投影中心の周囲を 360° 回転し、RGB を置き換えて `color` のアルファを保持します |
+| `colorPeriod` | いいえ | 虹色の周期（秒）。正の有限値で、既定値は `2.4`。不正な値はページエラーになります |
 | `thickness` | いいえ | 線の太さ |
 | `alwaysOnTop` | いいえ | 真偽値の式 |
+
 
 ````md
 <BoxAnnotation min="0 1 0" max="1 1.6 0.6" color="#EE3333" thickness="0.04">
   高さ半分の領域を強調します。
 </BoxAnnotation>
+<BoxAnnotation min="2 0 0" max="4 1.5 0.5" color="#80FFFFFF" colorMode="rainbow" colorPeriod="2.4" />
 ````
 
 ## `<LineAnnotation>`
@@ -149,10 +159,13 @@ GuideNH のシーン注釈は `<GameScene>` / `<Scene>` 内の子タグです。
 | `target` | いいえ | `blocks`（既定）、`entities`、`all`。範囲内で輪郭を描く対象です。範囲なしの `entities` はすべてのエンティティが対象です |
 | `mode` | いいえ | `auto`（既定）、`geometry`、`cutout`、`bounds` |
 | `color` | いいえ | 輪郭の色。省略時は白、エンティティはスコアボードのチーム色 |
+| `colorMode` | いいえ | `solid`（既定）または `rainbow`。虹色は投影中心の周囲を 360° 回転し、RGB を置き換えて `color` のアルファを保持します |
+| `colorPeriod` | いいえ | 虹色の周期（秒）。正の有限値で、既定値は `2.4`。不正な値はページエラーになります |
 | `thickness` | いいえ | GUI ピクセル単位の輪郭の太さ。`0.25` から `8`、既定値 `1` |
 | `alwaysOnTop` | いいえ | boolean expression。隠れた部分を暗くせず、そのままの明るさで描きます |
 | `pulse` | いいえ | boolean expression。輪郭を呼吸するように明滅させます |
 | `pulsePeriod` | いいえ | 明滅の周期（秒）。既定値 `2` |
+
 
 シルエットモード:
 
@@ -182,7 +195,7 @@ GuideNH のシーン注釈は `<GameScene>` / `<Scene>` 内の子タグです。
   <OutlineAnnotation pos="0 0 0" color="#55FFFF">
     ガラスは立方体全体として輪郭が描かれます。
   </OutlineAnnotation>
-  <OutlineAnnotation pos="2 0 0" color="#FFFF55" thickness="1.5" />
+  <OutlineAnnotation pos="2 0 0" color="#80FFFFFF" colorMode="rainbow" colorPeriod="2.4" thickness="1.5" />
   <OutlineAnnotation entity="sheep" color="#FFAA00" alwaysOnTop={true} pulse={true} />
 </GameScene>
 ````
@@ -249,6 +262,21 @@ GuideNH のシーン注釈は `<GameScene>` / `<Scene>` 内の子タグです。
   <RecipeFor id="minecraft:furnace" />
 </DiamondAnnotation>
 ````
+
+## `<InputAnnotation>` の流体
+
+`item` または `fluid` のどちらか一方を指定します。流体には任意の `amount`（整数）と `nbt`（SNBT）を指定できます。これらは `fluid` がある場合だけ使用できます。位置、`inputType`、修飾キー、StructureLib の表示条件も指定できます。
+
+流体のホバー情報には名前、温度、気体・液体の状態が表示されます。GregTech が読み込まれている場合、GT の設定に従った素材情報も表示されます。数量を明示すると、選択した L/mB 単位が使われます。ExportSite の入力注釈にも同じ情報がブラウザーのホバーヒントとして保持され、書式付きの数量が表示されます。
+
+```md
+<GameScene>
+  <Block id="minecraft:glass" />
+  <InputAnnotation pos="0.5 1.5 0.5" inputType="rmb" fluid="water" amount={1000} />
+</GameScene>
+```
+
+注釈は操作アイコンと流体情報を表示します。タンクへの注入は行いません。流体ブロックの配置には `Block` / `PlaceBlock` で実際のブロック ID を指定します。
 
 ## `<BlockAnnotationTemplate>`
 

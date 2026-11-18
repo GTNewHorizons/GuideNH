@@ -1,5 +1,3 @@
-[English](Guide-Page-Format)
-
 # 指南页面格式
 
 GuideNH 的运行时页面使用 Markdown 文件，当前解析支持：
@@ -34,8 +32,6 @@ GuideNH 页面当前支持示例指南里常用的这些 Markdown 能力：
 - 带有标题、列分组、行分组和合并单元格的 HTML 表格
 - 纯小写 HTML 片段，例如 `<kbd>`、`<sub>`
 - 页面正文中的 MDX 注释
-
-小写 HTML 片段示例：<a href="#">链接</a>、<br>、<br />、<sup>上标</sup>、<details><summary>摘要</summary></details>。
 
 可参考 `wiki/resourcepack/assets/guidenh/guidenh/_zh_cn/markdown.md` 查看实际运行时示例。
 
@@ -113,7 +109,7 @@ GuideNH 当前的 Mermaid 运行时支持聚焦在 `mindmap`：
 - 显式 `<Mermaid>...</Mermaid>` 标签
 - 显式 `<Mermaid src="./diagram.mmd" />` 资源导入
 - Mermaid 节点文本中的富文本行内 Markdown
-- 作为 Mermaid 子元素的 `<NodeContent id="...">...</NodeContent>`，可为指定节点放入任意运行时块内容
+- 作为 `<Mermaid>` 子元素的 `<NodeContent id="...">...</NodeContent>`，可为指定节点放入任意运行时块内容
 - 游戏内整张图拖拽平移
 - Mermaid 源文本里的 `layout: tidy-tree`
 - 常见 mindmap 节点形状，例如方形、圆角、圆形、bang、cloud、hexagon
@@ -147,7 +143,7 @@ mindmap
 </NodeContent>
 
 <NodeContent id="export">
-![Machine Diagram](./resourcepack/assets/guidenh/guidenh/_zh_cn/test1.png)
+![Machine Diagram](./test1.png)
 </NodeContent>
 </Mermaid>
 ````
@@ -180,7 +176,9 @@ gold,17
 ```
 ````
 
-## Markdown 表格列宽 Hint
+## Markdown 表格
+
+### 列宽
 
 普通 GFM Markdown 表格也可以在表格前放置一行运行时属性，提供列宽 hint：
 
@@ -194,7 +192,27 @@ gold,17
 
 这样表格本体依然保持标准 Markdown，只是在 GuideNH 运行时应用列的首选宽度。
 
-多行表头和合并单元格请使用 HTML 表格。`<caption>` 会显示在表格上方。使用 `<colgroup>` 和 `<col>` 设置各列的像素或百分比首选宽度；`width` 接受像素或百分比值（可选 `px` 后缀），`span` 会将同一宽度重复应用到多个列。使用 `<thead>`、`<tbody>` 和 `<tfoot>` 对行分组。表头和数据单元格支持 `colspan`、`rowspan`、`align`、`valign`；`th` 还支持 `scope`、`abbr` 和 `headers`。站点导出会保留 `width`、`border`、`cellpadding`、`cellspacing`、`frame`、`rules`、`summary`、`bgcolor` 和 `bordercolor` 等常用表格属性。表格级别的 `widths` 属性也可以提供以逗号分隔的像素宽度 hint：
+### 跨行、跨列与单元格属性
+
+- 在单元格后多写一个 `|` 就多占一列：`||` 跨两列，`|||` 跨三列。
+- 单元格以 `^^` 开头时合并到上方单元格，内容在原单元格内换行。
+- 两侧冒号控制单元格对齐：`: 左对齐`、`右对齐 :`、`: 居中 :`。
+- 末尾 IAL（`{: ... }`）支持 `color`、`background` / `bgcolor`、安全 `style`、`align`、`valign`、`id` 和 `class`。用 `{:name: ...}` 定义可复用属性；危险 CSS 与外部 URL 会被忽略。
+- 物理行末尾的 `\` 将下一行接到相同单元格。以分隔行（`|--|--|`）开头可创建无表头表格。
+- 单元格支持普通行内 Markdown 和 MDX，包括链接、图片、强调及 LaTeX。HTML 表格还支持 `<thead>`、`<tbody>`、`<tfoot>` 行组。
+
+```markdown
+{:warning: style="background: #4b2418; color: #ffd8c2; font-weight: bold"}
+| 阶段 | 产物 | 备注 |
+| --- | --- | --- |
+| : 第一阶段 : | 2 ATP ||
+| ^^ 下一步 | 3 ATP | {: warning } |
+| 合计 ||| {: style="text-align: right; background: #26364d"}
+```
+
+### HTML 表格
+
+需要显式行组或多行表头时，可使用 HTML 表格。`<caption>` 会显示在表格上方。使用 `<colgroup>` 和 `<col>` 设置各列的像素或百分比首选宽度；`width` 接受像素或百分比值（可选 `px` 后缀），`span` 会将同一宽度重复应用到多个列。使用 `<thead>`、`<tbody>` 和 `<tfoot>` 对行分组。表头和数据单元格支持 `colspan`、`rowspan`、`align`、`valign`；`th` 还支持 `scope`、`abbr` 和 `headers`。站点导出会保留 `width`、`border`、`cellpadding`、`cellspacing`、`frame`、`rules`、`summary`、`bgcolor` 和 `bordercolor` 等常用表格属性。表格级别的 `widths` 属性也可以提供以逗号分隔的像素宽度 hint：
 
 ````md
 <table widths="150,70,70,150">
@@ -297,7 +315,7 @@ Press <kbd>Shift</kbd> + <sub>1</sub>
 GuideNH 支持 MDX 注释写法，并会在真正编译 Markdown 前忽略它们：
 
 ````md
-可见文本。{/* 隐藏的行内注释 */}
+Visible text. {/* hidden inline comment */}
 
 {/*
 multiline comment
@@ -316,6 +334,7 @@ GuideNH 会读取第一个 YAML frontmatter 块，并解析这些已知键：
 | `categories` | 字符串列表 | 将页面加入 MediaWiki 风格分类；每一项可选使用 `分类名|排序名` |
 | `item_id` | 单个物品筛选表达式 | 单个 NEI 风格物品表达式，让页面可被 `<ItemLink>` 发现 |
 | `item_ids` | 物品筛选表达式列表 | `item_id` 的列表形式，任一表达式匹配即可让页面被 `<ItemLink>` 发现 |
+| `fluid_id` / `fluid_ids` | string / string list | 流体注册名绑定，可带 #anchor |
 | `ore_ids` | 矿辞名列表 | 让页面可被矿辞物品（如 `ingotIron`、`oreCopper`）索引 |
 | `quest_ids` | BetterQuesting 任务 id 列表 | 让页面可被 `<QuestLink>` / `<QuestCard>` 以及 BQ 任务 GUI 中的打开指南快捷键发现。支持标准 UUID 字符串和 BetterQuesting 的紧凑 Base64 形式。仅在 BetterQuesting 加载时生效。参见 [模组兼容](Mod-Compatibility) |
 | `author` | string | 单一作者名称。显示在底部栏中。 |
@@ -323,7 +342,23 @@ GuideNH 会读取第一个 YAML frontmatter 块，并解析这些已知键：
 | `date` | 字符串或 YYYY-MM-DD 日期 | 内容创建日期。显示在底部栏中。 |
 | `updated` | 字符串或 YYYY-MM-DD 日期 | 最后更新日期。显示在底部栏中。 |
 | `zoom` | 正浮点数 | 单页内容缩放倍数（如 `1.5` 表示 150%）。与 ModConfig 中全局 `contentZoom` 设置相乘。默认 `1.0`。 |
-| 其他任意键 | 任意 YAML 值 | 保存在 `additionalProperties` 中，供扩展或工具使用 |
+| 其他任意键 | 任意 YAML 值 | 供扩展或编写工具使用 |
+
+### 原生流体绑定与导航图标
+
+`fluid_id` 接受单个流体注册名绑定，`fluid_ids` 接受字符串列表；两者可以共存，合并时去重。添加 `#anchor` 可以指向章节，不同锚点保留为独立目标。绑定精确匹配注册名，不匹配显示数量或 NBT。
+
+```yaml
+fluid_id: water
+fluid_ids:
+  - water#coolant
+  - steam#uses
+navigation:
+  title: 流体处理
+  icon_fluid: water
+```
+
+`navigation.icon_fluid` 使用一个注册名，`icon_fluids` 使用非空注册名列表并每秒轮换。两个字段互斥，也不能与物品或纹理图标源混用。它们只设置页面图标，不创建页面绑定。流体是否可用需在运行中的游戏验证，离线预览无法检查注册表。
 
 ### `navigation`
 
@@ -334,11 +369,14 @@ GuideNH 会读取第一个 YAML frontmatter 块，并解析这些已知键：
 | `keywords` | 否 | string 列表 | 额外的搜索关键词或别名；多个字段会合并并去重 |
 | `parent` | 否 | page id | 父页面 id；省略时为顶级节点 |
 | `position` | 否 | integer | 同级排序顺序，默认 `0`，数值越大越靠前 |
+| `recommend` | 否 | integer | 首页推荐优先级；填写后才显示在推荐面板，数值越大越靠前 |
 | `priority` | 否 | integer | 同路径页面覆盖时的加载优先级；默认 `0`，数值更高者胜出，相同优先级时后处理的资源包条目覆盖先处理的 |
 | `icon` | 否 | item id | 导航和搜索中显示的物品图标。支持 `modid:name`、`modid:name:meta`、`modid:name:meta:{snbt}`。如需附加自定义名称等 NBT，推荐直接写在 `icon` 后面的内联 `:{snbt}` 尾部。 |
 | `icons` | 否 | item id 列表 | 循环轮播的物品图标列表（每秒切换一次）。每一项语法同 `icon`，支持内联 `:{snbt}`。存在时优先于 `icon` 使用。 |
 | `icon_texture` | 否 | asset path | 纹理图标路径，按普通资源路径解析 |
 | `icon_textures` | 否 | asset path 列表 | 循环轮播的纹理图标列表（每秒切换一次）。存在时优先于 `icon_texture` 使用。 |
+| `icon_fluid` | 否 | string | 单个流体注册名，与 `icon_fluids` 和物品/纹理图标源互斥 |
+| `icon_fluids` | 否 | string 列表 | 非空注册名列表，每秒轮换，与 `icon_fluid` 和物品/纹理图标源互斥 |
 | `required_mod` | 否 | 模组 id | 仅在该模组已加载时显示页面。 |
 | `required_mods` | 否 | 模组 id 列表 | 仅在列出的全部模组均已加载时显示页面。 |
 | `excluded_mod` | 否 | 模组 id | 该模组加载时隐藏页面。 |
@@ -347,39 +385,19 @@ GuideNH 会读取第一个 YAML frontmatter 块，并解析这些已知键：
 ### Frontmatter 示例
 
 ```yaml
-item_id: minecraft:potion 16384-16462,!16386
 item_ids:
-  - ae2:white_paint_ball:*
-  - "<minecraft:wool:14>"
+  - minecraft:book
+fluid_id: water#coolant
 navigation:
-  title: Root
+  title: Guide Overview
   parent: index.md
   position: 10
-  priority: 0
-  icon: minecraft:book:0:{display:{Name:"我的自定义书"}}
-  # 使用 meta/损伤值选择特定子类型：
-  # icon: minecraft:wool:1       （橙色羊毛，冒号写法）
-  # 循环图标列表——每秒切换一次：
-  # icons:
-  #   - minecraft:wool:1
-  #   - minecraft:wool:4:{display:{Name:"自定义绿色羊毛"}}
-  #   - minecraft:wool:14
-
-  icon_texture: test1.png
-  # 循环纹理列表：
-  # icon_textures:
-  #   - test1.png
-  #   - test2.png
+  recommend: 0
+  icon: minecraft:book
 categories:
   - basics
-  - examples|Examples Overview
-ore_ids:
-  - ingotIron
-  - oreCopper
-quest_ids:
-  - 01234567-89ab-cdef-0123-456789abcdef
-  - AAAAAAAAAAAAAAAAAAAMug==
-author: 示例作者
+  - examples|Overview
+author: ExampleAuthor
 date: 2024-01-15
 updated: 2024-06-01
 ```
@@ -387,6 +405,9 @@ updated: 2024-06-01
 `categories` 既支持普通分类名，也支持 `分类名|排序名` 形式。
 可以使用 `<Category name="examples" rows="3" />` 渲染分类列表块，
 并使用 `<Special name="SpecialPages" rows="3" />` 嵌入自动生成的 MediaWiki 风格特殊页索引。
+
+语言目录下的 `templates/` 目录是模板页的保留位置。模板页的写法与普通页面相同，但不会出现在列表
+与导航树中。参见[模板](Templates)。
 
 对于 BetterQuesting 集成，`quest_ids` 支持两种格式：
 
@@ -533,32 +554,3 @@ item_ids:
 - [导航](Navigation)
 - [图片与资源](Images-And-Assets)
 - [标签参考](Tags-Reference)
-
-### Markdown 表格跨行、跨列与单元格属性
-
-GuideNH 在 GFM 表格上提供与 jekyll-spaceship 相同的紧凑合并语法：
-
-- 在单元格后增加一个 `|` 表示多占一列。`||` 表示 `colspan="2"`，`|||` 表示 `colspan="3"`。
-- 单元格以 `^^` 开头时，会继续合并上方同列单元格。内容会用换行追加到原单元格，并增加它的 `rowspan`。
-- 单元格两侧可以使用冒号控制对齐（`: 左对齐`、`右对齐 :`、`: 居中 :`）。
-- 单元格末尾的 IAL（`{: ... }`）可以设置安全属性。支持 `color`、`background`/`bgcolor`、`style`（颜色、背景、粗体、下划线和对齐声明）、`align`、`valign`、`id` 和 `class`。
-- 可以用单独一行的 `{:name: ...}` 定义可复用 IAL，再在单元格 IAL 中引用。危险 CSS 和外部 URL 会被忽略。
-
-```markdown
-{:warning: style="background: #4b2418; color: #ffd8c2; font-weight: bold"}
-| 阶段 | 产物 | 备注 |
-| --- | --- | --- |
-| : 糖酵解 : | 2 ATP ||
-| ^^ A. Peach | 3 ATP | {: warning } |
-| 最终合计 ||| {: style="text-align: right; background: #26364d"}
-```
-
-在不支持扩展的 Markdown 渲染器中，这仍然是普通表格：多出的空单元格不会破坏结构，`^^` 和 IAL 文本会保留。复杂表头以及显式 `rowspan`/`colspan` 仍可使用 HTML 表格。
-### Extended Markdown table syntax
-
-GuideNH also supports the jekyll-spaceship table extensions in every preview:
-
-- End a physical row with `\` to append the next physical row to the same cells; each part is rendered on a new line.
-- Use a delimiter row as the first row (`|--|--|`) for a headerless table. Its rows remain data rows and are not bolded.
-- Cell contents keep normal GuideNH Markdown and MDX inline syntax, including links, images, emphasis, and LaTeX.
-- Use HTML `<thead>`, `<tbody>`, and `<tfoot>` when explicit row groups are needed.

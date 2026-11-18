@@ -69,11 +69,17 @@ public class GuidebookLevelRenderer implements OutlineTargetDrawer {
 
     private final FloatBuffer matrixBuffer = BufferUtils.createFloatBuffer(16);
     private final GuideEntityRenderStateResolver.ResolvedEntityRenderState entityRenderState = new GuideEntityRenderStateResolver.ResolvedEntityRenderState();
-    /** Reused per-frame list; block visibility is identical for opaque and translucent passes. */
+    /**
+     * Reused per-frame list; block visibility is identical for opaque and translucent passes.
+     */
     private final ArrayList<int[]> visibleBlocksScratch = new ArrayList<>();
-    /** Reused per-frame list of visible blocks that actually participate in the translucent pass. */
+    /**
+     * Reused per-frame list of visible blocks that actually participate in the translucent pass.
+     */
     private final ArrayList<int[]> translucentBlocksScratch = new ArrayList<>();
-    /** Reused per-frame list of visible tile entities with a special renderer. */
+    /**
+     * Reused per-frame list of visible tile entities with a special renderer.
+     */
     private final ArrayList<TileEntity> visibleBlockEntitiesScratch = new ArrayList<>();
     private final ArrayList<GuidebookSceneWeatherRenderColumn> weatherColumnsScratch = new ArrayList<>();
     private final ArrayList<GuidebookSceneWeatherRenderColumn> weatherColumnPool = new ArrayList<>();

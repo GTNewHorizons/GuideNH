@@ -6,6 +6,7 @@ import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.entity.RenderItem;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
+import net.minecraftforge.fluids.FluidStack;
 
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3f;
@@ -14,6 +15,11 @@ import org.lwjgl.opengl.GL12;
 
 import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.document.LytRect;
+import com.hfstudio.guidenh.guide.document.interaction.FluidContent;
+import com.hfstudio.guidenh.guide.document.interaction.FluidTooltip;
+import com.hfstudio.guidenh.guide.internal.fluid.FluidIconRenderer;
+import com.hfstudio.guidenh.guide.internal.fluid.FluidStackSpec;
+import com.hfstudio.guidenh.guide.internal.fluid.FluidStacks;
 import com.hfstudio.guidenh.guide.internal.screen.GuideIconButton;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 import com.hfstudio.guidenh.guide.render.VanillaRenderContext;
@@ -26,16 +32,24 @@ import lombok.Getter;
  * ported from Ponder's InputWindowElement.
  * Supports optional modifier prefix text ("Sneak +" / "Ctrl +") and an item icon.
  */
-public class PonderInputAnnotation extends OverlayAnnotation {
+public class PonderInputAnnotation extends OverlayAnnotation implements FluidContent {
 
-    /** The type of input gesture to display. */
+    /**
+     * The type of input gesture to display.
+     */
     public enum InputType {
 
-        /** Left mouse button. Sprite at x=0, y=64 in ponder_widgets.png. */
+        /**
+         * Left mouse button. Sprite at x=0, y=64 in ponder_widgets.png.
+         */
         LMB(0, 64),
-        /** Scroll wheel. Sprite at x=16, y=64 in ponder_widgets.png. */
+        /**
+         * Scroll wheel. Sprite at x=16, y=64 in ponder_widgets.png.
+         */
         SCROLL(16, 64),
-        /** Right mouse button. Sprite at x=32, y=64 in ponder_widgets.png. */
+        /**
+         * Right mouse button. Sprite at x=32, y=64 in ponder_widgets.png.
+         */
         RMB(32, 64);
 
         public final int srcX;
@@ -62,6 +76,8 @@ public class PonderInputAnnotation extends OverlayAnnotation {
     private String modifier;
     @Nullable
     private ItemStack item;
+    private @Nullable FluidStackSpec fluidSpec;
+    private @Nullable FluidStack fluid;
 
     public PonderInputAnnotation(Vector3f worldPos, InputType inputType) {
         this.worldPos = worldPos;
@@ -75,7 +91,26 @@ public class PonderInputAnnotation extends OverlayAnnotation {
 
     public PonderInputAnnotation setItemStack(@Nullable ItemStack item) {
         this.item = item;
+        if (item != null) {
+            if (fluidSpec != null) setTooltip(null);
+            fluidSpec = null;
+            fluid = null;
+        }
         return this;
+    }
+
+    public PonderInputAnnotation setFluid(@Nullable FluidStackSpec spec) {
+        FluidStack resolved = spec == null ? null : FluidStacks.resolve(spec);
+        fluidSpec = spec;
+        fluid = resolved;
+        if (spec != null) item = null;
+        setTooltip(spec == null ? null : new FluidTooltip(spec, resolved));
+        return this;
+    }
+
+    @Override
+    public @Nullable FluidStackSpec getFluidSpec() {
+        return fluidSpec;
     }
 
     @Nullable
@@ -89,8 +124,8 @@ public class PonderInputAnnotation extends OverlayAnnotation {
     }
 
     private int totalBoxWidth() {
-        int iconCols = item != null ? 2 : 1;
-        return ICON_SIZE * iconCols + (item != null ? ITEM_GAP : 0) + BOX_PAD * 2;
+        boolean hasContent = item != null || fluid != null;
+        return ICON_SIZE * (hasContent ? 2 : 1) + (hasContent ? ITEM_GAP : 0) + BOX_PAD * 2;
     }
 
     private int totalBoxHeight() {
@@ -181,6 +216,10 @@ public class PonderInputAnnotation extends OverlayAnnotation {
                 GL11.glEnable(GL11.GL_BLEND);
                 GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
             }
+            iconX += ICON_SIZE + ITEM_GAP;
+        }
+        if (fluid != null) {
+            FluidIconRenderer.draw(fluid, iconX, iconY, ICON_SIZE, fluidSpec.amount() != null, fade);
             iconX += ICON_SIZE + ITEM_GAP;
         }
 

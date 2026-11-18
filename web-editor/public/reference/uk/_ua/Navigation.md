@@ -1,18 +1,14 @@
 # Навігація
 
-Ця документація описує синтаксис і функції виконання GuideNH. Код, теги, шляхи, ідентифікатори та значення атрибутів збережено без змін.
+Докладний довідник на цій сторінці доступний англійською. Назви тегів, атрибути, ідентифікатори та шляхи потрібно використовувати без перекладу.
 
+GuideNH builds its navigation tree from page frontmatter.
 
-GuideNH builds його Навігація tree з сторінка frontmatter.
+Expanded ancestors stay pinned while their child pages scroll beneath them. Multiple levels can remain visible until their descendants leave the visible area.
 
-In  in-game sidebar, expanded ancestor сторінки залишаються pinned at  угорі поки їхні досі-видимий
-descendants прокручування underneath. кілька expanded ancestor levels може стос at once, і кожен sticky
-рядок is pushed away лише коли його entire видимий subtree scrolls out, similar до  VSCode файл
-explorer.
+## Navigation Frontmatter
 
-## frontmatter навігації
-
- `navigation` map controls whether a сторінка appears in  посібник tree.
+The `navigation` map controls whether a page appears in the guide tree.
 
 ```yaml
 navigation:
@@ -22,40 +18,42 @@ navigation:
   icon: minecraft:diamond_block
 ```
 
-### Довідка полів
+### Field Reference
 
-| поле | опис |
+| Field | Description |
 | --- | --- |
-| `title` | Обов’язково відображати заголовок |
-| `keyword` | необов’язковий один пошук keyword або alias |
-| `keywords` | необов’язковий список of Ключові слова пошуку або aliases |
-| `parent` | необов’язковий батьківський ідентифікатор сторінки, розв’язаний like a сторінка посібника посилання |
-| `position` | необов’язковий sibling ordering hint |
-| `recommend` | необов’язковий home-сторінка recommendation priority; absent означає  сторінка is не показано in  Recommended panel |
-| `priority` | необов’язковий Пріоритет завантаження для той самий-шлях сторінка overrides; Типове `0` |
-| `icon` | необов’язковий один предмет icon; підтримує inline `mod:item:meta:{snbt}` tails |
-| `icons` | необов’язковий cycling предмет icons список; записи може be plain предмет ids з необов’язковий inline `:{snbt}` або `{id, meta?, nbt?}` maps |
-| `icon_texture` | необов’язковий texture icon розв’язаний з посібник ресурси |
-| `icon_textures` | необов’язковий cycling texture icon список |
-| `required_mod` | необов’язковий один mod id; сторінка is прихований коли Цей mod is не завантажений |
-| `required_mods` | необов’язковий список of mod ids; сторінка is прихований unless усі listed mods є завантажений |
-| `excluded_mod` | необов’язковий один mod id; сторінка is прихований коли Цей mod is завантажений |
-| `excluded_mods` | необов’язковий список of mod ids; сторінка is прихований коли any listed mod is завантажений |
+| `title` | Required display title |
+| `keyword` | Optional single search keyword or alias |
+| `keywords` | Optional list of search keywords or aliases |
+| `parent` | Optional parent page id, resolved like a guide page link |
+| `position` | Optional sibling ordering hint |
+| `recommend` | Optional home-page recommendation priority; absent means the page is not shown in the Recommended panel |
+| `priority` | Optional load priority for same-path page overrides; default `0` |
+| `icon` | Optional single item icon; supports inline `mod:item:meta:{snbt}` tails |
+| `icons` | Optional cycling item icons list; entries may be plain item ids with optional inline `:{snbt}` or `{id, meta?, nbt?}` maps |
+| `icon_texture` | Optional texture icon resolved from guide assets |
+| `icon_textures` | Optional cycling texture icon list |
+| `icon_fluid` | Optional single fluid registry name; excludes `icon_fluids` and item/texture sources |
+| `icon_fluids` | Optional nonempty fluid registry-name list cycling once per second; excludes `icon_fluid` and item/texture sources |
+| `required_mod` | Optional single mod id; page is hidden when this mod is not loaded |
+| `required_mods` | Optional list of mod ids; page is hidden unless all listed mods are loaded |
+| `excluded_mod` | Optional single mod id; page is hidden when this mod is loaded |
+| `excluded_mods` | Optional list of mod ids; page is hidden when any listed mod is loaded |
 
 ### `navigation.position`
 
-`navigation.position` is an необов’язковий ціле число використовується до порядок sibling сторінки in  Навігація tree.
+`navigation.position` is an optional integer used to order sibling pages in the navigation tree.
 
-- Missing `position` типові до `0`.
-- Larger значення appear earlier.
-- Якщо два сторінки have  той самий значення, Вони є sorted by заголовок alphabetically.
+- Missing `position` defaults to `0`.
+- Larger values appear earlier.
+- If two pages have the same value, they are sorted by title alphabetically.
 
-### Ключові слова пошуку
+### Search Keywords
 
-`navigation.keyword` додає один пошук alias. `navigation.keywords` додає a список of aliases. Both поля
-може be використовується together; значення є trimmed і duplicate значення є ignored. Keyword відповідає використовувати  той самий
-мова analyzer і prefix відповідний as заголовок і сторінка вміст searches, поки результати continue до показувати
- normal Навігація заголовок.
+`navigation.keyword` adds one search alias. `navigation.keywords` adds a list of aliases. Both fields
+can be used together; values are trimmed and duplicate values are ignored. Keyword matches use the same
+language analyzer and prefix matching as title and page content searches, while results continue to show
+the normal navigation title.
 
 ```yaml
 navigation:
@@ -66,17 +64,17 @@ navigation:
     - autocrafting machine
 ```
 
-## Рекомендації на головній сторінці
+## Home Page Recommendations
 
 ### `navigation.recommend`
 
-`navigation.recommend` is an необов’язковий ціле число використовується by  home сторінка Recommended panel.
+`navigation.recommend` is an optional integer used by the home page Recommended panel.
 
-- сторінки лише appear in  Recommended panel коли Цей поле is present.
-- `0` is дійсний.
-- Larger значення appear earlier.
-- Якщо два сторінки have  той самий значення, Вони є sorted by заголовок alphabetically.
--  panel works at  `GuidePage` level, so кожен recommended сторінка запис jumps directly до який сторінка.
+- Pages only appear in the Recommended panel when this field is present.
+- `0` is valid.
+- Larger values appear earlier.
+- If two pages have the same value, they are sorted by title alphabetically.
+- Each recommendation opens its page directly.
 
 ```yaml
 navigation:
@@ -85,12 +83,12 @@ navigation:
   recommend: 0
 ```
 
-## Вимоги модів
+## Mod Requirements
 
-використовувати `required_mod` або `required_mods` до require один або more завантажений mods. використовувати `excluded_mod` або
-`excluded_mods` до приховувати a сторінка коли один або more incompatible mods є завантажений. коли a умова is не
-met,  сторінка is excluded з  Навігація tree і усі сторінка indices (предмет, category, etc.) so it
-не може be found through Навігація або пошук.
+Use `required_mod` or `required_mods` to require one or more loaded mods. Use `excluded_mod` or
+`excluded_mods` to hide a page when one or more incompatible mods are loaded. When a condition is not
+met, the page is excluded from the navigation tree and all page indices (item, category, etc.) so it
+cannot be found through navigation or search.
 
 ```yaml
 navigation:
@@ -106,10 +104,10 @@ navigation:
     - appliedenergistics2
 ```
 
-Both ключі може be combined;  сторінка is лише показано коли кожен listed mod is present.
+Both keys may be combined; the page is only shown when every listed mod is present.
 
-Обов’язково і excluded умови може також be combined. усі Обов’язково mods має be завантажений і none of 
-excluded mods може be завантажений.
+Required and excluded conditions can also be combined. All required mods must be loaded and none of the
+excluded mods may be loaded.
 
 ```yaml
 navigation:
@@ -121,10 +119,10 @@ navigation:
     - legacy_addon
 ```
 
-## Пріоритет завантаження
+## Load Priority
 
-коли several завантажений ресурс packs надавати  той самий сторінка посібника шлях, GuideNH reads  сторінка
-frontmatter перший і chooses  candidate з  highest `navigation.priority`.
+When several loaded resource packs provide the same guide page path, GuideNH reads the page
+frontmatter first and chooses the candidate with the highest `navigation.priority`.
 
 ```yaml
 navigation:
@@ -133,48 +131,50 @@ navigation:
   priority: 100
 ```
 
-Правила:
+Rules:
 
 - missing `priority` is `0`
-- значення є signed Java integers up до `2147483647`
+- values are integers
 - higher priority wins
-- Якщо priorities є equal,  later processed пакет ресурсів запис wins, відповідний Minecraft ресурс-pack перевизначати порядок
-- priority лише decides between candidates для  той самий сторінка шлях і мова/резервний варіант layer
+- if priorities are equal, the later processed resource pack entry wins, matching Minecraft resource-pack override order
+- priority only decides between candidates for the same page path and language/fallback layer
 
-Цей is useful коли mod ships baseline сторінка посібника і pack wants до замінити it без relying лише on
-ресурс-pack ordering.
+This is useful when a mod ships a baseline guide page and a pack wants to replace it without relying only on
+resource-pack ordering.
 
-## Джерела піктограм
+## Icon Sources
 
-GuideNH chooses Навігація/пошук icons in Цей порядок:
+Choose `icon_fluid` or `icon_fluids` for fluid icons. The two fields are mutually exclusive and cannot accompany item or texture sources. Icons do not create fluid navigation bindings; add page-level `fluid_id` / `fluid_ids` separately.
 
-1. `icon_textures` Якщо at least один texture запис is configured
-2. `icon_texture` Якщо  texture файл завантажує successfully
-3. `icons` Якщо at least один configured предмет resolves successfully
-4. `icon` Якщо  предмет exists
-5. no icon Якщо neither is usable
+When no fluid icon is configured, GuideNH chooses item and texture icons in this order:
 
-Texture icons є читати з виконання ресурси, so відносний сторінка-локальний files наприклад `test1.png` працюють.
+1. `icon_textures` if at least one texture entry is configured
+2. `icon_texture` if the texture file loads successfully
+3. `icons` if at least one configured item resolves successfully
+4. `icon` if the item exists
+5. no icon if neither is usable
 
-## Батьківські та кореневі вузли
+Texture icons are read from runtime assets, so relative page-local files such as `test1.png` work.
 
-- Omit `parent` до створити корінь node.
-- Установіть `parent: index.md` або any other ідентифікатор сторінки до створити a дочірній елемент node.
--  батьківський сторінка має exist in  той самий посібник Навігація tree.
+## Parent And Root Nodes
 
-`navigation.parent` використовує  той самий простір імен Правила as Markdown сторінка links:
+- Omit `parent` to create a root node.
+- Set `parent: index.md` or any other page id to create a child node.
+- The parent page must exist in the same guide navigation tree.
 
-- `parent: index.md` і `parent: ./index.md` розв’язати усередині  поточний сторінка простір імен.
-- `parent: /index.md` resolves з  поточний сторінка простір імен корінь.
-- `parent: gregtech:index.md` або `parent: gregtech:/index.md` explicitly targets another простір імен.
+`navigation.parent` uses the same namespace rules as Markdown page links:
 
-дані-driven посібники є isolated by простір імен. сторінки under `assets/guidenh/guidenh/_en_us/...` belong до
-`guidenh:guidenh`; сторінки under `assets/gregtech/guidenh/_en_us/...` belong до `gregtech:guidenh`.
-відносний parents і links ніколи fall through до another mod's той самий-named сторінка.
+- `parent: index.md` and `parent: ./index.md` resolve inside the current page namespace.
+- `parent: /index.md` resolves from the current page namespace root.
+- `parent: gregtech:index.md` or `parent: gregtech:/index.md` explicitly targets another namespace.
 
-## Сторінки категорій
+Data-driven guides are isolated by namespace. Pages under `assets/guidenh/guidenh/_en_us/...` belong to
+`guidenh:guidenh`; pages under `assets/gregtech/guidenh/_en_us/...` belong to `gregtech:guidenh`.
+Relative parents and links never fall through to another mod's same-named page.
 
-сторінки може join один або more named categories використовуючи frontmatter:
+## Category Pages
+
+Pages can join one or more named categories using frontmatter:
 
 ```yaml
 categories:
@@ -182,14 +182,14 @@ categories:
   - machines|Arc Furnace
 ```
 
-кожен запис може be either category назва або `category|sort key`.
+Each entry can be either a category name or `category|sort key`.
 
-Those categories є queryable through  built-in `<Category name="machines" rows="3" />` тег і також auto-створити прихований searchable сторінки наприклад `Category:machines`.
-GuideNH також auto-creates  прихований searchable special сторінки `Special:AllPages` і `Special:Categories`.
+Those categories are queryable through the built-in `<Category name="machines" rows="3" />` tag and also auto-create hidden searchable pages such as `Category:machines`.
+GuideNH also auto-creates the hidden searchable special pages `Special:AllPages` and `Special:Categories`.
 
-## Сторінки з індексом предметів
+## Item-Indexed Pages
 
-сторінки може реєструвати предмет-до-сторінка mappings використовуючи `item_id` (один значення) або `item_ids` (a список):
+Pages can register item-to-page mappings using `item_id` (one value) or `item_ids` (a list):
 
 ```yaml
 item_id: "minecraft:potion 16384-16462,!16386 | ae2:white_paint_ball:*"
@@ -200,52 +200,67 @@ item_ids:
   - minecraft:iron_ore#crafting
 ```
 
-Ці mappings є використовується by `<ItemLink>`. `item_id` is один NEI-style вираз і кожен `item_ids`
-запис is  той самий тип of вираз. для Приклад, `minecraft:potion 16384-16462,!16386` відповідає a
-метадані range except для `16386`, поки `minecraft:potion 0-16,20-36,!28` combines два метадані ranges і
-excludes `28`. `ae2:white_paint_ball:*` is compatible strict усі-meta mapping.
+These mappings are used by `<ItemLink>`. `item_id` is one NEI-style expression and each `item_ids`
+entry is the same kind of expression. For example, `minecraft:potion 16384-16462,!16386` matches a
+metadata range except for `16386`, while `minecraft:potion 0-16,20-36,!28` combines two metadata ranges and
+excludes `28`. `ae2:white_paint_ball:*` is a compatible strict all-meta mapping.
 
-An необов’язковий `#anchor` suffix scrolls до певний heading коли  посилання is clicked.
- якір is formed by lowercasing  heading текст і replacing spaces з hyphens
+An optional `#anchor` suffix scrolls to a specific heading when the link is clicked.
+The anchor is formed by lowercasing the heading text and replacing spaces with hyphens
 (e.g. `## Crafting Recipe` → `#crafting-recipe`).
 
-Lookup поведінка:
+Lookup behavior:
 
-1. exact предмет + exact meta
-2. wildcard-meta резервний варіант Якщо present
-3. відповідний предмет вираз
+1. exact item + exact meta
+2. wildcard-meta fallback if present
+3. matching item expression
 
-## Якорі заголовків
+## Fluid-indexed pages
 
-GuideNH підтримує heading якір Навігація in Markdown links і `<a>` теги.
-Anchors є derived з heading текст by lowercasing і replacing spaces з hyphens.
+Use `fluid_id` for one fluid or `fluid_ids` for a list; both fields may coexist. Bindings match exact registry names independently of amount and NBT. Append `#anchor` to open a section:
 
-**той самий-сторінка якір:**
+```yaml
+fluid_id: water
+fluid_ids:
+  - steam#uses
+navigation:
+  title: Fluid handling
+  icon_fluid: water
+```
+
+Bindings serve `<FluidLink>` and the hover-and-hold `G` shortcut. Recognized NEI fluid displays and filled containers are supported; empty containers retain item navigation. Multiple targets open a chooser with fluid pages before container-item pages.
+
+## Heading Anchor Links
+
+GuideNH supports heading anchor navigation in Markdown links and `<a>` tags.
+Anchors are derived from heading text by lowercasing and replacing spaces with hyphens.
+
+**Same-page anchor:**
 
 ```md
 [Jump to Installation](#installation)
 [Jump to Crafting Recipe](#crafting-recipe)
 ```
 
-**Cross-сторінка якір:**
+**Cross-page anchor:**
 
 ```md
-[See Getting Started](./Guide-Page-Format#installation)
+[See Getting Started](./getting-started.md#installation)
 [Another guide](other-guide.md#usage)
 ```
 
-**абсолютний шлях якір** (використовуючи  посібник простір імен, avoids відносний шлях ambiguity in subdirectories):
+**Absolute path anchor** (using the guide namespace, avoids relative path ambiguity in subdirectories):
 
 ```md
 [Absolute link](guidenh:other-guide.md#usage)
 [Any namespace](mymods:crafting/iron.md#smelting)
 ```
 
- `namespace:path` format resolves до  сторінка посібника whose id відповідає `namespace:path`.
-Цей is identical до what відносний paths розв’язати до, but avoids `../` Навігація.
- сторінка має exist in  той самий посібник as  посилання source.
+The `namespace:path` format resolves to the guide page whose id matches `namespace:path`.
+This is identical to what relative paths resolve to, but avoids `../` navigation.
+The target page must be loaded.
 
-**Named inline anchors** може також be розміщений з `<a name="...">` in MDX:
+**Named inline anchors** can also be placed with `<a name="...">` in MDX:
 
 ```md
 <a name="custom-anchor" />
@@ -255,20 +270,20 @@ Anchors є derived з heading текст by lowercasing і replacing spaces з h
 [Jump here](#custom-anchor)
 ```
 
-Navigating до посилання з якір scrolls  посібник до  ціль heading або named якір.
+Navigating to a link with an anchor scrolls the guide to the target heading or named anchor.
 
 ## `<SubPages>`
 
-`<SubPages>` renders links до Навігація дочірні елементи.
+`<SubPages>` renders links to navigation children.
 
-### атрибути
+### Attributes
 
-| Атрибут | Тип | Типове | Значення |
+| Attribute | Type | Default | Meaning |
 | --- | --- | --- | --- |
-| `id` | ідентифікатор сторінки або empty рядок | поточний сторінка | сторінка whose дочірні елементи слід be listed |
-| `alphabetical` | логічне значення вираз | `false` | Sort дочірні елементи by заголовок замість цього of Навігація порядок |
+| `id` | page id or empty string | current page | Page whose children should be listed |
+| `alphabetical` | boolean expression | `false` | Sort children by title instead of navigation order |
 
-### Приклади
+### Examples
 
 ````md
 <SubPages />
@@ -276,54 +291,58 @@ Navigating до посилання з якір scrolls  посібник до  �
 <SubPages id="" alphabetical={true} />
 ````
 
-Special case: `id=""` lists корінь Навігація nodes.
+Special case: `id=""` lists root navigation nodes.
 
 ## `<Category>`
 
-`<Category>` renders links до кожен сторінка in named category.
+`<Category>` renders links to every page in a named category.
 
-### атрибути
+### Attributes
 
-| Атрибут | Тип | Типове | Значення |
+| Attribute | Type | Default | Meaning |
 | --- | --- | --- | --- |
-| `name` | рядок | none | Category назва до відтворювати |
-| `rows` | positive ціле число | `3` | число of відображати стовпці in  MediaWiki-style структура |
+| `name` | string | none | Category name to render |
+| `rows` | positive integer | `3` | Number of display columns in the MediaWiki-style layout |
 
 ````md
 <Category name="machines" rows="3" />
 ````
 
-Якщо  category is missing, GuideNH renders inline помилка.
+If the category is missing, GuideNH renders an inline error.
 
- той самий category також має auto-згенерований прихований searchable сторінка at `Category:machines`.
+The same category also has an auto-generated hidden searchable page at `Category:machines`.
 
 ## `<Special>`
 
-`<Special>` renders один of  built-in MediaWiki-style special сторінка listings.
+`<Special>` renders one of the built-in MediaWiki-style special page listings.
 
-### атрибути
+### Attributes
 
-| Атрибут | Тип | Типове | Значення |
+| Attribute | Type | Default | Meaning |
 | --- | --- | --- | --- |
-| `name` | рядок | none | Підтримувані значення: `AllPages`, `Categories` |
-| `rows` | positive ціле число | `3` | число of відображати стовпці in  MediaWiki-style структура |
+| `name` | string | none | Special page name; use `SpecialPages` for the catalog, including `AllPages`, `Categories` and `Templates` |
+| `rows` | positive integer | `3` | Number of display columns in the MediaWiki-style layout |
+| `page` | page id | none | Page target for special lists that require one |
+| `prefix` | string | none | Title/page-ID prefix for `AllPagesWithPrefix` |
+| `language` | string | none | Language filter for translation lists |
+| `query` | string | none | List search text |
 
 ````md
 <Special name="AllPages" rows="4" />
 <Special name="Categories" rows="3" />
 ````
 
- той самий вміст is також доступний through  прихований searchable сторінки `Special:AllPages` і `Special:Categories`.
+The same content is also available through the hidden searchable pages `Special:AllPages` and `Special:Categories`.
 
-## Заголовки результатів пошуку
+## Search Result Titles
 
-пошук titles є derived in Цей порядок:
+Search titles are derived in this order:
 
 1. `navigation.title`
-2. перший level-1 heading (`# Heading`)
-3. raw ідентифікатор сторінки
+2. first level-1 heading (`# Heading`)
+3. raw page id
 
-## Пов’язані сторінки
+## Related Pages
 
 - [Guide Page Format](Guide-Page-Format)
 - [Search](Search)

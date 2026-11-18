@@ -14,18 +14,21 @@ import net.minecraft.util.EnumChatFormatting;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.entity.player.ItemTooltipEvent;
 
+import org.jetbrains.annotations.Nullable;
 import org.lwjgl.input.Keyboard;
+import org.lwjgl.input.Mouse;
+import org.lwjgl.opengl.Display;
 
 import com.hfstudio.guidenh.guide.PageAnchor;
-import com.hfstudio.guidenh.guide.indices.ItemIndex;
-import com.hfstudio.guidenh.guide.indices.ItemMultiIndex;
-import com.hfstudio.guidenh.guide.indices.OreIndex;
 import com.hfstudio.guidenh.guide.internal.GuideRegistry;
 import com.hfstudio.guidenh.guide.internal.GuideScreen;
 import com.hfstudio.guidenh.guide.internal.GuidebookText;
 import com.hfstudio.guidenh.guide.internal.MutableGuide;
+import com.hfstudio.guidenh.guide.internal.fluid.FluidStackResolver;
+import com.hfstudio.guidenh.guide.internal.fluid.FluidStackSpec;
+import com.hfstudio.guidenh.guide.internal.fluid.GuideHoverSession;
 import com.hfstudio.guidenh.guide.internal.input.GuideKeyBindingSupport;
-import com.hfstudio.guidenh.guide.internal.search.GuideItemLinksPage;
+import com.hfstudio.guidenh.guide.internal.search.GuideTargetSelection;
 import com.hfstudio.guidenh.guide.ui.GuideUiHost;
 import com.hfstudio.guidenh.integration.api.client.GuideNhClientIntegrationRegistry;
 
@@ -53,6 +56,11 @@ public class OpenGuideHotkey {
     public static int ticksKeyHeld;
     public static boolean holding;
     public static boolean newTick = true;
+
+    private static final GuideHoverSession HOVER_SESSION = new GuideHoverSession();
+    private static GuideTargetSelection resourceSelection = new GuideTargetSelection("", List.of(), List.of());
+    private static boolean hoverObserved;
+    private static boolean activationBlocked;
 
     // Parallel state for the BetterQuesting quest-hover hotkey path. Kept independent of the
     // item-tooltip flow so that hovering a BQ quest in the BQ GUI does not interfere with item
@@ -86,6 +94,7 @@ public class OpenGuideHotkey {
     @SubscribeEvent
     public void onClientTick(TickEvent.ClientTickEvent event) {
         if (event.phase == TickEvent.Phase.END) {
+            tickResourceHover();
             newTick = true;
             tickQuestHover();
         }
@@ -104,9 +113,12 @@ public class OpenGuideHotkey {
         if (TOOLTIP_HINTS_SUPPRESSED.get()) {
             return;
         }
-        if (newTick) {
-            newTick = false;
-            update(itemStack);
+        if (GuideScreen.current() == null) {
+            hoverObserved = true;
+            if (newTick) {
+                newTick = false;
+                update(itemStack);
+            }
         }
 
         if (guidebookPages.isEmpty()) {
@@ -162,7 +174,9 @@ public class OpenGuideHotkey {
         return true;
     }
 
-    /** Builds tooltip content without live hotkey hints or changes to the hovered-item state. */
+    /**
+     * Builds tooltip content without live hotkey hints or changes to the hovered-item state.
+     */
     public static <T> T withoutTooltipHints(Supplier<T> tooltipBuilder) {
         boolean previous = TOOLTIP_HINTS_SUPPRESSED.get();
         TOOLTIP_HINTS_SUPPRESSED.set(true);
@@ -208,53 +222,63 @@ public class OpenGuideHotkey {
     }
 
     public static void update(ItemStack stack) {
-        String itemId = resolveItemId(stack);
-        if (!Objects.equals(itemId, previousItemId)) {
-            previousItemId = itemId;
+        updateResource(stack, null, null);
+    }
+
+    public static void updateResource(@Nullable ItemStack stack, @Nullable FluidStackSpec fluid,
+        @Nullable Object source) {
+        hoverObserved = stack != null || fluid != null;
+        previousItemId = resolveItemId(stack);
+        GuideTargetSelection next = HOVER_SESSION.update(stack, fluid, source);
+        if (!next.equals(resourceSelection)) {
+            resourceSelection = next;
             guidebookPages.clear();
-            ticksKeyHeld = 0;
-
-            if (stack != null && stack.getItem() != null) {
-                for (var guide : GuideRegistry.getAll()) {
-                    if (!guide.isAvailableToOpenHotkey()) {
-                        continue;
-                    }
-                    PageAnchor anchor;
-                    try {
-                        anchor = guide.getIndex(ItemIndex.class)
-                            .findByStack(stack);
-                        if (anchor == null) {
-                            anchor = guide.getIndex(OreIndex.class)
-                                .findByStack(stack);
-                        }
-                    } catch (IllegalArgumentException ignored) {
-                        continue;
-                    }
-                    if (anchor != null) {
-                        guidebookPages.add(new FoundPage(guide, anchor));
-                    }
-                }
+            for (var target : next.targets()) {
+                MutableGuide guide = GuideRegistry.getById(target.guideId());
+                if (guide != null) guidebookPages.add(new FoundPage(guide, target.page()));
             }
         }
+        ticksKeyHeld = HOVER_SESSION.ticksHeld();
+    }
 
-        holding = isKeyHeld();
-        if (holding) {
-            if (ticksKeyHeld < TICKS_TO_OPEN && ++ticksKeyHeld == TICKS_TO_OPEN) {
-                if (!guidebookPages.isEmpty()) {
-                    var found = guidebookPages.getFirst();
-                    List<PageAnchor> allPages = found.guide.getIndex(ItemMultiIndex.class)
-                        .findAllByStack(stack);
-                    PageAnchor target = allPages.size() > 1 ? GuideItemLinksPage.anchorForStack(stack) : found.page;
-                    GuideScreen.openFromGuideHotkey(found.guide.getId(), target);
-                    ticksKeyHeld = 0;
-                    holding = false;
-                }
-            } else if (ticksKeyHeld > TICKS_TO_OPEN) {
-                ticksKeyHeld = TICKS_TO_OPEN;
-            }
-        } else if (ticksKeyHeld > 0) {
-            ticksKeyHeld = Math.max(0, ticksKeyHeld - 2);
+    public static void resetResourceHover() {
+        HOVER_SESSION.reset();
+        resourceSelection = new GuideTargetSelection("", List.of(), List.of());
+        guidebookPages.clear();
+        previousItemId = null;
+        ticksKeyHeld = 0;
+        holding = false;
+        hoverObserved = false;
+    }
+
+    private static void tickResourceHover() {
+        Minecraft minecraft = Minecraft.getMinecraft();
+        boolean held = isKeyHeld();
+        if (!held) activationBlocked = false;
+        if (!Display.isActive() || minecraft.currentScreen == null || minecraft.thePlayer == null) {
+            resetResourceHover();
+            return;
         }
+        if (minecraft.currentScreen instanceof GuideScreen screen) {
+            screen.updateGuideHotkeyHover();
+        } else {
+            int x = Mouse.getX() * minecraft.currentScreen.width / Math.max(1, minecraft.displayWidth);
+            int y = minecraft.currentScreen.height
+                - Mouse.getY() * minecraft.currentScreen.height / Math.max(1, minecraft.displayHeight)
+                - 1;
+            var fluid = FluidStackResolver.getHoveredFluid(minecraft.currentScreen, x, y);
+            if (fluid != null) updateResource(null, FluidStackSpec.fromStack(fluid, false), null);
+        }
+        if (!hoverObserved) resetResourceHover();
+        holding = held && !activationBlocked;
+        if (HOVER_SESSION.advance(holding, TICKS_TO_OPEN)) {
+            activationBlocked = true;
+            GuideScreen screen = GuideScreen.current();
+            if (screen != null) screen.openResourceTargets(resourceSelection);
+            else GuideScreen.openFromGuideHotkey(resourceSelection);
+        }
+        ticksKeyHeld = HOVER_SESSION.ticksHeld();
+        hoverObserved = false;
     }
 
     public static boolean isKeyHeld() {

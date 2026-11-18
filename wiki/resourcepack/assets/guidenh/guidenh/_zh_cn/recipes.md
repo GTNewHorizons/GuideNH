@@ -7,13 +7,19 @@ categories:
   - widgets
 ---
 
-# 配方（页面左上角标题）
+# 配方
 
-`<Recipe>`、`<RecipeFor>` 和 `<RecipesFor>` 组件测试。
+展示物品与流体的配方、用途及筛选方式。
 
 > 配方框由 NEI 原生渲染器驱动——合成台、熔炉、酿造台等都会呈现各自的背景纹理与动画。若未安装 NEI，则自动回退到内置的 3x3 合成展示。
 
-左上角小图标显示了该配方所属的"配方池"（由 NEI 的 `GuiRecipeTab.handlerMap` 提供）。
+左上角小图标显示了该配方所属的"配方池"。
+
+## 原生流体配方
+
+<RecipeFor fluid="steam" fallbackText="没有可用的流体配方。" />
+
+<RecipesUsage fluid="water" inputFluid="water&amp;!lava" limit="3" fallbackText="没有可用的流体用途配方。" />
 
 ## 基础示例
 
@@ -57,7 +63,7 @@ categories:
 - 省略 `meta` 时默认视为 `0`。
 - `meta` 填 `32767`、`*`、或任意大写字母（如 `W`、`ANY`）均视为通配符。
 - 可在末尾追加 SNBT（以 `{` 开始）来携带 NBT 数据。
-- 新增 `handlerName`（包含匹配）/ `handlerId`（精确匹配）/ `handlerOrder`（按序取一条）过滤属性。
+- 使用 `handlerName`（包含匹配）/ `handlerId`（精确匹配）/ `handlerOrder`（按序取一条）过滤属性。
 - `handlerBlacklist` 将这些处理器从结果中剔除；`handlerWhitelist` 将其保留。两者都接受英文逗号分隔的列表，条目可以是处理器 id、overlay id 或类名，匹配不区分大小写且按包含处理，所以一条就能指名单个处理器或整个包。
 - 被 `handlerId` 指名的处理器即便出现在黑名单里也会保留，`handlerWhitelist` 同理。配置中默认隐藏的处理器就是靠这个方式显式取回的。
 
@@ -158,7 +164,7 @@ categories:
 
 **矿辞 `ore` 属性测试：**
 
-- 第一个匹配到的物品：<ItemImage ore="ingotIron" /> 铁锭
+- 第一个匹配到的物品：<ItemImage id="minecraft:iron_ingot" ore="ingotIron" /> 铁锭
 - 第一个匹配到的文本链接：<ItemLink ore="stickWood" />
 - 方块预览：<BlockImage ore="logWood" scale="3" />
 - `ore` 优先于 `id`：<ItemImage id="minecraft:apple" ore="gemDiamond" />

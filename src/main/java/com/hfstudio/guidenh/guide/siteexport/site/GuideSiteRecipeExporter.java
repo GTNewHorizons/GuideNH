@@ -11,6 +11,10 @@ import net.minecraft.item.ItemStack;
 
 import org.jetbrains.annotations.Nullable;
 
+import com.hfstudio.guidenh.guide.compiler.tags.FluidImageOptions;
+import com.hfstudio.guidenh.guide.internal.fluid.FluidStackResolver;
+import com.hfstudio.guidenh.guide.internal.fluid.FluidStackSpec;
+import com.hfstudio.guidenh.guide.internal.fluid.FluidStacks;
 import com.hfstudio.guidenh.guide.internal.recipe.RecipeLookup;
 import com.hfstudio.guidenh.integration.api.RecipeEntry;
 import com.hfstudio.guidenh.integration.api.RecipeSlot;
@@ -18,7 +22,9 @@ import com.hfstudio.guidenh.integration.nei.NeiRecipeLookup;
 
 public class GuideSiteRecipeExporter {
 
-    /** NEI slot chrome is commonly {@code 18脳18} pixels; vanilla/GT handlers draw {@code 16脳16} items inset by 1px. */
+    /**
+     * NEI slots are 18 by 18 GUI pixels; vanilla and GT item icons are 16 by 16 with a one-pixel inset.
+     */
     public static final int NEI_SLOT_GUI_PIXELS = 18;
 
     @Nullable
@@ -194,10 +200,8 @@ public class GuideSiteRecipeExporter {
             double topPct;
             if (usePhase1Canvas) {
                 /*
-                 * PNG viewport is HandlerInfo WxH plus symmetric VIEWPORT_MARGIN_PX 鈥?same inset as Phase1 translate(m,
-                 * yShift+m).
-                 * GT/ModularUI nine-patch bezel can extend a few px past the nominal body; relying on HandlerInfo alone
-                 * clips edges.
+                 * Match the raster background margin and Y shift. GT/ModularUI bezels can extend beyond HandlerInfo
+                 * bounds.
                  */
                 int phase1YShift = phase1BodyYShiftPx != null ? phase1BodyYShiftPx : 0;
                 int m = GuideSiteNeiPhase1BackgroundExporter.VIEWPORT_MARGIN_PX;
@@ -274,7 +278,9 @@ public class GuideSiteRecipeExporter {
         }
     }
 
-    /** Item icons for one slot (cycling markers when {@code stacks.size()>1}); outer box is callers' responsibility. */
+    /**
+     * Item icons for one slot (cycling markers when {@code stacks.size()>1}); outer box is callers' responsibility.
+     */
     private void appendSlotContents(StringBuilder html, List<GuideSiteExportedItem> safeCandidates) {
         for (int i = 0; i < safeCandidates.size(); i++) {
             int beforeIcon = html.length();
@@ -291,6 +297,18 @@ public class GuideSiteRecipeExporter {
 
     private void appendTooltipIcon(StringBuilder html, GuideSiteExportedItem item) {
         GuideSiteTemplateRegistry templates = tooltipTemplates;
+        if (item.fluid() != null && templates != null) {
+            var spec = item.fluid();
+            String template = templates.create(GuideSiteFluidHtml.tooltip(spec));
+            html.append(
+                GuideSiteFluidHtml.image(
+                    new FluidImageOptions(spec, 1, true, true, null, null, null, null),
+                    fluid -> item.iconSrc(),
+                    template,
+                    templates.resolveFluidHref(spec.id()),
+                    templates.resolveFluidTargets(spec.id())));
+            return;
+        }
         if (templates == null || item.isEmpty()) {
             GuideSiteItemHtml.appendIcon(html, item, null);
             return;
@@ -482,6 +500,7 @@ public class GuideSiteRecipeExporter {
 
     public GuideSiteExportedItem resultItem(@Nullable RecipeSlot result, @Nullable ItemStack fallbackStack,
         GuideSiteItemIconResolver itemIconResolver) {
+        if (result != null && result.currentFluid() != null) return fluidInfo(result.currentFluid(), itemIconResolver);
         if (result != null && result.stacks() != null) {
             for (ItemStack stack : result.stacks()) {
                 if (stack != null && stack.getItem() != null) {
@@ -512,15 +531,26 @@ public class GuideSiteRecipeExporter {
         if (slot == null) {
             return null;
         }
-        return new RecipeSlot(slot.relx, slot.rely, slot.stacks, slot.current);
+        return new RecipeSlot(slot.relx, slot.rely, slot.stacks, slot.current, slot.fluids, slot.currentFluid);
     }
 
     public GuideSiteExportedItem itemInfo(@Nullable ItemStack stack, GuideSiteItemIconResolver itemIconResolver) {
+        var fluid = FluidStackResolver.getDisplayedFluid(stack);
+        if (fluid != null) return fluidInfo(FluidStackSpec.fromStack(fluid, true), itemIconResolver);
         GuideSiteExportedItem item = GuideSiteItemSupport.export(stack, itemIconResolver);
         if (tooltipTemplates != null) {
             itemHrefs.put(item, tooltipTemplates.resolveItemHref(stack));
         }
         return item;
+    }
+
+    public GuideSiteExportedItem fluidInfo(FluidStackSpec fluid, GuideSiteItemIconResolver icons) {
+        return new GuideSiteExportedItem(
+            "",
+            FluidStacks.displayName(FluidStacks.resolve(fluid)),
+            GuideSiteFluidIconResolver.from(icons)
+                .exportFluidIcon(fluid),
+            fluid);
     }
 
     public String itemId(ItemStack stack) {

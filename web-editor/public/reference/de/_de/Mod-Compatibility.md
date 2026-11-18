@@ -1,25 +1,24 @@
 # Mod-Kompatibilität
 
+Die ausführliche Referenz auf dieser Seite ist auf Englisch verfügbar. Tag-Namen, Attribute, IDs und Pfade werden unverändert verwendet.
 
-Diese Dokumentation beschreibt die GuideNH-Syntax und Laufzeitfunktionen. Code, Tags, Pfade, IDs und Attributwerte bleiben unverändert.
-
-GuideNH ships mit conditional integrations für ausgewählt mods. jede integration ist nur activated wenn seine Ziel mod ist geladen; wenn Die Ziel ist absent, Die Verwandt Tags, indices und Schlüssel bindings stay inert und Die rest von Die Leitfaden keeps working.
+GuideNH ships with conditional integrations for selected mods. Each integration is only activated when its target mod is loaded; when the target is absent, the related tags, indices and key bindings stay inert and the rest of the guide keeps working.
 
 ## StructureLib
 
-wenn StructureLib ist geladen, GuideNH kann import multiblock previews in `<GameScene>` mit `<ImportStructureLib>`. Die client command `/exportStructure structureLib` kann auch export those previews als PNG documentation screenshots. Siehe [Structure Export](Structure-Export) für Die Vollständige command reference, StructureLib-bestimmten Optionen, und Die Verwandt `gameScene` export Modus.
+When StructureLib is loaded, GuideNH can import multiblock previews into `<GameScene>` with `<ImportStructureLib>`. The client command `/exportStructure structureLib` can also export those previews as PNG documentation screenshots. See [Structure Export](Structure-Export) for the full command reference, StructureLib-specific options, and the related `gameScene` export mode.
 
 ## BetterQuesting
 
-wenn [BetterQuesting](https://github.com/GTNewHorizons/BetterQuesting) ist geladen, GuideNH unlocks drei features:
+When [BetterQuesting](https://github.com/GTNewHorizons/BetterQuesting) is loaded, GuideNH unlocks three features:
 
-1. Die `quest_ids` Seite-frontmatter Schlüssel Starts indexing pages by BetterQuesting quest id.
-2. zwei new Tags werden zu verfügbar: `<QuestLink>` (inline) und `<QuestCard>` (Block).
-3. Die Standard "open Leitfaden" hotkey works während Beim Überfahren Eine quest in Die BetterQuesting GUI: holding Die Schlüssel looks up Die hovered quest id und navigates zu Die passend Leitfaden Seite.
+1. The `quest_ids` page-frontmatter key starts indexing pages by BetterQuesting quest id.
+2. Two new tags become available: `<QuestLink>` (inline) and `<QuestCard>` (block).
+3. The standard "open guide" hotkey works while hovering a quest in the BetterQuesting GUI: holding the key looks up the hovered quest id and navigates to the matching guide page.
 
 ### Indexing pages by quest id
 
-Fügen Sie hinzu ein `quest_ids` Liste zu Die frontmatter von beliebig Leitfaden Seite you want associated mit eins oder mehr quests:
+Add a `quest_ids` list to the frontmatter of any guide page you want associated with one or more quests:
 
 ```yaml
 ---
@@ -31,128 +30,90 @@ quest_ids:
 ---
 ```
 
-Die Werte kann sein canonical UUID strings oder BetterQuesting compact Base64 quest ids. Malformed oder leer Einträge sind skipped mit Eine Warnung in Die log.
+The values may be canonical UUID strings or BetterQuesting compact Base64 quest ids. Malformed or empty entries are skipped with a warning in the log.
 
-Compact ids sind decoded erste, dann GuideNH falls back zu canonical UUID parsing. dies stimmt überein BetterQuesting's compact quest-id format such als `AAAAAAAAAAAAAAAAAAAMug==`.
+Compact ids are decoded first, then GuideNH falls back to canonical UUID parsing. This matches BetterQuesting's compact quest-id format such as `AAAAAAAAAAAAAAAAAAAMug==`.
 
-Do nicht Liste beide encodings für Die gleich quest in eins Seite's `quest_ids`; Sie normalize zu Die gleich intern UUID und would sein treated als duplicates.
+Do not list both encodings for the same quest in one page's `quest_ids`; they normalize to the same internal UUID and would be treated as duplicates.
 
-wenn Eine quest id ist indexed by Eine Seite, beide `<QuestLink>` und `<QuestCard>` wird route Die Klick zu dass Leitfaden Seite stattdessen von opening Die BetterQuesting quest GUI directly.
+When a quest id is indexed by a page, both `<QuestLink>` and `<QuestCard>` will route the click to that guide page instead of opening the BetterQuesting quest GUI directly.
 
-### Linking von BetterQuesting Beschreibungs zu GuideNH pages
+### Linking from BetterQuesting descriptions to GuideNH pages
 
-BetterQuesting quest Beschreibungs kann Link back in GuideNH mit ein `[guide]` Tag. Die Tag ist geparst by GuideNH nur wenn BetterQuesting ist geladen, und dann gerendert durch BetterQuesting's native hyperlink-aware Text box, so BQ word wrapping, Scrollen und Klick hit boxes stay compatible.
+BetterQuesting quest descriptions can link back into GuideNH with a `[guide]` tag. The tag is parsed by GuideNH only when BetterQuesting is loaded, and then rendered through BetterQuesting's native hyperlink-aware text box, so BQ word wrapping, scrolling and click hit boxes stay compatible.
 
-verwenden Die Seite id als Die Ziel:
+Use the page id as the target:
 
 ```text
 [guide]guidenh:navigation-guide[/guide]
 ```
 
-Wenn Die Ziel Seite exists, Die sichtbar Link Text ist ersetzt mit dass Leitfaden Seite's Titel. Die `.md` suffix ist optional, so `guidenh:navigation-guide` und `guidenh:navigation-guide.md` Punkt zu Die gleich Seite wenn Die markdown Seite exists.
+If the target page exists, the visible link text is replaced with that guide page's title. The `.md` suffix is optional, so `guidenh:navigation-guide` and `guidenh:navigation-guide.md` point to the same page when the markdown page exists.
 
-verwenden `page=` wenn you want benutzerdefiniert sichtbar Text:
+Use `page=` when you want custom visible text:
 
 ```text
 [guide page=guidenh:navigation-guide]Open the navigation guide[/guide]
 ```
 
-Die Link ist angezeigt in BetterQuesting's normal hyperlink Farbe mit underline styling, zeigt Eine GuideNH Tooltip auf Hover, und opens Die Ziel GuideNH Seite wenn clicked. Seite anchors sind auch unterstützt:
+The link is shown in BetterQuesting's normal hyperlink color with underline styling, shows a GuideNH tooltip on hover, and opens the target GuideNH page when clicked. Page anchors are also supported:
 
 ```text
 [guide page=guidenh:navigation-guide#navigation-fields]Navigation fields[/guide]
 ```
 
-### `<QuestLink>` und `<QuestCard>`
+### `<QuestLink>` and `<QuestCard>`
 
-beide Tags accept Eine BetterQuesting quest id via `id` und decide ihre appearance von Die player's progress at kompilieren time:
+Both tags accept a BetterQuesting quest id via `id` and decide their appearance from the player's progress at compile time:
 
-| Zustand | Quelle | Darstellung |
+| State | Source | Rendering |
 | --- | --- | --- |
-| sichtbar | quest ist unlocked but nicht completed | clickable Link, Standard style |
-| Completed | `quest.isComplete(player)` gibt zurück true | clickable Link, green Farbe, trailing `✓` |
-| Locked | quest exists but ist nicht unlocked, Sichtbarkeit ≠ ausgeblendet/SECRET | kursiv gray placeholder, nicht clickable |
-| verborgen | locked plus Sichtbarkeit ist verborgen oder SECRET | kursiv dark-gray placeholder, nein quest details leaked |
-| fehlend | quest id tut nicht auflösen zu beliebig quest in Die database | kursiv red placeholder |
+| Visible | quest is unlocked but not completed | clickable link, default style |
+| Completed | quest is completed | clickable link, green color, trailing `✓` |
+| Locked | quest exists but is not unlocked, visibility ≠ HIDDEN/SECRET | clickable quest link or card title |
+| Hidden | locked plus visibility is HIDDEN or SECRET | italic dark-gray placeholder, no quest details leaked |
+| Missing | quest id does not resolve to any quest in the database | italic red placeholder |
 
-Locked but non-ausgeblendet quests sind auch clickable. Sie verwenden Die gleich navigation Ziel Regeln als sichtbar und completed quests.
+Locked but non-hidden quests are also clickable. They use the same navigation target rules as visible and completed quests.
 
-für sichtbar / completed / locked quests, Die Klick Ziel ist:
+For visible / completed / locked quests, the click target is:
 
-- Die indexed Leitfaden Seite Wenn Die quest id ist present in some Seite's `quest_ids`
-- otherwise BetterQuesting's quest-book quest Bildschirm, using BetterQuesting's native übergeordnet-Bildschirm flow
+- the indexed guide page if the quest id is present in some page's `quest_ids`
+- otherwise BetterQuesting's quest-book quest screen, using BetterQuesting's native parent-screen flow
 
-Siehe [Tags Reference](Tags-Reference#questlink) für Attribut Tabellen und inline Beispiele.
+See [Tags Reference](Tags-Reference#questlink) for attribute tables and inline examples.
 
-### ausgeblendet-quest handling
+### Hidden-quest handling
 
-GuideNH nie rendert Die Titel oder Beschreibung von Eine quest whose Sichtbarkeit ist `HIDDEN` oder `SECRET` während Die quest ist weiterhin locked für Die player. Die placeholder Text ist taken von ein Übersetzung Schlüssel so packs kann localize Die wording:
+GuideNH never renders the title or description of a quest whose visibility is `HIDDEN` or `SECRET` while the quest is still locked for the player. The placeholder text is taken from a translation key so packs can localize the wording:
 
-| Übersetzung Schlüssel | Standard (en_US) |
+| Translation key | Default (en_US) |
 | --- | --- |
 | `guidenh.compat.bq.locked` | `Locked Quest` |
 | `guidenh.compat.bq.hidden` | `Hidden Quest` |
 | `guidenh.compat.bq.missing` | `Unknown Quest` |
 | `guidenh.compat.bq.open_in_guide` | `Open in Guide` |
 
-Locked quests kann weiterhin anzeigen ihre Beschreibung als Eine Hover Tooltip auf `<QuestLink>` und auf Die clickable Titel innerhalb `<QuestCard>`, becaVerwenden Sie BetterQuesting itself reveals Die Beschreibung auf locked quest tooltips. Setzen Sie `show_tooltip="false"` (oder `showTooltip={false}`) zu suppress dass tooltip. verborgen quests do nicht expose beliebig tooltip.
+Locked quests can still show their description as a hover tooltip on `<QuestLink>` and on the clickable title inside `<QuestCard>`, because BetterQuesting itself reveals the description on locked quest tooltips. Set `show_tooltip="false"` (or `showTooltip={false}`) to suppress that tooltip. Hidden quests do not expose any tooltip.
 
-> [!Hinweis]
-> Quest Zustand ist aufgelöst at Seite-kompilieren time using Die lokal player's progress. Die kompiliert Seite ist zwischengespeichert per Leitfaden; reopening Die Leitfaden nach completing oder unlocking Eine quest re-evaluates Die Zustand.
+> [!NOTE]
+> Reopen the guide after completing or unlocking a quest to refresh its displayed state.
 
-### Open-Leitfaden hotkey integration
+### Open-guide hotkey integration
 
-Die Standard open-Leitfaden hotkey (`G`, configurable under `key.guidenh.open_guide`) gains Eine second activation Pfad wenn BetterQuesting ist geladen. während Die BetterQuesting quest-Linie GUI ist open:
+The default open-guide hotkey (`G`, configurable under `key.guidenh.open_guide`) gains a second activation path when BetterQuesting is loaded. While the BetterQuesting quest-line GUI is open:
 
-1. Hover über beliebig quest button in Die BQ panel
-2. Hold Die open-Leitfaden hotkey
+1. Hover over any quest button in the BQ panel
+2. Hold the open-guide hotkey
 
-Wenn beliebig registriert Leitfaden indexes dass quest id durch `quest_ids`, GuideNH wird navigate zu Die passend Seite (oder open Die Leitfaden Wenn it's nicht bereits open). Wenn nein Seite indexes Die hovered id, Die hotkey tut nothing — it tut nicht fall back zu opening Die BetterQuesting quest GUI, since BQ bereits zeigt dass information.
+If any registered guide indexes that quest id through `quest_ids`, GuideNH will navigate to the matching page (or open the guide if it's not already open). If no page indexes the hovered id, the hotkey does nothing — it does not fall back to opening the BetterQuesting quest GUI, since BQ already shows that information.
 
-dies Pfad ist independent von Die inventory Element-tooltip Pfad, so Beim Überfahren Elemente in Ihre inventory weiterhin routes durch Die existing Element / ore index lookups.
+This path is independent of the inventory item-tooltip path, so hovering items in your inventory still routes through the existing item / ore index lookups.
 
-### Behavior wenn BetterQuesting ist absent
+### Behavior when BetterQuesting is absent
 
-- `<QuestLink>` und `<QuestCard>` sind nicht registriert, so pages dass verwenden sie fall back zu Die Standard "unbekannt Tag" Fehler Darstellung until you entfernen Die Tag.
-- `quest_ids` frontmatter Einträge sind weiterhin geparst und stored under `additionalProperties`, but nothing reads sie.
-- Die hotkey's quest-Hover branch wird zu Eine nein-op.
-- BetterQuesting `[guide]...[/guide]` Beschreibung Links sind nie geparst becaVerwenden Sie Die BetterQuesting Text box und Verwandt mixins sind nicht geladen.
+- `<QuestLink>` and `<QuestCard>` are not registered, so pages that use them fall back to the standard "unknown tag" error rendering until you remove the tag.
+- `quest_ids` does not create quest navigation, and quest-hover shortcuts are unavailable.
+- BetterQuesting description links require BetterQuesting.
 
-## Exporting Ihre Tags zu Die site
-
-Die exported site rendert Die Tags dass ship mit GuideNH. Eine mod whose Tags sind kompiliert by seine eigene
-`TagCompiler` registers Eine renderer so seine Tags sind exported als well, stattdessen von showing up in Die book und
-disappearing von Die site:
-
-```java
-public class MyModSiteTagRenderer implements GuideSiteTagRenderer {
-
-    @Override
-    public Set<String> getTagNames() {
-        return Set.of("MyMachine");
-    }
-
-    @Override
-    public String render(GuideSiteTagRenderContext context, MdxJsxElementFields element) {
-        String id = element.getAttributeString("id", "");
-        return "<div class=\"mymod-machine\">" + GuideSiteGraphRenderer.esc(id) + "</div>";
-    }
-}
-```
-
-```java
-GuideNhIntegrationRegistry.global().registerSiteTagRenderer(new MyModSiteTagRenderer());
-Guide.builder(id).extension(GuideSiteTagRenderer.EXTENSION_POINT, new MyModSiteTagRenderer()).build();
-```
-
-registriert renderers sind asked vor Die built-in ones, und Die erste eins dass gibt zurück markup wins, so ein
-renderer nur hat zu handle Die Tags it declares. Returning `null` leaves Die element zu Die nächste renderer
-oder zu Die built-in export. Eine renderer dass throws ist reported in Die log und skipped, so eins broken plugin
-kann nicht fail Die export von Eine Seite it tut nicht eigene.
-
-Die context carries Die Seite being exported und Die shared export services: `defaultNamespace`,
-`currentPageId`, `templates`, `sceneResolver` und `compiler`, Die gleich Werte Die built-in renderers funktionieren
-mit. Markup you schreiben ist inserted in Die Seite als it ist, so escape Text mit
-`GuideSiteGraphRenderer.esc(...)`.
-
-dies bedeutet Eine Leitfaden dass targets BetterQuesting kann sein authored once und silently degrade in environments where BetterQuesting ist nicht installed.
+For optional BetterQuesting pages, set `navigation.required_mod: betterquesting` to avoid unknown-tag errors when the mod is absent. Mod developers can find tag and site-export extensions in [Developer Integration](Developer-Integration).

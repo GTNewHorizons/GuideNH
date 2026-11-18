@@ -27,10 +27,10 @@
 ## **Features**
 
 * Markdown pages with YAML frontmatter, navigation metadata, categories, anchors, tables, footnotes, Mermaid, LaTeX, charts, and highlighted text.
-* MDX-style runtime tags such as `<ItemLink>`, `<ItemImage>`, `<Recipe>`, `<GameScene>`, `<ContentTabs>`, `<BlockStats>`, `<Tooltip>`, `<KeyBind>`, and `<PlayerName>`.
+* MDX-style runtime tags such as `<ItemLink>`, `<ItemImage>`, `<FluidLink>`, `<FluidImage>`, `<Recipe>`, `<GameScene>`, `<ContentTabs>`, `<BlockStats>`, `<Tooltip>`, `<KeyBind>`, and `<PlayerName>`.
 * Interactive 3D GameScene previews with block/entity placement, StructureLib import, Ponder playback, layer sliders, grid controls, annotations, and block statistics.
 * Live guide editing mode with split editor/preview, toolbar actions, debounced saving, external-change handling, and resource-pack page creation.
-* Multi-language guide folders with fallback, item index navigation, search, server integration, and resource reload support.
+* Multi-language guide folders with fallback, item and fluid index navigation, search, server integration, and resource reload support.
 
 ## **Authors**
 
@@ -51,16 +51,12 @@
 
 ## **Quick Start**
 
-```powershell
-.\gradlew.bat spotlessApply
-.\gradlew.bat build
-.\gradlew.bat runClient
-```
+Install GuideNH and GTNHLib in the client's `mods/` directory. Guide authors can use the [online editor](https://www.gtnewhorizons.com/GuideNH) or edit UTF-8 Markdown directly.
 
 In game:
 
 * Press `G` to open the guide home page.
-* Hold `G` while hovering an indexed item to jump to its guide entry.
+* Hold `G` while hovering an indexed item or a recognized fluid display/container to jump to its guide entry.
 * Press `F3+T` to reload edited guide resources.
 
 ## **DefaultGuide**
@@ -97,7 +93,7 @@ config/guidenh/DefaultGuide.zip
 ```
 
 `wiki/resourcepack/` remains the repository example resource pack. It keeps the outer `assets/` directory because it is
-used for documentation and bundled examples.
+used for documentation and example resource packs.
 
 ## **Authoring Example**
 
@@ -120,62 +116,14 @@ Press <KeyBind action="key.attack" /> to interact.
 </GameScene>
 ```
 
-## **Develop**
+## **Development**
 
-### **Guide Folder**
-
-```text
-assets/<modid>/guidenh/
-|-- assets/
-|   `-- shared_structure.snbt
-|-- _en_us/
-|   |-- index.md
-|   `-- machines.md
-`-- _zh_cn/
-    |-- index.md
-    `-- machines.md
-```
-
-### **DefaultGuide Folder**
-
-```text
-config/guidenh/DefaultGuide/
-`-- <modid>/
-    `-- guidenh/
-        |-- assets/
-        |   `-- shared_structure.snbt
-        |-- _en_us/
-        |   `-- index.md
-        `-- _zh_cn/
-            `-- index.md
-```
-
-### **DefaultGuide Zip**
-
-```text
-config/guidenh/DefaultGuide.zip
-`-- assets/
-    `-- <modid>/
-        `-- guidenh/
-            |-- assets/
-            |   `-- shared_structure.snbt
-            |-- _en_us/
-            |   `-- index.md
-            `-- _zh_cn/
-                `-- index.md
-```
-
-### **Register A Guide**
-
-```java
-Guide.builder(new ResourceLocation("yourmod", "guidenh")).build();
-```
-
-### **Verification**
+Example guide sources are in `wiki/resourcepack/assets/`; see [Live Preview](wiki/Live-Preview.md) for authoring. Mod extension APIs are documented in [Developer Integration](wiki/Developer-Integration.md).
 
 ```powershell
 .\gradlew.bat spotlessApply
-.\gradlew.bat build --rerun-tasks
+.\gradlew.bat build
+.\gradlew.bat runClient
 ```
 
 ## **Credits**

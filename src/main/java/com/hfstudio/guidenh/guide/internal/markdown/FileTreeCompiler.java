@@ -2,16 +2,21 @@ package com.hfstudio.guidenh.guide.internal.markdown;
 
 import com.hfstudio.guidenh.guide.compiler.IdUtils;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
+import com.hfstudio.guidenh.guide.compiler.tags.CalloutIconSupport;
 import com.hfstudio.guidenh.guide.document.block.LytBlock;
 import com.hfstudio.guidenh.guide.document.block.LytFileTree;
 import com.hfstudio.guidenh.guide.document.block.LytImage;
 import com.hfstudio.guidenh.guide.document.block.LytItemImage;
 import com.hfstudio.guidenh.guide.document.block.LytParagraph;
+import com.hfstudio.guidenh.guide.document.flow.LytFlowContent;
+import com.hfstudio.guidenh.guide.document.flow.LytFlowSpan;
+import com.hfstudio.guidenh.guide.document.flow.LytFlowText;
 import com.hfstudio.guidenh.guide.internal.item.GuideDisplayItemStacks;
 import com.hfstudio.guidenh.guide.internal.markdown.FileTreeParser.FileTreeEntry;
 import com.hfstudio.guidenh.guide.internal.markdown.FileTreeParser.FileTreeIcon;
 import com.hfstudio.guidenh.guide.internal.markdown.FileTreeParser.FileTreeIconKind;
 import com.hfstudio.guidenh.guide.internal.markdown.FileTreeParser.FileTreeModel;
+import com.hfstudio.guidenh.guide.layout.flow.LineBuilder;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 
 /**
@@ -36,6 +41,7 @@ public class FileTreeCompiler {
             String payloadSource = entry.payloadSource();
             if (payloadSource != null && !payloadSource.isEmpty()) {
                 compiler.compileInlineMarkdown(payloadSource, payload);
+                addPathBreaks(payload.getContent());
             }
 
             LytBlock iconBlock = entry.icon() != null ? buildIconBlock(compiler, entry.icon()) : null;
@@ -44,10 +50,44 @@ public class FileTreeCompiler {
         return tree;
     }
 
+    private static void addPathBreaks(Iterable<LytFlowContent> content) {
+        for (var node : content) {
+            if (node instanceof LytFlowSpan span) {
+                addPathBreaks(span.getChildren());
+            } else if (node instanceof LytFlowText text) {
+                String source = text.getText();
+                StringBuilder wrapped = null;
+                int start = 0;
+                for (int i = 0; i < source.length(); i++) {
+                    char character = source.charAt(i);
+                    if ("/\\_-".indexOf(character) >= 0
+                        && (i + 1 == source.length() || source.charAt(i + 1) != LineBuilder.WORD_BREAK_OPPORTUNITY)) {
+                        if (wrapped == null) wrapped = new StringBuilder(source.length() + 8);
+                        wrapped.append(source, start, i + 1)
+                            .append(LineBuilder.WORD_BREAK_OPPORTUNITY);
+                        start = i + 1;
+                    }
+                }
+                if (wrapped != null) {
+                    text.setText(
+                        wrapped.append(source, start, source.length())
+                            .toString());
+                }
+            }
+        }
+    }
+
     private static LytBlock buildIconBlock(PageCompiler compiler, FileTreeIcon icon) {
         FileTreeIconKind kind = icon.kind();
         String value = icon.value();
         switch (kind) {
+            case FLUID -> {
+                try {
+                    return CalloutIconSupport.buildFluidIcon(value, 1);
+                } catch (IllegalArgumentException exception) {
+                    return LytParagraph.error(exception.getMessage());
+                }
+            }
             case TEXT -> {
                 LytParagraph paragraph = new LytParagraph();
                 paragraph.setMarginTop(0);

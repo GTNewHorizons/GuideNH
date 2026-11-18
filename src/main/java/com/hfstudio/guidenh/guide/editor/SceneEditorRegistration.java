@@ -11,7 +11,9 @@ package com.hfstudio.guidenh.guide.editor;
  */
 public interface SceneEditorRegistration extends AutoCloseable {
 
-    /** Unregisters the associated contribution. */
+    /**
+     * Unregisters the associated contribution.
+     */
     @Override
     void close();
 }

@@ -1,5 +1,3 @@
-[English](Localization)
-
 # 本地化
 
 GuideNH 支持本地化的指南页面与本地化的指南资源。
@@ -35,8 +33,6 @@ wiki/resourcepack/assets/<modid>/guidenh/
 1. `_<current language>/<page>`
 2. 若当前语言页面缺失，则尝试 `_<default language>/<page>`
 3. 不带语言目录的 `<page>`
-
-其中 `<page>` 表示当前请求的页面路径。
 
 指南页面只会回退到该 guide 的 `defaultLanguage`。自动发现的资源包 guide 仍然默认把这个值设为 `en_us`，所以不会因为某个别的语言存在，就把它自动提升成兜底语言。
 
@@ -87,6 +83,21 @@ foo.bar.md -> foo_x2e_bar
 - 不要写 `\\n`，除非你就是想让最终 markdown 源文本里保留字面量 `\n`
 
 GuideNH 不会仅凭 `.lang` 自动生成一个新页面；实体页面文件仍然必须存在。
+
+## 模板与语言
+
+`templates/` 目录下的模板页与其他页面遵循相同的语言查找顺序，因此同一个模板可以每种语言各有一个文件：
+
+```text
+_en_us/templates/InfoBox.md
+_zh_cn/templates/InfoBox.md
+```
+
+模板页同样可以像其他页面一样被 `.lang` 键整页替换。键的格式是在页面路径后追加模板路径：
+
+```text
+guidenh.page.<命名空间>.<目录>.templates.<名称>
+```
 
 ## Key 长度
 
@@ -140,4 +151,5 @@ wiki/resourcepack/assets/guidenh/guidenh/_zh_cn/test1.png
 ## 相关页面
 
 - [指南页面格式](Guide-Page-Format)
+- [模板](Templates)
 - [图片与资源](Images-And-Assets)

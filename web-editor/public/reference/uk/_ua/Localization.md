@@ -1,13 +1,12 @@
 # Локалізація
 
-Ця документація описує синтаксис і функції виконання GuideNH. Код, теги, шляхи, ідентифікатори та значення атрибутів збережено без змін.
+Докладний довідник на цій сторінці доступний англійською. Назви тегів, атрибути, ідентифікатори та шляхи потрібно використовувати без перекладу.
 
+GuideNH supports localized guide pages and localized guide assets.
 
-GuideNH підтримує локалізований посібник сторінки і локалізований посібник ресурси.
+## Folder Layout
 
-## Структура папок
-
-локалізація під час виконання is папка-based:
+Runtime localization is folder-based:
 
 ```text
 config/guidenh/DefaultGuide/<modid>/guidenh/
@@ -17,7 +16,7 @@ config/guidenh/DefaultGuide/<modid>/guidenh/
     `-- index.md
 ```
 
- repository Приклад пакет ресурсів зберігає його documented outer `assets/` layer:
+The repository example resource pack keeps its documented outer `assets/` layer:
 
 ```text
 wiki/resourcepack/assets/<modid>/guidenh/
@@ -27,101 +26,116 @@ wiki/resourcepack/assets/<modid>/guidenh/
     `-- index.md
 ```
 
-мова folders є recognized лише in  underscored form. Plain folders наприклад `en_us/` і `zh_cn/` є no longer treated as Локалізація roots.
+Language folders are recognized only in the underscored form. Use `_en_us/` and `_zh_cn/`, including the leading underscore.
 
-## Порядок пошуку сторінок
+## Page Lookup Order
 
-Для кожного requested ідентифікатор сторінки, GuideNH tries:
+For each requested page id, GuideNH tries:
 
 1. `_<current language>/<page>`
-2. `_<default language>/<page>` Якщо  поточна мова сторінка is missing
-3. `<page>` без a папка мови
+2. `_<default language>/<page>` if the current language page is missing
+3. `<page>` without a language folder
 
-посібник сторінки лише fall назад до  посібник's `defaultLanguage`. Auto-discovered ресурс-pack посібники досі Типове який значення до `en_us`, so another мова is не promoted до a резервна мова just because it exists.
+Guide pages only fall back to the guide's `defaultLanguage`. Auto-discovered resource-pack guides still default that value to `en_us`, so another language is not promoted into a fallback language just because it exists.
 
-## сторінка Lang ключ Overrides
+## Page Lang Key Overrides
 
-посібник сторінки може також замінити їхні full джерело Markdown з a `.lang` ключ, but лише коли  physical сторінка файл
-вже exists.  файл remains  existence gate і  резервний варіант source.
+Guide pages may also replace their full markdown source from a `.lang` key, but only when the physical page file
+already exists. The file remains the existence gate and the fallback source.
 
-- GuideNH перший resolves  сторінка файл з  normal мова резервний варіант порядок
-- після a файл має been found, GuideNH looks для a сторінка-локалізований `.lang` значення для  requested мова
-- Якщо який ключ exists і is non-empty, його full значення стає  сторінка джерело Markdown до parsing
-- Якщо  ключ is missing або empty, GuideNH falls назад до  розв’язаний файл вміст
+- GuideNH first resolves the page file with the normal language fallback order
+- after a file has been found, GuideNH looks for a page-localized `.lang` value for the requested language
+- if that key exists and is non-empty, its full value becomes the page markdown source before parsing
+- if the key is missing or empty, GuideNH falls back to the resolved file content
 
-коли non-empty `.lang` сторінка значення is використовується, GuideNH merges missing frontmatter поля з  розв’язаний physical
-сторінка до parsing. локалізований frontmatter завжди wins для поля it explicitly defines, so translated
-`navigation.title` значення залишаються локалізований, поки newer structural поля наприклад `navigation.recommend`,
-`navigation.priority`, categories, предмет links, authorship метадані, або сторінка масштаб може be inherited з 
-резервний варіант `.md` файл. Цей зберігає older full-сторінка translations з accidentally dropping home-сторінка recommendations
-коли  base сторінка метадані is оновлений.
+When a non-empty `.lang` page value is used, GuideNH merges missing frontmatter fields from the resolved physical
+page before parsing. Localized frontmatter always wins for fields it explicitly defines, so translated
+`navigation.title` values stay localized, while newer structural fields such as `navigation.recommend`,
+`navigation.priority`, categories, item links, authorship metadata, or page zoom can be inherited from the
+fallback `.md` file. This keeps older full-page translations from accidentally dropping home-page recommendations
+when the base page metadata is updated.
 
- ключ format is:
+The key format is:
 
 ```text
 guidenh.page.<namespace>.<folder>.<page path without .md>
 ```
 
-Приклад:
+Example:
 
 ```text
 assets/guidenh/guidenh/_en_us/charts.md
 -> guidenh.page.guidenh.guidenh.charts
 ```
 
-шлях separators become `.` in  ключ. Literal dots усередині a шлях segment є escaped so Вони do не collide з
+Path separators become `.` in the key. Literal dots inside a path segment are escaped so they do not collide with
 segment separators:
 
 ```text
 foo.bar.md -> foo_x2e_bar
 ```
 
-Other non-alphanumeric characters є escaped з  той самий `_x<hex>_` pattern.
+Other non-alphanumeric characters are escaped with the same `_x<hex>_` pattern.
 
-усередині  `.lang` значення, literal `\n` і `\r` sequences є converted до real рядок endings до Markdown parsing,
-so  переклад значення може містити full сторінка including frontmatter, headings, lists, і MDX теги.
+Inside the `.lang` value, literal `\n` and `\r` sequences are converted to real line endings before markdown parsing,
+so the translation value can contain a full page including frontmatter, headings, lists, and MDX tags.
 
-Authoring Правила:
+Authoring rules:
 
-- записувати  сторінка as один physical `.lang` рядок для який ключ
-- використовувати literal `\n` усередині  значення коли you want Markdown рядок break
-- do не insert real рядок breaks до  `.lang` значення itself, because Forge reads `.lang` files рядок by рядок
-- do не записувати `\\n` unless you intentionally want  кінцевий джерело Markdown до містити  literal characters `\n`
+- write the page as one physical `.lang` line for that key
+- use literal `\n` inside the value when you want a markdown line break
+- do not insert real line breaks into the `.lang` value itself, because Forge reads `.lang` files line by line
+- do not write `\\n` unless you intentionally want the final markdown source to contain the literal characters `\n`
 
-GuideNH не synthesize сторінки з `.lang` alone. real сторінка файл має досі exist.
+GuideNH does not synthesize pages from `.lang` alone. A real page file must still exist.
 
-## ключ Length
+## Templates And Language
 
-GuideNH не impose extra character limit on Ці сторінка ключі. On Minecraft 1.7.10 / Forge,  backing мова
-дані is effectively a рядок-властивість map, so  practical limits є normal memory usage і maintainability rather
-ніж dedicated hard cap. Shorter сторінка paths досі make ключі easier до автор і review.
+Template pages under a `templates/` folder follow the same language lookup order as any other page, so a
+template can have one file per language:
 
-## Поради щодо створення
+```text
+_en_us/templates/InfoBox.md
+_zh_cn/templates/InfoBox.md
+```
 
-- Установіть `defaultLanguage` deliberately коли you want non-English резервна мова для a посібник
-- Додайте shared мова-neutral сторінка лише коли cross-мова резервний варіант is actually intended
-- translate сторінки перший, потім translate ресурси лише коли текст is embedded in  ресурс
-- avoid мова-певний ресурс filenames коли rooted shared ресурс would do
+A template page can also be replaced by a `.lang` key like any other page. The key format appends the
+template path:
 
-## Порядок пошуку ресурсів
+```text
+guidenh.page.<namespace>.<folder>.templates.<name>
+```
 
-посібник ресурси використовувати slightly richer резервний варіант порядок:
+## Key Length
+
+GuideNH does not impose an extra character limit on these page keys. Shorter page paths still make keys easier to author and review.
+
+## Authoring Advice
+
+- set `defaultLanguage` deliberately when you want a non-English fallback language for a guide
+- add a shared language-neutral page only when cross-language fallback is actually intended
+- translate pages first, then translate assets only when text is embedded in the asset
+- avoid language-specific asset filenames when a rooted shared asset would do
+
+## Asset Lookup Order
+
+Guide assets use a slightly richer fallback order:
 
 1. `_<current language>/<path>`
-2. Якщо  поточна мова is не  посібник типова мова, `_<default language>/<path>`
+2. if the current language is not the guide default language, `_<default language>/<path>`
 3. `<path>`
 
-Цей makes it possible до localize зображення або texture-like ресурси коли needed.
+This makes it possible to localize images or texture-like assets when needed.
 
-## Пошук і мова
+## Search And Language
 
-пошук documents store both  raw Minecraft мова і  analyzer мова використовується для Lucene. Якщо  поточний Minecraft мова is не mapped до known analyzer, пошук falls назад до English tokenization.
+Search documents store both the raw Minecraft language and the analyzer language used for Lucene. If the current Minecraft language is not mapped to a known analyzer, search falls back to English tokenization.
 
-## Ignore переклад Config
+## Ignore Translation Config
 
-GuideNH не expose a глобальний "ignore translations" switch. Якщо you want a посібник до fall назад до non-English мова, Установіть який посібник's `defaultLanguage` explicitly in code.
+GuideNH does not expose a global "ignore translations" switch. If you want a guide to fall back to a non-English language, set that guide's `defaultLanguage` explicitly in code.
 
-## Приклад
+## Example
 
 ```text
 config/guidenh/DefaultGuide/guidenh/guidenh/_en_us/index.md
@@ -130,7 +144,7 @@ config/guidenh/DefaultGuide/guidenh/guidenh/_en_us/test1.png
 config/guidenh/DefaultGuide/guidenh/guidenh/_zh_cn/test1.png
 ```
 
-Repository Приклад pack equivalent:
+Repository example pack equivalent:
 
 ```text
 wiki/resourcepack/assets/guidenh/guidenh/_en_us/index.md
@@ -139,7 +153,8 @@ wiki/resourcepack/assets/guidenh/guidenh/_en_us/test1.png
 wiki/resourcepack/assets/guidenh/guidenh/_zh_cn/test1.png
 ```
 
-## Пов’язані сторінки
+## Related Pages
 
 - [Guide Page Format](Guide-Page-Format)
+- [Templates](Templates)
 - [Images And Assets](Images-And-Assets)

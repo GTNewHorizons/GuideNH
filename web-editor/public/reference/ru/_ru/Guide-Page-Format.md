@@ -146,7 +146,7 @@ mindmap
 </NodeContent>
 
 <NodeContent id="export">
-![Machine Diagram](./resourcepack/assets/guidenh/guidenh/_en_us/test1.png)
+![Machine Diagram](./test1.png)
 </NodeContent>
 </Mermaid>
 ````
@@ -179,7 +179,9 @@ gold,17
 ```
 ````
 
-## Markdown Подсказки по ширине таблицы
+## Таблицы Markdown
+
+### Ширина столбцов
 
 Обычные таблицы GFM markdown также могут предоставлять подсказки по ширине столбца во время выполнения, добавляя завершающую строку атрибута времени выполнения сразу после таблицы:
 
@@ -193,7 +195,25 @@ gold,17
 
 это сохраняет саму таблицу стандартом markdown, позволяя GuideNH применять предпочтительные ширины столбцов только во время выполнения.
 
-## HTML Tables
+### Объединение ячеек и атрибуты
+
+- Дополнительный `|` после ячейки занимает ещё один столбец: `||` объединяет два, `|||` — три.
+- Ячейка с `^^` в начале объединяется с верхней; её содержимое добавляется с новой строки.
+- Двоеточия по краям задают выравнивание: `: слева`, `справа :`, `: по центру :`.
+- Конечный IAL (`{: ... }`) задаёт `color`, `background` / `bgcolor`, безопасный `style`, `align`, `valign`, `id` или `class`. `{:name: ...}` определяет повторно используемые атрибуты. Небезопасный CSS и внешние URL игнорируются.
+- `\` в конце строки продолжает её на следующей физической строке. Разделитель в начале (`|--|--|`) создаёт таблицу без заголовка.
+- Ячейки поддерживают встроенный Markdown и MDX: ссылки, изображения, выделение и LaTeX. HTML также поддерживает `<thead>`, `<tbody>` и `<tfoot>`.
+
+```markdown
+{:warning: style="background: #4b2418; color: #ffd8c2; font-weight: bold"}
+| Stage | Products | Notes |
+| --- | --- | --- |
+| : First stage : | 2 ATP ||
+| ^^ Next step | 3 ATP | {: warning } |
+| Total ||| {: style="text-align: right; background: #26364d"}
+```
+
+### Таблицы HTML
 
 HTML tables support captions, column groups, semantic row groups, merged cells, and alignment. `col` accepts pixel `width`; `span` repeats a width. `th` and `td` support `colspan`, `rowspan`, and `align`; `th` supports `scope`:
 
@@ -310,6 +330,7 @@ GuideNH считывает первый блок заголовка YAML и ан
 | `categories` | список строк | добавляет страницу в категории в стиле MediaWiki; каждая запись может опционально использовать `category|ключ сортировки` |
 | `item_id` | выражение фильтра элемента | единственное выражение элемента в стиле NEI, которое делает страницу доступной для обнаружения с помощью `<ItemLink>`. |
 | `item_ids` | список выражений фильтра элементов. | Форма списка `item_id`; любое соответствующее выражение делает страницу доступной для обнаружения `<ItemLink>` |
+| `fluid_id` / `fluid_ids` | string / string list | Exact fluid registry-name binding, optionally with #anchor |
 | `ore_ids` | список названий рудных словарей | делает страницу доступной для обнаружения элементами словаря руды (например, `ingotIron`, `oreCopper`). |
 | `quest_ids` | список идентификаторов квестов BetterQuesting | делает страницу доступной для обнаружения с помощью `<QuestLink>` / `<QuestCard>` и с помощью горячей клавиши открытия руководства при наведении курсора на квест в графическом интерфейсе BQ. Принимает канонические строки UUID и компактную форму Base64 BetterQuesting. Потребляется только при загрузке BetterQuesting. См. [Совместимость модов](Mod-Compatibility). |
 | `author` | строка | Имя одного автора. Отображается в нижней панели. |
@@ -318,6 +339,22 @@ GuideNH считывает первый блок заголовка YAML и ан
 | `updated` | строка или дата ГГГГ-ММ-ДД. | Дата последнего обновления. Отображается в нижней панели. |
 | `zoom` | положительное плавающее число | Множитель масштабирования контента для каждой страницы (например, `1.5` = 150 %). Умножается на глобальную настройку `contentZoom` в ModConfig. По умолчанию `1.0`. |
 | любая другая клавиша | любое значение YAML. | Сохранено в `additionalProperties` для расширений или инструментов. |
+
+### Привязки жидкостей и значки
+
+`fluid_id` принимает одно имя реестра, а `fluid_ids` — список. Их можно использовать вместе. Суффикс `#anchor` открывает раздел страницы. Количество и NBT не участвуют в сопоставлении.
+
+```yaml
+fluid_id: water
+fluid_ids:
+  - water#coolant
+  - steam#uses
+navigation:
+  title: Fluid handling
+  icon_fluid: water
+```
+
+Для значка страницы выберите `navigation.icon_fluid` или `icon_fluids`. Эти поля несовместимы друг с другом и со значками предметов/текстур. `icon_fluids` — непустой список с переключением раз в секунду. Значок сам по себе не создаёт привязку страницы. Наличие жидкости проверяйте в запущенной игре.
 
 ### `navigation`
 
@@ -328,11 +365,14 @@ GuideNH считывает первый блок заголовка YAML и ан
 | `keywords` | нет | список строк | Дополнительные ключевые слова или псевдонимы для поиска; значения объединяются и дедуплицируются |
 | `parent` | нет | идентификатор страницы | Идентификатор родительской страницы; опущено, означает узел верхнего уровня |
 | `position` | нет | целое число | порядок сортировки одноуровневых элементов; по умолчанию `0`, большие значения появляются раньше |
+| `recommend` | нет | integer | Приоритет рекомендации на главной; отображается только при заданном значении |
 | `priority` | нет | целое число | приоритет загрузки для переопределений страниц с тем же путем; по умолчанию `0`, более высокие выигрыши, равный приоритет позволяет более поздней записи пакета ресурсов выиграть |
 | `icon` | нет | идентификатор элемента | Значок элемента, отображаемый в навигации/поиске. Принимает `modid:name`, `modid:name:meta` или `modid:name:meta:{snbt}`. Встроенный хвост SNBT — это предпочтительный способ присоединения NBT, например, пользовательского отображаемого имени. |
 | `icons` | нет | список идентификаторов элементов. | Список значков предметов для анимированной езды на велосипеде (по одному в секунду). Каждая запись использует тот же синтаксис, что и `icon`, включая встроенные хвосты `:{snbt}`. При наличии имеет приоритет над `icon`. |
 | `icon_texture` | нет | путь к активу | Путь к значку текстуры разрешен, как и к любой другой ссылке на ресурс. |
 | `icon_textures` | нет | список путей к активам. | Список значков текстур для анимированной езды на велосипеде (по одному в секунду). При наличии имеет приоритет над `icon_texture`. |
+| `icon_fluid` | нет | string | Имя жидкости для значка; несовместим с `icon_fluids` и предметами/текстурами |
+| `icon_fluids` | нет | Список строк | Непустой список имён с переключением раз в секунду; несовместим с `icon_fluid` и предметами/текстурами |
 | `required_mod` | нет | идентификатор мода | Скрывает страницу, если этот мод не загружен. |
 | `required_mods` | нет | список идентификаторов модов. | скрывает страницу, пока не загружен каждый указанный мод. |
 | `excluded_mod` | нет | идентификатор мода | Скрывает страницу при загрузке этого мода. |
@@ -341,38 +381,18 @@ GuideNH считывает первый блок заголовка YAML и ан
 ### Пример оформления
 
 ```yaml
-item_id: minecraft:potion 16384-16462,!16386
 item_ids:
-  - ae2:white_paint_ball:*
-  - "<minecraft:wool:14>"
+  - minecraft:book
+fluid_id: water#coolant
 navigation:
-  title: Root
+  title: Guide Overview
   parent: index.md
   position: 10
-  priority: 0
-  icon: minecraft:book:0:{display:{Name:"My Custom Book"}}
-  # Use meta/damage to select a specific subtype:
-  # icon: minecraft:wool:1       (orange wool, colon form)
-  # Cycling icons list — cycles one per second:
-  # icons:
-  #   - minecraft:wool:1
-  #   - minecraft:wool:4:{display:{Name:"Custom Green Wool"}}
-  #   - minecraft:wool:14
-
-  icon_texture: test1.png
-  # Cycling textures:
-  # icon_textures:
-  #   - test1.png
-  #   - test2.png
+  recommend: 0
+  icon: minecraft:book
 categories:
   - basics
-  - examples|Examples Overview
-ore_ids:
-  - ingotIron
-  - oreCopper
-quest_ids:
-  - 01234567-89ab-cdef-0123-456789abcdef
-  - AAAAAAAAAAAAAAAAAAAMug==
+  - examples|Overview
 author: ExampleAuthor
 date: 2024-01-15
 updated: 2024-06-01
@@ -535,32 +555,3 @@ item_ids:
 - [Навигация](Navigation)
 - [Изображения и активы](Images-And-Assets)
 - [Справочник тегов](Tags-Reference)
-
-### Markdown table spans and cell attributes
-
-GuideNH extends GFM tables with the same compact span notation used by jekyll-spaceship:
-
-- Add one extra `|` after a cell for each additional column it occupies. `||` therefore means `colspan="2"`, and `|||` means `colspan="3"`.
-- Start a cell with `^^` to continue the cell directly above it. The content is appended with a line break and the original cell receives a larger `rowspan`.
-- A cell can use edge colons for alignment (`: left`, `right :`, or `: centered :`).
-- A trailing IAL (`{: ... }`) applies safe attributes to that cell. Supported properties are `color`, `background`/`bgcolor`, `style` (color, background, font-weight, text-decoration, and alignment declarations), `align`, `valign`, `id`, and `class`.
-- Reusable IAL definitions use `{:name: ...}` on their own line and can be referenced from a cell IAL. Unsafe CSS and external URLs are ignored.
-
-```markdown
-{:warning: style="background: #4b2418; color: #ffd8c2; font-weight: bold"}
-| Stage | Products | Notes |
-| --- | --- | --- |
-| : Glycolysis : | 2 ATP ||
-| ^^ A. Peach | 3 ATP | {: warning } |
-| Final total ||| {: style="text-align: right; background: #26364d"}
-```
-
-The syntax remains ordinary Markdown when the extension is not available: extra empty cells are harmless, while `^^` and IAL text stay visible. HTML tables remain supported for complex headers and explicit `rowspan`/`colspan` attributes.
-### Extended Markdown table syntax
-
-GuideNH also supports the jekyll-spaceship table extensions in every preview:
-
-- End a physical row with `\` to append the next physical row to the same cells; each part is rendered on a new line.
-- Use a delimiter row as the first row (`|--|--|`) for a headerless table. Its rows remain data rows and are not bolded.
-- Cell contents keep normal GuideNH Markdown and MDX inline syntax, including links, images, emphasis, and LaTeX.
-- Use HTML `<thead>`, `<tbody>`, and `<tfoot>` when explicit row groups are needed.

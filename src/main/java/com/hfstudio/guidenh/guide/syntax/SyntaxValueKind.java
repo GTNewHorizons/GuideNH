@@ -11,6 +11,7 @@ public record SyntaxValueKind(String id, boolean quoted) {
     public static final SyntaxValueKind COLOR = new SyntaxValueKind("COLOR", true);
     public static final SyntaxValueKind ENUM = new SyntaxValueKind("ENUM", true);
     public static final SyntaxValueKind ITEM_ID = new SyntaxValueKind("ITEM_ID", true);
+    public static final SyntaxValueKind FLUID_ID = new SyntaxValueKind("FLUID_ID", true);
     public static final SyntaxValueKind BLOCK_ID = new SyntaxValueKind("BLOCK_ID", true);
     public static final SyntaxValueKind ORE_DICT = new SyntaxValueKind("ORE_DICT", true);
     public static final SyntaxValueKind MOD_ID = new SyntaxValueKind("MOD_ID", true);
@@ -34,6 +35,7 @@ public record SyntaxValueKind(String id, boolean quoted) {
         COLOR,
         ENUM,
         ITEM_ID,
+        FLUID_ID,
         BLOCK_ID,
         ORE_DICT,
         MOD_ID,
