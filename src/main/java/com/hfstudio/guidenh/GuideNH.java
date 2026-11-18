@@ -20,7 +20,7 @@ import cpw.mods.fml.common.registry.GameRegistry;
     modid = MODID,
     version = Tags.VERSION,
     name = MODNAME,
-    dependencies = "required-after:gtnhlib;",
+    dependencies = "required-after:gtnhlib;after:ForgeMultipart@[2.0.0,);",
     guiFactory = "com.hfstudio.guidenh.config.GuideNHGuiFactory",
     acceptableRemoteVersions = "*",
     acceptedMinecraftVersions = "[1.7.10]")
