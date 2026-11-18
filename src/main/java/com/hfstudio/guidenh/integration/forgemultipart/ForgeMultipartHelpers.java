@@ -178,7 +178,7 @@ public final class ForgeMultipartHelpers {
                     .getName());
             return part;
         }
-        replacement.setShape(microblock.getSize(), microblock.getShape());
+        replacement.shape_$eq(microblock.shape());
         return replacement;
     }
 
