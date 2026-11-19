@@ -119,7 +119,7 @@ GregTech 控制器默认保持未成型，即使周围结构完整。需要展�
   <ReplaceBlock from="minecraft:cobblestone" to="minecraft:brick_block" x="1" y="0" z="1" dx="3" dy="1" dz="3" />
 </GameScene>
 
-使用 `from_nbt` 可进一步将匹配范围缩小到 TileEntity NBT 中包含特定键的方块；使用 `to_nbt`
+使用 `fromNbt` 可进一步将匹配范围缩小到 TileEntity NBT 中包含特定键的方块；使用 `toNbt`
 可为替换后的方块指定 TileEntity 数据。如果替换结果里包含控制器，`formed={false}` 可以让这些
 控制器继续保持未成型。
 

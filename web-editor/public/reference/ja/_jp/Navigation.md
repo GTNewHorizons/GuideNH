@@ -2,11 +2,13 @@
 
 GuideNH はページの frontmatter からナビゲーションツリーを作成します。
 
-ゲーム内サイドバーでは、展開された祖先ページが上部に固定され、表示中の子ページがその下をスクロールします。複数の祖先階層を同時に固定でき、固定行は表示中のサブツリー全体が画面外へ出たときだけ押し出されます。動作は VSCode のファイルエクスプローラーに似ています。
+GuideNH builds its navigation tree from page frontmatter.
 
-## ナビゲーション frontmatter
+Expanded ancestors stay pinned while their child pages scroll beneath them. Multiple levels can remain visible until their descendants leave the visible area.
 
-`navigation` マップで、そのページをガイドツリーに表示するかを制御します。
+## Navigation Frontmatter
+
+The `navigation` map controls whether a page appears in the guide tree.
 
 ```yaml
 navigation:
@@ -16,39 +18,42 @@ navigation:
   icon: minecraft:diamond_block
 ```
 
-### フィールドリファレンス
+### Field Reference
 
-| フィールド | 説明 |
+| Field | Description |
 | --- | --- |
-| `title` | 必須の表示タイトル |
-| `keyword` | 任意の検索キーワードまたは別名 1 件 |
-| `keywords` | 任意の検索キーワード/別名リスト |
-| `parent` | 任意の親ページ ID。ガイドページリンクと同じ規則で解決 |
-| `position` | 同じ階層の並び順ヒント |
-| `recommend` | ホーム推薦の優先度。省略時は推薦パネルに表示しない |
-| `priority` | 同じパスの上書きに使う読み込み優先度。既定値 `0` |
-| `icon` | 任意のアイテムアイコン。`mod:item:meta:{snbt}` の末尾に対応 |
-| `icons` | 切り替え表示するアイテムアイコンのリスト |
-| `icon_texture` | ガイドアセットから解決するテクスチャーアイコン |
-| `icon_textures` | 切り替え表示するテクスチャーアイコンのリスト |
-| `icon_fluid` | 単一の流体登録名。他のアイコン源と併用不可 |
-| `icon_fluids` | 空でない流体登録名リスト。1 秒ごとに切り替え。他のアイコン源と併用不可 |
-| `required_mod` | 任意の Mod ID。Mod がないとページを非表示 |
-| `required_mods` | 任意の Mod ID リスト。すべて読み込まれている必要があります |
-| `excluded_mod` | 任意の Mod ID。読み込まれているとページを非表示 |
-| `excluded_mods` | 任意の Mod ID リスト。いずれかが読み込まれていると非表示 |
+| `title` | Required display title |
+| `keyword` | Optional single search keyword or alias |
+| `keywords` | Optional list of search keywords or aliases |
+| `parent` | Optional parent page id, resolved like a guide page link |
+| `position` | Optional sibling ordering hint |
+| `recommend` | Optional home-page recommendation priority; absent means the page is not shown in the Recommended panel |
+| `priority` | Optional load priority for same-path page overrides; default `0` |
+| `icon` | Optional single item icon; supports inline `mod:item:meta:{snbt}` tails |
+| `icons` | Optional cycling item icons list; entries may be plain item ids with optional inline `:{snbt}` or `{id, meta?, nbt?}` maps |
+| `icon_texture` | Optional texture icon resolved from guide assets |
+| `icon_textures` | Optional cycling texture icon list |
+| `icon_fluid` | Optional single fluid registry name; excludes `icon_fluids` and item/texture sources |
+| `icon_fluids` | Optional nonempty fluid registry-name list cycling once per second; excludes `icon_fluid` and item/texture sources |
+| `required_mod` | Optional single mod id; page is hidden when this mod is not loaded |
+| `required_mods` | Optional list of mod ids; page is hidden unless all listed mods are loaded |
+| `excluded_mod` | Optional single mod id; page is hidden when this mod is loaded |
+| `excluded_mods` | Optional list of mod ids; page is hidden when any listed mod is loaded |
 
 ### `navigation.position`
 
-`navigation.position` は同じ階層のページを並べ替える任意の整数です。
+`navigation.position` is an optional integer used to order sibling pages in the navigation tree.
 
-- 省略時は `0`
-- 大きい値ほど前に表示
-- 同じ値ならタイトルをアルファベット順に比較
+- Missing `position` defaults to `0`.
+- Larger values appear earlier.
+- If two pages have the same value, they are sorted by title alphabetically.
 
-### 検索キーワード
+### Search Keywords
 
-`navigation.keyword` は検索別名を 1 件追加し、`navigation.keywords` は別名リストを追加します。両方を併用でき、値はトリミングされ重複が削除されます。タイトルと本文と同じ言語アナライザーと前方一致を使います。
+`navigation.keyword` adds one search alias. `navigation.keywords` adds a list of aliases. Both fields
+can be used together; values are trimmed and duplicate values are ignored. Keyword matches use the same
+language analyzer and prefix matching as title and page content searches, while results continue to show
+the normal navigation title.
 
 ```yaml
 navigation:
@@ -59,17 +64,17 @@ navigation:
     - autocrafting machine
 ```
 
-## ホームページ推薦
+## Home Page Recommendations
 
 ### `navigation.recommend`
 
-`navigation.recommend` はホームの推薦パネルで使う任意の整数です。
+`navigation.recommend` is an optional integer used by the home page Recommended panel.
 
-- フィールドが存在するページだけが表示されます。
-- `0` も有効です。
-- 大きい値ほど前に表示されます。
-- 同じ値ならタイトル順です。
-- 推薦項目は `GuidePage` 単位で、クリックするとそのページへ直接移動します。
+- Pages only appear in the Recommended panel when this field is present.
+- `0` is valid.
+- Larger values appear earlier.
+- If two pages have the same value, they are sorted by title alphabetically.
+- Each recommendation opens its page directly.
 
 ```yaml
 navigation:
@@ -78,9 +83,12 @@ navigation:
   recommend: 0
 ```
 
-## Mod 要件
+## Mod Requirements
 
-`required_mod` / `required_mods` で必要な Mod を指定し、`excluded_mod` / `excluded_mods` で互換性のない Mod がある場合に隠します。条件を満たさないページはナビゲーションツリーとアイテム/カテゴリなどすべてのインデックスから除外され、検索でも見つかりません。
+Use `required_mod` or `required_mods` to require one or more loaded mods. Use `excluded_mod` or
+`excluded_mods` to hide a page when one or more incompatible mods are loaded. When a condition is not
+met, the page is excluded from the navigation tree and all page indices (item, category, etc.) so it
+cannot be found through navigation or search.
 
 ```yaml
 navigation:
@@ -96,7 +104,10 @@ navigation:
     - appliedenergistics2
 ```
 
-両方のキーを組み合わせられます。その場合、必要な Mod がすべてあり、除外された Mod が 1 つもない場合だけ表示します。
+Both keys may be combined; the page is only shown when every listed mod is present.
+
+Required and excluded conditions can also be combined. All required mods must be loaded and none of the
+excluded mods may be loaded.
 
 ```yaml
 navigation:
@@ -108,9 +119,10 @@ navigation:
     - legacy_addon
 ```
 
-## 読み込み優先度
+## Load Priority
 
-複数のリソースパックが同じページパスを提供する場合、GuideNH は frontmatter を先に読み、`navigation.priority` が最大の候補を選びます。
+When several loaded resource packs provide the same guide page path, GuideNH reads the page
+frontmatter first and chooses the candidate with the highest `navigation.priority`.
 
 ```yaml
 navigation:
@@ -119,31 +131,50 @@ navigation:
   priority: 100
 ```
 
-省略時は `0`、値は `2147483647` までの符号付き Java 整数です。大きい値が勝ち、同値なら後から処理されたリソースパックが勝ちます。優先度は同じページパスと言語/フォールバック層の候補間だけで使われます。
+Rules:
 
-## アイコンのソース
+- missing `priority` is `0`
+- values are integers
+- higher priority wins
+- if priorities are equal, the later processed resource pack entry wins, matching Minecraft resource-pack override order
+- priority only decides between candidates for the same page path and language/fallback layer
 
-流体アイコンを設定していない場合、GuideNH は次の順でアイテムとテクスチャーのアイコンを選びます。
+This is useful when a mod ships a baseline guide page and a pack wants to replace it without relying only on
+resource-pack ordering.
 
-1. 1 件以上設定された `icon_textures`
-2. 正常に読み込めた `icon_texture`
-3. 解決できるアイテムが 1 件以上ある `icons`
-4. 存在する `icon`
-5. 使用できるものがなければアイコンなし
+## Icon Sources
 
-テクスチャーアイコンは実行時アセットから読み込むため、`test1.png` のようなページ相対ファイルも使えます。
+Choose `icon_fluid` or `icon_fluids` for fluid icons. The two fields are mutually exclusive and cannot accompany item or texture sources. Icons do not create fluid navigation bindings; add page-level `fluid_id` / `fluid_ids` separately.
 
-## 親ノードとルートノード
+When no fluid icon is configured, GuideNH chooses item and texture icons in this order:
 
-- `parent` を省略するとルートノードになります。
-- `parent: index.md` などを設定すると子ノードになります。
-- 親ページは同じガイドツリーに存在する必要があります。
+1. `icon_textures` if at least one texture entry is configured
+2. `icon_texture` if the texture file loads successfully
+3. `icons` if at least one configured item resolves successfully
+4. `icon` if the item exists
+5. no icon if neither is usable
 
-`navigation.parent` は Markdown ページリンクと同じ namespace 規則を使います。`parent: index.md` と `parent: ./index.md` は現在の namespace 内、`parent: /index.md` は namespace ルート、`parent: gregtech:index.md` は明示的な別 namespace です。データ駆動ガイドは namespace ごとに分離され、同名ページへ誤ってフォールバックしません。
+Texture icons are read from runtime assets, so relative page-local files such as `test1.png` work.
 
-## カテゴリページ
+## Parent And Root Nodes
 
-frontmatter で 1 つ以上のカテゴリに参加できます。
+- Omit `parent` to create a root node.
+- Set `parent: index.md` or any other page id to create a child node.
+- The parent page must exist in the same guide navigation tree.
+
+`navigation.parent` uses the same namespace rules as Markdown page links:
+
+- `parent: index.md` and `parent: ./index.md` resolve inside the current page namespace.
+- `parent: /index.md` resolves from the current page namespace root.
+- `parent: gregtech:index.md` or `parent: gregtech:/index.md` explicitly targets another namespace.
+
+Data-driven guides are isolated by namespace. Pages under `assets/guidenh/guidenh/_en_us/...` belong to
+`guidenh:guidenh`; pages under `assets/gregtech/guidenh/_en_us/...` belong to `gregtech:guidenh`.
+Relative parents and links never fall through to another mod's same-named page.
+
+## Category Pages
+
+Pages can join one or more named categories using frontmatter:
 
 ```yaml
 categories:
@@ -151,11 +182,14 @@ categories:
   - machines|Arc Furnace
 ```
 
-各項目はカテゴリ名、または `category|sort key` です。`<Category name="machines" rows="3" />` で一覧を取得でき、`Category:machines` のような非表示検索ページも自動作成されます。`Special:AllPages` と `Special:Categories` も自動作成されます。
+Each entry can be either a category name or `category|sort key`.
 
-## アイテムインデックスページ
+Those categories are queryable through the built-in `<Category name="machines" rows="3" />` tag and also auto-create hidden searchable pages such as `Category:machines`.
+GuideNH also auto-creates the hidden searchable special pages `Special:AllPages` and `Special:Categories`.
 
-`item_id`（単一値）または `item_ids`（リスト）でアイテムからページへの対応を登録できます。
+## Item-Indexed Pages
+
+Pages can register item-to-page mappings using `item_id` (one value) or `item_ids` (a list):
 
 ```yaml
 item_id: "minecraft:potion 16384-16462,!16386 | ae2:white_paint_ball:*"
@@ -166,46 +200,24 @@ item_ids:
   - minecraft:iron_ore#crafting
 ```
 
-これらは `<ItemLink>` から使われます。`minecraft:potion 16384-16462,!16386` は `16386` を除く範囲、`minecraft:potion 0-16,20-36,!28` は 2 範囲から `28` を除く式です。`ae2:white_paint_ball:*` は全メタデータに一致します。任意の `#anchor` を末尾に付けると、クリック時に見出しへスクロールします。
+These mappings are used by `<ItemLink>`. `item_id` is one NEI-style expression and each `item_ids`
+entry is the same kind of expression. For example, `minecraft:potion 16384-16462,!16386` matches a
+metadata range except for `16386`, while `minecraft:potion 0-16,20-36,!28` combines two metadata ranges and
+excludes `28`. `ae2:white_paint_ball:*` is a compatible strict all-meta mapping.
 
-検索順序:
+An optional `#anchor` suffix scrolls to a specific heading when the link is clicked.
+The anchor is formed by lowercasing the heading text and replacing spaces with hyphens
+(e.g. `## Crafting Recipe` → `#crafting-recipe`).
 
-1. アイテムとメタの完全一致
-2. ワイルドカードメタのフォールバック
-3. 一致するアイテム式
+Lookup behavior:
 
-## 見出しアンカーリンク
+1. exact item + exact meta
+2. wildcard-meta fallback if present
+3. matching item expression
 
-Markdown リンクと `<a>` タグで見出しアンカーへ移動できます。見出しを小文字にして空白をハイフンへ変換します。
+## Fluid-indexed pages
 
-```md
-[Jump to Installation](#installation)
-[Jump to Crafting Recipe](#crafting-recipe)
-```
-
-```md
-[See Getting Started](./Guide-Page-Format#installation)
-[Another guide](other-guide.md#usage)
-```
-
-```md
-[Absolute link](guidenh:other-guide.md#usage)
-[Any namespace](mymods:crafting/iron.md#smelting)
-```
-
-`namespace:path` 形式はその ID のページを解決し、相対 `../` を使わずに済みます。MDX では `<a name="...">` で名前付きアンカーも置けます。
-
-```md
-<a name="custom-anchor" />
-
-...content...
-
-[Jump here](#custom-anchor)
-```
-
-## 流体からページを開く
-
-`fluid_id` で 1 つ、`fluid_ids` で複数の登録名をページへバインドします。両方を併用でき、数量と NBT は照合しません。`#anchor` で節を指定できます。
+Use `fluid_id` for one fluid or `fluid_ids` for a list; both fields may coexist. Bindings match exact registry names independently of amount and NBT. Append `#anchor` to open a section:
 
 ```yaml
 fluid_id: water
@@ -216,18 +228,78 @@ navigation:
   icon_fluid: water
 ```
 
-`<FluidLink>` とホバー中の長押し `G` から開けます。対応する NEI 流体表示や流体入り容器も対象です。空容器はアイテムとして検索されます。複数の対象がある場合は選択リストに流体ページ、容器ページの順で表示されます。
+Bindings serve `<FluidLink>` and the hover-and-hold `G` shortcut. Recognized NEI fluid displays and filled containers are supported; empty containers retain item navigation. Multiple targets open a chooser with fluid pages before container-item pages.
 
-ページアイコンは `icon_fluid` と `icon_fluids` のどちらかだけを使用し、アイテムやテクスチャーアイコンと併用しません。アイコンだけではページをバインドしません。
+## External content pages
+
+Use `bindings` to index this page by a BetterQuesting quest, Thaumcraft research or another registered content type:
+
+```yaml
+bindings:
+  - {type: "thaumcraft", id: "INFUSION", anchor: "apparatus"}
+  - {type: "betterquesting", id: "01234567-89ab-cdef-0123-456789abcdef", anchor: "quest"}
+```
+
+When several pages or sections reference the same content, GuideNH opens the destination selector used for items. Identical page/anchor pairs merge; different anchors remain selectable. An omitted `anchor` means the top of the page. Full field and quoting rules are in [Frontmatter](Guide-Page-Format#external-content-bindings).
+
+`QuestLink` and `QuestCard` titles open BetterQuesting on left click. Right click opens bound guide destinations and falls back to BetterQuesting when none exist. Research and generic links/cards default to opening bound guides first; their `target` attribute selects the left-click action. See [Tags Reference](Tags-Reference#research-and-custom-content).
+
+Hold the open-guide key (default `G`) while hovering a supported quest button, research entry or content icon to select its bound guides. With no binding, that hotkey does nothing. Mod-specific hover areas and return navigation are described in [Mod Compatibility](Mod-Compatibility).
+
+## Heading Anchor Links
+
+GuideNH supports heading anchor navigation in Markdown links and `<a>` tags.
+Anchors are derived from heading text by lowercasing and replacing spaces with hyphens.
+
+**Same-page anchor:**
+
+```md
+[Jump to Installation](#installation)
+[Jump to Crafting Recipe](#crafting-recipe)
+```
+
+**Cross-page anchor:**
+
+```md
+[See Getting Started](./getting-started.md#installation)
+[Another guide](other-guide.md#usage)
+```
+
+**Absolute path anchor** (using the guide namespace, avoids relative path ambiguity in subdirectories):
+
+```md
+[Absolute link](guidenh:other-guide.md#usage)
+[Any namespace](mymods:crafting/iron.md#smelting)
+```
+
+The `namespace:path` format resolves to the guide page whose id matches `namespace:path`.
+This is identical to what relative paths resolve to, but avoids `../` navigation.
+The target page must be loaded.
+
+**Named inline anchors** can also be placed with `<a name="...">` in MDX:
+
+```md
+<a name="custom-anchor" />
+
+...content...
+
+[Jump here](#custom-anchor)
+```
+
+Navigating to a link with an anchor scrolls the guide to the target heading or named anchor.
 
 ## `<SubPages>`
 
-`<SubPages>` はナビゲーションの子ページへのリンクを描画します。
+`<SubPages>` renders links to navigation children.
 
-| 属性 | 型 | 既定値 | 意味 |
+### Attributes
+
+| Attribute | Type | Default | Meaning |
 | --- | --- | --- | --- |
-| `id` | ページ ID または空文字列 | 現在のページ | 子を一覧するページ |
-| `alphabetical` | 真偽値の式 | `false` | ナビゲーション順ではなくタイトル順 |
+| `id` | page id or empty string | current page | Page whose children should be listed |
+| `alphabetical` | boolean expression | `false` | Sort children by title instead of navigation order |
+
+### Examples
 
 ````md
 <SubPages />
@@ -235,53 +307,59 @@ navigation:
 <SubPages id="" alphabetical={true} />
 ````
 
-`id=""` はルートノードを一覧します。
+Special case: `id=""` lists root navigation nodes.
 
 ## `<Category>`
 
-`<Category>` は指定カテゴリのすべてのページへのリンクを描画します。
+`<Category>` renders links to every page in a named category.
 
-| 属性 | 型 | 既定値 | 意味 |
+### Attributes
+
+| Attribute | Type | Default | Meaning |
 | --- | --- | --- | --- |
-| `name` | 文字列 | なし | 描画するカテゴリ名 |
-| `rows` | 正の整数 | `3` | MediaWiki 形式の表示列数 |
+| `name` | string | none | Category name to render |
+| `rows` | positive integer | `3` | Number of display columns in the MediaWiki-style layout |
 
 ````md
 <Category name="machines" rows="3" />
 ````
 
-カテゴリがない場合はインラインエラーを描画します。検索用の非表示ページは `Category:machines` です。
+If the category is missing, GuideNH renders an inline error.
+
+The same category also has an auto-generated hidden searchable page at `Category:machines`.
 
 ## `<Special>`
 
-`<Special>` は組み込みの MediaWiki 形式特殊ページ一覧を描画します。
+`<Special>` renders one of the built-in MediaWiki-style special page listings.
 
-| 属性 | 型 | 既定値 | 意味 |
+### Attributes
+
+| Attribute | Type | Default | Meaning |
 | --- | --- | --- | --- |
-| `name` | string | — | `SpecialPages` で一覧を表示。例：`AllPages`、`Categories`、`Templates` |
-| `rows` | 正の整数 | `3` | 表示列数 |
-| `page` | page id | — | ページを対象とする一覧の指定 |
-| `prefix` | string | — | `AllPagesWithPrefix` の接頭辞 |
-| `language` | string | — | 翻訳一覧の言語 |
-| `query` | string | — | 一覧の検索テキスト |
+| `name` | string | none | Special page name; use `SpecialPages` for the catalog, including `AllPages`, `Categories` and `Templates` |
+| `rows` | positive integer | `3` | Number of display columns in the MediaWiki-style layout |
+| `page` | page id | none | Page target for special lists that require one |
+| `prefix` | string | none | Title/page-ID prefix for `AllPagesWithPrefix` |
+| `language` | string | none | Language filter for translation lists |
+| `query` | string | none | List search text |
 
 ````md
 <Special name="AllPages" rows="4" />
 <Special name="Categories" rows="3" />
 ````
 
-同じ内容は `Special:AllPages` と `Special:Categories` の非表示検索ページでも利用できます。
+The same content is also available through the hidden searchable pages `Special:AllPages` and `Special:Categories`.
 
-## 検索結果のタイトル
+## Search Result Titles
 
-検索タイトルは次の順で決まります。
+Search titles are derived in this order:
 
 1. `navigation.title`
-2. 最初のレベル 1 見出し（`# Heading`）
-3. 生のページ ID
+2. first level-1 heading (`# Heading`)
+3. raw page id
 
-## 関連ページ
+## Related Pages
 
-- [ガイドページ形式](Guide-Page-Format)
-- [検索](Search)
-- [タグリファレンス](Tags-Reference)
+- [Guide Page Format](Guide-Page-Format)
+- [Search](Search)
+- [Tags Reference](Tags-Reference)

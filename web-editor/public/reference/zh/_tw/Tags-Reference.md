@@ -6,6 +6,7 @@
 
 - 標籤可以出現在塊級上下文或行內上下文，具體取決於對應編譯器。
 - 頁面內容支援使用 `{/* ... */}` 形式的 MDX 註釋，執行時解析器會忽略這些註釋。
+- MDX 屬性統一使用駝峰，例如 `showTooltip`、`showDesc` 及 `fromNbt`。
 - 無效標籤或無效屬性不會靜默失敗，而是以內聯指南錯誤的形式顯示。
 - 配方和 3D 場景這類大型功能標籤會在獨立頁面中說明：
   - [配方](Recipes)
@@ -33,9 +34,11 @@
 | `<ItemImage>` | 行內物品圖示 | `id`, `ore`, `nbt`, `scale`, `noTooltip`, `showTooltip`, `showIcon`, `label`, `format`, `yOffset`, `labelYOffset` |
 | `<ItemLink>` | 物品 tooltip + 可選導航連結 | `id` 或 `ore`，`linksTo`，`showTooltip`，`noTooltip`，`showIcon` |
 | `<FluidImage>` / `<FluidLink>` | 原生流體圖示與頁面導航 | `id`, `amount`, `nbt`, `scale`, `showTooltip`, `noTooltip`, `showIcon`, `label`, `linksTo` |
+| `<ResearchLink>` / `<BindingLink>` | 研究或自定義內容連結 | `id`, `type`（通用標籤）, `text`, `target`, `showTooltip` |
+| `<ResearchIcon>` / `<BindingIcon>` | 研究或自定義內容圖示，也可用於塊級上下文 | `id`, `type`（通用標籤）, `scale`, `showTooltip` |
 | `<CommandLink>` | 可點選的聊天命令連結 | `command`, `title`, `close` |
 | `<Latex>` | LaTeX 數學公式；在流式上下文中行內渲染，在塊級上下文中居中顯示為獨立公式塊 | `formula`, `color`, `scale`, `sourceScale`, `tooltip`, `showTooltip` |
-| `<QuestLink>` | BetterQuesting 任務連結，按任務狀態自動調整樣式（相容標籤，僅當 BetterQuesting 已載入時註冊） | `id`, `text`, `show_tooltip` |
+| `<QuestLink>` | BetterQuesting 任務連結，按任務狀態自動調整樣式（相容標籤，僅當 BetterQuesting 已載入時註冊） | `id`, `text`, `showTooltip` |
 
 行內 Markdown 也支援音效動作連結：
 
@@ -49,7 +52,7 @@
 | 標籤 | 用途 | 關鍵屬性 |
 | --- | --- | --- |
 | `<div>` | 透傳塊包裝器 | 無 |
-| `<ContentTabs>` | 將可替代的富內容分組到獨立標籤頁中 | `title`、`color`、`background`、`icon`、`iconPng`、`icon_png`、`iconItem`、`icon_item`, `iconFluid`, `icon_fluid`、`default`、`defaultIndex` |
+| `<ContentTabs>` | 將可替代的富內容分組到獨立標籤頁中 | `title`、`color`、`background`、`icon`、`iconPng`、`iconItem`, `iconFluid`、`default`、`defaultIndex` |
 | `<Tab>` | `<ContentTabs>` 內的單個內容面板 | `title` |
 | `<details>` | 可摺疊執行時塊 | `open`、`width`、`height`、`wrap`、`align` |
 | `<FileTree>` | 目錄樹式大綱（帶連線線） | `indent`、`gap` |
@@ -74,7 +77,8 @@
 | `<Function>` | 單曲線簡寫，等價於只含一個 `<Plot>` 的 `<FunctionGraph>` | `expr`，及全部 `<FunctionGraph>` 面板屬性 |
 | `<Recipe>`, `<RecipeFor>`, `<RecipesFor>` | 配方渲染器 | 詳見 [配方](Recipes) |
 | `<GameScene>`, `<Scene>` | 3D 指南遊戲場景 | 詳見 [遊戲場景](GameScene) |
-| `<QuestCard>` | 塊級 BetterQuesting 任務摘要卡片（相容標籤，僅當 BetterQuesting 已載入時註冊） | `id`, `show_desc`, `show_tooltip` |
+| `<ResearchCard>` / `<BindingCard>` | 研究或自定義內容摘要卡片 | `id`, `type`（通用標籤）, `title`, `target`, `showDesc`, `showIcon`, `showParents` |
+| `<QuestCard>` | 塊級 BetterQuesting 任務摘要卡片（相容標籤，僅當 BetterQuesting 已載入時註冊） | `id`, `showDesc`, `showTooltip` |
 
 `<ImportStructureLib>` 是 `<GameScene>` 的子標籤。它支援 `controller`、`piece`、`facing`、
 `rotation`、`flip`、`tier`、`channel`、`channelName`、`value`、`locked` 屬性，也支援用於設定 StructureLib 預設值的子標籤：
@@ -185,7 +189,7 @@ Water is H<sub>2</sub>O and x<sup>2</sup> is a square.
 - `color` 可選，用 `#RRGGBB` 或 `#AARRGGBB` 覆蓋左側強調線與選中標籤的高亮顏色
 - `background` 可選，用 `#RRGGBB`、`#AARRGGBB` 或 `transparent` 覆蓋標籤容器背景；省略時保留預設灰色引用塊背景
 - `title` 會在標籤欄上方增加一個可選的純文字標題
-- `icon`、`iconPng` / `icon_png`、`iconItem` / `icon_item` 與 Markdown 標記/引用塊標題的圖示語義完全一致
+- `icon`、`iconPng` / `iconPng`、`iconItem` / `iconItem` 與 Markdown 標記/引用塊標題的圖示語義完全一致
 - 非法子節點或非法預設值會渲染為面向作者的可見錯誤
 
 ### `<FileTree>`
@@ -450,6 +454,175 @@ ExportSite 的物品數量和流體數量使用網站自帶的 Pixeloid Mono 字
 頁面透過 `fluid_id` / `fluid_ids` 繫結。滑鼠停在原生流體圖示或支援的容器/展示物件上，長按可改鍵的開啟指南快捷鍵（預設 G）；單個目標直接開啟，多個目標顯示選擇列表，先列流體頁面，再列容器頁面。數量和 NBT 影響顯示例項，頁面繫結只匹配註冊名。空容器保留普通物品導航；沒有懸停資料介面的流體 GUI 需要註冊介面卡。
 
 導航使用 `navigation.icon_fluid` / `icon_fluids` 設定靜態/輪換頁面圖示；ContentTabs、FileTree 指令、引用指令和圖表 Series / LineSeries / Slice 使用 `iconFluid`。流體圖示不能與物品、PNG 或文字圖示同時配置。六種 Recipe/Usage 標籤支援 `fluid`、`inputFluid`、`outputFluid`；InputAnnotation 支援 `fluid`、`amount`、`nbt`。完整規則見配方、頁面格式和註解文件。
+
+### 任務內容（BetterQuesting）
+
+`<QuestLink>` 與 `<QuestCard>` 僅在 BetterQuesting 模組已載入時才會被註冊。詳細說明位於 [模組相容](Mod-Compatibility) 頁面，下面給出常用用法摘要。
+
+#### `<QuestLink>`
+
+左鍵開啟 BetterQuesting 任務介面。右鍵開啟繫結的指南頁；沒有繫結指南時，右鍵也開啟 BetterQuesting。多個頁面使用與物品相同的目標選擇介面，不同正文錨點保留為獨立目標。
+
+| 屬性 | 含義 |
+| --- | --- |
+| `id` | 必填，BetterQuesting 任務 id；支援標準 UUID 字串和緊湊 Base64 id |
+| `text` | 可選，覆蓋顯示文字 |
+| `showTooltip` | 可選布林值，預設 `true`；設為 `false` 可關閉任務描述 tooltip |
+
+按玩家進度在頁面掛載時決定外觀：
+
+- 已可見 / 已完成的任務渲染為可點選連結（已完成的會被染為綠色並追加 `✓`）
+- 已鎖定但未隱藏的任務仍會渲染為可點選任務連結，因此仍可開啟 BetterQuesting 任務介面或對應的索引指南頁
+- 隱藏 / 機密的任務渲染為更深的斜體佔位符，使用 `guidenh.binding.state.hidden`
+- 未知任務 id 渲染為紅色佔位符，使用 `guidenh.binding.state.missing`
+
+示例：
+
+````md
+下一步請參考 <QuestLink id="01234567-89ab-cdef-0123-456789abcdef" />。
+<QuestLink id="01234567-89ab-cdef-0123-456789abcdef" text="第二階段任務" />
+<QuestLink id="01234567-89ab-cdef-0123-456789abcdef" showTooltip="false" />
+然後再看 <QuestLink id="AAAAAAAAAAAAAAAAAAAMug==" text="緊湊 quest id 示例" />。
+````
+
+#### `<QuestCard>`
+
+塊級任務摘要卡片。標題使用與 `<QuestLink>` 相同的狀態相關樣式；當任務對當前玩家可見時，會附帶任務描述作為正文段落。
+
+| 屬性 | 含義 |
+| --- | --- |
+| `id` | 必填，BetterQuesting 任務 id；支援標準 UUID 字串和緊湊 Base64 id |
+| `title` | 可選，覆蓋卡片標題 |
+| `showDesc` | 可選布林，預設 `true`；設為 `false` 可隱藏描述正文 |
+| `showTooltip` | 可選布林值，預設 `true`；設為 `false` 可關閉可點選標題上的任務描述 tooltip |
+
+卡片邊框顏色隨任務狀態變化：已完成綠色、鎖定 / 隱藏灰色、缺失紅色、可見時使用標準連結色。標題在可見、已完成以及鎖定但未隱藏時都會保持可點選。
+
+示例：
+
+````md
+<QuestCard id="01234567-89ab-cdef-0123-456789abcdef" />
+<QuestCard id="01234567-89ab-cdef-0123-456789abcdef" showDesc="false" />
+<QuestCard id="01234567-89ab-cdef-0123-456789abcdef" showTooltip="false" />
+<QuestCard id="AAAAAAAAAAAAAAAAAAAMug==" />
+````
+
+### 研究與自定義內容
+
+研究標籤對應 Thaumcraft；通用標籤由 `type` 指定內容系統。繫結頁面的寫法見 [Frontmatter](Guide-Page-Format#外部內容繫結)。
+
+#### 導航規則
+
+以下規則用於 ResearchLink/Card 和 BindingLink/Card 的連結或卡片標題。
+
+| `target` | 左鍵 | 右鍵 |
+| --- | --- | --- |
+| `auto`（預設） | 優先開啟指南，無繫結時開啟原生介面 | 開啟指南，無繫結時開啟原生介面 |
+| `native` | 開啟原生介面 | 開啟指南，無繫結時開啟原生介面 |
+| `guide` | 只開啟指南，無繫結時給出提示 | 開啟指南，無繫結時開啟原生介面 |
+
+原生跳轉開啟研究樹並定位至對應圖示，無論研究是否完成，都不會自動解鎖。隱藏研究不顯示名稱、簡介或圖示。多個指南目標會顯示選擇介面。
+
+#### `<ResearchLink>`
+
+行內內容連結。
+
+| 屬性 | 說明 |
+| --- | --- |
+| `id` | 必填，原始內容 ID；研究 ID 區分大小寫 |
+| `text` / `title` | 可選，覆蓋連結文字 |
+| `target` | `auto`、`native` 或 `guide`，預設 `auto`，規則見上表 |
+| `showTooltip` | 顯示提示，預設 `true` |
+
+```mdx
+<ResearchLink id="INFUSION" text="檢視研究" target="native" />
+```
+
+#### `<ResearchCard>`
+
+塊級內容摘要卡片，點選標題進行導航。
+
+| 屬性 | 說明 |
+| --- | --- |
+| `id` | 必填，原始內容 ID；研究 ID 區分大小寫 |
+| `title` | 可選，覆蓋卡片標題 |
+| `showDesc` | 顯示內容簡介；預設 `true` |
+| `showIcon` | 顯示圖示；預設 `true` |
+| `showParents` | 顯示可見前置內容；預設 `false` |
+| `target` | `auto`、`native` 或 `guide`，預設 `auto`，規則見上表 |
+| `showTooltip` | 顯示提示，預設 `true` |
+
+```mdx
+<ResearchCard id="INFUSION" title="注魔研究" showParents={true} />
+```
+
+#### `<ResearchIcon>`
+
+內容圖示及 tooltip；懸停時按住開啟指南鍵可檢視指南，點選不開啟原生內容。
+
+| 屬性 | 說明 |
+| --- | --- |
+| `id` | 必填，原始內容 ID；研究 ID 區分大小寫 |
+| `scale` | 有限正數，預設 `1` |
+| `showTooltip` | 顯示提示，預設 `true` |
+
+```mdx
+<ResearchIcon id="INFUSION" scale={1.5} />
+```
+
+#### `<BindingLink>`
+
+行內內容連結。
+
+| 屬性 | 說明 |
+| --- | --- |
+| `type` | 必填，已註冊內容型別，如 `thaumcraft`、`betterquesting` |
+| `id` | 必填，原始內容 ID；研究 ID 區分大小寫 |
+| `text` / `title` | 可選，覆蓋連結文字 |
+| `target` | `auto`、`native` 或 `guide`，預設 `auto`，規則見上表 |
+| `showTooltip` | 顯示提示，預設 `true` |
+
+```mdx
+<BindingLink type="thaumcraft" id="INFUSION" text="檢視研究" target="native" />
+```
+
+#### `<BindingCard>`
+
+塊級內容摘要卡片，點選標題進行導航。
+
+| 屬性 | 說明 |
+| --- | --- |
+| `type` | 必填，已註冊內容型別，如 `thaumcraft`、`betterquesting` |
+| `id` | 必填，原始內容 ID；研究 ID 區分大小寫 |
+| `title` | 可選，覆蓋卡片標題 |
+| `showDesc` | 顯示內容簡介；預設 `true` |
+| `showIcon` | 顯示圖示；預設 `true` |
+| `showParents` | 顯示可見前置內容；預設 `false` |
+| `target` | `auto`、`native` 或 `guide`，預設 `auto`，規則見上表 |
+| `showTooltip` | 顯示提示，預設 `true` |
+
+```mdx
+<BindingCard type="thaumcraft" id="INFUSION" title="注魔研究" showParents={true} />
+```
+
+#### `<BindingIcon>`
+
+內容圖示及 tooltip；懸停時按住開啟指南鍵可檢視指南，點選不開啟原生內容。
+
+| 屬性 | 說明 |
+| --- | --- |
+| `type` | 必填，已註冊內容型別，如 `thaumcraft`、`betterquesting` |
+| `id` | 必填，原始內容 ID；研究 ID 區分大小寫 |
+| `scale` | 有限正數，預設 `1` |
+| `showTooltip` | 顯示提示，預設 `true` |
+
+```mdx
+<BindingIcon type="thaumcraft" id="INFUSION" scale={1.5} />
+```
+
+#### 匯出與預覽
+
+網站匯出和瀏覽器預覽不讀取匯出者的研究進度。繫結指南顯示為連結或多目標列表；原生介面動作顯示遊戲內操作說明。未安裝內容模組時，Research 與 Binding 標籤顯示整合不可用佔位。Quest 標籤僅在 BetterQuesting 已載入時註冊。
 
 ### `<CommandLink>`
 
@@ -836,54 +1009,3 @@ $$\begin{pmatrix} a & b \\ c & d \end{pmatrix}$$
 - 可選 `color`、`label`。
 
 互動：滑鼠懸停曲線會高亮該曲線；按住可沿曲線滑動一個標記點。若提供 `label`，提示框最上方先顯示函式名，之後預設顯示函式式和實時 `(x, y)` 值；可用對應開關關閉。提示框預設錨定在該點正上方，頂部空間不足時自動翻到下方。
-
-## BetterQuesting 相容標籤
-
-`<QuestLink>` 與 `<QuestCard>` 僅在 BetterQuesting 模組已載入時才會被註冊。詳細說明位於 [模組相容](Mod-Compatibility) 頁面，下面給出常用用法摘要。
-
-### `<QuestLink>`
-
-指向 BetterQuesting 任務的行內連結。點選時預設開啟 BetterQuesting 任務 GUI；若該任務 id 出現在某個指南頁的 `quest_ids` 前言中，則改為跳轉到該頁面。
-
-| 屬性 | 含義 |
-| --- | --- |
-| `id` | 必填，BetterQuesting 任務 id；支援標準 UUID 字串和緊湊 Base64 id |
-| `text` | 可選，覆蓋顯示文字 |
-| `show_tooltip` | 可選布林值，預設 `true`；設為 `false` 可關閉任務描述 tooltip。也接受別名 `showTooltip` |
-
-按玩家進度在編譯時決定外觀：
-
-- 已可見 / 已完成的任務渲染為可點選連結（已完成的會被染為綠色並追加 `✓`）
-- 已鎖定但未隱藏的任務仍會渲染為可點選任務連結，因此仍可開啟 BetterQuesting 任務介面或對應的索引指南頁
-- 隱藏 / 機密的任務渲染為更深的斜體佔位符，使用 `guidenh.compat.bq.hidden`
-- 未知任務 id 渲染為紅色佔位符，使用 `guidenh.compat.bq.missing`
-
-示例：
-
-````md
-下一步请参考 <QuestLink id="01234567-89ab-cdef-0123-456789abcdef" />。
-<QuestLink id="01234567-89ab-cdef-0123-456789abcdef" text="第二阶段任务" />
-<QuestLink id="01234567-89ab-cdef-0123-456789abcdef" show_tooltip="false" />
-然后再看 <QuestLink id="AAAAAAAAAAAAAAAAAAAMug==" text="紧凑 quest id 示例" />。
-````
-
-### `<QuestCard>`
-
-塊級任務摘要卡片。標題使用與 `<QuestLink>` 相同的狀態相關樣式；當任務對當前玩家可見時，會附帶任務描述作為正文段落。
-
-| 屬性 | 含義 |
-| --- | --- |
-| `id` | 必填，BetterQuesting 任務 id；支援標準 UUID 字串和緊湊 Base64 id |
-| `show_desc` | 可選布林，預設 `true`；設為 `false` 可隱藏描述正文 |
-| `show_tooltip` | 可選布林值，預設 `true`；設為 `false` 可關閉可點選標題上的任務描述 tooltip。也接受別名 `showTooltip` |
-
-卡片邊框顏色隨任務狀態變化：已完成綠色、鎖定 / 隱藏灰色、缺失紅色、可見時使用標準連結色。標題在可見、已完成以及鎖定但未隱藏時都會保持可點選。
-
-示例：
-
-````md
-<QuestCard id="01234567-89ab-cdef-0123-456789abcdef" />
-<QuestCard id="01234567-89ab-cdef-0123-456789abcdef" show_desc="false" />
-<QuestCard id="01234567-89ab-cdef-0123-456789abcdef" show_tooltip="false" />
-<QuestCard id="AAAAAAAAAAAAAAAAAAAMug==" />
-````
