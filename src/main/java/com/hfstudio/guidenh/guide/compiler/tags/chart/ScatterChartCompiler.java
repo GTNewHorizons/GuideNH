@@ -32,6 +32,7 @@ public class ScatterChartCompiler extends BlockTagCompiler {
         chart.setYAxis(yAxis);
 
         List<? extends MdAstAnyContent> children = ChartChildParser.childElements(compiler, el);
+        yAxis.setReferenceLines(ChartChildParser.parseReferenceLines(compiler, parent, children));
         chart.setSeries(ChartChildParser.parsePointSeries(compiler, parent, children));
         parent.append(chart);
     }

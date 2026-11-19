@@ -750,13 +750,14 @@ Cartesian Wykresy (kolumna / Bar / wiersz / Scatter) additionally akceptują oś
 
 Nieprawidłowe lub zbyt duże formaty podziałki używają automatycznego formatowania liczb. Limity wynoszą 256 znaków, 128 dla szerokości pola i 20 dla precyzji. Nakładające się etykiety liczbowe są w razie potrzeby pomijane, a odpowiadające im linie siatki pozostają bez zmian.
 
-`ColumnChart`, `LineChart` i `ScatterChart` pokazują w obszarze wykresu poziomą złotą linię pomocniczą, również nad pustym miejscem, i wyróżniają wartość Y po lewej stronie. `BarChart` używa pionowej linii z wartością X na dole. Wartości zachowują format i jednostkę osi. Na samej linii nie ma tekstu; poza wykresem znika. Bardzo małe dodatnie odstępy podziałki są automatycznie zwiększane, aby ograniczyć koszt renderowania.
+`ColumnChart`, `LineChart` i `ScatterChart` pokazują w obszarze wykresu poziomą złotą linię pomocniczą, również nad pustym miejscem, i wyróżniają wartość Y po lewej stronie. `BarChart` używa pionowej linii z wartością X na dole. Wartości zachowują format i jednostkę osi. Na samej linii nie ma tekstu; poza wykresem znika. Obie osie używają delikatnej siatki z rzadko rozmieszczonych kresek, sterowanej osobno przez `showXGrid` i `showYGrid`. Bardzo małe dodatnie odstępy podziałki są automatycznie zwiększane, aby ograniczyć koszt renderowania.
 
 elementy podrzędne:
 
 * `<Series name="..." color="#..." data="10,20,30"/>` dla category-based Wykresy (kolumna / Bar / categorical wiersz).
 * `<Series name="..." color="#..." points="x:y,x:y,..."/>` dla numeric X (wiersz `numericX={true}`, Scatter).
 * `<Slice name="..." value="..." color="#..."/>` dla `<PieChart>` tylko.
+* `<ReferenceLine y="100"/>` rysuje stałą linię poziomą w `ColumnChart`, `LineChart` i `ScatterChart`. `BarChart` używa `<ReferenceLine x="100"/>` dla linii pionowej i przyjmuje `y` jako alias. Współrzędna musi być skończona. Można dodać wiele linii; `color` zastępuje półprzezroczysty szary kolor, a opcjonalny `label` pojawia się wewnątrz wykresu, nie zasłaniając etykiet osi. Linie odniesienia działają bez siatki, nie rozszerzają automatycznego zakresu i są ukrywane poza nim. `PieChart` nie obsługuje tego znacznika.
 
 gdy `color` is pominięty on a `<Series>` lub `<Slice>`, GuideNH cycles through built-in 16-kolor palette.
 

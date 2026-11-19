@@ -372,6 +372,15 @@ function readChartChildren(body) {
   const slices = [];
   const lines = [];
   const insets = [];
+  const references = [];
+  for (const match of String(body || "").matchAll(/<ReferenceLine\b([^>]*?)(?:\/>|>\s*<\/ReferenceLine>)/gi)) {
+    const attributes = parseAttributes(match[1]);
+    const rawY = attr(attributes, "y");
+    const rawX = attr(attributes, "x");
+    const y = rawY === undefined || typeof rawY === "boolean" || String(rawY).trim() === "" ? NaN : Number(rawY);
+    const x = rawX === undefined ? y : typeof rawX === "boolean" || String(rawX).trim() === "" ? NaN : Number(rawX);
+    if (Number.isFinite(y) || Number.isFinite(x)) references.push({ y, x, label: String(attr(attributes, "label") ?? ""), color: colorValue(attr(attributes, "color"), "rgba(156,163,175,0.55)") });
+  }
   const insetPattern = /<PieInset\b([^>]*)>([\s\S]*?)<\/PieInset>/gi;
   let insetMatch;
   while ((insetMatch = insetPattern.exec(body || ""))) {
@@ -399,7 +408,7 @@ function readChartChildren(body) {
     else if (match[1].toLowerCase() === "lineseries") lines.push(item);
     else series.push(item);
   }
-  return { series, slices, lines, insets };
+  return { series, slices, lines, insets, references };
 }
 
 function parseValues(value) {
@@ -508,7 +517,7 @@ function renderCartesian(name, children, width, height, attributes) {
   const showXGrid = booleanAttribute(attributes, "showXGrid", true);
   const xGridColor = colorValue(attr(attributes, "xGridColor"), "var(--preview-chart-grid)");
   const yGridColor = colorValue(attr(attributes, "yGridColor"), "var(--preview-chart-grid)");
-  const gridLine = (x1, y1, x2, y2) => `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" class="guide-chart-grid" style="stroke:${x1 === x2 ? xGridColor : yGridColor}"/>`;
+  const gridLine = (x1, y1, x2, y2) => `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" class="guide-chart-grid" style="stroke:${x1 === x2 ? xGridColor : yGridColor}" stroke-dasharray="1 9" stroke-opacity="0.55"/>`;
   const renderNumericTicks = (axis, min, max, step, format, showGrid) => {
     const vertical = axis === "y";
     let nextLabelEdge = -Infinity;
@@ -584,7 +593,18 @@ function renderCartesian(name, children, width, height, attributes) {
   const insetMarkup = inset ? renderPieInset(inset, left, top, plotWidth, plotHeight, outsideWidth) : "";
   const cursorAxis = isBar ? "x" : "y";
   const cursorDomain = `<metadata data-chart-cursor-domain data-cursor-orientation="${isBar ? "vertical" : "horizontal"}" data-plot-left="${left}" data-plot-right="${left + plotWidth}" data-plot-top="${top}" data-plot-bottom="${top + plotHeight}" data-${cursorAxis}-min="${isBar ? xMin : yMin}" data-${cursorAxis}-max="${isBar ? xMax : yMax}" data-${cursorAxis}-unit="${escapeHtml(attr(attributes, `${cursorAxis}AxisUnit`) || "")}" data-${cursorAxis}-format="${escapeHtml(attr(attributes, `${cursorAxis}AxisTickFormat`) || "")}"/>`;
-  return `${legendPosition === "top" ? legendMarkup : ""}<svg class="guide-chart-svg" viewBox="0 0 ${width} ${height - 30}" role="img">${cursorDomain}${grid}${marks}${categoryLabels}${axisLabels}${cornerLegend}${insetMarkup}</svg>${legendPosition === "top" ? "" : legendMarkup}`;
+  const references = children.references.filter((line) => isBar ? line.x >= xMin && line.x <= xMax : line.y >= yMin && line.y <= yMax).map((line) => {
+    if (isBar) {
+      const x = left + chartRatio(line.x, xMin, xMax) * plotWidth;
+      const labelX = Math.max(left + 4, Math.min(x + 4, left + plotWidth - line.label.length * 6 - 4));
+      const label = line.label ? `<text class="guide-chart-reference-label" x="${labelX}" y="${top + 13}" fill="${line.color}" font-size="10">${escapeHtml(line.label)}</text>` : "";
+      return `<line class="guide-chart-reference" x1="${x}" y1="${top}" x2="${x}" y2="${top + plotHeight}" stroke="${line.color}" stroke-width="1" stroke-dasharray="4 3"/>${label}`;
+    }
+    const y = top + (1 - chartRatio(line.y, yMin, yMax)) * plotHeight;
+    const label = line.label ? `<text class="guide-chart-reference-label" x="${left + 4}" y="${Math.max(top + 12, y - 3)}" fill="${line.color}" font-size="10">${escapeHtml(line.label)}</text>` : "";
+    return `<line class="guide-chart-reference" x1="${left}" y1="${y}" x2="${left + plotWidth}" y2="${y}" stroke="${line.color}" stroke-width="1" stroke-dasharray="4 3"/>${label}`;
+  }).join("");
+  return `${legendPosition === "top" ? legendMarkup : ""}<svg class="guide-chart-svg" viewBox="0 0 ${width} ${height - 30}" role="img">${cursorDomain}${grid}${marks}${clipPlot(references)}${categoryLabels}${axisLabels}${cornerLegend}${insetMarkup}</svg>${legendPosition === "top" ? "" : legendMarkup}`;
 }
 
 function chartLabelWidth(label) {

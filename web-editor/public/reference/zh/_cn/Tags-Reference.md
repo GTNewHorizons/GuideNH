@@ -744,13 +744,14 @@ $$\begin{pmatrix} a & b \\ c & d \end{pmatrix}$$
 
 无效或过大的刻度格式会回退为自动数字格式。格式字符串最多 256 个字符，字段宽度最多 128，精度最多 20。 数值刻度文字拥挤时会自动省略部分标签，其对应的网格线保持不变。
 
-`ColumnChart`、`LineChart` 和 `ScatterChart` 在鼠标进入绘图区后显示金色水平辅助虚线，空白处也生效，左侧坐标轴高亮当前 Y 值。`BarChart` 使用竖向辅助线，并在底部高亮 X 值。数值遵循对应轴的刻度格式和单位；虚线上不放文字，移出绘图区后隐藏。极小的正刻度步长会自动合并，避免渲染工作量失控。
+`ColumnChart`、`LineChart` 和 `ScatterChart` 在鼠标进入绘图区后显示金色水平辅助虚线，空白处也生效，左侧坐标轴高亮当前 Y 值。`BarChart` 使用竖向辅助线，并在底部高亮 X 值。数值遵循对应轴的刻度格式和单位；虚线上不放文字，移出绘图区后隐藏。两轴网格采用淡而稀疏的虚线，通过 `showXGrid`、`showYGrid` 分别控制。极小的正刻度步长会自动合并，避免渲染工作量失控。
 
 子元素：
 
 * `<Series name="..." color="#..." data="10,20,30"/>` — 用于按类别取值的图表（柱形/条形/类别 X 折线）。
 * `<Series name="..." color="#..." points="x:y,x:y,..."/>` — 用于数值 X（折线 `numericX={true}`、散点）。
 * `<Slice name="..." value="..." color="#..."/>` — 仅 `<PieChart>` 使用。
+* `<ReferenceLine y="100"/>` — 在 `ColumnChart`、`LineChart`、`ScatterChart` 的指定 Y 值绘制固定水平虚线；`BarChart` 使用 `<ReferenceLine x="100"/>` 绘制固定竖线，也兼容 `y` 写法。坐标必须是有限数值。可添加多条，默认半透明灰色，可用 `color` 修改；可选 `label` 显示在绘图区内，避免与坐标刻度重叠。参考线独立于网格开关，不扩展自动坐标范围，范围外不显示；`PieChart` 不支持此标签。
 
 未指定 `color` 时按内置 16 色调色板循环分配。
 
