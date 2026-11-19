@@ -1,5 +1,6 @@
 package com.hfstudio.guidenh.guide.internal.host.scripts;
 
+import com.hfstudio.guidenh.guide.document.flow.LytFlowContent;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowInlineBlock;
 import com.hfstudio.guidenh.guide.internal.binding.BindingPlaceholder;
 import com.hfstudio.guidenh.guide.internal.binding.BindingPresentation;
@@ -33,12 +34,10 @@ public class BindingScript implements LytScript {
                 .describe(spec.key(), BindingRuntime.view(spec.showDescription() || spec.showTooltip(), false));
             var block = BindingPresentation.block(spec, display, placeholder.getKind(), context);
             context.replace(node instanceof LytFlowInlineBlock ? LytFlowInlineBlock.of(block) : block);
-        } else if (context.data()
-            .get("bindingSpec") instanceof BindingSpec spec) {
-                context.replace(
-                    BindingPresentation.link(
-                        spec,
-                        BindingRuntime.describe(spec.key(), BindingRuntime.view(spec.showTooltip(), false))));
-            }
+        } else if (node instanceof LytFlowContent flow && flow.getData("bindingSpec") instanceof BindingSpec spec) {
+            context.replace(
+                BindingPresentation
+                    .link(spec, BindingRuntime.describe(spec.key(), BindingRuntime.view(spec.showTooltip(), false))));
+        }
     }
 }

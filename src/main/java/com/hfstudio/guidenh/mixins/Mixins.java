@@ -32,7 +32,7 @@ public enum Mixins implements IMixins {
 
     THAUMCRAFT_RESEARCH(Side.CLIENT, Phase.LATE, Mods.Thaumcraft, "compat.thaumcraft.MixinResearchBrowserHover",
         "compat.thaumcraft.AccessorGuiResearchBrowser", "compat.thaumcraft.AccessorGuiResearchRecipe",
-        "compat.thaumcraft.MixinGuiResearchBrowser"),
+        "compat.thaumcraft.MixinGuiResearchBrowser", "compat.thaumcraft.MixinResearchRecipeGuide"),
 
     STRUCTURELIB_MINIMUM_HATCHES(Side.CLIENT, Phase.LATE, Mods.StructureLib,
         "compat.structurelib.MixinSurvivalBuildStructureWalker"),

@@ -22,13 +22,16 @@ public class ThaumcraftResearchHoverProvider implements GuideBindingHoverProvide
         ResearchItem item = null;
         if (screen instanceof GuiResearchBrowser browser)
             item = ((ResearchBrowserHover) browser).guidenh$researchAt(x, y);
-        else if (screen instanceof GuiResearchRecipe recipe && x >= (screen.width - 256) / 2
-            && x < (screen.width + 256) / 2
-            && y >= (screen.height - 181) / 2 - 24
-            && y < (screen.height - 181) / 2 + 16) item = ((AccessorGuiResearchRecipe) recipe).guidenh$getResearch();
+        else if (screen instanceof GuiResearchRecipe recipe && isResearchTitleHovered(screen, x, y))
+            item = ((AccessorGuiResearchRecipe) recipe).guidenh$getResearch();
         return item == null ? null
             : new BindingHoverTarget(
                 new BindingKey("thaumcraft", item.key),
                 new LytRect(0, 0, screen.width, screen.height));
+    }
+
+    public static boolean isResearchTitleHovered(GuiScreen screen, int x, int y) {
+        int top = (screen.height - 181) / 2;
+        return x >= (screen.width - 256) / 2 && x < (screen.width + 256) / 2 && y >= top - 24 && y < top + 16;
     }
 }

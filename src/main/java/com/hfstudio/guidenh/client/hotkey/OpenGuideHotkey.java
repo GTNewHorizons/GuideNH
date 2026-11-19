@@ -312,10 +312,19 @@ public class OpenGuideHotkey {
     }
 
     public static boolean appendBindingTooltip(BindingKey key, List<String> lines) {
-        if (TOOLTIP_HINTS_SUPPRESSED.get() || BindingNavigationService.findTargets(key)
-            .isEmpty()) return false;
-        lines.add(renderHint(BINDING_SESSION.ticksHeld() / (float) TICKS_TO_OPEN));
+        String hint = bindingHint(key);
+        if (hint == null) return false;
+        lines.add(hint);
         return true;
+    }
+
+    @Nullable
+    public static String bindingHint(BindingKey key) {
+        if (TOOLTIP_HINTS_SUPPRESSED.get()) return null;
+        var selection = BINDING_SESSION.update(Minecraft.getMinecraft().currentScreen, key);
+        if (selection.targets()
+            .isEmpty()) return null;
+        return renderHint(BINDING_SESSION.ticksHeld() / (float) TICKS_TO_OPEN);
     }
 
     public static void tickQuestHover() {
