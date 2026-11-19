@@ -1,5 +1,6 @@
 package com.hfstudio.guidenh.integration.forgemultipart;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -28,18 +29,15 @@ import com.hfstudio.guidenh.integration.Mods;
 import codechicken.microblock.BlockMicroMaterial;
 import codechicken.microblock.MicroMaterialRegistry;
 import codechicken.microblock.Microblock;
-import codechicken.microblock.MicroblockGenerator$;
+import codechicken.microblock.MicroblockGenerator;
 import codechicken.multipart.BlockMultipart;
-import codechicken.multipart.MultipartGenerator$;
+import codechicken.multipart.MultipartGenerator;
 import codechicken.multipart.MultipartHelper;
 import codechicken.multipart.MultipartRenderer;
 import codechicken.multipart.TMultiPart;
 import codechicken.multipart.TileMultipart;
 import codechicken.multipart.TileMultipartClient;
 import cpw.mods.fml.common.Optional;
-import scala.collection.Iterator;
-import scala.collection.Seq;
-import scala.collection.mutable.ListBuffer;
 
 /**
  * Direct ForgeMultipart integration for scene preview, exports, and block statistics.
@@ -101,8 +99,8 @@ public final class ForgeMultipartHelpers {
             return finalized;
         }
 
-        Seq<TMultiPart> parts = promotePartListToClientVariants(multipart.partList());
-        multipart.loadParts(parts);
+        List<TMultiPart> parts = promotePartListToClientVariants(multipart.jPartList());
+        multipart.loadPartList(parts);
         multipart.notifyTileChange();
         multipart.markRender();
         if (!(multipart instanceof TileMultipartClient)) {
@@ -135,23 +133,21 @@ public final class ForgeMultipartHelpers {
      * microblocks loaded from saved NBT still need their client rendering trait.
      */
     @Optional.Method(modid = "ForgeMultipart")
-    public static Seq<TMultiPart> promotePartListToClientVariants(Seq<TMultiPart> source) {
+    public static List<TMultiPart> promotePartListToClientVariants(List<TMultiPart> source) {
         if (source == null || source.isEmpty()) {
             return source;
         }
 
-        ListBuffer<TMultiPart> rebuilt = new ListBuffer<>();
+        List<TMultiPart> rebuilt = new ArrayList<>(source.size());
         boolean changed = false;
-        Iterator<TMultiPart> iterator = source.iterator();
-        while (iterator.hasNext()) {
-            TMultiPart part = iterator.next();
+        for (TMultiPart part : source) {
             TMultiPart replacement = promoteMicroblockToClient(part);
             if (replacement != part) {
                 changed = true;
             }
-            rebuilt.$plus$eq(replacement);
+            rebuilt.add(replacement);
         }
-        return changed ? rebuilt.toSeq() : source;
+        return changed ? rebuilt : source;
     }
 
     @Optional.Method(modid = "ForgeMultipart")
@@ -162,7 +158,7 @@ public final class ForgeMultipartHelpers {
 
         Microblock replacement;
         try {
-            replacement = MicroblockGenerator$.MODULE$.create(microblock.microClass(), microblock.material(), true);
+            replacement = MicroblockGenerator.create(microblock.microClass(), microblock.getMaterial(), true);
         } catch (RuntimeException exception) {
             warnOnce(
                 "promote-microblock-failed:" + microblock.getClass()
@@ -192,7 +188,7 @@ public final class ForgeMultipartHelpers {
             return tileEntity;
         }
 
-        Seq<TMultiPart> parts = promotePartListToClientVariants(source.partList());
+        List<TMultiPart> parts = promotePartListToClientVariants(source.jPartList());
         if (parts == null || parts.isEmpty()) {
             warnOnce(
                 "promote-no-parts:" + source.getClass()
@@ -203,7 +199,7 @@ public final class ForgeMultipartHelpers {
             return source;
         }
 
-        TileMultipart promoted = MultipartGenerator$.MODULE$.generateCompositeTile(source, parts, true);
+        TileMultipart promoted = MultipartGenerator.generateCompositeTile(source, parts, true);
         if (promoted == source) {
             warnOnce(
                 "promote-same-instance:" + source.getClass()
@@ -222,7 +218,7 @@ public final class ForgeMultipartHelpers {
         if (source.getWorldObj() != null) {
             promoted.setWorldObj(source.getWorldObj());
         }
-        promoted.loadParts(parts);
+        promoted.loadPartList(parts);
         promoted.notifyTileChange();
         promoted.markRender();
         return promoted;
@@ -456,8 +452,7 @@ public final class ForgeMultipartHelpers {
             }
             BlockMicroMaterial material;
             try {
-                if (!(MicroMaterialRegistry
-                    .getMaterial(microblock.material()) instanceof BlockMicroMaterial resolved)) {
+                if (!(microblock.getIMaterial() instanceof BlockMicroMaterial resolved)) {
                     continue;
                 }
                 material = resolved;
