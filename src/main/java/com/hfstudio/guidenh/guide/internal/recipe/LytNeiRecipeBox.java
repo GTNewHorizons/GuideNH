@@ -529,18 +529,7 @@ public class LytNeiRecipeBox extends LytBlock implements InteractiveElement, Doc
     }
 
     public static @Nullable ItemStack pickVisibleStack(RecipeSlot s) {
-        if (s != null && s.currentStack() != null && s.currentStack().stackSize > 0) {
-            return s.currentStack();
-        }
-        if (s == null || s.stacks()
-            .isEmpty()) return null;
-        for (int i = 0, n = s.stacks()
-            .size(); i < n; i++) {
-            ItemStack st = s.stacks()
-                .get(i);
-            if (st != null && st.stackSize > 0) return st;
-        }
-        return null;
+        return NeiHandlerRenderer.pickVisibleStack(s);
     }
 
     public static boolean isOver(int x, int y, int w, int h, int px, int py) {
