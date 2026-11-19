@@ -14,23 +14,20 @@ import appeng.tile.networking.TileCableBus;
 import cpw.mods.fml.common.Optional;
 
 /**
- * Server-authoritative AE2 {@link AEBaseTile} description stream for guide export (type2 supplement). All AE2 AE tiles
- * are {@link AEBaseTile}; {@link TileCableBus} stays on {@link Ae2ServerPreviewRegistration#SUPPLEMENT_ID} (type1).
- *
- * <p>
- * Mirrors AE2 {@code AEBaseTile#getDescriptionPacket()} / {@code onDataPacket} contract (meta {@code 64}, NBT
- * {@code X}). The payload is whatever each subclass concatenates via {@code @TileEvent(NETWORK_WRITE)} handlers.
- * Non-exhaustive examples in AE2: {@code TileDrive}, {@code TileChest}, {@code TileSkyChest}, {@code TileInterface},
- * spatial / quantum / assembler family tiles, crafting monitor; {@link TileCableBus} shares the same base class but
- * uses multipart streams 鈥?guide export uses cable-bus supplement ({@link Ae2ServerPreviewRegistration#SUPPLEMENT_ID})
- * instead of this blob.
+ * Server AEBaseTile description stream using the native metadata-64 packet and NBT {@code X} payload.
+ * Subclass NETWORK_WRITE handlers define its contents. TileCableBus uses the separate multipart supplement
+ * instead.
  */
 public class Ae2BaseTileNetworkStreamPreview {
 
-    /** Stored under {@link ServerPreviewSupplementNbt#TAG_ROOT}. */
+    /**
+     * Stored under {@link ServerPreviewSupplementNbt#TAG_ROOT}.
+     */
     public static final String SUPPLEMENT_ID = "guidenh.ae2.ae_base_tile_network";
 
-    /** Max {@code X} bytes per tile in multiplayer batch payloads ( ushort length on wire ). */
+    /**
+     * Max {@code X} bytes per tile in multiplayer batch payloads ( ushort length on wire ).
+     */
     public static final int MAX_X_PAYLOAD_BYTES = 16384;
 
     private static final int AE_TILE_UPDATE_META = 64;
@@ -76,7 +73,9 @@ public class Ae2BaseTileNetworkStreamPreview {
         }
     }
 
-    /** Applies authoritative {@code X} to a preview-place {@link AEBaseTile}, or {@code false} when no-op / failure. */
+    /**
+     * Applies authoritative {@code X} to a preview-place {@link AEBaseTile}, or {@code false} when no-op / failure.
+     */
     @Optional.Method(modid = "appliedenergistics2")
     public static boolean applyAuthorityToPreviewTile(AEBaseTile previewTile, byte @Nullable [] xPayload) {
         if (xPayload == null || xPayload.length == 0) {

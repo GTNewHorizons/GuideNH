@@ -35,17 +35,18 @@ GuideNH 會解析路徑，並從指南內容根目錄載入對應的二進位資
 | 屬性 | 必需 | 意義 |
 | --- | --- | --- |
 | `src` | 是 | 圖片路徑 |
-| `x` | 是 | 原圖裁切起始 X，單位為來源影像像素 |
-| `y` | 是 | 原圖裁切起始 Y，單位為來源影像像素 |
-| `width` / `w` | 是 | 原圖裁切寬度，單位為來源影像像素；兩種寫法只能二選一 |
-| `height` / `h` | 是 | 原圖裁切高度，單位為來源影像像素；兩種寫法只能二選一 |
+| `x` | 裁切時必需 | 原圖裁切起始 X，單位為來源影像像素 |
+| `y` | 裁切時必需 | 原圖裁切起始 Y，單位為來源影像像素 |
+| `width` / `w` | 裁切時必需 | 原圖裁切寬度，單位為來源影像像素；兩種寫法只能二選一 |
+| `height` / `h` | 裁切時必需 | 原圖裁切高度，單位為來源影像像素；兩種寫法只能二選一 |
 | `scaleX` | 否 | 水平顯示縮放倍率，預設 `1.0` |
 | `scaleY` | 否 | 垂直顯示縮放倍率，預設 `1.0` |
 | `displayWidth` | 否 | 最終顯示寬度，單位為像素；單獨使用時以裁切區域比例計算高度 |
 | `displayHeight` | 否 | 最終顯示高度，單位為像素；單獨使用時以裁切區域比例計算寬度 |
-| `wrap` | 否 | `inline` 表示真正行內放置，其他值使用常規環繞模式 |
+| `wrap` | 否 | `inline` 放在文字行內；否則由 `align` 決定浮動方向 |
 | `align` | 否 | 浮動時使用 `left` 或 `right`；`wrap="inline"` 時會被忽略 |
 | `title` | 否 | tooltip/title 文本 |
+| `alt` | 否 | 圖片替代文字 |
 | `sound` | 否 | 整張圖片點擊時播放的音效事件 |
 | `soundSrc` | 否 | 整張圖片所使用的音效檔路徑 |
 | `trigger` | 否 | 預設 `click`，也可以寫 `hover` 以懸停播放 |
@@ -54,14 +55,13 @@ GuideNH 會解析路徑，並從指南內容根目錄載入對應的二進位資
 
 - 裁切時必須同時提供 `x`、`y`、`width` / `w` 與 `height` / `h`
 - 全部省略裁切屬性時，可使用 `displayWidth` 或 `displayHeight` 顯示整張來源圖
-- `width` 和 `height` 現在表示裁切區域，不再表示最終顯示尺寸
+- `width` 與 `height` 表示來源圖裁切尺寸；顯示尺寸使用 `displayWidth` / `displayHeight` 或縮放倍率。
 - `scaleX` 與 `scaleY` 會將最終顯示尺寸計算為 `cropWidth * scaleX` 與 `cropHeight * scaleY`
 - `displayWidth` 或 `displayHeight` 以像素指定最終顯示尺寸；只提供其中一個時，另一個尺寸按裁切區域寬高比自動計算
 - 同時提供 `displayWidth` 與 `displayHeight` 時，可依指定尺寸非等比拉伸
 - `displayWidth` / `displayHeight` 不能與 `scaleX` / `scaleY` 同時使用
 - 支援單軸拉伸，只修改一個縮放值即可
 - 同時寫 `width` 和 `w`，或同時寫 `height` 和 `h`，都會渲染可見錯誤
-- 舊版把 `width` / `height` 當作顯示尺寸的內容會發生破壞性變更，需要手動遷移
 - `src` 可以是相對路徑、根路徑，或明確 `modid:path` 紋理 id，例如 `minecraft:textures/gui/options_background.png`
 
 ### 範例
@@ -113,7 +113,7 @@ GuideNH 會解析路徑，並從指南內容根目錄載入對應的二進位資
 整圖註解：
 
 ````md
-<FloatingImage src="test1.png" align="left" x="0" y="0" width="128" height="128">
+<FloatingImage displayWidth="128" displayHeight="128" src="test1.png" align="left" x="0" y="0" width="32" height="32">
   <ImageAnnotation>
     鼠标悬停在图片任意位置都会显示此 tooltip。
   </ImageAnnotation>
@@ -123,8 +123,8 @@ GuideNH 會解析路徑，並從指南內容根目錄載入對應的二進位資
 有可見邊框的區域註解：
 
 ````md
-<FloatingImage src="test1.png" align="left" x="0" y="0" width="128" height="128">
-  <ImageAnnotation x="10" y="10" w="60" h="40" border borderColor="#FFFF4444" borderThickness="2">
+<FloatingImage displayWidth="128" displayHeight="128" src="test1.png" align="left" x="0" y="0" width="32" height="32">
+  <ImageAnnotation x="2" y="2" w="15" h="10" border borderColor="#FFFF4444" borderThickness="2">
     悬停在**红框区域**内显示此 tooltip。
   </ImageAnnotation>
 </FloatingImage>
@@ -133,11 +133,11 @@ GuideNH 會解析路徑，並從指南內容根目錄載入對應的二進位資
 同一圖片上的多個註解：
 
 ````md
-<FloatingImage src="test1.png" align="left" x="0" y="0" width="128" height="128">
-  <ImageAnnotation x="0" y="0" w="64" h="64" border borderColor="#FF44FF44">
+<FloatingImage displayWidth="128" displayHeight="128" src="test1.png" align="left" x="0" y="0" width="32" height="32">
+  <ImageAnnotation x="0" y="0" w="16" h="32" border borderColor="#FF44FF44">
     左半部分
   </ImageAnnotation>
-  <ImageAnnotation x="64" y="0" w="64" h="64" border borderColor="#FF4444FF">
+  <ImageAnnotation x="16" y="0" w="16" h="32" border borderColor="#FF4444FF">
     右半部分
   </ImageAnnotation>
 </FloatingImage>
@@ -148,17 +148,17 @@ tooltip 或邊框，也可以直接在 `<ImageAnnotation>` 上寫 `sound`。
 
 ````md
 <FloatingImage
-  src="test1.png"
+  displayWidth="128" displayHeight="128" src="test1.png"
   align="left"
   x="0"
   y="0"
-  width="128"
-  height="128"
-  sound="guidenh:image.click"
+  width="32"
+  height="32"
+  sound="guidenh:guide.sample_click"
 >
-  <SoundArea x="0" y="0" w="64" h="64" sound="guidenh:image.left" />
-  <SoundArea x="64" y="0" w="64" h="64" sound="guidenh:image.right" trigger="hover" />
-  <ImageAnnotation x="10" y="10" w="40" h="40" border sound="guidenh:image.note">
+  <SoundArea x="0" y="0" w="16" h="32" sound="guidenh:guide.sample_left" />
+  <SoundArea x="16" y="0" w="16" h="32" sound="guidenh:guide.sample_hover" trigger="hover" />
+  <ImageAnnotation x="2" y="2" w="10" h="10" border sound="guidenh:guide.sample_click">
     这个区域同时拥有 tooltip 内容和点击音效。
   </ImageAnnotation>
 </FloatingImage>
@@ -169,87 +169,25 @@ tooltip 或邊框，也可以直接在 `<ImageAnnotation>` 上寫 `sound`。
 
 ## 內容嵌入與文字環繞
 
-所有區塊級標籤－`<FloatingImage>`、`<Recipe>`、`<GameScene>`、`<ItemImage>`、`<BlockImage>` 以及
-其他基於 `BlockTagCompiler` 的標籤－皆支援兩個可選的佈局屬性，提供類似 Word 的內容嵌入功能。
+由 `BlockTagCompiler` 編譯的區塊標籤（包括 `<Recipe>`、`<GameScene>` 與 `<BlockImage>`）接受 `wrap` 與 `align`。
 
-| 屬性 | 可选值 | 默认值 | 意義 |
-| --- | --- | --- | --- |
-| `wrap` | `inline` · `square` · `tight` · `through` · `top-bottom` · `behind` · `front` | `inline` | 文字環繞模式 |
-| `align` | `left` · `center` · `right` | `left` | 水平對齊方式 |
+`<FloatingImage>` 使用獨立規則：`wrap="inline"` 放在文字行內，否則由 `align="left"` 或 `"right"` 決定浮動方向。`<ItemImage>` 是行內圖示，需要版面對齊時應放入 `<Column>` 或 `<Row>`。
 
-### 環繞模式
+| 屬性 | 預設值 | 說明 |
+| --- | --- | --- |
+| `wrap` | `inline` | `inline`：一般放置；`square`、`tight`、`through`：左右浮動；`top-bottom`、`behind`、`front` 目前皆按一般對齊方式放置，不建立獨立文字圖層。 |
+| `align` | `left` | 區塊情境接受 `left`、`center`、`right`。浮動模式中，`right` 向右浮動，其餘值向左浮動；置中請用 `wrap="inline" align="center"`。 |
+| `float` | — | 相容行內情境中的 `left` / `right`，僅在未提供 `wrap` 與 `align` 時生效；建議明確使用後兩者。 |
 
-| 模式 | Word 對應 | 區塊級上下文效果 | 流式上下文效果 |
-| --- | --- | --- | --- |
-| `inline` | 嵌入型 | 預設堆疊（嵌入型） | 嵌入在文字行中 |
-| `square` | 方形 | 文件級浮動，文字在方形框內環繞（方形環繞） | `FLOAT_LEFT` / `FLOAT_RIGHT` |
-| `tight` | 緊密型 | 等同 `square`（緊密型） | 等同 `square` |
-| `through` | 穿越型 | 等同 `square`（穿越型） | 等同 `square` |
-| `top-bottom` | 上下型 | 佔滿整行寬度；`align` 控制水平位置（上下型） | 行內嵌入（含換行） |
-| `behind` | 襯於文字下方 | 對齊的行內槽；渲染在文字下方（襯於文字下方） | 嵌入在文字行中 |
-| `front` | 浮於文字上方 | 對齊的行內槽；渲染在文字上方（浮於文字上方） | 嵌入在文字行中 |
+```mdx
+<BlockImage id="minecraft:stone" wrap="square" align="right" />
 
-### 浮動模式的對齊
+<BlockImage id="minecraft:diamond_block" wrap="inline" align="center" />
 
-對於 `wrap=square/tight/through`：
-- `align=left`（預設）－向**左**浮動，文字填入右側區域。
-- `align=right`－向**右**浮動，文字填滿左側區域。
-- `align=center`－居中對齊（無文字環繞）。
-
-### 範例
-
-使用新 `wrap` 屬性的左浮動圖片：
-
-````md
-<FloatingImage
-  src="test1.png"
-  wrap="square"
-  align="left"
-  x="0"
-  y="0"
-  width="128"
-  height="128"
-  scaleX="0.5"
-  scaleY="0.5"
-/>
-
-此段落文字将流向图片右侧……
-````
-
-右浮動配方：
-
-````md
-<Recipe id="minecraft:stone" wrap="square" align="right" />
-
-此处文字将流向配方框左侧……
-````
-
-居中物品圖示（無文字環繞）：
-
-````md
-<ItemImage id="minecraft:diamond" align="center" />
-````
-
-右對齊物品圖示：
-
-````md
-<ItemImage id="minecraft:diamond" align="right" />
-````
-
-物品 NBT 可以單獨寫在 `nbt` 屬性中。 `id` 中的內聯 SNBT 仍然支持；兩種寫法同時存在時，
-獨立的 `nbt` 屬性最後合併。
-
-````md
-<ItemImage id="minecraft:diamond" nbt='{display:{Name:"自定义钻石"}}' />
-<ItemImage
-  id="minecraft:chest"
-  scale="2"
-  nbt='{id:"Chest",Items:[{Slot:0b,id:"minecraft:diamond",Count:1b,Damage:0s}]}'
-/>
-````
-
-> **注意** — `wrap="inline"` 現在會讓 `<FloatingImage>` 真正作為行內內容放置。
-> 在 inline 模式下，`align` 會被忽略，而不是報錯。
+<Column align="center">
+  <ItemImage id="minecraft:diamond" nbt='{display:{Name:"Custom Diamond"}}' />
+</Column>
+```
 
 ## 導航紋理圖標
 
@@ -282,8 +220,7 @@ GuideNH 頁面也可以引用非圖片類別運行時資源，最常見的是結
 
 ## `BlockImage`
 
-`<BlockImage>` 也遵循與 `<FloatingImage>` 相同的區塊級嵌入規則，但它顯示的是透明背景的 3D
-單方塊預覽，而非點陣圖。它適合在正常正文裡直接展示「方塊被放在世界裡時」的樣子。
+`<BlockImage>` 顯示透明背景的已放置方塊 3D 預覽，支援上面的區塊佈局屬性，包括水平對齊與文字浮動環繞。
 
 關鍵行為：
 

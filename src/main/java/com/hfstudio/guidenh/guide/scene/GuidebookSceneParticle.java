@@ -21,70 +21,130 @@ public class GuidebookSceneParticle {
     public float prevY;
     public float prevZ;
 
-    /** Current world-space X position. */
+    /**
+     * Current world-space X position.
+     */
     public float x;
-    /** Current world-space Y position. */
+    /**
+     * Current world-space Y position.
+     */
     public float y;
-    /** Current world-space Z position. */
+    /**
+     * Current world-space Z position.
+     */
     public float z;
 
-    /** Velocity along the X axis (blocks per tick). */
+    /**
+     * Velocity along the X axis (blocks per tick).
+     */
     public float vx;
-    /** Velocity along the Y axis (blocks per tick). */
+    /**
+     * Velocity along the Y axis (blocks per tick).
+     */
     public float vy;
-    /** Velocity along the Z axis (blocks per tick). */
+    /**
+     * Velocity along the Z axis (blocks per tick).
+     */
     public float vz;
 
-    /** Backing texture for this particle. */
+    /**
+     * Backing texture for this particle.
+     */
     public ResourceLocation texture = TextureMap.locationBlocksTexture;
 
-    /** Texture atlas minimum U coordinate. */
+    /**
+     * Texture atlas minimum U coordinate.
+     */
     public float u0;
-    /** Texture atlas minimum V coordinate. */
+    /**
+     * Texture atlas minimum V coordinate.
+     */
     public float v0;
-    /** Texture atlas maximum U coordinate. */
+    /**
+     * Texture atlas maximum U coordinate.
+     */
     public float u1;
-    /** Texture atlas maximum V coordinate. */
+    /**
+     * Texture atlas maximum V coordinate.
+     */
     public float v1;
 
-    /** Red color channel multiplier. */
+    /**
+     * Red color channel multiplier.
+     */
     public float red;
-    /** Green color channel multiplier. */
+    /**
+     * Green color channel multiplier.
+     */
     public float green;
-    /** Blue color channel multiplier. */
+    /**
+     * Blue color channel multiplier.
+     */
     public float blue;
 
-    /** Current age in ticks. */
+    /**
+     * Current age in ticks.
+     */
     public int age;
-    /** Delay before the particle becomes active. */
+    /**
+     * Delay before the particle becomes active.
+     */
     public int delayTicks;
-    /** Age at which the particle is considered dead and removed. */
+    /**
+     * Age at which the particle is considered dead and removed.
+     */
     public int maxAge;
-    /** Half-side length of the billboard quad, in block units. */
+    /**
+     * Half-side length of the billboard quad, in block units.
+     */
     public float sizeStart;
-    /** Half-side length at the end of the particle lifetime. */
+    /**
+     * Half-side length at the end of the particle lifetime.
+     */
     public float sizeEnd;
-    /** Starting alpha multiplier. */
+    /**
+     * Starting alpha multiplier.
+     */
     public float alphaStart = 1f;
-    /** Ending alpha multiplier. */
+    /**
+     * Ending alpha multiplier.
+     */
     public float alphaEnd = 1f;
-    /** Gravity applied each tick before drag. */
+    /**
+     * Gravity applied each tick before drag.
+     */
     public float gravityPerTick = 0.04f;
-    /** Velocity multiplier applied each tick after gravity. */
+    /**
+     * Velocity multiplier applied each tick after gravity.
+     */
     public float dragPerTick = 0.98f;
-    /** Optional brightness override, or {@link #NO_BRIGHTNESS_OVERRIDE}. */
+    /**
+     * Optional brightness override, or {@link #NO_BRIGHTNESS_OVERRIDE}.
+     */
     public int brightness = NO_BRIGHTNESS_OVERRIDE;
-    /** Equal-width animated texture grid columns. */
+    /**
+     * Equal-width animated texture grid columns.
+     */
     public int animationColumns;
-    /** Equal-height animated texture grid rows. */
+    /**
+     * Equal-height animated texture grid rows.
+     */
     public int animationRows;
-    /** Animation start frame index. */
+    /**
+     * Animation start frame index.
+     */
     public int animationStartFrame;
-    /** Animation frame count. */
+    /**
+     * Animation frame count.
+     */
     public int animationFrameCount;
-    /** Animation frame step. */
+    /**
+     * Animation frame step.
+     */
     public int animationFrameStep = 1;
-    /** Whether the animation should loop when the particle is immortal. */
+    /**
+     * Whether the animation should loop when the particle is immortal.
+     */
     public boolean animationLoop;
 
     public GuidebookSceneParticle() {
@@ -134,7 +194,9 @@ public class GuidebookSceneParticle {
         return this;
     }
 
-    /** Advances the particle by one tick: applies velocity, gravity, and friction. */
+    /**
+     * Advances the particle by one tick: applies velocity, gravity, and friction.
+     */
     public void tick() {
         if (delayTicks > 0) {
             delayTicks--;
@@ -172,7 +234,9 @@ public class GuidebookSceneParticle {
         }
     }
 
-    /** Returns {@code true} when the particle has exceeded its maximum age. */
+    /**
+     * Returns {@code true} when the particle has exceeded its maximum age.
+     */
     public boolean isDead() {
         return delayTicks <= 0 && maxAge >= 0 && age >= maxAge;
     }

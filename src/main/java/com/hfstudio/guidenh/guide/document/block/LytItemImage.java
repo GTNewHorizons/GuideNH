@@ -36,17 +36,10 @@ public class LytItemImage extends LytBlock implements InteractiveElement {
     protected ItemStack stack;
     @Getter
     private float scale = 1f;
-    /**
-     * -- SETTER --
-     * Controls whether hovering over this element shows an item tooltip. Default
-     * .
-     */
     @Setter
     private boolean showTooltip = true;
     /**
-     * -- SETTER --
-     * Flag this image as being laid out inline with text. Inline images can be vertically adjusted
-     * relative to their centered line position.
+     * Enables inline vertical offsets relative to the centered line position.
      */
     @Getter
     @Setter
@@ -55,11 +48,6 @@ public class LytItemImage extends LytBlock implements InteractiveElement {
     private Integer inlineYOffsetOverride = null;
     @Nullable
     private Integer labelYOffsetOverride = null;
-    /**
-     * -- SETTER --
-     * Controls whether the item icon graphic is rendered. Default
-     * .
-     */
     @Setter
     private boolean showIcon = true;
     @Nullable
@@ -80,7 +68,9 @@ public class LytItemImage extends LytBlock implements InteractiveElement {
         this.scale = Math.max(0.125f, scale);
     }
 
-    /** Kept for backward compatibility. Prefer {@link #setShowTooltip(boolean)}. */
+    /**
+     * Kept for backward compatibility. Prefer {@link #setShowTooltip(boolean)}.
+     */
     public void setTooltipSuppressed(boolean suppressed) {
         this.showTooltip = !suppressed;
     }
@@ -118,12 +108,16 @@ public class LytItemImage extends LytBlock implements InteractiveElement {
         return Math.round(offset * scale);
     }
 
-    /** Returns the item-render-only visual correction for Minecraft's item sprite alignment. */
+    /**
+     * Returns the item-render-only visual correction for Minecraft's item sprite alignment.
+     */
     public int getInlineVisualYOffset() {
         return inline && showIcon ? Math.round(DEFAULT_INLINE_ITEM_VISUAL_Y_OFFSET * scale) : 0;
     }
 
-    /** Overrides the default inline Y offset for the label text only. Does not affect the icon. */
+    /**
+     * Overrides the default inline Y offset for the label text only. Does not affect the icon.
+     */
     public void setLabelYOffsetOverride(@Nullable Integer override) {
         this.labelYOffsetOverride = override;
     }
@@ -239,7 +233,9 @@ public class LytItemImage extends LytBlock implements InteractiveElement {
         return stack == null ? List.of() : List.of(stack);
     }
 
-    /** Resolves the final label text based on the current stack and format pattern. */
+    /**
+     * Resolves the final label text based on the current stack and format pattern.
+     */
     protected String resolveLabelText() {
         if (stack == null) return "";
         if (labelFormat == null) return stack.getDisplayName();
@@ -250,7 +246,9 @@ public class LytItemImage extends LytBlock implements InteractiveElement {
             : cachedLabelTemplate;
     }
 
-    /** Resolves the {@link ResolvedTextStyle} for the label based on the format pattern. */
+    /**
+     * Resolves the {@link ResolvedTextStyle} for the label based on the format pattern.
+     */
     protected ResolvedTextStyle resolveLabelStyle() {
         if (cachedLabelStyle == null) {
             cachedLabelStyle = labelFormat == null ? TextStyle.builder()

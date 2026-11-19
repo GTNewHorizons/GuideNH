@@ -32,7 +32,9 @@ public class GuideNhIntegrationRegistry {
 
     private static final GuideNhIntegrationRegistry GLOBAL = new GuideNhIntegrationRegistry();
 
-    /** Providers that already reported a failure, so a lookup that runs per block per frame cannot flood the log. */
+    /**
+     * Providers that already reported a failure, so a lookup that runs per block per frame cannot flood the log.
+     */
     private static final Set<String> REPORTED_PROVIDER_FAILURES = new HashSet<>();
     private final Map<String, IntegrationModDescriptor> modDescriptors = new LinkedHashMap<>();
     private final List<ItemStackNormalizationProvider> itemStackNormalizationProviders = new ArrayList<>();
@@ -282,7 +284,9 @@ public class GuideNhIntegrationRegistry {
         return List.copyOf(sceneElementTagCompilerProviders);
     }
 
-    /** Registers a renderer for fence names of your own, so the body of such a fence is not read as a plain code. */
+    /**
+     * Registers a renderer for fence names of your own, so the body of such a fence is not read as a plain code.
+     */
     public synchronized void registerCodeFenceRenderer(CodeFenceRenderer renderer) {
         if (renderer == null) {
             throw new IllegalArgumentException("renderer");

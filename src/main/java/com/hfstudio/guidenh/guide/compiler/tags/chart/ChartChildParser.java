@@ -284,7 +284,9 @@ public class ChartChildParser {
         }
     }
 
-    /** Parse child {@code <Point x="..." y="..."/>} elements inside a {@code <Series>}. */
+    /**
+     * Parse child {@code <Point x="..." y="..."/>} elements inside a {@code <Series>}.
+     */
     private static double[][] parseSeriesChildPoints(PageCompiler compiler, LytErrorSink errorSink,
         MdxJsxElementFields seriesEl) {
         List<Double> xs = new ArrayList<>();

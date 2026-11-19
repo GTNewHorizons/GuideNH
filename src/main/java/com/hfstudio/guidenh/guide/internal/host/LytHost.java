@@ -203,23 +203,9 @@ public class LytHost {
     }
 
     /**
-     * Two-phase MOUNT dispatch:
-     * <p>
-     * <strong>Phase 1 (sync):</strong> walk the entire tree and execute
-     * every synchronous script immediately. This guarantees that all
-     * setup and initialization work (e.g. establishing CURRENT_SCENE,
-     * compiling child elements) is finished before any asynchronous
-     * work begins.
-     * <p>
-     * <strong>Phase 2 (async):</strong> walk the tree a second time and
-     * queue every asynchronous script as a {@link MaterializeTask} for
-     * execution on subsequent ticks (see {@link #step}).
-     * <p>
-     * Within each phase the original document order (parent before children)
-     * is preserved. The node-level result cache is consulted: if a node
-     * already has a cached result from a previous mount, the cached content
-     * is restored directly and the script is skipped in <em>both</em>
-     * phases.
+     * Runs synchronous mount scripts before queueing asynchronous materialization, preserving
+     * parent-before-child order in each pass. Cached node results are restored without running scripts in
+     * either pass.
      */
     private void dispatchMountEvents(LytNode node) {
         dispatchPhase(node, false); // Phase 1: sync scripts only
@@ -348,16 +334,7 @@ public class LytHost {
     }
 
     /**
-     * Dispatch a single script in the given phase.
-     * <ul>
-     * <li>If the node has a cached result from a previous mount, the
-     * cached content is restored directly and the script is skipped
-     * entirely (both phases).
-     * <li>In the <em>sync</em> phase ({@code asyncPhase == false}), only
-     * non-async scripts are executed synchronously.
-     * <li>In the <em>async</em> phase ({@code asyncPhase == true}), only
-     * async scripts are enqueued as {@link MaterializeTask}s.
-     * </ul>
+     * Restores cached content, or executes/queues the script only in its synchronous/asynchronous pass.
      */
     private void dispatchScriptInPhase(LytScript script, Object node, boolean asyncPhase) {
         String nodeUid = nodeUidOf(node);
@@ -492,7 +469,9 @@ public class LytHost {
         taskQueue.addLast(task);
     }
 
-    /** Recursively dispatch MOUNT events into a detached subtree. */
+    /**
+     * Recursively dispatch MOUNT events into a detached subtree.
+     */
     public void dispatchToSubtree(LytNode root) {
         allocateNodeUids(root);
         registerDetailsMountHandlers(root);

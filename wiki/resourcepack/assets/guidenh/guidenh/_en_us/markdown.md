@@ -120,6 +120,25 @@ Press <kbd>Shift</kbd> + <sub>1</sub>
 
 <a href="./index.md" title="Open index">Back to index</a><br clear="all" />
 
+## Amount formatting
+
+`<Amount>` defaults to a suffix-free number. Registered unit families can add their own display rules; `fluid` follows GTNHLib's `mB`/`L` preference.
+
+| Attribute | Meaning |
+| --- | --- |
+| `value` | required finite decimal value |
+| `unit` | optional `none`, `item`, or `fluid`; defaults to `none` |
+| `format` | optional number format; defaults to `default` |
+| `decimals` | optional non-negative maximum fractional digits |
+
+```md
+<Amount value="250" unit="fluid" />/s
+<Amount value="1200000" unit="fluid" format="compact" />/s
+```
+
+<Amount value="250" unit="fluid" />/s
+<Amount value="1200000" unit="fluid" format="compact" />/s
+
 ## Headings
 
 Headings can be defined by prefixing them with `#`.
@@ -222,6 +241,9 @@ Result:
 </Column>
 
 ## Tables
+
+For copy-ready examples of column spans, row spans, multiline cells, headerless tables, cell IAL attributes, and full HTML tables, see [Markdown Table Extensions](./markdown-table.md). The same syntax is available in the game, Web Editor, and Site Export.
+
 
 Markdown:
 
@@ -587,6 +609,12 @@ docs
 </FileTree>
 ```
 
+## Function Graphs
+
+<Function expr="sin(x)" xRange="-pi..pi" yRange="-2..2" />
+
+See [Function Graphs](./function-graph.md) for panel, curve, and point attributes.
+
 ## Mermaid Mindmaps
 
 Inline Mermaid fence:
@@ -657,19 +685,3 @@ Flowchart showcase featuring all shapes, extended properties, icons, and a recip
 Footnote ref[^one]
 
 [^one]: tooltip text for the footnote
-
-## Amount formatting
-
-`<Amount>` defaults to a suffix-free number. Registered unit families can add their own display rules; `fluid` follows GTNHLib's `mB`/`L` preference.
-
-```md
-<Amount value="250" unit="fluid" />/s
-<Amount value="1200000" unit="fluid" format="compact" />/s
-```
-
-<Amount value="250" unit="fluid" />/s
-<Amount value="1200000" unit="fluid" format="compact" />/s
-
-## Extended table reference
-
-For copy-ready examples of column spans, row spans, multiline cells, headerless tables, cell IAL attributes, and full HTML tables, see [Markdown Table Extensions](./markdown-table.md). The same syntax is available in the game, Web Editor, and Site Export.

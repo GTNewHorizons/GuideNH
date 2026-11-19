@@ -9,7 +9,7 @@ categories:
 
 # 场景粒子
 
-GuideNH 现在支持两条粒子编写链路：
+GuideNH 支持两种粒子编写方式：
 
 1. 在 `<GameScene>` 里使用静态 `<Particle>`
 2. 在 `<GameScene>` 里使用静态 `<Weather>`

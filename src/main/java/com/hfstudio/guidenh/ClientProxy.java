@@ -142,7 +142,6 @@ public class ClientProxy extends CommonProxy {
         MasterScheduler.getInstance()
             .submit(new ElkWarmupWorkItem());
 
-        // Phase 3: LytScript registrations
         lytHost.registerScript("CommandLink", new CommandLinkScript());
         lytHost.registerScript("Img", new ImageScript());
         lytHost.registerScript("FloatingImage", new FloatingImageScript());
@@ -162,11 +161,9 @@ public class ClientProxy extends CommonProxy {
         lytHost.registerScript("Mermaid", new MermaidScript());
         lytHost.registerScript("QuestLink", new QuestLinkScript());
         lytHost.registerScript("QuestCard", new QuestCardScript());
-        // Phase 3: SceneScript handles Scene and GameScene
         SceneScript sceneScript = new SceneScript();
         lytHost.registerScript("Scene", sceneScript);
         lytHost.registerScript("GameScene", sceneScript);
-        // Phase 3: RecipeScript handles Recipe, Usage, RecipeFor, RecipeUsage, RecipesFor, RecipesUsage
         RecipeScript recipeScript = new RecipeScript();
         lytHost.registerScript("Recipe", recipeScript);
         lytHost.registerScript("Usage", recipeScript);
@@ -235,9 +232,8 @@ public class ClientProxy extends CommonProxy {
     }
 
     /**
-     * WorldClient is reachable from tile entities, entities, RenderBlocks, and the preview
-     * player. Clear all GuideNH-owned links at both lifecycle boundaries; the operation is
-     * intentionally idempotent because Forge can emit unload and disconnect in either order.
+     * Releases client references to preview worlds on unload and disconnect. Idempotent because Forge may emit
+     * either event first.
      */
     private static void clearClientRuntimeState(String reason) {
         if (!GuideNhClientTaskScheduler.isOnClientThread()) {

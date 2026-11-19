@@ -1,10 +1,13 @@
 package com.hfstudio.guidenh.guide.internal.screen;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Predicate;
 
 import net.minecraft.util.ResourceLocation;
 
@@ -70,7 +73,9 @@ public class GuideNavProjection {
         BOOKMARK_GROUP,
         BOOKMARK_PAGE,
         TREE_PAGE,
-        /** The collapsible section the guide editor appends below the tree, holding every template page. */
+        /**
+         * The collapsible section the guide editor appends below the tree, holding every template page.
+         */
         TEMPLATE_GROUP,
         TEMPLATE_PAGE
     }
@@ -144,19 +149,32 @@ public class GuideNavProjection {
             row -> row.pageId() != null ? row.pageId()
                 .toString() : "");
 
+    @Nullable
+    private NavigationTree cachedBookmarkTree;
+    @Nullable
+    private GuideBookmarkState cachedBookmarkState;
+    private int cachedBookmarkVersion = -1;
+    private List<DisplayRow> cachedBookmarkRows = List.of();
+
     public ProjectionResult project(@Nullable NavigationTree tree, GuideBookmarkState bookmarkState,
         Set<NavigationNode.Key> expandedTreeNodeKeys, boolean bookmarkGroupExpanded) {
+        return project(tree, bookmarkState, expandedTreeNodeKeys, bookmarkGroupExpanded, null);
+    }
+
+    public ProjectionResult project(@Nullable NavigationTree tree, GuideBookmarkState bookmarkState,
+        Set<NavigationNode.Key> expandedTreeNodeKeys, boolean bookmarkGroupExpanded,
+        @Nullable Predicate<String> titleFilter) {
         if (tree == null) {
             return new ProjectionResult(List.of());
         }
 
         var rows = new ArrayList<ProjectedRow>();
-        if (!bookmarkState.isEmpty()) {
-            var validPageIds = collectValidPageIds(tree);
-            bookmarkState.pruneInvalid(validPageIds);
+        List<DisplayRow> bookmarkRows = getBookmarkRows(tree, bookmarkState);
+        if (titleFilter != null) {
+            bookmarkRows = bookmarkRows.stream()
+                .filter(row -> titleFilter.test(row.title()))
+                .toList();
         }
-
-        var bookmarkRows = buildBookmarkRows(tree, bookmarkState);
         if (!bookmarkRows.isEmpty()) {
             var bookmarkGroupRow = appendRow(
                 rows,
@@ -170,7 +188,7 @@ public class GuideNavProjection {
                     true,
                     false),
                 -1);
-            if (bookmarkGroupExpanded) {
+            if (bookmarkGroupExpanded || titleFilter != null) {
                 for (DisplayRow bookmarkRow : bookmarkRows) {
                     appendRow(rows, bookmarkRow, bookmarkGroupRow.rowIndex());
                 }
@@ -178,22 +196,56 @@ public class GuideNavProjection {
             bookmarkGroupRow.setSubtreeEndRowIndexExclusive(rows.size());
         }
 
+        Set<NavigationNode> matchingNodes = null;
+        if (titleFilter != null) {
+            matchingNodes = Collections.newSetFromMap(new IdentityHashMap<>());
+            for (var root : tree.getRootNodes()) {
+                collectMatchingNodes(root, titleFilter, matchingNodes);
+            }
+        }
         for (var root : tree.getRootNodes()) {
-            addTreeRows(rows, root, 0, expandedTreeNodeKeys, -1);
+            addTreeRows(rows, root, 0, expandedTreeNodeKeys, -1, matchingNodes);
         }
         return new ProjectionResult(rows);
     }
 
+    private List<DisplayRow> getBookmarkRows(NavigationTree tree, GuideBookmarkState bookmarkState) {
+        int bookmarkVersion = bookmarkState.version();
+        if (cachedBookmarkTree == tree && cachedBookmarkState == bookmarkState
+            && cachedBookmarkVersion == bookmarkVersion) {
+            return cachedBookmarkRows;
+        }
+        if (!bookmarkState.isEmpty()) {
+            var validPageIds = collectValidPageIds(tree);
+            bookmarkState.pruneInvalid(validPageIds);
+        }
+        var bookmarkRows = buildBookmarkRows(tree, bookmarkState);
+        cachedBookmarkRows = List.copyOf(bookmarkRows);
+        cachedBookmarkTree = tree;
+        cachedBookmarkState = bookmarkState;
+        cachedBookmarkVersion = bookmarkState.version();
+        return cachedBookmarkRows;
+    }
+
     /**
-     * Appends the template section below the tree. The guide editor uses it so a template can be opened and
-     * edited in game without leaving the guide, which is why it is driven by an explicit flag rather than by
-     * the tree: templates have pages, but the tree shows them only where the pack filed them.
+     * Appends editor-only template pages. This section is independent of where the pack places templates in
+     * its navigation tree.
      *
-     * @param templatePages         the template pages to list, already resolved and ordered
-     * @param templateGroupExpanded whether the section is open
+     * @param templatePages         resolved pages in display order
+     * @param templateGroupExpanded whether the section is expanded
      */
     public ProjectionResult withTemplates(ProjectionResult base, List<DisplayRow> templatePages,
         boolean templateGroupExpanded) {
+        return withTemplates(base, templatePages, templateGroupExpanded, null);
+    }
+
+    public ProjectionResult withTemplates(ProjectionResult base, List<DisplayRow> templatePages,
+        boolean templateGroupExpanded, @Nullable Predicate<String> titleFilter) {
+        if (titleFilter != null) {
+            templatePages = templatePages.stream()
+                .filter(row -> titleFilter.test(row.title()))
+                .toList();
+        }
         if (templatePages.isEmpty()) {
             return base;
         }
@@ -202,7 +254,7 @@ public class GuideNavProjection {
             rows,
             new DisplayRow(RowKind.TEMPLATE_GROUP, 0, GuidebookText.Templates.text(), null, null, null, true, false),
             -1);
-        if (templateGroupExpanded) {
+        if (templateGroupExpanded || titleFilter != null) {
             for (DisplayRow templateRow : templatePages) {
                 appendRow(rows, templateRow, groupRow.rowIndex());
             }
@@ -260,7 +312,15 @@ public class GuideNavProjection {
     }
 
     private void addTreeRows(List<ProjectedRow> rows, NavigationNode node, int depth,
-        Set<NavigationNode.Key> expandedTreeNodeKeys, int parentRowIndex) {
+        Set<NavigationNode.Key> expandedTreeNodeKeys, int parentRowIndex, @Nullable Set<NavigationNode> matchingNodes) {
+        if (matchingNodes != null && !matchingNodes.contains(node)) {
+            return;
+        }
+        boolean hasChildren = matchingNodes == null ? !node.children()
+            .isEmpty()
+            : node.children()
+                .stream()
+                .anyMatch(matchingNodes::contains);
         ProjectedRow row = appendRow(
             rows,
             new DisplayRow(
@@ -270,16 +330,27 @@ public class GuideNavProjection {
                 node.icon(),
                 node.guideId(),
                 node.pageId(),
-                !node.children()
-                    .isEmpty(),
+                hasChildren,
                 node.hasPage()),
             parentRowIndex);
         NavigationNode.Key nodeKey = node.key();
-        if (nodeKey != null && expandedTreeNodeKeys.contains(nodeKey)) {
+        if (matchingNodes != null || nodeKey != null && expandedTreeNodeKeys.contains(nodeKey)) {
             for (var child : node.children()) {
-                addTreeRows(rows, child, depth + 1, expandedTreeNodeKeys, row.rowIndex());
+                addTreeRows(rows, child, depth + 1, expandedTreeNodeKeys, row.rowIndex(), matchingNodes);
             }
         }
         row.setSubtreeEndRowIndexExclusive(rows.size());
+    }
+
+    private boolean collectMatchingNodes(NavigationNode node, Predicate<String> titleFilter,
+        Set<NavigationNode> matchingNodes) {
+        boolean matches = titleFilter.test(node.title());
+        for (NavigationNode child : node.children()) {
+            matches |= collectMatchingNodes(child, titleFilter, matchingNodes);
+        }
+        if (matches) {
+            matchingNodes.add(node);
+        }
+        return matches;
     }
 }

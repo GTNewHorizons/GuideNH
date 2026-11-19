@@ -1,5 +1,7 @@
 package com.hfstudio.guidenh.guide.internal.syntax;
 
+import java.util.List;
+
 import com.hfstudio.guidenh.guide.compiler.tags.PreCompiler;
 import com.hfstudio.guidenh.guide.document.block.AlignItems;
 import com.hfstudio.guidenh.guide.document.block.chart.ChartLabelPosition;
@@ -813,6 +815,12 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
             AttributeSyntax.of("pos", SyntaxValueKind.VECTOR3));
 
         sink.attributes("BlockAnnotationTemplate", AttributeSyntax.of("id", SyntaxValueKind.STRING));
+        for (String tag : List.of("BlockAnnotation", "BoxAnnotation", "OutlineAnnotation")) {
+            sink.attributes(
+                tag,
+                AttributeSyntax.of("colorMode", SyntaxValueKind.ENUM, "solid", "rainbow"),
+                AttributeSyntax.of("colorPeriod", SyntaxValueKind.FLOAT));
+        }
 
         sink.attributes(
             "PlaySound",
@@ -873,7 +881,9 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
         registerCrossCuttingAttributes(sink);
     }
 
-    /** Attributes that are read by shared parsers or written back by the scene editor rather than by a single tag. */
+    /**
+     * Attributes that are read by shared parsers or written back by the scene editor rather than by a single tag.
+     */
     private static void registerCrossCuttingAttributes(SyntaxSink sink) {
         sink.attributes("Recipe", RECIPE_INDEX);
         sink.attributes("RecipeFor", RECIPE_INDEX);
@@ -1101,7 +1111,9 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
         contributeValueSources(sink);
     }
 
-    /** Declares the layout attributes that {@code BlockTagCompiler} applies to every block tag. */
+    /**
+     * Declares the layout attributes that {@code BlockTagCompiler} applies to every block tag.
+     */
     private static void registerBlockLayoutAttributes(SyntaxSink sink) {
         sink.attributes("details", LAYOUT_WRAP, LAYOUT_ALIGN, LAYOUT_FLOAT);
         sink.attributes("ContentTabs", LAYOUT_WRAP, LAYOUT_ALIGN, LAYOUT_FLOAT);
@@ -1133,7 +1145,9 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
         sink.attributes("Special", LAYOUT_WRAP, LAYOUT_ALIGN, LAYOUT_FLOAT);
     }
 
-    /** Declares the StructureLib options, which are read from {@code <ImportStructureLib>} and its children. */
+    /**
+     * Declares the StructureLib options, which are read from {@code <ImportStructureLib>} and its children.
+     */
     private static void registerStructureLibAttributes(SyntaxSink sink) {
         sink.attributes(
             "ImportStructureLib",

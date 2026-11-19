@@ -191,10 +191,7 @@ class ScriptContextImpl implements ScriptContext {
     }
 
     /**
-     * When a node is replaced, the new node must carry the old node's UID so
-     * that the node-level result cache ({@link LytHost#recordNodeResult}) can
-     * find it on remount. Without this, the replacement gets a fresh UID on the
-     * next {@code allocateNodeUids} pass and all prior cache entries are orphaned.
+     * Preserves a replaced node's UID so LytHost can restore its materialization result on remount.
      */
     private static void inheritUid(Object oldNode, Object newNode) {
         String uid = null;

@@ -20,8 +20,7 @@ public class TreePrinter {
     private static final String BRANCH_SPACE = "    ";
 
     /**
-     * Print document tree to log output.
-     * More efficient than System.out.println as it uses logger infrastructure.
+     * Logs the document tree through the GuideNH logger.
      */
     public static void printDocumentTree(LytDocument document) {
         if (document == null) {

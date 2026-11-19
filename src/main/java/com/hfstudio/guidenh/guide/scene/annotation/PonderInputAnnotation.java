@@ -28,14 +28,22 @@ import lombok.Getter;
  */
 public class PonderInputAnnotation extends OverlayAnnotation {
 
-    /** The type of input gesture to display. */
+    /**
+     * The type of input gesture to display.
+     */
     public enum InputType {
 
-        /** Left mouse button. Sprite at x=0, y=64 in ponder_widgets.png. */
+        /**
+         * Left mouse button. Sprite at x=0, y=64 in ponder_widgets.png.
+         */
         LMB(0, 64),
-        /** Scroll wheel. Sprite at x=16, y=64 in ponder_widgets.png. */
+        /**
+         * Scroll wheel. Sprite at x=16, y=64 in ponder_widgets.png.
+         */
         SCROLL(16, 64),
-        /** Right mouse button. Sprite at x=32, y=64 in ponder_widgets.png. */
+        /**
+         * Right mouse button. Sprite at x=32, y=64 in ponder_widgets.png.
+         */
         RMB(32, 64);
 
         public final int srcX;

@@ -159,7 +159,7 @@ A page's own `handlerBlacklist` is added to the configured one, so a page can hi
 
 **Ore dictionary `ore` attribute:**
 
-- First match item: <ItemImage ore="ingotIron" /> iron ingot via ore name
+- First match item: <ItemImage id="minecraft:iron_ingot" ore="ingotIron" /> iron ingot via ore name
 - First match text link: <ItemLink ore="stickWood" />
 - Block preview: <BlockImage ore="logWood" scale="3" />
 - `ore` takes precedence over `id`: <ItemImage id="minecraft:apple" ore="gemDiamond" />

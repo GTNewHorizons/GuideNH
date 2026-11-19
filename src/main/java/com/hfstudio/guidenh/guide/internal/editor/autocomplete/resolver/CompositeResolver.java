@@ -8,7 +8,9 @@ import org.jetbrains.annotations.Nullable;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.SyntaxContextResolver;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.TextSyntaxContext;
 
-/** Chains multiple resolvers; first non-null result wins. */
+/**
+ * Chains multiple resolvers; first non-null result wins.
+ */
 public class CompositeResolver implements SyntaxContextResolver {
 
     private final List<SyntaxContextResolver> chain;

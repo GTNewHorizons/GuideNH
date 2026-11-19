@@ -113,6 +113,16 @@ navigation:
 <RecipesFor id="minecraft:redstone_torch" input="minecraft:stick&minecraft:redstone" limit="1" />
 ````
 
+### Форматирование количества
+
+Используйте `<Amount>` для количеств. Единицу можно не указывать: по умолчанию отображается только число; `fluid` следует настройке `mB`/`L` из GTNHLib.
+
+````md
+<Amount value="250" />
+<Amount value="250" unit="fluid" />/s
+<Amount value="1200000" format="compact" /> items
+````
+
 ## Когда какой пример использовать
 
 - начните с `markdown.md`, если вы проверяете основы синтаксического анализатора.
@@ -128,13 +138,3 @@ navigation:
 4. [GameScene](GameScene)
 5. [Аннотации](Annotations)
 6. [Рецепты](Recipes)
-
-### Форматирование количества
-
-Используйте `<Amount>` для количеств. Единицу можно не указывать: по умолчанию отображается только число; `fluid` следует настройке `mB`/`L` из GTNHLib.
-
-````md
-<Amount value="250" />
-<Amount value="250" unit="fluid" /> L/s
-<Amount value="1200000" format="compact" /> items
-````

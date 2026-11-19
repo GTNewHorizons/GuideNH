@@ -12,6 +12,7 @@ GuideNH scena Adnotacje są element podrzędny tagi wewnątrz `<GameScene>` / `<
 - Adnotacje może be ukryty z  scena UI toggle
 - `alwaysOnTop` rysuje nad scena geometrią gdy Obsługiwane by  adnotacja Typ
 - wszystkie scena Adnotacje także akceptują opcjonalny `showWhenStructure`, `showWhenTier`, i `showWhenChannels` warunki gdy  scena używa `<ImportStructureLib>`
+- Gra i Site Export używają tego samego gradientu tęczy i czasu cyklu.
 
 ## Obsługiwane tagi adnotacji
 
@@ -68,8 +69,11 @@ Wyróżnia pojedynczą objętość bloku 1x1x1.
 | --- | --- | --- |
 | `pos` | yes | `x y z` wektor |
 | `color` | no | `#RRGGBB`, `#AARRGGBB`, lub `transparent` |
+| `colorMode` | no | `solid` (domyślnie) lub `rainbow`; tęcza obraca się o 360° wokół rzutowanego środka, zastępuje RGB i zachowuje alfę `color` |
+| `colorPeriod` | no | dodatni, skończony okres tęczy w sekundach; domyślnie `2.4`; błędne wartości powodują błąd strony |
 | `thickness` | no | grubość linii liczba zmiennoprzecinkowa |
 | `alwaysOnTop` | no | wartość logiczna wyrażenie |
+
 
 Przykład:
 
@@ -77,6 +81,7 @@ Przykład:
 <BlockAnnotation pos="2 0 2" color="#33DDEE" alwaysOnTop={true}>
   Wyróżnia blok kontrolera.
 </BlockAnnotation>
+<BlockAnnotation pos="4 0 2" color="#80FFFFFF" colorMode="rainbow" colorPeriod="4.8" />
 ````
 
 ## `<BoxAnnotation>`
@@ -88,8 +93,11 @@ Wyróżnia dowolne pudełko ustawione wzdłuż osi.
 | `min` | yes | `x y z` minimum wektor |
 | `max` | yes | `x y z` maximum wektor |
 | `color` | no | adnotacja kolor |
+| `colorMode` | no | `solid` (domyślnie) lub `rainbow`; tęcza obraca się o 360° wokół rzutowanego środka, zastępuje RGB i zachowuje alfę `color` |
+| `colorPeriod` | no | dodatni, skończony okres tęczy w sekundach; domyślnie `2.4`; błędne wartości powodują błąd strony |
 | `thickness` | no | grubość linii liczba zmiennoprzecinkowa |
 | `alwaysOnTop` | no | wartość logiczna wyrażenie |
+
 
 GuideNH automatycznie swaps min/max współrzędne per oś gdy jeden są provided in reverse kolejność.
 
@@ -99,6 +107,7 @@ Przykład:
 <BoxAnnotation min="0 1 0" max="1 1.6 0.6" color="#EE3333" thickness="0.04">
   Podświetlenie obszaru o połowie wysokości.
 </BoxAnnotation>
+<BoxAnnotation min="2 0 0" max="4 1.5 0.5" color="#80FFFFFF" colorMode="rainbow" colorPeriod="2.4" />
 ````
 
 ## `<LineAnnotation>`
@@ -176,10 +185,13 @@ Rysuje świecący kontur sylwetki wokół bloków i bytów, podobnie jak efekt B
 | `target` | nie | `blocks` (domyślnie), `entities` lub `all`: co jest obrysowywane w obszarze; `entities` bez obszaru obrysowuje wszystkie byty |
 | `mode` | nie | `auto` (domyślnie), `geometry`, `cutout` lub `bounds` |
 | `color` | nie | kolor konturu; pominięty oznacza biały lub kolor drużyny z tablicy wyników dla bytów |
+| `colorMode` | nie | `solid` (domyślnie) lub `rainbow`; tęcza obraca się o 360° wokół rzutowanego środka, zastępuje RGB i zachowuje alfę `color` |
+| `colorPeriod` | nie | dodatni, skończony okres tęczy w sekundach; domyślnie `2.4`; błędne wartości powodują błąd strony |
 | `thickness` | nie | szerokość konturu w pikselach GUI, od `0.25` do `8`, domyślnie `1` |
 | `alwaysOnTop` | nie | wyrażenie logiczne; zasłonięte części zachowują pełną jasność zamiast zostać przyciemnione |
 | `pulse` | nie | wyrażenie logiczne; kontur pulsuje jak oddech |
 | `pulsePeriod` | nie | okres pulsowania w sekundach, domyślnie `2` |
+
 
 Tryby sylwetki:
 
@@ -209,7 +221,7 @@ Przykład:
   <OutlineAnnotation pos="0 0 0" color="#55FFFF">
     Szkło jest obrysowywane jako pełny sześcian.
   </OutlineAnnotation>
-  <OutlineAnnotation pos="2 0 0" color="#FFFF55" thickness="1.5" />
+  <OutlineAnnotation pos="2 0 0" color="#80FFFFFF" colorMode="rainbow" colorPeriod="2.4" thickness="1.5" />
   <OutlineAnnotation entity="sheep" color="#FFAA00" alwaysOnTop={true} pulse={true} />
 </GameScene>
 ````

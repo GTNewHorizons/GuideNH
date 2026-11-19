@@ -15,12 +15,16 @@ import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
  */
 public interface OutlineTargetDrawer {
 
-    /** Renders static block models of both render passes with all faces enabled. */
+    /**
+     * Renders static block models of both render passes with all faces enabled.
+     */
     void drawBlocks(GuidebookLevel level, List<int[]> blocks);
 
     void drawTileEntity(TileEntity tile, float partialTicks);
 
-    /** Renders the entity model only, without shadow, fire or name plate, and ignoring invisibility. */
+    /**
+     * Renders the entity model only, without shadow, fire or name plate, and ignoring invisibility.
+     */
     void drawEntity(Entity entity, float partialTicks);
 
     default void draw(GuidebookLevel level, OutlineTargetSet targets, float partialTicks, Runnable beforeTarget) {

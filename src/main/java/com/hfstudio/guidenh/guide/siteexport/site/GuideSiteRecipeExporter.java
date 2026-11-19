@@ -18,7 +18,9 @@ import com.hfstudio.guidenh.integration.nei.NeiRecipeLookup;
 
 public class GuideSiteRecipeExporter {
 
-    /** NEI slot chrome is commonly {@code 18脳18} pixels; vanilla/GT handlers draw {@code 16脳16} items inset by 1px. */
+    /**
+     * NEI slots are 18 by 18 GUI pixels; vanilla and GT item icons are 16 by 16 with a one-pixel inset.
+     */
     public static final int NEI_SLOT_GUI_PIXELS = 18;
 
     @Nullable
@@ -194,10 +196,8 @@ public class GuideSiteRecipeExporter {
             double topPct;
             if (usePhase1Canvas) {
                 /*
-                 * PNG viewport is HandlerInfo WxH plus symmetric VIEWPORT_MARGIN_PX 鈥?same inset as Phase1 translate(m,
-                 * yShift+m).
-                 * GT/ModularUI nine-patch bezel can extend a few px past the nominal body; relying on HandlerInfo alone
-                 * clips edges.
+                 * Match the raster background margin and Y shift. GT/ModularUI bezels can extend beyond HandlerInfo
+                 * bounds.
                  */
                 int phase1YShift = phase1BodyYShiftPx != null ? phase1BodyYShiftPx : 0;
                 int m = GuideSiteNeiPhase1BackgroundExporter.VIEWPORT_MARGIN_PX;
@@ -274,7 +274,9 @@ public class GuideSiteRecipeExporter {
         }
     }
 
-    /** Item icons for one slot (cycling markers when {@code stacks.size()>1}); outer box is callers' responsibility. */
+    /**
+     * Item icons for one slot (cycling markers when {@code stacks.size()>1}); outer box is callers' responsibility.
+     */
     private void appendSlotContents(StringBuilder html, List<GuideSiteExportedItem> safeCandidates) {
         for (int i = 0; i < safeCandidates.size(); i++) {
             int beforeIcon = html.length();

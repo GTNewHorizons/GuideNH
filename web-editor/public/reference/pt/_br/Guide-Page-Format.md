@@ -182,7 +182,9 @@ gold,17
 ```
 ````
 
-## Dicas de largura para tabelas Markdown
+## Tabelas Markdown
+
+### Largura das colunas
 
 Ordinary GFM Markdown tabelas pode também fornecer execução coluna largura hints by adding Uma trailing execução Atributo linha immediately depois de O tabela:
 
@@ -196,7 +198,25 @@ Ordinary GFM Markdown tabelas pode também fornecer execução coluna largura hi
 
 Este keeps O tabela itself padrão Markdown enquanto letting GuideNH apply execução-somente preferido coluna widths.
 
-## HTML Tables
+### Células mescladas e atributos
+
+- Um `|` extra após a célula ocupa mais uma coluna: `||` mescla duas colunas e `|||` mescla três.
+- Uma célula iniciada por `^^` é mesclada com a de cima; o conteúdo é acrescentado em uma nova linha.
+- Dois-pontos nas bordas controlam o alinhamento: `: esquerda`, `direita :`, `: centro :`.
+- Um IAL final (`{: ... }`) define `color`, `background` / `bgcolor`, `style` seguro, `align`, `valign`, `id` ou `class`. `{:name: ...}` define atributos reutilizáveis. CSS inseguro e URLs externas são ignorados.
+- Um `\` no fim continua a linha na próxima linha física. Uma linha delimitadora inicial (`|--|--|`) cria uma tabela sem cabeçalho.
+- As células aceitam Markdown e MDX em linha, incluindo links, imagens, ênfase e LaTeX. HTML também aceita `<thead>`, `<tbody>` e `<tfoot>`.
+
+```markdown
+{:warning: style="background: #4b2418; color: #ffd8c2; font-weight: bold"}
+| Stage | Products | Notes |
+| --- | --- | --- |
+| : First stage : | 2 ATP ||
+| ^^ Next step | 3 ATP | {: warning } |
+| Total ||| {: style="text-align: right; background: #26364d"}
+```
+
+### Tabelas HTML
 
 HTML tables support captions, column groups, semantic row groups, merged cells, and alignment. `col` accepts pixel `width`; `span` repeats a width. `th` and `td` support `colspan`, `rowspan`, and `align`; `th` supports `scope`:
 
@@ -538,32 +558,3 @@ Se Uma página fails para analisar, GuideNH cria Um erro página em vez disso of
 - [Navigation](Navigation)
 - [Images And Assets](Images-And-Assets)
 - [Tags Reference](Tags-Reference)
-
-### Markdown table spans and cell attributes
-
-GuideNH extends GFM tables with the same compact span notation used by jekyll-spaceship:
-
-- Add one extra `|` after a cell for each additional column it occupies. `||` therefore means `colspan="2"`, and `|||` means `colspan="3"`.
-- Start a cell with `^^` to continue the cell directly above it. The content is appended with a line break and the original cell receives a larger `rowspan`.
-- A cell can use edge colons for alignment (`: left`, `right :`, or `: centered :`).
-- A trailing IAL (`{: ... }`) applies safe attributes to that cell. Supported properties are `color`, `background`/`bgcolor`, `style` (color, background, font-weight, text-decoration, and alignment declarations), `align`, `valign`, `id`, and `class`.
-- Reusable IAL definitions use `{:name: ...}` on their own line and can be referenced from a cell IAL. Unsafe CSS and external URLs are ignored.
-
-```markdown
-{:warning: style="background: #4b2418; color: #ffd8c2; font-weight: bold"}
-| Stage | Products | Notes |
-| --- | --- | --- |
-| : Glycolysis : | 2 ATP ||
-| ^^ A. Peach | 3 ATP | {: warning } |
-| Final total ||| {: style="text-align: right; background: #26364d"}
-```
-
-The syntax remains ordinary Markdown when the extension is not available: extra empty cells are harmless, while `^^` and IAL text stay visible. HTML tables remain supported for complex headers and explicit `rowspan`/`colspan` attributes.
-### Extended Markdown table syntax
-
-GuideNH also supports the jekyll-spaceship table extensions in every preview:
-
-- End a physical row with `\` to append the next physical row to the same cells; each part is rendered on a new line.
-- Use a delimiter row as the first row (`|--|--|`) for a headerless table. Its rows remain data rows and are not bolded.
-- Cell contents keep normal GuideNH Markdown and MDX inline syntax, including links, images, emphasis, and LaTeX.
-- Use HTML `<thead>`, `<tbody>`, and `<tfoot>` when explicit row groups are needed.

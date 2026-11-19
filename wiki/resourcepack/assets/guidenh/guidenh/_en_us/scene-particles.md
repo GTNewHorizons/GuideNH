@@ -9,7 +9,7 @@ categories:
 
 # Scene Particles
 
-GuideNH now supports two particle authoring paths:
+GuideNH supports two particle authoring paths:
 
 1. Static scene particles through `<Particle>` inside `<GameScene>`
 2. Static scene weather through `<Weather>` inside `<GameScene>`

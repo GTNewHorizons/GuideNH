@@ -58,6 +58,8 @@ Activated beacon - 3x3 diamond block base, beacon on top; marker tooltip contain
 All three support `color="#AARRGGBB" or "#RRGGBB"`, `thickness` in pixel units (default `1`), and `alwaysOnTop` to draw above other geometry. Children are used as a rich-text hover tooltip.
 `LineAnnotation` can also render a 3D arrow at `arrow="start"` or `arrow="end"`. Point cubes are hidden by default; enable all of them with `showPoints={true}`, or configure individual points with `<LinePoint index="..." show color="#RRGGBB" size="..."/>`.
 
+`BoxAnnotation` and `BlockAnnotation` also accept `colorMode="solid"` (default) or `colorMode="rainbow"`. Rainbow rotates through 360° around the projected center, replacing RGB while preserving the alpha of `color`. `colorPeriod` is a positive finite period in seconds, default `2.4`. Game and Site Export use the same rule.
+
 <GameScene width="384" height="224" zoom={4} interactive={true}>
   <Block id="minecraft:iron_block" />
   <Block id="minecraft:iron_block" x="1" />
@@ -84,7 +86,7 @@ All three support `color="#AARRGGBB" or "#RRGGBB"`, `thickness` in pixel units (
   <LineAnnotation color="#ffd24c" from="0.5 1.2 0.5" to="2.5 1.2 2.5" thickness="0.08">
     **Line annotation**: a slightly thicker line (`thickness=0.08`). Tooltips can embed a 3D preview:
 
-    <GameScene width="160" height="96" zoom={5} perspective="isometric_north_east" interactive={false}>
+    <GameScene width="160" height="96" zoom={5} perspective="isometric-north-east" interactive={false}>
       <Block id="minecraft:iron_block" />
       <Block id="minecraft:gold_block" x="1" />
       <DiamondAnnotation pos="0.5 1.2 0.5" color="#ffd24c">Endpoint A</DiamondAnnotation>
@@ -104,11 +106,31 @@ All three support `color="#AARRGGBB" or "#RRGGBB"`, `thickness` in pixel units (
   </LineAnnotation>
 </GameScene>
 
+Compare a translucent wide, shallow box with a full block; their cycle periods are `2.4` and `4.8` seconds:
+
+```mdx
+<GameScene width="384" height="224" zoom={3} interactive={true}>
+  <Block id="minecraft:iron_block" />
+  <Block id="minecraft:glass" x="3" />
+  <BoxAnnotation min="0 1 0" max="2 1.5 0.5" color="#80FFFFFF" colorMode="rainbow" colorPeriod="2.4" thickness="2" />
+  <BlockAnnotation pos="3 0 0" colorMode="rainbow" colorPeriod="4.8" />
+</GameScene>
+```
+
+<GameScene width="384" height="224" zoom={3} interactive={true}>
+  <Block id="minecraft:iron_block" />
+  <Block id="minecraft:glass" x="3" />
+  <BoxAnnotation min="0 1 0" max="2 1.5 0.5" color="#80FFFFFF" colorMode="rainbow" colorPeriod="2.4" thickness="2" />
+  <BlockAnnotation pos="3 0 0" colorMode="rainbow" colorPeriod="4.8" />
+</GameScene>
+
 ## Outline Annotation
 
 `<OutlineAnnotation>` draws a glow-style contour around blocks and entities. The contour follows the rendered silhouette, stays visible through anything in front of it, and merges with touching outlines into one shape. Target a block with `pos`, a block region with inclusive `min` / `max` corners, or an entity with `entity="sceneEntityId"`; `target="entities"` or `target="all"` also outlines the entities inside a region.
 
 Attributes: `color` (white by default, team color for entities), `thickness` in GUI pixels (default `1`), `alwaysOnTop`, `pulse={true}` with an optional `pulsePeriod` in seconds, and `mode` (`auto`, `geometry`, `cutout`, `bounds`). Child content becomes the hover tooltip.
+
+`OutlineAnnotation` accepts the same `colorMode` and `colorPeriod` settings above. Color rotation is independent of `pulse` and works with block, region, entity, and template targets.
 
 With the default `mode="auto"`, closed models use their geometry and sprite-like renders use texture alpha:
 
@@ -125,7 +147,7 @@ With the default `mode="auto"`, closed models use their geometry and sprite-like
   <OutlineAnnotation pos="2 0 0" color="#FF5555">
     **Stained glass**: translucent blocks keep their geometry as well.
   </OutlineAnnotation>
-  <OutlineAnnotation pos="4 0 0" color="#FFFF55">
+  <OutlineAnnotation pos="4 0 0" color="#80FFFFFF" colorMode="rainbow" colorPeriod="2.4">
     **Flower**: crossed sprites follow their texture alpha, not the two quads.
   </OutlineAnnotation>
   <OutlineAnnotation pos="0 0 2" color="#55FF55" />
@@ -150,7 +172,7 @@ Regions and templates merge into one contour; the template outline breathes:
     **Region**: `min` / `max` outlines all six blocks as one shape.
   </OutlineAnnotation>
   <BlockAnnotationTemplate id="minecraft:diamond_block">
-    <OutlineAnnotation color="#FFFF55" pulse={true}>
+    <OutlineAnnotation color="#80FFFFFF" colorMode="rainbow" colorPeriod="4.8" pulse={true}>
       **Template**: every diamond block gets a breathing outline.
     </OutlineAnnotation>
   </BlockAnnotationTemplate>

@@ -17,7 +17,9 @@ import com.hfstudio.guidenh.guide.style.TextAlignment;
 
 public class FlowBuilder {
 
-    /** Sentinel used to force hover-state recalculation after a layout rebuild. */
+    /**
+     * Sentinel used to force hover-state recalculation after a layout rebuild.
+     */
     private static final FlowInteractionPath HOVER_STATE_DIRTY = FlowInteractionPath.fromPrimary(new LytFlowContent());
     private static final FlowInteractionPath EMPTY_PATH = FlowInteractionPath.empty();
 
@@ -28,9 +30,13 @@ public class FlowBuilder {
     // Bounding rectangles for any floats in this flow
     private final List<LineBlock> floats = new ArrayList<>();
 
-    /** Tracks the last hovered content so element hover flags are only recalculated on changes. */
+    /**
+     * Tracks the last hovered content so element hover flags are only recalculated on changes.
+     */
     private FlowInteractionPath lastHoverPath = HOVER_STATE_DIRTY;
-    /** Tracks the last revealed content so spoiler reveal flags are only recalculated on changes. */
+    /**
+     * Tracks the last revealed content so spoiler reveal flags are only recalculated on changes.
+     */
     private FlowInteractionPath lastRevealPath = HOVER_STATE_DIRTY;
 
     public void append(LytFlowContent content) {

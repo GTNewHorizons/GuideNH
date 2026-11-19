@@ -3517,9 +3517,188 @@ function Tm(s,e,t){
 const guidenhCreateBaseAnnotation=jl;
 jl=function(annotation){
   if(guidenhIsOutlineAnnotation(annotation))return guidenhCreateOutlinePickGroup(annotation);
+  if(annotation?.type === "box")return guidenhCreateBoxAnnotation(annotation);
   if(annotation?.siteControl==="floorGrid")return guidenhCreateHoverHighlightObject(annotation);
   return guidenhCreateBaseAnnotation(annotation);
 };
+
+const guidenhAnnotationRainbowGlsl = `
+vec3 annotationRainbow(vec2 direction, float phase) {
+    float angle = dot(direction, direction) > 0.000001 ? atan(direction.y, direction.x) : 0.0;
+    float hue = fract(-angle / 6.28318530718 - phase);
+    vec3 rgb = clamp(abs(fract(hue + vec3(0.0, 2.0 / 3.0, 1.0 / 3.0)) * 6.0 - 3.0) - 1.0, 0.0, 1.0);
+    return mix(vec3(1.0), rgb, 0.65);
+}`;
+
+function guidenhAnnotationColorPhase(annotation, time) {
+  const seconds = Number(annotation.colorPeriod ?? 2.4);
+  const period = Number.isFinite(seconds) && seconds > 0 ? Math.fround(seconds) * 1000 : Math.fround(2.4) * 1000;
+  return (time % period) / period;
+}
+
+const guidenhBoxSurfaceGlsl = `bool annotationBoxContains(vec3 point, vec3 inner, vec3 outer, float tolerance) {
+    vec3 absolute = abs(point);
+    vec3 bands = step(inner - vec3(tolerance), absolute);
+    return all(lessThanEqual(absolute, outer + vec3(tolerance))) && bands.x + bands.y + bands.z >= 2.0;
+}
+
+bool annotationBoxNearestSurface(vec3 position, vec3 ray, vec3 halfSize, float halfThickness) {
+    vec3 direction = normalize(ray);
+    vec3 inverseDirection = vec3(
+        abs(direction.x) > 0.000001 ? 1.0 / direction.x : 1.0e20,
+        abs(direction.y) > 0.000001 ? 1.0 / direction.y : 1.0e20,
+        abs(direction.z) > 0.000001 ? 1.0 / direction.z : 1.0e20);
+    float travel = max(1.0, 4.0 * (halfSize.x + halfSize.y + halfSize.z + halfThickness));
+    vec3 origin = position - direction * travel;
+    vec3 outer = halfSize + vec3(halfThickness);
+    vec3 inner = max(halfSize - vec3(halfThickness), vec3(0.0));
+    vec3 a = (-outer - origin) * inverseDirection;
+    vec3 b = (outer - origin) * inverseDirection;
+    vec3 nearPoint = min(a, b);
+    vec3 farPoint = max(a, b);
+    float entry = max(nearPoint.x, max(nearPoint.y, nearPoint.z));
+    float exitPoint = min(farPoint.x, min(farPoint.y, farPoint.z));
+    float tolerance = max(0.000002, travel * 0.000002);
+    if (annotationBoxContains(origin + direction * entry, inner, outer, tolerance)) {
+        return abs(entry - travel) <= tolerance;
+    }
+    float nearest = 1.0e20;
+    for (int axis = 0; axis < 3; axis++) {
+        for (int side = 0; side < 2; side++) {
+            float coordinate = axis == 0 ? origin.x : (axis == 1 ? origin.y : origin.z);
+            float inverse = axis == 0 ? inverseDirection.x : (axis == 1 ? inverseDirection.y : inverseDirection.z);
+            float plane = axis == 0 ? inner.x : (axis == 1 ? inner.y : inner.z);
+            float candidate = ((side == 0 ? -plane : plane) - coordinate) * inverse;
+            if (candidate >= entry - tolerance && candidate <= exitPoint + tolerance
+                && annotationBoxContains(origin + direction * candidate, inner, outer, tolerance)) {
+                nearest = min(nearest, candidate);
+            }
+        }
+    }
+    return abs(nearest - travel) <= tolerance;
+}`;
+
+function guidenhCreateBoxFrameGeometry(annotation) {
+  const halfThickness = Math.max(annotation.thickness ?? mm, 1 / 256) * 0.5;
+  const cuts = annotation.minCorner.map((min, axis) => {
+    const max = annotation.maxCorner[axis];
+    return max - min > 2 * halfThickness
+      ? [min - halfThickness, min + halfThickness, max - halfThickness, max + halfThickness]
+      : [min - halfThickness, max + halfThickness];
+  });
+  const counts = cuts.map(axis => axis.length - 1);
+  const occupied = (x, y, z) => x >= 0 && x < counts[0] && y >= 0 && y < counts[1] && z >= 0 && z < counts[2]
+    && Number(counts[0] === 1 || x !== 1) + Number(counts[1] === 1 || y !== 1) + Number(counts[2] === 1 || z !== 1) >= 2;
+  const builder = new Za;
+  const quad = (axis, sign, a, b, c, d) => {
+    const normal = new C;
+    normal.setComponent(axis, sign);
+    builder.quad(normal, new C(...a), new C(...b), new C(...c), new C(...d));
+  };
+  for (let x = 0; x < counts[0]; x++) {
+    for (let y = 0; y < counts[1]; y++) {
+      for (let z = 0; z < counts[2]; z++) {
+        if (!occupied(x, y, z)) continue;
+        const [x0, x1] = [cuts[0][x], cuts[0][x + 1]];
+        const [y0, y1] = [cuts[1][y], cuts[1][y + 1]];
+        const [z0, z1] = [cuts[2][z], cuts[2][z + 1]];
+        if (!occupied(x - 1, y, z)) quad(0, -1, [x0,y0,z0], [x0,y0,z1], [x0,y1,z1], [x0,y1,z0]);
+        if (!occupied(x + 1, y, z)) quad(0, 1, [x1,y0,z0], [x1,y1,z0], [x1,y1,z1], [x1,y0,z1]);
+        if (!occupied(x, y - 1, z)) quad(1, -1, [x0,y0,z0], [x1,y0,z0], [x1,y0,z1], [x0,y0,z1]);
+        if (!occupied(x, y + 1, z)) quad(1, 1, [x0,y1,z0], [x0,y1,z1], [x1,y1,z1], [x1,y1,z0]);
+        if (!occupied(x, y, z - 1)) quad(2, -1, [x0,y0,z0], [x0,y1,z0], [x1,y1,z0], [x1,y0,z0]);
+        if (!occupied(x, y, z + 1)) quad(2, 1, [x0,y0,z1], [x1,y0,z1], [x1,y1,z1], [x0,y1,z1]);
+      }
+    }
+  }
+  return builder.build();
+}
+
+function guidenhCreateBoxAnnotation(annotation) {
+  xm(annotation);
+  const group = new Dt;
+  const geometry = guidenhCreateBoxFrameGeometry(annotation);
+  const color = guidenhParseOutlineColor(annotation.color);
+  const alpha = color[3];
+  const size = new ve;
+  const center = annotation.minCorner.map((value, index) => (value + annotation.maxCorner[index]) * 0.5);
+  const halfSize = annotation.minCorner.map((value, index) => (annotation.maxCorner[index] - value) * 0.5);
+  const materials = [];
+  for (const occluded of annotation.alwaysOnTop ? [false] : [true, false]) {
+    const singleSurface = occluded || alpha < 1;
+    const material = new hn({
+      vertexShader: `
+uniform vec4 uColorCenter;
+varying float vShade;
+varying vec2 vColorCenter;
+varying vec3 vBoxPosition;
+varying vec3 vBoxRay;
+void main() {
+  vec3 axis = abs(normal);
+  vShade = axis.y >= axis.x && axis.y >= axis.z ? (normal.y >= 0.0 ? 1.0 : 128.0 / 255.0) : (axis.x >= axis.z ? 0.6 : 0.8);
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  vec4 center = projectionMatrix * modelViewMatrix * uColorCenter;
+  vColorCenter = center.xy / center.w * 0.5 + 0.5;
+  vBoxPosition = position - uColorCenter.xyz;
+  vBoxRay = -vec3(modelViewMatrix[0].z, modelViewMatrix[1].z, modelViewMatrix[2].z);
+}`,
+      fragmentShader: `
+uniform vec2 uViewport;
+uniform float uPhase;
+uniform vec2 uOffsets;
+uniform float uAlpha;
+uniform vec3 uBaseColor;
+uniform vec4 uBoxShape;
+uniform int uRainbow;
+uniform int uSingleSurface;
+varying float vShade;
+varying vec2 vColorCenter;
+varying vec3 vBoxPosition;
+varying vec3 vBoxRay;
+${guidenhAnnotationRainbowGlsl}
+${guidenhBoxSurfaceGlsl}
+void main() {
+  if (uAlpha <= 0.0 || (uSingleSurface != 0 && !annotationBoxNearestSurface(vBoxPosition, vBoxRay, uBoxShape.xyz, uBoxShape.w))) discard;
+  vec2 direction = (gl_FragCoord.xy / uViewport - vColorCenter) * uViewport;
+  direction.y = -direction.y;
+  vec3 base = uRainbow != 0 ? annotationRainbow(direction, uPhase) : uBaseColor;
+  vec3 color = clamp(base + uOffsets.x, 0.0, 1.0);
+  gl_FragColor = vec4(clamp(color + uOffsets.y, 0.0, 1.0) * vShade, uAlpha);
+}`,
+      uniforms: {
+        uViewport: { value: size },
+        uColorCenter: { value: [...center, 1] },
+        uBoxShape: { value: [...halfSize, Math.max(annotation.thickness ?? mm, 1 / 256) * 0.5] },
+        uRainbow: { value: annotation.colorMode === "rainbow" ? 1 : 0 },
+        uSingleSurface: { value: singleSurface ? 1 : 0 },
+        uBaseColor: { value: color.slice(0, 3) },
+        uPhase: { value: 0 },
+        uOffsets: { value: [0, occluded ? -127 / 255 : 0] },
+        uAlpha: { value: occluded ? Math.floor(alpha * 255 / 2) / 255 : alpha },
+      },
+      transparent: true,
+      depthWrite: !singleSurface,
+      depthTest: !annotation.alwaysOnTop,
+      depthFunc: occluded ? Oa : Kr,
+      side: _n,
+    });
+    const mesh = new ft(geometry, material);
+    mesh.onBeforeRender = renderer => renderer.getDrawingBufferSize(size);
+    if (annotation.alwaysOnTop) mesh.renderOrder = 999998;
+    group.add(mesh);
+    materials.push({ material, occluded });
+  }
+  if (annotation.contentTemplateId) {
+    const target = _m(annotation);
+    const pick = new ft(target.geometry, new cn);
+    pick.visible = false;
+    pick.position.copy(target.position);
+    pick.userData.annotation = annotation;
+    group.add(pick);
+  }
+  group.userData.guidenhBoxColor = { annotation, materials };
+  return group;
+}
 
 function guidenhParseColorSpec(s,e=1){
   let t=Math.max(0,Math.min(1,Number(e)||0)),n=s??"#ffffff";
@@ -3676,11 +3855,24 @@ uniform vec2 uTexel;
 uniform float uRadius;
 uniform vec4 uVisible[MAX_SLOTS];
 uniform vec4 uOccluded[MAX_SLOTS];
+uniform vec3 uColorEffect[MAX_SLOTS];
+uniform vec2 uColorCenters[MAX_SLOTS];
+uniform vec2 uViewport;
 varying vec2 vUv;
+${guidenhAnnotationRainbowGlsl}
 vec4 colorOf(float slot, bool visible) {
   vec4 color = vec4(0.0);
   for (int i = 0; i < MAX_SLOTS; i++) {
-    if (float(i + 1) == slot) color = visible ? uVisible[i] : uOccluded[i];
+    if (float(i + 1) == slot) {
+      color = visible ? uVisible[i] : uOccluded[i];
+      vec3 effect = uColorEffect[i];
+      if (effect.x >= 0.0) {
+        vec2 direction = (vUv - uColorCenters[i]) * uViewport;
+        direction.y = -direction.y;
+        color.rgb = clamp(annotationRainbow(direction, effect.x) + effect.y, 0.0, 1.0);
+        if (!visible) color.rgb = clamp(color.rgb + effect.z - effect.y, 0.0, 1.0);
+      }
+    }
   }
   return color;
 }
@@ -3826,7 +4018,8 @@ async function guidenhCreateOutlineCompositor(renderer, loader, annotations, sig
   for (let index = 0; index < outlines.length; index++) {
     const annotation = outlines[index];
     const slot = Math.min(index + 1, GUIDENH_OUTLINE_MAX_SLOTS);
-    entries.push({ annotation, slot, color: guidenhParseOutlineColor(annotation.color) });
+    entries.push({ annotation, slot, color: guidenhParseOutlineColor(annotation.color),
+      center: new C(...(annotation.colorCenter ?? [0, 0, 0])), projectedCenter: new C });
     if (annotation.geometrySrc) await guidenhLoadOutlineMeshes(loader, maskScene, annotation.geometrySrc, slot, false, signal);
     if (annotation.cutoutSrc) await guidenhLoadOutlineMeshes(loader, maskScene, annotation.cutoutSrc, slot, true, signal);
   }
@@ -3846,6 +4039,9 @@ async function guidenhCreateOutlineCompositor(renderer, loader, annotations, sig
     uRadius: { value: 1 },
     uVisible: { value: Array.from({ length: GUIDENH_OUTLINE_MAX_SLOTS }, () => [0, 0, 0, 0]).flat() },
     uOccluded: { value: Array.from({ length: GUIDENH_OUTLINE_MAX_SLOTS }, () => [0, 0, 0, 0]).flat() },
+    uColorEffect: { value: Array.from({ length: GUIDENH_OUTLINE_MAX_SLOTS }, () => [-1, 0, 0]).flat() },
+    uColorCenters: { value: new Array(GUIDENH_OUTLINE_MAX_SLOTS * 2).fill(0.5) },
+    uViewport: { value: new ve(1, 1) },
   }, GUIDENH_GL_NORMAL_BLENDING);
   const quadCamera = new Ei;
   const size = new ve;
@@ -3877,15 +4073,26 @@ async function guidenhCreateOutlineCompositor(renderer, loader, annotations, sig
     return changed;
   }
 
-  function updateStyles(time, hoveredTemplateId, pixelScale) {
+  function updateStyles(time, hoveredTemplateId, pixelScale, camera, sceneOffset) {
+    const colorTime = Date.now();
     const visible = compositeQuad.material.uniforms.uVisible.value;
     const occluded = compositeQuad.material.uniforms.uOccluded.value;
+    const effect = compositeQuad.material.uniforms.uColorEffect.value;
+    const centers = compositeQuad.material.uniforms.uColorCenters.value;
     // Thickness is baked into the span target, so changing it invalidates the cached mask.
     const thickness = spanQuad.material.uniforms.uThickness.value;
     let maxThickness = 0;
     for (const entry of entries) {
       const annotation = entry.annotation;
       const hovered = hoveredTemplateId && annotation.contentTemplateId === hoveredTemplateId;
+      const colorOffset = hovered ? 127 / 255 : 0;
+      const effectIndex = (entry.slot - 1) * 3;
+      effect[effectIndex] = annotation.colorMode === "rainbow" ? guidenhAnnotationColorPhase(annotation, colorTime) : -1;
+      effect[effectIndex + 1] = colorOffset;
+      effect[effectIndex + 2] = annotation.alwaysOnTop ? colorOffset : colorOffset - 127 / 255;
+      entry.projectedCenter.copy(entry.center).add(sceneOffset).project(camera);
+      centers[(entry.slot - 1) * 2] = entry.projectedCenter.x * 0.5 + 0.5;
+      centers[(entry.slot - 1) * 2 + 1] = entry.projectedCenter.y * 0.5 + 0.5;
       const rgb = entry.color.slice(0, 3).map(channel => hovered ? Math.min(1, channel + 127 / 255) : channel);
       let alpha = entry.color[3];
       if (annotation.pulse) {
@@ -3937,9 +4144,10 @@ async function guidenhCreateOutlineCompositor(renderer, loader, annotations, sig
         spanTarget.setSize(size.x, size.y);
         spanQuad.material.uniforms.uTexel.value.set(1 / size.x, 1 / size.y);
         compositeQuad.material.uniforms.uTexel.value.set(1 / size.x, 1 / size.y);
+        compositeQuad.material.uniforms.uViewport.value.copy(size);
         maskValid = false;
       }
-      const radius = updateStyles(time, hoveredTemplateId, size.x / Math.max(1, logicalWidth));
+      const radius = updateStyles(time, hoveredTemplateId, size.x / Math.max(1, logicalWidth), camera, offset);
       const previousTarget = renderer.getRenderTarget();
       const previousAutoClear = renderer.autoClear;
       const previousClearAlpha = renderer.getClearAlpha();
@@ -4078,6 +4286,10 @@ async function Am(s,e,t,n,i=[],r=[],o=[],a,c,l,h){
   Ja(w);
   w.add(g);
   for(let A of i)g.add(jl(A));
+  const guidenhBoxColors = [];
+  g.traverse(object => {
+    if (object.userData.guidenhBoxColor) guidenhBoxColors.push(object.userData.guidenhBoxColor);
+  });
   for(let A of r)g.add(await $a(d,A));
   let v=[];
   for(let A of o){
@@ -4218,6 +4430,15 @@ async function Am(s,e,t,n,i=[],r=[],o=[],a,c,l,h){
       animation.lastUploadedFrame=frame.index;
     }
     for(let q of g.userData.guidenhBillboardMeshes??[])q.quaternion.copy(S.quaternion);
+    const colorTime = Date.now();
+    for (const entry of guidenhBoxColors) {
+      const hovered = guidenhHoveredTemplateId && entry.annotation.contentTemplateId === guidenhHoveredTemplateId;
+      const phase = entry.annotation.colorMode === "rainbow" ? guidenhAnnotationColorPhase(entry.annotation, colorTime) : 0;
+      for (const { material } of entry.materials) {
+        if (entry.annotation.colorMode === "rainbow") material.uniforms.uPhase.value = phase;
+        material.uniforms.uOffsets.value[0] = hovered ? 127 / 255 : 0;
+      }
+    }
     f.render(w,S);
     guidenhOutlines?.render(w,S,g.position,A,guidenhHoveredTemplateId);
     const pointer=a.current;

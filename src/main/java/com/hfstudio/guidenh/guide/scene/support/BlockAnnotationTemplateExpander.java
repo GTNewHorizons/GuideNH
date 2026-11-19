@@ -50,7 +50,8 @@ public class BlockAnnotationTemplateExpander {
                 new Vector3f(boxAnnotation.min()).add(x, y, z),
                 new Vector3f(boxAnnotation.max()).add(x, y, z),
                 boxAnnotation.color(),
-                boxAnnotation.thickness());
+                boxAnnotation.thickness(),
+                boxAnnotation.colorStyle());
             copyInWorldState(boxAnnotation, translated);
             return translated;
         }

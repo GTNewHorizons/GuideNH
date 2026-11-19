@@ -59,19 +59,9 @@ public class StructureLibBuildService {
     public record ResolvedController(String blockId, Block block, int meta) {}
 
     /**
-     * A world reused by every build instead of one per build.
-     *
-     * <p>
-     * Creating the preview world is the single most expensive step of a build: {@code GuidebookFakeWorld} is a
-     * {@code WorldClient}, so its constructor posts {@code WorldEvent.Load} and every mod listening to it
-     * does its world-load work. At least one mod rebuilds the chunk provider of every dimension there, which
-     * measured in the seconds. Scene data lives in the level and is dropped by {@code clear()}, while the
-     * world itself is designed to outlive rebuilds, so one instance serves all builds.
-     *
-     * <p>
-     * Shared because every caller creates its own service, and confined to the client thread because that is
-     * the only thread a build runs on; a build taking it from another thread is reported instead of silently
-     * sharing one world.
+     * Client-thread-only preview world shared across service instances. WorldClient construction posts
+     * WorldEvent.Load and can trigger expensive mod initialization. Rebuilds clear level data while retaining
+     * the world.
      */
     private static GuidebookLevel scratchLevel;
     private static Thread scratchLevelOwner;
