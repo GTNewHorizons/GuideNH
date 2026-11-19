@@ -6,6 +6,7 @@ import com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider.Autocomp
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver.FrontmatterContext;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver.MdxValueContext;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver.TagStartContext;
+import com.hfstudio.guidenh.guide.internal.editor.gui.EditorTextInsertion;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.guide.syntax.SyntaxReplacement;
 import com.hfstudio.guidenh.guide.syntax.SyntaxSuggestion;
@@ -24,12 +25,22 @@ public class AutocompleteCommitService {
             return null;
         }
         replacement = applyDeclaredCaret(replacement, candidate);
-        String inserted = replacement.text + suffixOf(candidate);
         int swallowedStart = clamp(replaceStart - replacement.extraReplaceStart, 0, replaceEnd);
         int swallowedEnd = clamp(replaceEnd + replacement.extraReplaceEnd, swallowedStart, source.length());
+        var rawInsertion = new SyntaxReplacement(
+            replacement.text + suffixOf(candidate),
+            replacement.cursorOffset,
+            replacement.selectionEndOffset);
+        var insertion = context instanceof SlotContext || context instanceof MdxValueContext
+            ? EditorTextInsertion.normalize(rawInsertion)
+            : EditorTextInsertion.prepare(source, swallowedStart, rawInsertion);
+        String inserted = insertion.text();
+        if (!(context instanceof SlotContext) && inserted.endsWith("\n")
+            && swallowedEnd < source.length()
+            && source.charAt(swallowedEnd) == '\n') swallowedEnd++;
         String newText = source.substring(0, swallowedStart) + inserted + source.substring(swallowedEnd);
-        int cursor = swallowedStart + replacement.cursorOffset;
-        int selectionEnd = swallowedStart + replacement.selectionEndOffset;
+        int cursor = swallowedStart + insertion.caretOffset();
+        int selectionEnd = swallowedStart + insertion.selectionEndOffset();
         return new AutocompleteCommit(newText, cursor, selectionEnd);
     }
 
@@ -176,15 +187,37 @@ public class AutocompleteCommitService {
         String replacement = rawText != null ? rawText : "";
         if (!context.isValue()) {
             replacement += ": ";
-        } else if (!replacement.isEmpty() && replacement.charAt(0) == '\n') {
-            int start = context.replaceStart();
-            if (start > 0 && source.charAt(start - 1) == '\n') {
-                replacement = replacement.substring(1);
-            } else if (endsWithListMarker(source, start)) {
-                replacement = stripListMarkerLine(replacement.substring(1));
+        } else {
+            replacement = EditorTextInsertion.normalize(SyntaxReplacement.cursorAtEnd(replacement))
+                .text();
+            int start = clamp(context.replaceStart(), 0, source.length());
+            int lineStart = source.lastIndexOf('\n', start - 1) + 1;
+            if (replacement.startsWith("\n") && source.substring(lineStart, start)
+                .isBlank()) {
+                replacement = removeBlockIndent(replacement.substring(1));
+            } else if (replacement.startsWith("\n") && endsWithListMarker(source, start)) {
+                replacement = stripListMarkerLine(removeBlockIndent(replacement.substring(1)));
             }
         }
         return new Replacement(replacement, replacement.length(), replacement.length());
+    }
+
+    private static String removeBlockIndent(String text) {
+        int indent = 0;
+        while (indent < text.length() && (text.charAt(indent) == ' ' || text.charAt(indent) == '\t')) indent++;
+        if (indent == 0) return text;
+        String prefix = text.substring(0, indent);
+        StringBuilder result = new StringBuilder(text.length());
+        int start = 0;
+        while (start < text.length()) {
+            int end = text.indexOf('\n', start);
+            if (end < 0) end = text.length();
+            int contentStart = text.startsWith(prefix, start) ? start + indent : start;
+            result.append(text, contentStart, end);
+            if (end < text.length()) result.append('\n');
+            start = end + 1;
+        }
+        return result.toString();
     }
 
     private static boolean endsWithListMarker(String source, int position) {
@@ -225,7 +258,7 @@ public class AutocompleteCommitService {
 
     private static int skipSpaces(String source, int start) {
         int pos = start;
-        while (pos < source.length() && Character.isWhitespace(source.charAt(pos))) {
+        while (pos < source.length() && (source.charAt(pos) == ' ' || source.charAt(pos) == '\t')) {
             pos++;
         }
         return pos;

@@ -3,8 +3,6 @@ package com.hfstudio.guidenh.guide.document.block.chart;
 import java.util.ArrayList;
 import java.util.List;
 
-import net.minecraft.item.ItemStack;
-
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.internal.debug.DebugComponent;
 import com.hfstudio.guidenh.guide.render.RenderContext;
@@ -173,11 +171,11 @@ public class LytPieChart extends LytChartBase implements DebugComponent {
     }
 
     @Override
-    protected ItemStack getHitItemStack(int key) {
+    protected ChartIcon getHitIcon(int key) {
         if (key < 0 || key >= slices.size()) return null;
         ChartIcon icon = slices.get(key)
             .getIcon();
-        return icon != null && icon.hasItemStack() ? icon.getStack() : null;
+        return icon;
     }
 
     @Override

@@ -1,32 +1,50 @@
 # Приклади
 
-Ця документація описує синтаксис і функції виконання GuideNH. Код, теги, шляхи, ідентифікатори та значення атрибутів збережено без змін.
+Докладний довідник на цій сторінці доступний англійською. Назви тегів, атрибути, ідентифікатори та шляхи потрібно використовувати без перекладу.
 
+GuideNH ships a runtime example guide in `wiki/resourcepack/`. This page maps the important example files to the feature areas they demonstrate.
 
-GuideNH вже ships a виконання Приклад посібник in `wiki/resourcepack/`. Цей сторінка maps  important Приклад files до  feature areas Вони demonstrate.
+## Core Example Pages
 
-## Core Приклад сторінки
+These files are in `wiki/resourcepack/assets/guidenh/guidenh/_en_us/`.
 
-| виконання файл | What it demonstrates |
+| File | Purpose |
 | --- | --- |
-| `.../_en_us/index.md` | frontmatter, предмет ids, Рецепти, предмет/блок зображення, command links, tooltips, сцени, Анотації, `ImportStructureLib`, `RemoveBlocks`, `BlockAnnotationTemplate`, home-сторінка recommendation Приклад |
-| `.../_en_us/markdown.md` | plain Markdown features, таблиці, і a `recommend: 0` Приклад |
-| `.../_en_us/rendering.md` | блок-level відтворення і структура поведінка |
-| `.../_en_us/scene-blocks.md` | static і інтерактивний блок сцена Приклади |
-| `.../_en_us/japanese.md` | Навігація дочірній елемент Приклад |
-| `.../_en_us/navigation-guide.md` | Навігація, linking, і high-priority recommendation Приклад |
-| `wiki/resourcepack/assets/gregtech/guidenh/_en_us/index.md` | second простір імен Приклад для cross-посібник links і isolated той самий-назва сторінки |
+| `index.md` | Category overview |
+| `markdown.md` | Markdown syntax |
+| `markdown-table.md` | Tables and merged cells |
+| `rendering.md` | Block layout |
+| `images.md` | Images and cropped textures |
+| `tooltips.md` | Hover content |
+| `recipes.md` | Item/fluid recipes and filters |
+| `charts.md` | Charts, reference lines and fluid icons |
+| `function-graph.md` | Function plots |
+| `content-embed.md` | Embedding and text wrapping |
+| `ponder.md` | Animation timelines |
+| `scene-blocks.md` | Blocks and material lists |
+| `scene-import.md` | Structure imports and block edits |
+| `scene-entities.md` | Entity previews |
+| `scene-camera.md` | Camera controls |
+| `scene-annotations.md` | Scene annotations |
+| `scene-particles.md` | Particles and weather |
+| `navigation-guide.md` | Navigation, bindings and icons |
+| `page-lang-key.md` | Whole-page translations |
+| `templates-demo.md` | Templates and include control |
+| `debug.md` | Layout and interaction diagnostics |
+| `japanese.md` | Language and navigation example |
 
-## ресурс Приклади
+Template definitions are in `templates/`. `wiki/resourcepack/assets/gregtech/guidenh/` demonstrates another namespace and cross-guide links.
 
-| виконання файл | Purpose |
+## Asset Examples
+
+| Runtime file | Purpose |
 | --- | --- |
-| `wiki/resourcepack/assets/guidenh/guidenh/_en_us/test1.png` | сторінка-локальний зображення Приклад |
-| `wiki/resourcepack/assets/guidenh/guidenh/assets/example_structure.snbt` | rooted shared структура ресурс для `<ImportStructure>` і `<RemoveBlocks>` |
+| `wiki/resourcepack/assets/guidenh/guidenh/_en_us/test1.png` | page-local image example |
+| `wiki/resourcepack/assets/guidenh/guidenh/assets/example_structure.snbt` | rooted shared structure asset for `<ImportStructure>` and `<RemoveBlocks>` |
 
-## Приклад Snippets
+## Example Snippets
 
-### frontmatter + Навігація
+### Frontmatter + Navigation
 
 ```yaml
 item_ids:
@@ -53,28 +71,28 @@ navigation:
   recommend: 5
 ```
 
-### відносний зображення
+### Relative Image
 
 ````md
 ![Test Image](test1.png)
 ````
 
-### Namespaced посібник Links
+### Namespaced Guide Links
 
 ````md
-[Той самий простір імен](guide.md)
-[Той самий простір імен від кореня](/guide.md)
-[Інший простір імен](gregtech:guide.md)
-[Інший простір імен від кореня](gregtech:/guide.md)
+[Same namespace](guide.md)
+[Same namespace from root](/guide.md)
+[Other namespace](gregtech:guide.md)
+[Other namespace from root](gregtech:/guide.md)
 ````
 
-### Rooted структура ресурс
+### Rooted Structure Asset
 
 ````md
 <ImportStructure src="/assets/example_structure.snbt" />
 ````
 
-### StructureLib сцена Import
+### StructureLib Scene Import
 
 ````md
 <GameScene width="384" height="256" zoom={4} interactive={true}>
@@ -90,9 +108,9 @@ navigation:
 </GameScene>
 ````
 
- дочірній елемент теги Установіть StructureLib типові для  сцена і є restored коли  сцена перегляд is reset.
+The child tags set StructureLib defaults for the scene and are restored when the scene view is reset.
 
-### імпортований структура Cleanup
+### Imported Structure Cleanup
 
 ````md
 <GameScene width="384" height="256" zoom={4} interactive={true}>
@@ -101,24 +119,26 @@ navigation:
 </GameScene>
 ````
 
-### сцена анотація підказка
+### Scene Annotation Tooltip
 
 ````md
-<DiamondAnnotation pos="0.5 2.2 0.5" color="#FFD24C">
-  ### Activated Beacon
-  <RecipeFor id="minecraft:furnace" />
-</DiamondAnnotation>
+<GameScene>
+  <DiamondAnnotation pos="0.5 2.2 0.5" color="#FFD24C">
+    ### Activated Beacon
+    <RecipeFor id="minecraft:furnace" />
+  </DiamondAnnotation>
+</GameScene>
 ````
 
-### Recipe фільтр
+### Recipe Filter
 
 ````md
 <RecipesFor id="minecraft:redstone_torch" input="minecraft:stick&minecraft:redstone" limit="1" />
 ````
 
-### Форматування кількості
+### Amount formatting
 
-Використовуйте `<Amount>` для кількості. Одиницю можна не вказувати: за замовчуванням показується лише число; `fluid` дотримується налаштування `mB`/`L` з GTNHLib.
+Use `<Amount>` for quantities. The unit is optional and defaults to a suffix-free number; `fluid` follows the GTNHLib `mB`/`L` preference.
 
 ````md
 <Amount value="250" />
@@ -126,18 +146,19 @@ navigation:
 <Amount value="1200000" format="compact" /> items
 ````
 
-## коли до використовувати який Приклад
+## When To Use Which Example
 
-- початок з `markdown.md` Якщо you є validating аналізатор basics
-- використовувати `index.md` коли testing mixed виконання features together, including StructureLib підказка, hatch-виділяти, і cleanup поведінка
-- використовувати `scene-blocks.md` коли you лише need static блок структура previews
-- використовувати `example_structure.snbt` коли you need reusable імпортований структура ресурс
+- start with `markdown.md` for Markdown syntax
+- use `index.md` to browse examples by category
+- use `scene-blocks.md` when you only need static block layout previews
+- use `example_structure.snbt` when you need a reusable imported structure asset
+- use `templates-demo.md` with the `templates/` folder for reusable content, conditionals and include control. See [Templates](Templates)
 
-## Recommended Learning порядок
+## Recommended Learning Order
 
-1. [Початок роботи](Guide-Page-Format)
-2. [Формат сторінки посібника](Guide-Page-Format)
-3. [Довідник тегів](Tags-Reference)
+1. [Getting Started](Getting-Started)
+2. [Guide Page Format](Guide-Page-Format)
+3. [Tags Reference](Tags-Reference)
 4. [GameScene](GameScene)
 5. [Annotations](Annotations)
 6. [Recipes](Recipes)

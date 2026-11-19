@@ -2,7 +2,7 @@
 
 # 标签参考
 
-本页列出由 `DefaultExtensions` 注册的内置运行时标签。
+本页说明指南作者可使用的内置标签。
 
 ## 使用规则
 
@@ -13,7 +13,6 @@
   - [配方](Recipes-zh-CN)
   - [游戏场景](GameScene-zh-CN)
   - [注解](Annotations-zh-CN)
-- 修改 `ContentTabs` 时请按照[跨渲染器维护清单](ContentTabs-Maintenance)逐项核对。
 
 ## 行内与流式标签
 
@@ -35,6 +34,7 @@
 | `<KeyBind>` | 插入按键绑定显示名 | `id` 或 `action` |
 | `<ItemImage>` | 行内物品图标 | `id`, `ore`, `nbt`, `scale`, `noTooltip`, `showTooltip`, `showIcon`, `label`, `format`, `yOffset`, `labelYOffset` |
 | `<ItemLink>` | 物品 tooltip + 可选导航链接 | `id` 或 `ore`，`linksTo`，`showTooltip`，`noTooltip`，`showIcon` |
+| `<FluidImage>` / `<FluidLink>` | 原生流体图标与页面导航 | `id`, `amount`, `nbt`, `scale`, `showTooltip`, `noTooltip`, `showIcon`, `label`, `linksTo` |
 | `<CommandLink>` | 可点击的聊天命令链接 | `command`, `title`, `close` |
 | `<Latex>` | LaTeX 数学公式；在流式上下文中行内渲染，在块级上下文中居中显示为独立公式块 | `formula`, `color`, `scale`, `sourceScale`, `tooltip`, `showTooltip` |
 | `<QuestLink>` | BetterQuesting 任务链接，按任务状态自动调整样式（兼容标签，仅当 BetterQuesting 已加载时注册） | `id`, `text`, `show_tooltip` |
@@ -51,14 +51,14 @@
 | 标签 | 用途 | 关键属性 |
 | --- | --- | --- |
 | `<div>` | 透传块包装器 | 无 |
-| `<ContentTabs>` | 将可替代的富内容分组到独立标签页中 | `title`、`color`、`background`、`icon`、`iconPng`、`icon_png`、`iconItem`、`icon_item`、`default`、`defaultIndex` |
+| `<ContentTabs>` | 将可替代的富内容分组到独立标签页中 | `title`、`color`、`background`、`icon`、`iconPng`、`icon_png`、`iconItem`、`icon_item`, `iconFluid`, `icon_fluid`、`default`、`defaultIndex` |
 | `<Tab>` | `<ContentTabs>` 内的单个内容面板 | `title` |
 | `<details>` | 可折叠运行时块 | `open`、`width`、`height`、`wrap`、`align` |
 | `<FileTree>` | 目录树式大纲（带连接线） | `indent`、`gap` |
 | `<Row>` | 横向 flex 布局 | `gap`, `alignItems`, `fullWidth`, `width` |
 | `<Column>` | 纵向 flex 布局 | `gap`, `alignItems`, `fullWidth`, `width` |
 | `<FootnoteList>` | 运行时 Markdown 脚注使用的限宽脚注容器 | `width` |
-| `<ItemGrid>` | 紧凑物品图标网格 | 子元素必须是 `<ItemIcon id="..."/>` 或 `<ItemIcon ore="..."/>` |
+| `<ItemGrid>` | 物品与流体图标的紧凑网格 | 支持 `<ItemIcon id="..."/>`、`<ItemIcon ore="..."/>` 和 `<FluidIcon id="..."/>` 混排 |
 | `<BlockImage>` | 非交互式的 3D 单方块预览 | `id`, `ore`, `meta`, `nbt`, `scale`, `width`, `height`, `perspective`, `wrap`, `align` |
 | `<FloatingImage>` | 支持浮动或真正行内放置的裁剪图片块 | `src`, `x`, `y`, `width` / `w`, `height` / `h`, `scaleX`, `scaleY`, `displayWidth`, `displayHeight`, `wrap`, `align`, `title` |
 | `<SubPages>` | 导航子页面列表 | `id`, `alphabetical` |
@@ -420,6 +420,39 @@ GuideNH 也会忽略显式 `<Comment>` 标签：
 <ItemLink id="minecraft:compass" linksTo="#usage" />
 ````
 
+### `<FluidImage>`、`<FluidLink>` 与 `<FluidIcon>`
+
+原生流体图标通过完整的 Forge 流体注册名查找，例如 `water`、`steam`、`molten.iron`。文档必须保存注册名，不能保存数字流体 ID 或 NEI 展示物品的元数据。渲染直接使用 Forge 流体纹理与染色，不依赖 NEI。
+
+默认悬停提示显示流体名称、开尔文温度和气体/液体状态。显式填写 `amount`（包括零）时才显示数量，单位遵循 L/mB 设置；省略数量不会添加数量行。高级提示还显示注册名。加载 GregTech 后，化学式等材料信息遵循 GT 的提示设置。游戏内提示、已连接的运行时预览与 ExportSite 共用这些信息；未连接的 Web 预览只能显示已有名称和数量。不依赖 NEI。
+
+ExportSite 的物品数量和流体数量使用网站自带的 Pixeloid Mono 字体，以网页文字覆盖在图标上；物品耐久条保留在图标图片中。
+
+| 属性 | 规则 |
+| --- | --- |
+| `id` | 必填的完整流体注册名，不补命名空间，也不解析物品元数据 |
+| `amount` | 可选整数数量，按流体单位设置显示|
+| `nbt` | 可选 SNBT，应用到独立的 FluidStack 标签 |
+| `showTooltip`、`noTooltip` | 提示可见性优先级与物品图标相同；关闭提示不会关闭 G 导航 |
+| `scale`、`showIcon`、`label`、`format`、`yOffset`、`labelYOffset` | FluidImage 沿用 ItemImage 的显示参数；缩放必须有限且大于零 |
+| `showIcon`、`showText`、`linksTo` | FluidLink 沿用 ItemLink 的标签、图标位置和显式页面/锚点规则 |
+
+`FluidIcon` 只能作为 ItemGrid 子标签，接受 `id`、`amount`、`nbt`、`showTooltip`、`noTooltip`。同一个 ItemGrid 可以按原始顺序混排 ItemIcon 与 FluidIcon，不存在独立的 FluidGrid。`ore` 与物品元数据不能用于选择流体。
+
+```mdx
+<FluidImage id="water" amount={1000} scale="2" label="right" />
+<FluidLink id="steam" showIcon="left">蒸汽</FluidLink>
+<ItemGrid>
+  <ItemIcon id="minecraft:bucket" />
+  <FluidIcon id="water" amount={1000} />
+  <FluidIcon id="steam" />
+</ItemGrid>
+```
+
+页面通过 `fluid_id` / `fluid_ids` 绑定。鼠标停在原生流体图标或支持的容器/展示对象上，长按可改键的打开指南快捷键（默认 G）；单个目标直接打开，多个目标显示选择列表，先列流体页面，再列容器页面。数量和 NBT 影响显示实例，页面绑定只匹配注册名。空容器保留普通物品导航；没有悬停数据接口的流体 GUI 需要注册适配器。
+
+导航使用 `navigation.icon_fluid` / `icon_fluids` 设置静态/轮换页面图标；ContentTabs、FileTree 指令、引用指令和图表 Series / LineSeries / Slice 使用 `iconFluid`。流体图标不能与物品、PNG 或文本图标同时配置。六种 Recipe/Usage 标签支持 `fluid`、`inputFluid`、`outputFluid`；InputAnnotation 支持 `fluid`、`amount`、`nbt`。完整规则见配方、页面格式和注解文档。
+
 ### `<CommandLink>`
 
 点击后发送聊天命令。
@@ -433,7 +466,7 @@ GuideNH 也会忽略显式 `<Comment>` 标签：
 示例：
 
 ````md
-<CommandLink command="/tp @s 0 90 0" title="Teleport">Teleport!</CommandLink>
+<CommandLink command="/tp @p 0 90 0" title="Teleport">Teleport!</CommandLink>
 ````
 
 ### `<Row>` 与 `<Column>`
@@ -478,7 +511,7 @@ GuideNH 会在运行时 Markdown 脚注展开后内部使用这个块标签。�
 
 ### `<ItemGrid>`
 
-渲染紧凑的物品图标网格。其子元素必须是原始 `<ItemIcon>` 元素，由网格编译器直接解析。每个子元素都可以使用 `id` 或 `ore`。
+渲染紧凑图标网格。网格编译器直接解析 ItemIcon 与 FluidIcon，并保留混排顺序；物品选择使用 `id` 或 `ore`，流体选择使用注册名 `id`，可选数量与 NBT。
 
 ````md
 <ItemGrid>

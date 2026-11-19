@@ -1,93 +1,93 @@
-# Довідка тегів
+# Довідник тегів
 
-Ця документація описує синтаксис і функції виконання GuideNH. Код, теги, шляхи, ідентифікатори та значення атрибутів збережено без змін.
+Докладний довідник на цій сторінці доступний англійською. Назви тегів, атрибути, ідентифікатори та шляхи потрібно використовувати без перекладу.
 
+This page describes the built-in tags available to guide authors.
 
-Цей сторінка lists  built-in виконання теги зареєстрований by `DefaultExtensions`.
+## Usage Rules
 
-## Правила використання
-
-- теги може appear either in блок context або inline context depending on  компілятор.
-- MDX comments використовуючи `{/* ... */}` є Підтримувані in сторінка вміст і є ignored by  виконання аналізатор.
-- недійсний теги або недійсний атрибути відтворювати посібник errors inline замість цього of silently failing.
-- Large feature теги наприклад Рецепти і 3D сцени є documented in їхні власний сторінки:
+- Tags can appear either in block context or inline context depending on the compiler.
+- MDX comments using `{/* ... */}` are supported in page content and are ignored by the runtime parser.
+- Invalid tags or invalid attributes render guide errors inline instead of silently failing.
+- Large feature tags such as recipes and 3D scenes are documented in their own pages:
   - [Recipes](Recipes)
   - [GameScene](GameScene)
   - [Annotations](Annotations)
 
-## Вбудовані та потокові теги
+## Inline And Flow Tags
 
-| тег | Purpose | ключ атрибути |
+| Tag | Purpose | Key attributes |
 | --- | --- | --- |
-| `<a>` | внутрішній/зовнішній посилання і необов’язковий якір назва | `href`, `title`, `name` |
-| `<br>` | рядок break | `clear="none\|left\|right\|all"` |
-| `<wbr>` | необов'язкова точка переносу всередині слова | немає |
+| `<a>` | internal/external link and optional anchor name | `href`, `title`, `name` |
+| `<br>` | line break | `clear="none\|left\|right\|all"` |
+| `<wbr>` | optional line-break point inside a word | none |
 | `<kbd>` | keyboard-style inline emphasis | none |
-| `<sub>` | smaller inline subscript-style текст | none |
-| `<sup>` | smaller inline superscript-style текст | none |
-| `<Color>` | colored inline текст | `id` або `color` |
-| `<Amount>` | форматування числової кількості | `value`, `unit`, `format`, `decimals` |
-| `<Spoiler>` | прихований inline текст revealed on наведення | none |
-| `<Tooltip>` | розширений наведення підказка з Markdown/тег дочірні елементи | `label` |
-| `<SoundLink>` | clickable розширений-текст sound trigger | `sound` або `src`, `volume`, `pitch`, `cooldown` |
-| `<mark>` | inline highlighted текст; equivalent до `==text==` з необов’язковий колір control | `color` |
-| `<PlayerName>` | inserts поточний гравець username | none |
-| `<KeyBind>` | inserts keybinding відображати назва | `id` або `action` |
-| `<ItemImage>` | inline предмет icon | `id`, `ore`, `nbt`, `scale`, `noTooltip`, `showTooltip`, `showIcon`, `label`, `format`, `yOffset`, `labelYOffset` |
-| `<ItemLink>` | предмет підказка + необов’язковий Навігація посилання | `id` або `ore`, `linksTo`, `showTooltip`, `noTooltip`, `showIcon` |
-| `<CommandLink>` | clickable chat command посилання | `command`, `title`, `close` |
-| `<Latex>` | LaTeX math formula; inline in flow context, centered відображати блок in блок context | `formula`, `color`, `scale`, `sourceScale`, `tooltip`, `showTooltip` |
-| `<QuestLink>` | BetterQuesting quest посилання з стан-aware styling (compat тег, лише зареєстрований коли BetterQuesting is завантажений) | `id`, `text`, `show_tooltip` |
+| `<sub>` | smaller inline subscript-style text | none |
+| `<sup>` | smaller inline superscript-style text | none |
+| `<Color>` | colored inline text | `id` or `color` |
+| `<Amount>` | format a numeric quantity | `value`, `unit`, `format`, `decimals` |
+| `<Spoiler>` | hidden inline text revealed on hover | none |
+| `<Tooltip>` | rich hover tooltip with markdown/tag children | `label` |
+| `<SoundLink>` | clickable rich-text sound trigger | `sound` or `src`, `volume`, `pitch`, `cooldown` |
+| `<mark>` | inline highlighted text; equivalent to `==text==` with optional color control | `color` |
+| `<PlayerName>` | inserts current player username | none |
+| `<KeyBind>` | inserts keybinding display name | `id` or `action` |
+| `<ItemImage>` | inline item icon | `id`, `ore`, `nbt`, `scale`, `noTooltip`, `showTooltip`, `showIcon`, `label`, `format`, `yOffset`, `labelYOffset` |
+| `<ItemLink>` | item tooltip + optional navigation link | `id` or `ore`, `linksTo`, `showTooltip`, `noTooltip`, `showIcon` |
+| `<FluidImage>` / `<FluidLink>` | native fluid icon and page navigation | `id`, `amount`, `nbt`, `scale`, `showTooltip`, `noTooltip`, `showIcon`, `label`, `linksTo` |
+| `<CommandLink>` | clickable chat command link | `command`, `title`, `close` |
+| `<Latex>` | LaTeX math formula; inline in flow context, centered display block in block context | `formula`, `color`, `scale`, `sourceScale`, `tooltip`, `showTooltip` |
+| `<QuestLink>` | BetterQuesting quest link with state-aware styling (compat tag, only registered when BetterQuesting is loaded) | `id`, `text`, `show_tooltip` |
 
-Inline Markdown також підтримує action links для sound playback:
+Inline markdown also supports action links for sound playback:
 
 ````md
 &[Start machine](sound:guidenh:machine.start)
 &[Play file-backed sound](sound-src:guidenh:sounds/machine/start.ogg?volume=0.8&pitch=1.1)
 ````
 
-## Блокові теги
+## Block Tags
 
-| тег | Purpose | ключ атрибути |
+| Tag | Purpose | Key attributes |
 | --- | --- | --- |
-| `<div>` | pass-through блок wrapper | none |
-| `<ContentTabs>` | groups alternative розширений вміст under independent tabs | `title`, `color`, `background`, `icon`, `iconPng`, `icon_png`, `iconItem`, `icon_item`, `default`, `defaultIndex` |
-| `<Tab>` | один вміст panel усередині `<ContentTabs>` | `title` |
-| `<details>` | collapsible виконання блок | `open`, `width`, `height`, `wrap`, `align` |
-| `<FileTree>` | каталог-style outline з з’єднувач рядки | `indent`, `gap` |
-| `<Row>` | horizontal flex структура | `gap`, `alignItems`, `fullWidth`, `width` |
-| `<Column>` | vertical flex структура | `gap`, `alignItems`, `fullWidth`, `width` |
-| `<FootnoteList>` | ширина-constrained footnote container використовується by виконання Markdown footnotes | `width` |
-| `<ItemGrid>` | compact grid of предмет icons | дочірні елементи має be `<ItemIcon id="..."/>` або `<ItemIcon ore="..."/>` |
-| `<BlockImage>` | non-інтерактивний 3D один-блок перегляд | `id`, `ore`, `meta`, `nbt`, `scale`, `width`, `height`, `perspective`, `wrap`, `align` |
-| `<FloatingImage>` | cropped зображення блок з число з плаваючою комою або true inline placement | `src`, `x`, `y`, `width` / `w`, `height` / `h`, `scaleX`, `scaleY`, `displayWidth`, `displayHeight`, `wrap`, `align`, `title` |
-| `<SubPages>` | Навігація дочірній елемент listing | `id`, `alphabetical` |
-| `<Category>` | список сторінки з category | `name`, `rows` |
-| `<Special>` | список built-in MediaWiki special сторінки | `name`, `rows` |
-| `<Structure>` | 2.5D isometric блок структура перегляд | `width`, `height` |
-| `<Mermaid>` | виконання Mermaid графік import/inline | `src`, `width`, `height` |
-| `<CsvTable>` | виконання CSV файл import таблиця | `src`, `header`, `widths` |
-| `<ColumnChart>` | clustered стовпець діаграма | `categories`, `barWidthRatio`, `xAxis*`, `yAxis*`, `legend`, `labelPosition` |
-| `<BarChart>` | horizontal bar діаграма | той самий as `<ColumnChart>` |
-| `<LineChart>` | рядок діаграма з categorical або numeric X | `categories`, `numericX`, `showPoints`, `xAxis*`, `yAxis*` |
-| `<PieChart>` | pie діаграма | `startAngle`, `clockwise`, `legend`, `labelPosition` |
-| `<ScatterChart>` | XY scatter діаграма | `xAxis*`, `yAxis*`, `legend`, `labelPosition` |
-| `<FunctionGraph>` | Desmos-style multi-curve function графік | `width`, `height`, `xRange` / `yRange`, `quadrants`, `showGrid`, `showAxes` |
-| `<Function>` | один-curve shorthand для `<FunctionGraph>` | `expr`, plus усі `<FunctionGraph>` panel атрибути |
-| `<Recipe>`, `<RecipeFor>`, `<RecipesFor>` | recipe renderers | Дивіться [Recipes](Recipes) |
-| `<GameScene>`, `<Scene>` | 3D посібник сцена | Дивіться [GameScene](GameScene) |
-| `<QuestCard>` | блок-level BetterQuesting quest summary card (compat тег, лише зареєстрований коли BetterQuesting is завантажений) | `id`, `show_desc`, `show_tooltip` |
+| `<div>` | pass-through block wrapper | none |
+| `<ContentTabs>` | groups alternative rich content under independent tabs | `title`, `color`, `background`, `icon`, `iconPng`, `icon_png`, `iconItem`, `icon_item`, `iconFluid`, `icon_fluid`, `default`, `defaultIndex` |
+| `<Tab>` | one content panel inside `<ContentTabs>` | `title` |
+| `<details>` | collapsible runtime block | `open`, `width`, `height`, `wrap`, `align` |
+| `<FileTree>` | directory-style outline with connector lines | `indent`, `gap` |
+| `<Row>` | horizontal flex layout | `gap`, `alignItems`, `fullWidth`, `width` |
+| `<Column>` | vertical flex layout | `gap`, `alignItems`, `fullWidth`, `width` |
+| `<FootnoteList>` | width-constrained footnote container used by runtime markdown footnotes | `width` |
+| `<ItemGrid>` | compact grid of item and fluid icons | mix `<ItemIcon id="..."/>`, `<ItemIcon ore="..."/>`, and `<FluidIcon id="..."/>` |
+| `<BlockImage>` | non-interactive 3D single-block preview | `id`, `ore`, `meta`, `nbt`, `scale`, `width`, `height`, `perspective`, `wrap`, `align` |
+| `<FloatingImage>` | cropped image block with float or true inline placement | `src`, `x`, `y`, `width` / `w`, `height` / `h`, `scaleX`, `scaleY`, `displayWidth`, `displayHeight`, `wrap`, `align`, `title` |
+| `<SubPages>` | navigation child listing | `id`, `alphabetical` |
+| `<Category>` | list pages from a category | `name`, `rows` |
+| `<Special>` | list built-in MediaWiki special pages | `name`, `rows` |
+| `<Structure>` | 2.5D isometric block layout view | `width`, `height` |
+| `<Mermaid>` | runtime Mermaid graph import/inline | `src`, `width`, `height` |
+| `<CsvTable>` | runtime CSV file import table | `src`, `header`, `widths` |
+| `<ColumnChart>` | clustered column chart | `categories`, `barWidthRatio`, `xAxis*`, `yAxis*`, `legend`, `labelPosition` |
+| `<BarChart>` | horizontal bar chart | same as `<ColumnChart>` |
+| `<LineChart>` | line chart with categorical or numeric X | `categories`, `numericX`, `showPoints`, `xAxis*`, `yAxis*` |
+| `<PieChart>` | pie chart | `startAngle`, `clockwise`, `legend`, `labelPosition` |
+| `<ScatterChart>` | XY scatter chart | `xAxis*`, `yAxis*`, `legend`, `labelPosition` |
+| `<FunctionGraph>` | Desmos-style multi-curve function graph | `width`, `height`, `xRange` / `yRange`, `quadrants`, `showGrid`, `showAxes` |
+| `<Function>` | single-curve shorthand for `<FunctionGraph>` | `expr`, plus all `<FunctionGraph>` panel attributes |
+| `<Recipe>`, `<RecipeFor>`, `<RecipesFor>` | recipe renderers | see [Recipes](Recipes) |
+| `<GameScene>`, `<Scene>` | 3D guide scene | see [GameScene](GameScene) |
+| `<QuestCard>` | block-level BetterQuesting quest summary card (compat tag, only registered when BetterQuesting is loaded) | `id`, `show_desc`, `show_tooltip` |
 
-`<ImportStructureLib>` is a `<GameScene>` дочірній елемент тег. It accepts `controller`, `piece`, `facing`,
-`rotation`, `flip`, і `tier`, `channel`, `channelName`, `value`, `locked` атрибути, і також підтримує StructureLib Типове дочірній елемент теги:
+`<ImportStructureLib>` is a `<GameScene>` child tag. It accepts `controller`, `piece`, `facing`,
+`rotation`, `flip`, `tier`, `channel`, `channelName`, `value`, and `locked` attributes, and also supports StructureLib default child tags:
 `<Tier>`, `<Channel>`, `<Facing>`, `<Rotation>`, `<Flip>`, `<Orientation>`,
-`<GregTechActiveController>`, і `<GregTechPlaceHatches>`.
+`<GregTechActiveController>`, and `<GregTechPlaceHatches>`.
 
-## Відомості про теги
+## Tag Details
 
 ### `<a>`
 
-Acts like HTML-style якір тег:
+Acts like an HTML-style anchor tag:
 
 ````md
 <a href="subpage.md" title="Go to subpage">Open Subpage</a>
@@ -95,19 +95,19 @@ Acts like HTML-style якір тег:
 <a name="details" />
 ````
 
-- `href` може be відносний, rooted, явний `modid:path`, або HTTP/HTTPS
-- `title` стає  підказка
-- `name` inserts a сторінка якір ціль
+- `href` can be relative, rooted, explicit `modid:path`, or HTTP/HTTPS
+- `title` becomes the tooltip
+- `name` inserts a page anchor target
 
 ### `<br>`
 
-GuideNH також підтримує MDX break тег з число з плаваючою комою clearing:
+GuideNH also supports an MDX break tag with float clearing:
 
 ````md
 Text before.<br clear="all" />Text after.
 ````
 
-Accepted `clear` значення:
+Accepted `clear` values:
 
 - `none`
 - `left`
@@ -116,7 +116,7 @@ Accepted `clear` значення:
 
 ### `<wbr>`
 
-Позначає необов'язкове місце переносу рядка всередині слова, як HTML-елемент `<wbr>`. Нічого не відображає і не займає ширини: рядок переноситься тут, лише коли слово повністю не вміщується, наприклад довга назва чи число у вузькій клітинці таблиці за низької роздільної здатності.
+Marks an optional line-break point inside a word, like the HTML `<wbr>` element. It renders nothing and takes no width: the line only breaks there when the whole word does not fit, such as a long name or number in a narrow table cell at a low resolution.
 
 ````md
 | Block | Rate |
@@ -124,11 +124,11 @@ Accepted `clear` значення:
 | Cobble<wbr>stone/s | 11,<wbr>520 |
 ````
 
-Підтримуються і `<wbr>`, і `<wbr />`; атрибутів тег не має. На відміну від пробілу, він не залишає проміжку, коли слово вміщується. Site Export і Web Editor виводять нативний `<wbr>`.
+`<wbr>` and `<wbr />` are both accepted and the tag takes no attributes. Unlike a space, it never shows up as a gap when the word fits. Site Export and the Web Editor output a native `<wbr>`.
 
-### `<kbd>`, `<sub>`, і `<sup>`
+### `<kbd>`, `<sub>`, And `<sup>`
 
-GuideNH виконання підтримує focused subset of lowercase documentation теги для inline використовувати:
+GuideNH runtime supports a focused subset of lowercase documentation tags for inline use:
 
 ````md
 Press <kbd>Shift</kbd> + <sub>1</sub>
@@ -137,34 +137,34 @@ Water is H<sub>2</sub>O and x<sup>2</sup> is a square.
 
 ### `<details>`
 
-Creates collapsible виконання блок з summary рядок.  `<summary>` рядок підтримує normal
-inline Markdown/тег вміст, і  body може hold ordinary текст plus arbitrary Блокові теги наприклад
-`<BlockImage>`, `<FloatingImage>`, `<GameScene>`, таблиці, Діаграми, і структура containers.
-коли `height` is Установіть, лише  body scrolls;  summary рядок і outer frame залишаються фіксований.
+Creates a collapsible runtime block with a summary row. The `<summary>` line supports normal
+inline markdown/tag content, and the body can hold ordinary text plus arbitrary block tags such as
+`<BlockImage>`, `<FloatingImage>`, `<GameScene>`, tables, charts, and layout containers.
+When `height` is set, only the body scrolls; the summary row and outer frame stay fixed.
 
-Порожні рядки між `<summary>`, вмістом і `</details>` необов’язкові. Використовуйте назву тегу в множині: `<details>`; `<detail>` не підтримується. І заголовок, і вміст підтримують рядковий Markdown, `<ItemLink>`, `<ItemImage>` та інші рядкові теги. Послідовні блоки `<details>` залишаються незалежними.
+Blank lines between `<summary>`, the body, and `</details>` are optional. Use the plural tag `<details>`; `<detail>` is not supported. Both the summary and body support inline Markdown, `<ItemLink>`, `<ItemImage>`, and other inline tags. Consecutive `<details>` blocks remain independent.
 
 ````md
 <details open width="220" height="140" wrap="square" align="right">
 <summary>More <ItemImage id="minecraft:diamond" /></summary>
 
-Текст, прихований за замовчуванням, зі [звичайним посиланням на сторінку](./index.md).
+Hidden-by-default body text with a [normal page link](./index.md).
 
 <BlockImage id="minecraft:diamond_block" align="center" scale={2} />
 </details>
 ````
 
-атрибути:
+Attributes:
 
-- `open` — starts expanded коли present
-- `width` — бажаний outer ширина in пікселі
-- `height` — бажаний body viewport висота in пікселі; overflow стає scrollable in-game і in site export
-- `wrap` — підтримує  usual блок embedding modes наприклад `square`, `tight`, і `through`
-- `align` — `left`, `center`, або `right`; коли combined з floating перенесення режим,  whole details блок floats
+- `open` — starts expanded when present
+- `width` — preferred outer width in pixels
+- `height` — preferred body viewport height in pixels; overflow becomes scrollable in-game and in site export
+- `wrap` — supports the usual block embedding modes such as `square`, `tight`, and `through`
+- `align` — `left`, `center`, or `right`; when combined with a floating wrap mode, the whole details block floats
 
 ### `<ContentTabs>`
 
-Groups alternative розширений вміст under independent tabs. лише прямий `<Tab>` дочірні елементи є дійсний.  container itself може також відтворювати quote-style heading рядок над  tabs, відповідний  visual мова of Markdown callouts.
+Groups alternative rich content under independent tabs. Only direct `<Tab>` children are valid. The container itself can also render a quote-style heading row above the tabs, matching the visual language of markdown callouts.
 
 ````mdx
 <ContentTabs
@@ -185,19 +185,19 @@ Groups alternative розширений вміст under independent tabs. ли�
 </ContentTabs>
 ````
 
-- `default` відповідає  перший tab whose `title` відповідає exactly
-- `defaultIndex` is zero-based і wins over `default` коли both є present
-- `color` optionally overrides  ліворуч accent рядок і вибраний-tab виділяти з `#RRGGBB` або `#AARRGGBB`
-- background — необовязково змінює тло контейнера вкладок на #RRGGBB, #AARRGGBB або transparent; якщо атрибут не вказано, зберігається стандартне сіре тло
-- `title` додає an необов’язковий plain-текст heading над  tab strip
-- `icon`, `iconPng` / `icon_png`, і `iconItem` / `icon_item` використовувати  той самий heading icon semantics as Markdown quote-style callouts
-- недійсний дочірні елементи або недійсний типові відтворювати видимий автор-facing errors
+- `default` matches the first tab whose `title` matches exactly
+- `defaultIndex` is zero-based and wins over `default` when both are present
+- `color` optionally overrides the left accent line and selected-tab highlight with `#RRGGBB` or `#AARRGGBB`
+- `background` optionally overrides the tab container background with `#RRGGBB`, `#AARRGGBB`, or `transparent`; the default keeps the normal gray callout background
+- `title` adds an optional plain-text heading above the tab strip
+- `icon`, `iconPng` / `icon_png`, and `iconItem` / `icon_item` use the same heading icon semantics as markdown quote-style callouts
+- invalid children or invalid defaults render visible author-facing errors
 
 ### `<FileTree>`
 
-Renders каталог-style outline з real з’єднувач рядки drawn з  prefix glyphs on кожен рядок. Both Unicode box-drawing (`│ ├ └ ─`) і ASCII (`| +-- \-- ` / four spaces) forms є accepted і може be mixed. Payload текст підтримує  usual inline Markdown (links, **bold**, `code`, …), і those links є clickable both in-game і in  built-in site export.  той самий вміст може також be записаний as fenced ` ```tree ` or ` ```filetree ` блок.
+Renders a directory-style outline with real connector lines drawn from the prefix glyphs on each row. Both Unicode box-drawing (`│ ├ └ ─`) and ASCII (`| +-- \-- ` / four spaces) forms are accepted and may be mixed. Payload text supports the usual inline markdown (links, **bold**, `code`, …), and those links are clickable both in-game and in the built-in site export. The same content can also be written as a fenced ` ```tree ` or ` ```filetree ` block.
 
-У вузькому вікні відступи рівнів зменшуються, залишаючи місце для тексту. Довгі шляхи переважно переносяться після `/`, `\`, `_` і `-`; назви без роздільників можуть переноситися між символами. Продовження рядка вирівнюється за початком назви, а значки та відгалуження — за першим рядком.
+Narrow layouts reduce the indentation to leave room for text. Long paths prefer breaks after `/`, `\`, `_`, and `-`; unbroken names can wrap between characters. Continuation lines align with the name, while icons and branch connectors stay aligned with the first line.
 
 ````md
 <FileTree indent="14" gap="0">
@@ -210,55 +210,55 @@ project
 </FileTree>
 ````
 
-необов’язковий per-рядок icons є introduced by leading directive on  payload:
+Optional per-row icons are introduced by a leading directive on the payload:
 
-- `{:icon=Text}` — short текст мітка (один або double quotes необов’язковий)
-- `{:iconPng=path/to/file.png}` — PNG ресурс розв’язаний against  поточний сторінка
-- `{:iconItem=modid:item_id[:meta][:{snbt}]}` — Minecraft предмет icon.  необов’язковий `meta` segment is damage значення (або `*` для wildcard); an необов’язковий trailing `:{snbt}` блок carries SNBT до attach до  стос.
+- `{:icon=Text}` — short text label (single or double quotes optional)
+- `{:iconPng=path/to/file.png}` — PNG asset resolved against the current page
+- `{:iconItem=modid:item_id[:meta][:{snbt}]}` — Minecraft item icon. The optional `meta` segment is a damage value (or `*` for a wildcard); an optional trailing `:{snbt}` block carries SNBT to attach to the stack.
 
 ````md
 ```filetree
-світ
+world
 |-- {:iconItem=minecraft:grass} grass biome
 |   \-- {:icon=Tree} oak forest
-\-- {:iconPng=test1.png} sample ресурс
+\-- {:iconPng=test1.png} sample asset
 ```
 ````
 
-атрибути:
+Attributes:
 
-- `indent` — пікселі per depth level (Типове `14`)
-- `gap` — extra пікселі between рядки (Типове `0`)
+- `indent` — pixels per depth level (default `14`)
+- `gap` — extra pixels between rows (default `0`)
 
-### виконання Blockquotes
+### Runtime Blockquotes
 
-Normal Markdown blockquotes відтворювати at виконання з ліворуч accent рядок. GitHub alert синтаксис is Підтримувані:
+Normal markdown blockquotes render at runtime with a left accent line. GitHub alert syntax is supported:
 
 ````md
 > [!NOTE]
 > Alert body
 ````
 
-GuideNH також підтримує a виконання-лише власний directive on  перший quoted рядок:
+GuideNH also supports a runtime-only custom directive on the first quoted line:
 
 ````md
 > {: title="Custom Quote" color="#638ef1" icon="i" }
 > Body text
 ````
 
-Підтримувані directive ключі:
+Supported directive keys:
 
 - `title`
 - `color`
-- `icon` для plain текст symbols
-- `iconItem` для an `ItemStack` id
-- `iconPng` для a посібник ресурс png шлях
+- `icon` for plain text symbols
+- `iconItem` for an `ItemStack` id
+- `iconPng` for a guide asset png path
 
-лише один icon source слід be provided.
+Only one icon source should be provided.
 
 ### `<Color>`
 
-використовувати either symbolic колір id або явний hex значення:
+Use either a symbolic color id or an explicit hex value:
 
 ````md
 <Color id="RED">Symbolic red</Color>
@@ -270,20 +270,20 @@ Use `<Spoiler>` for inline hidden text. The content stays rich-text aware, so ne
 such as `<Color>` still render correctly after reveal.
 
 ```mdx
-<Spoiler>прихований **bold** текст з <Color color="#55ccff">tint</Color>.</Spoiler>
-<Spoiler>[Anchor Link](#headings) досі behaves like normal hoverable посилання коли revealed.</Spoiler>
+<Spoiler>Hidden **bold** text with <Color color="#55ccff">tint</Color>.</Spoiler>
+<Spoiler>[Anchor Link](#headings) still behaves like a normal hoverable link when revealed.</Spoiler>
 ```
 
 ````
 
-Правила:
+Rules:
 
-- `id` і `color` є mutually exclusive in practice; надавати один
-- `color` accepts `#RRGGBB`, `#AARRGGBB`, або `transparent`
+- `id` and `color` are mutually exclusive in practice; provide one
+- `color` accepts `#RRGGBB`, `#AARRGGBB`, or `transparent`
 
 ### `<Tooltip>`
 
-Creates underlined текст який opens розширений вміст підказка on наведення.
+Creates underlined text that opens a rich content tooltip on hover.
 
 ````md
 <Tooltip label="Hover me">
@@ -292,12 +292,12 @@ Creates underlined текст який opens розширений вміст п�
 </Tooltip>
 ````
 
-Якщо `label` is пропущений,  trigger текст типові до `tooltip`.
+If `label` is omitted, the trigger text defaults to `tooltip`.
 
-### `<SoundLink>` і Sound Action Links
+### `<SoundLink>` And Sound Action Links
 
-`<SoundLink>` renders розширений inline вміст який plays sound коли clicked. It не navigate,
-і його власний натискання sound replaces  normal посібник натискання sound для який натискання.
+`<SoundLink>` renders rich inline content that plays a sound when clicked. It does not navigate,
+and its custom click sound replaces the normal guide click sound for that click.
 
 ````md
 <SoundLink sound="guidenh:machine.start" volume="0.8" pitch="1.0">
@@ -308,27 +308,27 @@ Creates underlined текст який opens розширений вміст п�
 &[Use a sound file](sound-src:guidenh:sounds/machine/start.ogg)
 ````
 
-Sound атрибути:
+Sound attributes:
 
-- `sound` is sound event id наприклад `modid:event.name`
-- `src` точки at an `.ogg` файл; `modid:sounds/machine/start.ogg` стає `modid:machine.start`
-- `volume` типові до `1.0`
-- `pitch` типові до `1.0`
-- `cooldown` is milliseconds between repeated plays, Типове `250`
-- `radius` і `minVolume` control простір екрана attenuation коли використовується in сцени
+- `sound` is a sound event id such as `modid:event.name`
+- `src` points at an `.ogg` file; `modid:sounds/machine/start.ogg` becomes `modid:machine.start`
+- `volume` defaults to `1.0`
+- `pitch` defaults to `1.0`
+- `cooldown` is milliseconds between repeated plays, default `250`
+- `radius` and `minVolume` control screen-space attenuation when used in scenes
 
 ### `<Amount>`
 
-`<Amount>` форматує числову кількість. Якщо `unit` пропущено (або вказано `unit="none"`), показується лише число. `unit="item"` також не додає суфікса. `unit="fluid"` використовує налаштування рідин GTNHLib і показує `mB` або `L`. `format` може бути `default`, `plain`, `compact` або `scientific`, а `decimals` обмежує кількість десяткових знаків. Швидкість, наприклад `L/s`, записуйте поза тегом.
+`<Amount>` formats a numeric amount. Omitting `unit` (or using `unit="none"`) displays only the number. `unit="item"` is also suffix-free. `unit="fluid"` follows the GTNHLib fluid preference and displays `mB` or `L`. The optional `format` is `default`, `plain`, `compact`, or `scientific`; `decimals` limits fractional digits. Keep rate suffixes such as `/s` outside the tag.
 
-| Атрибут | Значення |
+| Attribute | Meaning |
 | --- | --- |
-| `value` | обов’язкове скінченне десяткове число |
-| `unit` | необов’язкове `none`, `item` або `fluid`; за замовчуванням `none` |
-| `format` | необов’язковий числовий формат; за замовчуванням `default` |
-| `decimals` | необов’язкова невід’ємна максимальна кількість десяткових знаків |
+| `value` | required finite decimal value |
+| `unit` | optional `none`, `item`, or `fluid`; defaults to `none` |
+| `format` | optional number format; defaults to `default` |
+| `decimals` | optional non-negative maximum fractional digits |
 
-Приклад:
+Example:
 
 ````md
 <Amount value="250" />
@@ -338,7 +338,7 @@ Sound атрибути:
 
 ### `<PlayerName>`
 
-Inserts  поточний Minecraft session username:
+Inserts the current Minecraft session username:
 
 ````md
 Welcome, <PlayerName />!
@@ -346,14 +346,14 @@ Welcome, <PlayerName />!
 
 ### `<KeyBind>`
 
-Looks up keybinding by id або action і renders  гравець's поточний bound ключ назва.
+Looks up a keybinding by id or action and renders the player's current bound key name.
 
 Accepted ids:
 
--  binding опис id, наприклад `key.jump` або `key.guidenh.open_guide`
--  legacy `category.description` form, наприклад `key.categories.movement.key.jump`
+- the binding description id, such as `key.jump` or `key.guidenh.open_guide`
+- the legacy `category.description` form, such as `key.categories.movement.key.jump`
 
-Приклад:
+Example:
 
 ````md
 Press <KeyBind id="key.jump" /> to jump.
@@ -362,10 +362,10 @@ Attack with <KeyBind action="key.attack" />.
 
 ### MDX Comments
 
-GuideNH ignores MDX comments in сторінка вміст:
+GuideNH ignores MDX comments in page content:
 
 ````md
-Видимий текст. {/* прихований вбудований коментар */}
+Visible text. {/* hidden inline comment */}
 
 {/*
 multiline comment
@@ -374,39 +374,39 @@ multiline comment
 More visible text.
 ````
 
-GuideNH також ignores явний `<Comment>` теги:
+GuideNH also ignores explicit `<Comment>` tags:
 
 ````md
-Видимий текст. <Comment>Це не відображається.</Comment> Текст залишається видимим.
+Visible text. <Comment>This does not render.</Comment> Still visible.
 ````
 
 ### `<ItemImage>`
 
-Shows inline предмет icon.
+Shows an inline item icon.
 
-| Атрибут | Значення |
+| Attribute | Meaning |
 | --- | --- |
-| `ore` | необов’язковий вибір зі словника руд; також укажіть `id` |
-| `id` | обов’язкове посилання на предмет, зокрема з `ore` |
-| `nbt` | необов’язковий SNBT предмет дані; merged onto any inline SNBT in `id` |
-| `scale` | число з плаваючою комою, Типове `1` |
-| `noTooltip` | truthy рядок або empty Атрибут suppresses підказка (legacy; prefer `showTooltip`) |
-| `showTooltip` | логічне значення, Типове `true`; `false` suppresses  наведення підказка |
-| `showIcon` | логічне значення, Типове `true`; `false` hides  предмет icon graphic |
-| `label` | `left` або `right` — shows  предмет відображати назва as текст on  specified бік of  icon; omit для no мітка |
-| `format` | format pattern для  мітка текст; підтримує Markdown-style wrappers (`**bold**`, `*italic*`, `~~strike~~`, `__underline__`, `^^wavy^^`, `::dotted::`) з необов’язковий `%s` placeholder для  предмет назва; Типове (no Атрибут) renders  назва in italic |
-| `yOffset` | вертикальний зсув у рядку при `scale=1`; типово `0`; додатний униз |
-| `labelYOffset` | вертикальний зсув лише підпису при `scale=1`; типово `0` |
+| `ore` | optional ore-dictionary selector; provide `id` as well |
+| `id` | required item reference, including when `ore` is used |
+| `nbt` | optional SNBT item data; merged onto any inline SNBT in `id` |
+| `scale` | float, default `1` |
+| `noTooltip` | truthy string or empty attribute suppresses tooltip (legacy; prefer `showTooltip`) |
+| `showTooltip` | boolean, default `true`; `false` suppresses the hover tooltip |
+| `showIcon` | boolean, default `true`; `false` hides the item icon graphic |
+| `label` | `left` or `right` — shows the item display name as text on the specified side of the icon; omit for no label |
+| `format` | format pattern for the label text; supports Markdown-style wrappers (`**bold**`, `*italic*`, `~~strike~~`, `__underline__`, `^^wavy^^`, `::dotted::`) with optional `%s` placeholder for the item name; default (no attribute) renders the name in italic |
+| `yOffset` | inline vertical offset at scale `1`; default `0`; positive moves down |
+| `labelYOffset` | label-only vertical offset at scale `1`; default `0` |
 
-Примітки:
+Notes:
 
-- `ore` takes precedence over `id` коли both є provided
-- Якщо GregTech is installed,  вибраний ore відповідати is passed through `GTOreDictUnificator.setStack(...)`
-- `label` requires at least один of `showIcon` або `label` до produce видимий вивід; setting both `showIcon="false"` і omitting `label` renders nothing
-- `format` лише застосовує коли `label` is Установіть; Якщо `format` має no `%s`,  literal format текст is використовується as  мітка
-- inline SNBT in `id` remains Підтримувані; коли both forms є present,  standalone `nbt` Атрибут is merged останній і overrides conflicting ключі
+- `ore` takes precedence over `id` when both are provided
+- if GregTech is installed, the selected ore match is passed through `GTOreDictUnificator.setStack(...)`
+- `label` requires at least one of `showIcon` or `label` to produce visible output; setting both `showIcon="false"` and omitting `label` renders nothing
+- `format` only applies when `label` is set; if `format` has no `%s`, the literal format text is used as the label
+- inline SNBT in `id` remains supported; when both forms are present, the standalone `nbt` attribute is merged last and overrides conflicting keys
 
-Приклад:
+Example:
 
 ````md
 <ItemImage id="minecraft:diamond" scale="2" />
@@ -426,18 +426,18 @@ Shows inline предмет icon.
 
 ### `<ItemLink>`
 
-Creates a текст посилання використовуючи  предмет's відображати назва і предмет підказка. Якщо `item_ids` точки до a сторінка посібника, натискання navigates до it. `ore` може be використовується до розв’язати  відображати стос з  перший ore dictionary відповідати замість цього of a фіксований registry id.
+Creates a text link using the item's display name and item tooltip. If `item_ids` points to a guide page, clicking navigates to it. `ore` can be used to resolve the display stack from the first ore dictionary match instead of a fixed registry id.
 
-| Атрибут | Типове | Значення |
+| Attribute | Default | Meaning |
 | --- | --- | --- |
-| `id` | — | предмет registry id, e.g. `minecraft:compass` або `minecraft:wool:1` |
-| `ore` | — | ore-dictionary назва; використовує  перший відповідний предмет стос |
-| `linksTo` | *(auto)* | overrides  посилання ціль; accepts a ідентифікатор сторінки з необов’язковий `#anchor`, e.g. `./crafting.md#usage` або `#usage`; коли пропущений  ціль is розв’язаний з `item_ids` / `ore_ids` index |
-| `showTooltip` | `true` | Установіть до `false` до suppress  наведення підказка; `noTooltip` is legacy alias |
-| `showIcon` | *(none)* | `left` або `right` (або any truthy значення → праворуч) — renders  предмет icon beside  посилання текст; omit до показувати текст лише |
-| `scale` | `1.0` | відображати scale для  необов’язковий предмет icon; має no effect коли `showIcon` is пропущений |
+| `id` | — | item registry id, e.g. `minecraft:compass` or `minecraft:wool:1` |
+| `ore` | — | ore-dictionary name; uses the first matching item stack |
+| `linksTo` | *(auto)* | overrides the link target; accepts a page id with optional `#anchor`, e.g. `./crafting.md#usage` or `#usage`; when omitted the target is resolved from `item_ids` / `ore_ids` index |
+| `showTooltip` | `true` | set to `false` to suppress the hover tooltip; `noTooltip` is a legacy alias |
+| `showIcon` | *(none)* | `left` or `right` (or any truthy value → right) — renders the item icon beside the link text; omit to show text only |
+| `scale` | `1.0` | display scale for the optional item icon; has no effect when `showIcon` is omitted |
 
-Приклади:
+Examples:
 
 ````md
 <ItemLink id="appliedenergistics2:tile.BlockSkyChest" />
@@ -449,34 +449,67 @@ Creates a текст посилання використовуючи  предм
 <ItemLink id="minecraft:compass" linksTo="#usage" />
 ````
 
+### `<FluidImage>`, `<FluidLink>`, and `<FluidIcon>`
+
+Native fluid icons resolve the exact Forge fluid registry name, such as `water`, `steam`, or `molten.iron`. Persist names, never numeric fluid IDs or NEI display-item metadata. Rendering uses the Forge fluid texture and tint and does not require NEI.
+
+Default hover tooltips show the fluid name, temperature in kelvin and gas/liquid state. An explicit `amount`, including zero, adds the quantity in the selected L/mB unit; an omitted amount adds no quantity. Advanced tooltips also show the registry name. When GregTech is loaded, material information such as chemical formulas follows its tooltip settings. Native tooltips, connected runtime previews and ExportSite share these details; disconnected Web previews only know the supplied name and amount. NEI is not required.
+
+ExportSite displays item counts and fluid amounts as text overlays using its bundled Pixeloid Mono font. Item durability bars remain part of the icon image.
+
+| Attribute | Contract |
+| --- | --- |
+| `id` | Required complete fluid registry name; no implicit namespace or item metadata |
+| `amount` | Optional integer amount; display follows the selected fluid unit |
+| `nbt` | Optional SNBT describing a private fluid stack tag |
+| `showTooltip`, `noTooltip` | Same visibility precedence as item icons; hiding a tooltip does not disable G navigation |
+| `scale`, `showIcon`, `label`, `format`, `yOffset`, `labelYOffset` | FluidImage shares ItemImage presentation options; scale must be finite and positive |
+| `showIcon`, `showText`, `linksTo` | FluidLink shares ItemLink label, icon-side, and explicit page/anchor behavior |
+
+`FluidIcon` is an ItemGrid child and accepts only `id`, `amount`, `nbt`, `showTooltip`, and `noTooltip`. A single ItemGrid may mix ItemIcon and FluidIcon children in source order. There is no separate FluidGrid. `ore` and item metadata are not fluid selectors.
+
+```mdx
+<FluidImage id="water" amount={1000} scale="2" label="right" />
+<FluidLink id="steam" showIcon="left">Steam</FluidLink>
+<ItemGrid>
+  <ItemIcon id="minecraft:bucket" />
+  <FluidIcon id="water" amount={1000} />
+  <FluidIcon id="steam" />
+</ItemGrid>
+```
+
+Bind pages with `fluid_id` / `fluid_ids`. Hold the remappable open-guide key (G by default) over native fluid icons or supported container/display representations. One match opens directly; multiple matches show a chooser with fluid pages before container pages. Amount and NBT affect display, while bindings match the registry name. Empty containers retain ordinary item navigation. Unrecognized fluid GUIs require a registered hover provider.
+
+Use `navigation.icon_fluid` / `icon_fluids` for single/cycling page icons, and `iconFluid` in ContentTabs, FileTree directives, quote directives, chart Series / LineSeries / Slice. Fluid icon sources must not be combined with item, PNG, or text icon sources. Six Recipe/Usage tags accept `fluid`, `inputFluid`, and `outputFluid`; InputAnnotation accepts `fluid`, `amount`, and `nbt`. See Recipes, Guide Page Format, and Annotations for the remaining contracts.
+
 ### `<CommandLink>`
 
-Sends chat command коли clicked.
+Sends a chat command when clicked.
 
-| Атрибут | Значення |
+| Attribute | Meaning |
 | --- | --- |
-| `command` | Обов’язково, має початок з `/` |
-| `title` | необов’язковий підказка heading |
-| `close` | проаналізований логічне значення Атрибут; зараз проаналізований but не використовується до close  посібник |
+| `command` | required, must start with `/` |
+| `title` | optional tooltip heading |
+| `close` | parsed boolean attribute; currently parsed but not used to close the guide |
 
-Приклад:
+Example:
 
 ````md
-<CommandLink command="/tp @s 0 90 0" title="Teleport">Teleport!</CommandLink>
+<CommandLink command="/tp @p 0 90 0" title="Teleport">Teleport!</CommandLink>
 ````
 
-### `<Row>` і `<Column>`
+### `<Row>` And `<Column>`
 
-Flex-style containers для блок вміст.
+Flex-style containers for block content.
 
-| Атрибут | Значення |
+| Attribute | Meaning |
 | --- | --- |
-| `gap` | ціле число gap between дочірні елементи, Типове `5` |
+| `gap` | integer gap between children, default `5` |
 | `alignItems` | `start`, `center`, `end` |
-| `fullWidth` | логічне значення вираз, Типове `false` |
-| `width` | ціле число бажаний ширина; useful для constraining список рядок ширина |
+| `fullWidth` | boolean expression, default `false` |
+| `width` | integer preferred width; useful for constraining list line width |
 
-Приклад:
+Example:
 
 ````md
 <Row gap="8" alignItems="center">
@@ -485,7 +518,7 @@ Flex-style containers для блок вміст.
 </Row>
 ````
 
-до constrain  ширина of normal Markdown lists, перенесення їх in container:
+To constrain the width of normal markdown lists, wrap them in a container:
 
 ````md
 <Column width="220">
@@ -496,7 +529,7 @@ Flex-style containers для блок вміст.
 
 ### `<FootnoteList>`
 
-GuideNH використовує Цей блок тег internally коли виконання Markdown footnotes є expanded. It може також be записаний вручну Якщо needed.
+GuideNH uses this block tag internally when runtime markdown footnotes are expanded. It can also be written manually if needed.
 
 ````md
 <FootnoteList width="220">
@@ -507,7 +540,7 @@ GuideNH використовує Цей блок тег internally коли ви
 
 ### `<ItemGrid>`
 
-Renders compact предмет grid. дочірні елементи має be raw `<ItemIcon>` elements, який є проаналізований directly by  grid компілятор. кожен дочірній елемент може використовувати either `id` або `ore`.
+Renders a compact icon grid. ItemIcon and FluidIcon children appear in source order. Item children select `id` or `ore`; fluid children select a registry-name `id` with optional amount and NBT.
 
 ````md
 <ItemGrid>
@@ -520,31 +553,31 @@ Renders compact предмет grid. дочірні елементи має be r
 
 ### `<BlockImage>`
 
-Renders non-інтерактивний 3D один-блок сцена.  перегляд має no сцена тло, no сцена
-buttons, no layer controls, і no анотація features, but наведення  блок досі shows 
-вибір outline і підказка. `ore` має розв’язати до a блок предмет стос.
+Renders a non-interactive 3D single-block scene. The preview has no scene background, no scene
+buttons, no layer controls, and no annotation features, but hovering the block still shows the
+selection outline and tooltip. `ore` must resolve to a block item stack.
 
-| Атрибут | Значення |
+| Attribute | Meaning |
 | --- | --- |
-| `id` | блок id; підтримує  normal `modid:block[:meta][:{snbt}]` spelling |
-| `ore` | ore dictionary lookup;  перший відповідний блок предмет wins |
-| `scale` | камера масштаб multiplier, Типове `4` |
-| `meta` | метадані блока; замінюють метадані в `id` |
-| `width` / `height` | розміри попереднього перегляду в пікселях; типово `128` кожен |
-| `wrap` | обтікання текстом; типово `inline` |
-| `align` | горизонтальне вирівнювання: `left` (типово), `center` або `right` |
-| `float` | legacy flow число з плаваючою комою підтримка: `left` або `right` |
-| `perspective` | `isometric-north-east` (Типове), `isometric-north-west`, або `up` |
-| `nbt` | необов’язковий SNBT блок-сутність дані merged onto any inline SNBT з `id` |
+| `id` | block id; supports the normal `modid:block[:meta][:{snbt}]` spelling |
+| `ore` | ore dictionary lookup; the first matching block item wins |
+| `scale` | camera zoom multiplier, default `4` |
+| `meta` | block metadata; overrides metadata in `id` |
+| `width` / `height` | preview viewport in pixels; default `128` for each dimension |
+| `wrap` | text wrapping mode; default `inline` |
+| `align` | horizontal alignment: `left` (default), `center`, or `right` |
+| `float` | legacy flow float support: `left` or `right` |
+| `perspective` | `isometric-north-east` (default), `isometric-north-west`, or `up` |
+| `nbt` | optional SNBT tile-entity data merged onto any inline SNBT from `id` |
 
-Примітки:
+Notes:
 
-- inline SNBT усередині `id` is досі accepted для compatibility, but `nbt="..."` is  бажаний
+- inline SNBT inside `id` is still accepted for compatibility, but `nbt="..."` is the preferred
   authoring form
-- коли both inline SNBT і `nbt` є present,  `nbt` Атрибут is merged останній і тому
-  overrides conflicting ключі
-- GuideNH 1.7.10 не підтримка modern блок-стан властивість синтаксис here, so GuideME-style
-  `p:<state>` атрибути є intentionally не Підтримувані
+- when both inline SNBT and `nbt` are present, the `nbt` attribute is merged last and therefore
+  overrides conflicting keys
+- GuideNH 1.7.10 does not support modern block-state property syntax here, so GuideME-style
+  `p:<state>` attributes are intentionally not supported
 
 ````md
 <BlockImage id="minecraft:crafting_table" scale="3" />
@@ -558,7 +591,7 @@ buttons, no layer controls, і no анотація features, but наведен�
 
 ### `<FloatingImage>`
 
-Дивіться [Images And Assets](Images-And-Assets) для  full поведінка.
+See [Images And Assets](Images-And-Assets) for the full behavior.
 
 ```mdx
 <FloatingImage src="test1.png" displayWidth="128" wrap="inline" />
@@ -566,17 +599,17 @@ buttons, no layer controls, і no анотація features, but наведен�
 <FloatingImage src="test1.png" x="8" y="8" width="16" height="16" displayWidth="128" wrap="inline" />
 ```
 
-### `<SubPages>`, `<Category>`, і `<Special>`
+### `<SubPages>`, `<Category>`, And `<Special>`
 
-Дивіться [Navigation](Navigation) для full Навігація поведінка.
+See [Navigation](Navigation) for full navigation behavior.
 
 ### `<Structure>`
 
-Дивіться [Examples](Examples) і [GameScene](GameScene) коли deciding whether до використовувати static структура перегляд або full 3D сцена.
+See [Examples](Examples) and [GameScene](GameScene) when deciding whether to use a static structure preview or a full 3D scene.
 
 ### `<Mermaid>`
 
-використовується для виконання Mermaid вміст. поточний виконання підтримка is focused on `mindmap`, either inline або through a сторінка-відносний `src` import:
+Used for runtime Mermaid content. Current runtime support is focused on `mindmap`, either inline or through a page-relative `src` import:
 
 ````md
 <Mermaid src="./markdown-mindmap.mmd" />
@@ -587,69 +620,82 @@ mindmap
     runtime["Runtime blocks"]
 
 <NodeContent id="runtime">
-Вузли виконання можуть містити звичайні блоки.
+Runtime nodes can embed normal blocks.
 
 <ItemImage id="minecraft:diamond" />
 </NodeContent>
 </Mermaid>
 ```
 
-- `width` і `height` constrain  виконання viewport box
-- усередині  viewport, перетягування pans і  mouse wheel zooms
-- quoted Mermaid labels може використовувати розширений inline Markdown наприклад `**bold**` і сторінка links
-- `<NodeContent id="...">...</NodeContent>` може be added as дочірні елементи of `<Mermaid>` до замінити node body з arbitrary виконання блоки
+- `width` and `height` constrain the runtime viewport box
+- inside the viewport, drag pans and the mouse wheel zooms
+- quoted Mermaid labels may use rich inline markdown such as `**bold**` and page links
+- `<NodeContent id="...">...</NodeContent>` can be added as children of `<Mermaid>` to replace a node body with arbitrary runtime blocks
 
 ### `<CsvTable>`
 
-використовується до аналізувати CSV файл до a виконання таблиця:
+Used to parse a CSV file into a runtime table:
 
 ````md
 <CsvTable src="./markdown-table.csv" />
 ```
 
-`src` resolves відносний до  поточний сторінка,  той самий way сцена імпорти і normal ресурс links do.
+`src` resolves relative to the current page, the same way scene imports and normal asset links do.
 
-необов’язковий атрибути:
+Optional attributes:
 
 - `header`
-  типові до `true`; Установіть `header={false}` до Збережіть  перший рядок unbolded
+  Defaults to `true`; set `header={false}` to keep the first row unbolded
 - `widths`
-  Comma-separated ціле число ширина hints наприклад `widths="120,80"`
+  Comma-separated integer width hints such as `widths="120,80"`
 
-Приклади:
+Examples:
 
 ````md
 <CsvTable src="./markdown-table.csv" widths="120,80" />
 <CsvTable src="./markdown-table.csv" header={false} />
 ```
 
- related fenced виконання CSV form також підтримує відповідний метадані:
+The related fenced runtime CSV form also supports matching metadata:
 
 ````md
 ```csv widths="120,80" header=false
-назва,значення
+name,value
 iron,42
 gold,17
 ```
 ````
 
+### HTML `<table>`
+
+The native HTML table tags are supported in GuideNH pages. Use `<caption>`, `<colgroup>` / `<col>`, and `<thead>` / `<tbody>` / `<tfoot>` to describe the table structure. Cells support `colspan`, `rowspan`, `align`, and `valign`; header cells additionally support `scope`, `abbr`, and `headers`. A table `align` value with commas (for example `left,center,right`) is retained as a per-column alignment extension; a single `left`, `center`, or `right` value positions the complete table. `width`, `border`, `cellpadding`, and `cellspacing` are supported in the game renderer and site export. The kramdown metadata line `{: widths="130,70,150" }` remains supported for Markdown tables.
+
+````md
+<table width="100%" cellpadding="2">
+  <caption>Fuel rates</caption>
+  <colgroup><col width="40%" /><col width="60%" /></colgroup>
+  <thead><tr><th scope="col">Fuel</th><th scope="col">Rate</th></tr></thead>
+  <tbody><tr><td>Coal</td><td align="right">42</td></tr></tbody>
+</table>
+````
+
 ### `<Latex>`
 
-Renders LaTeX math formula використовуючи jlatexmath. коли використовується inline (усередині paragraph або текст flow), it renders as scaled glyph який expands  рядок висота до fit  formula. коли записаний as його власний paragraph (блок context), it renders centered as a відображати-режим formula.
+Renders a LaTeX math formula using jlatexmath. When used inline (inside a paragraph or text flow), it renders as a scaled glyph that expands the line height to fit the formula. When written as its own paragraph (block context), it renders centered as a display-mode formula.
 
-| Атрибут | Тип | Типове | опис |
+| Attribute | Type | Default | Description |
 | --- | --- | --- | --- |
-| `formula` | рядок | *(Обов’язково)* | LaTeX source рядок |
-| `color` | `#RRGGBB` або `#AARRGGBB` | `#FFFFFF` | Glyph fill colour |
-| `scale` | число з плаваючою комою | `1.0` | відображати розмір multiplier applied on угорі of  автоматичний рядок-висота scaling |
-| `sourceScale` | число з плаваючою комою | `100.0` | jlatexmath внутрішній відтворювати resolution; higher значення improve quality at large sizes |
-| `tooltip` | рядок | *(none)* | Plain підказка текст показано on наведення |
-| `showTooltip` | логічне значення | `false` | показувати  raw LaTeX source as a підказка on наведення |
-| `valign` | `baseline` / `top` / `center` / `bottom` | `baseline` | Inline-лише. Vertical alignment усередині  текст рядок: `baseline` (Типове) aligns  formula's math baseline з  текст baseline; `top` aligns  formula угорі з  рядок угорі; `center` centers it on  текст; `bottom` aligns  formula унизу з  текст унизу |
-| `offsetX` | int | `0` | Horizontal піксель offset applied після alignment (positive = праворуч) |
-| `offsetY` | int | `0` | Vertical піксель offset applied після alignment (positive = down) |
+| `formula` | string | *(required)* | LaTeX source string |
+| `color` | `#RRGGBB` or `#AARRGGBB` | `#FFFFFF` | Glyph fill colour |
+| `scale` | float | `1.0` | Display size multiplier applied on top of the automatic line-height scaling |
+| `sourceScale` | float | `100.0` | jlatexmath layout size used as the measuring reference. In game the formula is always rasterized at the actual screen resolution; in site export it sets the PNG resolution |
+| `tooltip` | string | *(none)* | Plain tooltip text shown on hover |
+| `showTooltip` | boolean | `false` | Show the raw LaTeX source as a tooltip on hover |
+| `valign` | `baseline` / `top` / `center` / `bottom` | `baseline` | Inline-only. Vertical alignment within the text line: `baseline` (default) aligns the formula's math baseline with the text baseline; `top` aligns the formula top with the line top; `center` centers it on the text; `bottom` aligns the formula bottom with the text bottom |
+| `offsetX` | int | `0` | Horizontal pixel offset applied after alignment (positive = right) |
+| `offsetY` | int | `0` | Vertical pixel offset applied after alignment (positive = down) |
 
-Приклади:
+Examples:
 
 ````md
 Inline: <Latex formula="E=mc^2" />
@@ -685,11 +731,11 @@ Top-aligned with an upward nudge: <Latex formula="x^2" valign="top" offsetY="-1"
 
 #### `$$formula$$` shorthand
 
-As convenience you може записувати `$$formula$$` directly in Markdown без використовуючи  `<Latex>` тег.
-усі відтворення параметри використовувати їхні типові (white colour, scale 1.0, no підказка, baseline-aligned).
+As a convenience you can write `$$formula$$` directly in Markdown without using the `<Latex>` tag.
+All rendering parameters use their defaults (white colour, scale 1.0, no tooltip, baseline-aligned).
 
-- **Inline**: `$$formula$$` embedded усередині paragraph renders as inline formula.
-- **відображати**: paragraph whose entire вміст is `$$formula$$` (з необов’язковий surrounding whitespace) renders as centred відображати-режим блок.
+- **Inline**: `$$formula$$` embedded inside a paragraph renders as an inline formula.
+- **Display**: a paragraph whose entire content is `$$formula$$` (with optional surrounding whitespace) renders as a centred display-mode block.
 
 ````md
 Inline shorthand: $$E=mc^2$$ and $$a^2+b^2=c^2$$
@@ -701,73 +747,73 @@ $$\int_0^\infty e^{-x^2}\,dx = \frac{\sqrt{\pi}}{2}$$
 $$\begin{pmatrix} a & b \\ c & d \end{pmatrix}$$
 ````
 
-Примітки:
+Notes:
 
--  formula висота is calibrated до  поточний рядок текст висота. простий formulas відтворювати at текст висота; taller formulas (fractions, summations, integrals, etc.) expand  enclosing рядок висота автоматично.
-- `valign` лише застосовує до inline formulas. відображати-режим (блок-level) formulas є завжди centered horizontally; використовувати `offsetY` до shift їх vertically усередині  блок.
-- `color` типові до white (`#FFFFFF`). використовувати `#AARRGGBB` format для semi-прозорий fill.
-- `sourceScale` лише affects відтворювати sharpness, не  displayed розмір. значення below `16` є clamped до `16`.
-- підказка priority is: розширений дочірній елемент Markdown вміст, потім `tooltip="..."`, потім `showTooltip={true}` raw source резервний варіант.
-- дочірній елемент підказка вміст is скомпільований as regular посібник Markdown, so it може включати bold текст, lists, links, предмет теги, і nested `<Latex>` formulas.
--  `$$formula$$` shorthand завжди використовує Типове параметри. використовувати  `<Latex>` тег для власний colour, scale, alignment або підказка.
+- The formula height is calibrated to the current line text height. Simple formulas render at text height; taller formulas (fractions, summations, integrals, etc.) expand the enclosing line height automatically.
+- `valign` only applies to inline formulas. Display-mode (block-level) formulas are always centered horizontally; use `offsetY` to shift them vertically within the block.
+- `color` defaults to white (`#FFFFFF`). Use `#AARRGGBB` format for a semi-transparent fill.
+- `sourceScale` does not change the displayed size. In game, formulas are rasterized at the on-screen pixel size (GUI scale aware), so thin strokes such as fraction bars and minus signs stay visible on low-resolution displays; `sourceScale` only affects the site-export PNG resolution. Values below `16` are clamped to `16`.
+- Tooltip priority is: rich child Markdown content, then `tooltip="..."`, then `showTooltip={true}` raw source fallback.
+- Child tooltip content is compiled as regular guide Markdown, so it can include bold text, lists, links, item tags, and nested `<Latex>` formulas.
+- The `$$formula$$` shorthand always uses default parameters. Use the `<Latex>` tag for custom colour, scale, alignment or tooltip.
 
-### сцена виконання теги
+### Scene Runtime Tags
 
-Ці теги лише працюють усередині `<GameScene>` / `<Scene>`:
+These tags only work inside `<GameScene>` / `<Scene>`:
 
-| тег | Purpose | ключ атрибути |
+| Tag | Purpose | Key attributes |
 | --- | --- | --- |
-| `<ImportStructure>` | import зовнішній SNBT/NBT структура ресурс | `src`, `x`, `y`, `z`, `offsetX`, `offsetY`, `offsetZ`, `formed` |
-| `<ImportStructureLib>` | import StructureLib multiblock by controller id | `controller`, `name`, `piece`, `facing`, `rotation`, `flip`, `tier`, `channel`, `channelName`, `value`, `locked`, `offsetX`, `offsetY`, `offsetZ`, `formed` |
-| `<RemoveBlocks>` | видалити вже-розміщений блоки який відповідати a блок matcher | `id` |
-| `<BlockAnnotation>` | виділення одного блока | `pos`, `color`, `colorMode`, `colorPeriod`, `thickness`, `alwaysOnTop` |
-| `<BoxAnnotation>` | виділення довільного паралелепіпеда вздовж осей | `min`, `max`, `color`, `colorMode`, `colorPeriod`, `thickness`, `alwaysOnTop` |
-| `<OutlineAnnotation>` | обведення відтвореного силуету блоків або сутностей | `pos`, `min`, `max`, `entity`, `target`, `mode`, `color`, `colorMode`, `colorPeriod`, `thickness`, `alwaysOnTop`, `pulse`, `pulsePeriod` |
-| `<BlockAnnotationTemplate>` | stamp  той самий дочірній елемент Анотації onto кожен відповідний розміщений блок | `id` |
+| `<ImportStructure>` | import an external SNBT/NBT structure asset | `src`, `x`, `y`, `z`, `offsetX`, `offsetY`, `offsetZ`, `formed` |
+| `<ImportStructureLib>` | import a StructureLib multiblock by controller id | `controller`, `name`, `piece`, `facing`, `rotation`, `flip`, `tier`, `channel`, `channelName`, `value`, `locked`, `offsetX`, `offsetY`, `offsetZ`, `formed` |
+| `<RemoveBlocks>` | remove already-placed blocks that match a block matcher | `id` |
+| `<BlockAnnotation>` | highlight one block | `pos`, `color`, `colorMode`, `colorPeriod`, `thickness`, `alwaysOnTop` |
+| `<BoxAnnotation>` | highlight an arbitrary axis-aligned box | `min`, `max`, `color`, `colorMode`, `colorPeriod`, `thickness`, `alwaysOnTop` |
+| `<OutlineAnnotation>` | outline the rendered silhouette of blocks or entities | `pos`, `min`, `max`, `entity`, `target`, `mode`, `color`, `colorMode`, `colorPeriod`, `thickness`, `alwaysOnTop`, `pulse`, `pulsePeriod` |
+| `<BlockAnnotationTemplate>` | stamp the same child annotations onto every matching placed block | `id` |
 
-`colorMode`: `solid` (типово) або `rainbow`; веселка обертається на 360° навколо проєкції центра, замінює RGB і зберігає альфа-канал `color`. `colorPeriod`: додатний скінченний період веселки в секундах; типово `2.4`; хибні значення спричиняють помилку сторінки. Гра та Site Export використовують однаковий веселковий градієнт і тривалість циклу.
+`colorMode`: `solid` (default) or `rainbow`; rainbow rotates through 360 degrees around the projected annotation center, replacing RGB while preserving the alpha of `color`. `colorPeriod`: positive finite rainbow cycle period in seconds; default `2.4`; invalid values produce a page error. Game and Site Export use the same rainbow gradient and cycle duration.
 
-Дивіться [GameScene](GameScene) для сцена import/removal поведінка і [Annotations](Annotations) для анотація template Правила.
+See [GameScene](GameScene) for scene import/removal behavior and [Annotations](Annotations) for annotation template rules.
 
 
-## Діаграми
+## Charts
 
-`<ColumnChart>`, `<BarChart>`, `<LineChart>`, `<PieChart>`, і `<ScatterChart>` є інтерактивний діаграма блоки. усі Діаграми share  following звичайний атрибути:
+`<ColumnChart>`, `<BarChart>`, `<LineChart>`, `<PieChart>`, and `<ScatterChart>` are interactive chart blocks. All charts share the following common attributes:
 
-| Атрибут | опис | Типове |
+| Attribute | Description | Default |
 | --- | --- | --- |
-| `title` | діаграма заголовок | none |
-| `width` / `height` | явний розмір | 320 / 200 |
-| `background` / `border` | тло і межа colors (`#RGB`, `#RRGGBB`, `#AARRGGBB`, `0x...`) | dark grey |
-| `titleColor` / `labelColor` | заголовок і значення-мітка colors | light grey |
-| `legend` | легенда позиція: `none` / `top` / `bottom` / `left` / `right` | `top` |
-| `labelPosition` | значення-мітка позиція: `none` / `inside` / `outside` / `above` / `below` / `center` | `none` |
-| `cornerLegend` | внутрішній plot легенда позиція: `none` / `topRight` / `topLeft` / `bottomRight` / `bottomLeft` | `none` |
-| `cornerLegendWidth` / `cornerLegendHeight` | Maximum внутрішній легенда box розмір | `120` / `64` |
-| `cornerLegendBackground` | внутрішній легенда тло колір | `#AA111922` |
+| `title` | Chart title | none |
+| `width` / `height` | Explicit size | 320 / 200 |
+| `background` / `border` | Background and border colors (`#RGB`, `#RRGGBB`, `#AARRGGBB`, `0x...`) | dark grey |
+| `titleColor` / `labelColor` | Title and value-label colors | light grey |
+| `legend` | Legend position: `none` / `top` / `bottom` / `left` / `right` | `top` |
+| `labelPosition` | Value-label position: `none` / `inside` / `outside` / `above` / `below` / `center` | `none` |
+| `cornerLegend` | Internal plot legend position: `none` / `topRight` / `topLeft` / `bottomRight` / `bottomLeft` | `none` |
+| `cornerLegendWidth` / `cornerLegendHeight` | Maximum internal legend box size | `120` / `64` |
+| `cornerLegendBackground` | Internal legend background color | `#AA111922` |
 
-Cartesian Діаграми (стовпець / Bar / рядок / Scatter) additionally приймають вісь атрибути `xAxisLabel`, `xAxisMin`, `xAxisMax`, `xAxisStep`, `xAxisUnit`, `xAxisTickFormat` і  відповідний `yAxis*` Установіть, plus `showXGrid={true}` / `showYGrid={true}` до toggle gridlines.
+Cartesian charts (Column / Bar / Line / Scatter) additionally accept axis attributes `xAxisLabel`, `xAxisMin`, `xAxisMax`, `xAxisStep`, `xAxisUnit`, `xAxisTickFormat` and the matching `yAxis*` set, plus `showXGrid={true}` / `showYGrid={true}` to toggle gridlines.
 
-Неправильні або завеликі формати поділок замінюються автоматичним форматуванням чисел. Обмеження: 256 символів, ширина поля 128 і точність 20. Якщо числові підписи перекриваються, частина з них приховується, а відповідні лінії сітки зберігаються.
+Invalid or oversized tick formats fall back to automatic number formatting. Format strings are limited to 256 characters, field widths to 128, and precision to 20. Overlapping numeric tick labels are omitted as needed without removing their grid lines.
 
-`ColumnChart`, `LineChart` і `ScatterChart` показують золоту горизонтальну допоміжну лінію в області побудови, зокрема над порожніми місцями, та виділяють поточне значення Y ліворуч. `BarChart` використовує вертикальну лінію зі значенням X унизу. Значення відповідають формату й одиницям осі. На самій лінії тексту немає; поза областю вона зникає. Обидві осі мають бліду сітку з рідкими штрихами, якою окремо керують `showXGrid` і `showYGrid`. Надто малий додатний крок поділок автоматично збільшується, щоб обмежити обсяг відтворення.
+`ColumnChart`, `LineChart`, and `ScatterChart` show a horizontal gold dashed guide while the pointer is inside the plot, including empty space; the current Y value is highlighted beside the left axis. `BarChart` uses a vertical guide and highlights the X value below the plot. Labels follow the axis tick format and unit. The guide has no text on the line and disappears outside the plot. Both axes use faint, sparse dashed grids; `showXGrid` and `showYGrid` control them independently. Extremely small positive tick steps are coarsened automatically to bound rendering work.
 
-дочірні елементи:
+Children:
 
-* `<Series name="..." color="#..." data="10,20,30"/>` для category-based Діаграми (стовпець / Bar / categorical рядок).
-* `<Series name="..." color="#..." points="x:y,x:y,..."/>` для numeric X (рядок `numericX={true}`, Scatter).
-* `<Slice name="..." value="..." color="#..."/>` для `<PieChart>` лише.
-* `<ReferenceLine y="100"/>` малює фіксовану горизонтальну лінію в `ColumnChart`, `LineChart` і `ScatterChart`. Для вертикальної лінії в `BarChart` використовується `<ReferenceLine x="100"/>`; `y` також приймається як псевдонім. Координата має бути скінченною. Дозволено кілька ліній; `color` змінює напівпрозорий сірий колір, а необов’язковий `label` відображається всередині графіка, не перекриваючи підписи поділок. Лінії не залежать від сітки, не розширюють автоматичний діапазон і приховуються за його межами. `PieChart` не підтримує цей тег.
+* `<Series name="..." color="#..." data="10,20,30"/>` for category-based charts (Column / Bar / categorical Line).
+* `<Series name="..." color="#..." points="x:y,x:y,..."/>` for numeric X (Line `numericX={true}`, Scatter).
+* `<Slice name="..." value="..." color="#..."/>` for `<PieChart>` only.
+* `<ReferenceLine y="100"/>` draws a fixed horizontal line in `ColumnChart`, `LineChart`, and `ScatterChart`. `BarChart` uses `<ReferenceLine x="100"/>` for a vertical line, with `y` accepted as an alias. The coordinate must be finite. Multiple lines are allowed; `color` overrides the translucent gray default and optional `label` appears inside the plot without covering axis tick labels. References remain visible when grids are disabled, do not expand the automatic range, and are hidden outside it. `PieChart` does not support this tag.
 
-коли `color` is пропущений on a `<Series>` або `<Slice>`, GuideNH cycles through built-in 16-колір palette.
+When `color` is omitted on a `<Series>` or `<Slice>`, GuideNH cycles through a built-in 16-color palette.
 
-`<Series>` і `<Slice>` також приймають  following необов’язковий icon / підказка атрибути:
+`<Series>` and `<Slice>` also accept the following optional icon / tooltip attributes:
 
-* `icon="modid:item"` (той самий синтаксис as `<ItemImage>`'s `id`, може включати `@meta` і inline NBT JSON) — binds an `ItemStack` до  запис;  легенда swatch стає  предмет icon і наведення  дані точка shows  vanilla предмет підказка з  діаграма опис appended at  кінець.
-* `iconImage="images/foo.png"` — використовувати PNG ресурс as  легенда swatch (overridden by `icon`).
-* `tooltip="..."` — extra free-form текст appended до  підказка (використовувати `\n` для multi-рядок).
+* `icon="modid:item"` (same syntax as `<ItemImage>`'s `id`, may include `@meta` and inline NBT JSON) — binds an `ItemStack` to the entry; the legend swatch becomes the item icon and hovering the data point shows the vanilla item tooltip with the chart description appended at the end.
+* `iconImage="images/foo.png"` — use a PNG asset as the legend swatch (overridden by `icon`).
+* `tooltip="..."` — extra free-form text appended to the tooltip (use `\n` for multi-line).
 
-Приклад:
+Example:
 
 ```mdx
 <PieChart title="Output share">
@@ -778,16 +824,16 @@ Cartesian Діаграми (стовпець / Bar / рядок / Scatter) addit
 
 ### `<ColumnChart>` / `<BarChart>`
 
-Extra атрибути: `categories` (X-вісь або Y-вісь labels, comma separated), `barWidthRatio` (Типове 0.7). `<BarChart>` puts  categories on  Y-вісь і значення on  X-вісь.
+Extra attributes: `categories` (X-axis or Y-axis labels, comma separated), `barWidthRatio` (default 0.7). `<BarChart>` puts the categories on the Y-axis and values on the X-axis.
 
 #### Combo extensions
 
-`<ColumnChart>` і `<BarChart>` приймають два extra дочірній елемент element types so кілька діаграма styles може share один plot area:
+`<ColumnChart>` and `<BarChart>` accept two extra child element types so multiple chart styles can share one plot area:
 
-- `<LineSeries name="…" data="v1,v2,…" color="#rrggbb" icon="…"/>` — drawn as a ламана overlay on угорі of  bars. кожен рядок точка sits at  cluster центр of  відповідний category index;  overlay shares  host діаграма's значення вісь. You може declare кілька `<LineSeries>` до overlay several trends.
-- `<PieInset size="60" position="topRight" title="…" startAngleDeg="-90" direction="clockwise" titleColor="#rrggbb">` — small pie діаграма drawn усередині один of  four corners (`topRight`, `topLeft`, `bottomRight`, `bottomLeft`) of  plot area. його `<Slice>` дочірні елементи share  той самий синтаксис as in `<PieChart>`.
+- `<LineSeries name="…" data="v1,v2,…" color="#rrggbb" icon="…"/>` — drawn as a polyline overlay on top of the bars. Each line point sits at the cluster center of the matching category index; the overlay shares the host chart's value axis. You can declare multiple `<LineSeries>` to overlay several trends.
+- `<PieInset size="60" position="topRight" title="…" startAngleDeg="-90" direction="clockwise" titleColor="#rrggbb">` — a small pie chart drawn inside one of the four corners (`topRight`, `topLeft`, `bottomRight`, `bottomLeft`) of the plot area. Its `<Slice>` children share the same syntax as in `<PieChart>`.
 
-Сектори `PieInset` мають пріоритет під час наведення над стовпчиками й лініями під ними: підказка містить назву, значення, відсоток і додатковий текст `tooltip`. У грі зберігаються підказки предметів. Над сектором основна допоміжна лінія зникає. Використовується лише перша вставлена діаграма. `position="rightOutside"` виділяє окрему область праворуч. Підтримуються `startAngleDeg="0"`, `direction="counterclockwise"` та один сектор у вигляді повного кола.
+`PieInset` slices take hover priority over the bars and lines below them: tooltips show the name, value, percentage, and optional `tooltip` text; in-game item tooltips are retained when an item icon is present. The main guide is hidden while a slice is hovered. Only the first inset is used. `position="rightOutside"` reserves a separate area on the right. `startAngleDeg="0"`, `direction="counterclockwise"`, and a single full-circle slice are supported.
 
 ```mdx
 <ColumnChart title="Quarterly output" categories="Q1,Q2,Q3,Q4">
@@ -803,74 +849,74 @@ Extra атрибути: `categories` (X-вісь або Y-вісь labels, comma
 
 ### `<LineChart>`
 
-Extra атрибути: `numericX={true}` до enable numeric X-вісь (дочірні елементи має використовувати `points`); `showPoints={false}` hides точка маркери.  hovered точка is pushed outward by 2px уздовж  curve normal, enlarged, і outlined;  adjacent рядок segments thicken by 1px.
+Extra attributes: `numericX={true}` to enable a numeric X-axis (children must use `points`); `showPoints={false}` hides point markers. The hovered point is pushed outward by 2px along the curve normal, enlarged, and outlined; the adjacent line segments thicken by 1px.
 
-`<LineChart>` і `<ScatterChart>` може показувати compact легенда усередині  plot area з `cornerLegend="topRight"` або another corner. записи використовувати existing серія names і colors.
+`<LineChart>` and `<ScatterChart>` can show a compact legend inside the plot area with `cornerLegend="topRight"` or another corner. Entries use existing series names and colors.
 
 ### `<PieChart>`
 
-Extra атрибути: `startAngle` (Типове `-90`, i.e. 12 o'clock); `clockwise={false}` до reverse direction.  hovered slice pops outward 4px уздовж його bisector.
+Extra attributes: `startAngle` (default `-90`, i.e. 12 o'clock); `clockwise={false}` to reverse direction. The hovered slice pops outward 4px along its bisector.
 
 ### `<ScatterChart>`
 
-Renders точки лише; `<Series>` має використовувати `points`.  X-вісь is завжди numeric.
+Renders points only; `<Series>` must use `points`. The X-axis is always numeric.
 
-## Графіки функцій
+## Function Graphs
 
-`<FunctionGraph>` і  один-curve shorthand `<Function>` відтворювати an інтерактивний Desmos-style panel.  той самий panel is також доступний through a ` ```funcgraph ` fenced блок коду; Дивіться  виконання [Markdown sample](resourcepack/assets/guidenh/guidenh/_en_us/markdown.md) для full walkthrough.
+`<FunctionGraph>` and the single-curve shorthand `<Function>` render an interactive Desmos-style panel. The same panel is also available through a ` ```funcgraph ` fenced code block; see the runtime [Markdown sample](resourcepack/assets/guidenh/guidenh/_en_us/markdown.md) for a full walkthrough.
 
-Panel атрибути (accepted by  container,  shorthand, і  fence header alike):
+Panel attributes (accepted by the container, the shorthand, and the fence header alike):
 
-- `width` / `height` (типові `320` x `220`)
+- `width` / `height` (defaults `320` x `220`)
 - `title`, `background`, `border`, `axisColor`, `gridColor`
-- `showGrid` / `showAxes` (Типове `true`)
-- `xRange="a..b"` (або `xMin` / `xMax` separately), `xStep` для tick spacing; той самий для  Y вісь
-- `xLabel` / `yLabel` Додайте Excel-style вісь titles below і над  plot respectively. Вони підтримка inline `$$...$$` LaTeX; `domain="a..b"` is legacy alias для `xRange` коли no явний X range is present
-- `quadrants="1,2,3,4"` або `quadrants="all"` до force  видимий quadrants; omit до початок in quadrant 1 з auto-expansion коли sampled `y < 0`
-- `cornerLegend`, `cornerLegendWidth`, `cornerLegendHeight`, і `cornerLegendBackground` показувати compact легенда усередині  plot area використовуючи non-empty curve labels
+- `showGrid` / `showAxes` (default `true`)
+- `xRange="a..b"` (or `xMin` / `xMax` separately), `xStep` for tick spacing; same for the Y axis
+- `xLabel` / `yLabel` add Excel-style axis titles below and above the plot respectively. They support inline `$$...$$` LaTeX; `domain="a..b"` is a legacy alias for `xRange` when no explicit X range is present
+- `quadrants="1,2,3,4"` or `quadrants="all"` to force the visible quadrants; omit to start in quadrant 1 with auto-expansion when sampled `y < 0`
+- `cornerLegend`, `cornerLegendWidth`, `cornerLegendHeight`, and `cornerLegendBackground` show a compact legend inside the plot area using non-empty curve labels
 
-Curve дочірні елементи (`<Plot>` / `<Function>`):
+Curve children (`<Plot>` / `<Function>`):
 
-- `expr="..."` &mdash;  вираз. Operators `+ - * / % ^`, postfix factorial `!` (gamma-extended), `|x|` абсолютний значення, `√` / `sqrt` / `∛` / `cbrt`, неявний multiplication, і  constants `pi`, `tau`, `e`, `phi` є Підтримувані. Built-in calls cover  стандартний trig/log/exp/rounding family plus два-arg `atan2`, `min`, `max`, `pow`, `hypot`, `mod`.
-- `inverse={true}` evaluates  вираз as `x = f(y)` і rotates  curve.
-- `domain="a..b"` (x межі shorthand) або comma-separated clauses наприклад `x>=0, x<5`.
-- `color`, `label`. Any curve з non-empty мітка is автоматично listed in легенда відтворений just below  panel: small колір swatch followed by  мітка, з записи flowing ліворуч-до-праворуч і wrapping onto новий рядок коли  наступний запис would не fit.
-- `tooltip` додає plain текст below  computed підказка. `showFunction` і `showValues` Типове до `true`; Установіть either до `false` до приховувати  відтворений рівняння або live `(x, y)` значення respectively. A `<Plot>` / nested `<Function>` з `expr` може містити Markdown і GuideNH теги as розширений підказка body.  порядок is завжди мітка, відтворений рівняння, live значення, `tooltip` текст, потім розширений дочірній елемент вміст; пропущений або вимкнено computed поля є skipped in який порядок.
-- `pointEveryX="step"` додає згенерований точка маркери at regular x intervals on який curve.
-- `pointEveryY="step"` додає згенерований точка маркери where  curve intersects regular y intervals, використовуючи bounded пошук.
-- `autoPointLabel="none|x|y|xy"` controls згенерований точка labels; Типове is `none`.
-- `autoPointColor="#..."` overrides  згенерований точка колір; пропущений означає inherit  curve колір.
+- `expr="..."` &mdash; the expression. Operators `+ - * / % ^`, postfix factorial `!` (gamma-extended), `|x|` absolute value, `√` / `sqrt` / `∛` / `cbrt`, implicit multiplication, and the constants `pi`, `tau`, `e`, `phi` are supported. Built-in calls cover the standard trig/log/exp/rounding family plus two-arg `atan2`, `min`, `max`, `pow`, `hypot`, `mod`.
+- `inverse={true}` evaluates the expression as `x = f(y)` and rotates the curve.
+- `domain="a..b"` (x bounds shorthand) or comma-separated clauses such as `x>=0, x<5`.
+- `color`, `label`. Any curve with a non-empty label is automatically listed in a legend rendered just below the panel: a small color swatch followed by the label, with entries flowing left-to-right and wrapping onto a new row when the next entry would not fit.
+- `tooltip` adds plain text below the computed tooltip. `showFunction` and `showValues` default to `true`; set either to `false` to hide the rendered equation or live `(x, y)` value respectively. A `<Plot>` / nested `<Function>` with `expr` may contain Markdown and GuideNH tags as a rich tooltip body. The order is always label, rendered equation, live values, `tooltip` text, then rich child content; omitted or disabled computed fields are skipped in that order.
+- `pointEveryX="step"` adds generated point markers at regular x intervals on that curve.
+- `pointEveryY="step"` adds generated point markers where the curve intersects regular y intervals, using a bounded search.
+- `autoPointLabel="none|x|y|xy"` controls generated point labels; default is `none`.
+- `autoPointColor="#..."` overrides the generated point color; omitted means inherit the curve color.
 
-Marked точки (`<Point>`):
+Marked points (`<Point>`):
 
-- явний: `x="..."` і `y="..."`.
-- Plot-anchored: `plot="N"` plus `atX="v"` або `atY="v"` ( виконання bisects on  plot's x-domain до find  відповідний `x`).
-- необов’язковий `color`, `label`.
+- Explicit: `x="..."` and `y="..."`.
+- Plot-anchored: `plot="N"` plus `atX="v"` or `atY="v"` (the runtime bisects on the plot's x-domain to find the matching `x`).
+- Optional `color`, `label`.
 
-Interaction: наведення curve до виділяти it; press і hold до scrub a точка уздовж  curve.  підказка starts з `label` коли supplied, потім  рівняння і live `(x, y)` значення unless їхні switches є вимкнено; it stays anchored над  точка і flips below коли there is no headroom.
+Interaction: hover a curve to highlight it; press and hold to scrub a point along the curve. The tooltip starts with `label` when supplied, then the equation and live `(x, y)` value unless their switches are disabled; it stays anchored above the point and flips below when there is no headroom.
 
-## BetterQuesting Compatibility теги
+## BetterQuesting Compatibility Tags
 
-`<QuestLink>` і `<QuestCard>` є лише зареєстрований коли  BetterQuesting mod is завантажений. Вони є documented in detail on  [Mod Compatibility](Mod-Compatibility) сторінка;  summary below covers  most звичайний usage.
+`<QuestLink>` and `<QuestCard>` are only registered when the BetterQuesting mod is loaded. They are documented in detail on the [Mod Compatibility](Mod-Compatibility) page; the summary below covers the most common usage.
 
 ### `<QuestLink>`
 
-Inline посилання до BetterQuesting quest. натискання opens  quest усередині  BetterQuesting GUI, unless  quest id is також present in  поточний посібник's `quest_ids` frontmatter — in який case  посилання navigates до який сторінка замість цього.
+Inline link to a BetterQuesting quest. Clicking opens the quest inside the BetterQuesting GUI, unless the quest id is also present in the current guide's `quest_ids` frontmatter — in that case the link navigates to that page instead.
 
-| Атрибут | Значення |
+| Attribute | Meaning |
 | --- | --- |
-| `id` | Обов’язково BetterQuesting quest id; accepts canonical UUID strings і compact Base64 ids |
-| `text` | необов’язковий перевизначати для  displayed текст |
-| `show_tooltip` | необов’язковий логічне значення (Типове `true`); Установіть до `false` до suppress  quest-опис підказка. `showTooltip` is accepted as alias |
+| `id` | required BetterQuesting quest id; accepts canonical UUID strings and compact Base64 ids |
+| `text` | optional override for the displayed text |
+| `show_tooltip` | optional boolean (default `true`); set to `false` to suppress the quest-description tooltip. `showTooltip` is accepted as an alias |
 
-видимість поведінка is decided per гравець at компілювати час:
+Visibility behavior is decided per player at compile time:
 
-- видимий / completed quests відтворювати as clickable посилання (completed quests є tinted green і append a `✓` mark)
-- locked but non-прихований quests досі відтворювати as clickable quest links so Вони може open  BetterQuesting quest екран або  indexed сторінка посібника
-- прихований / secret quests відтворювати as darker italic placeholder використовуючи `guidenh.compat.bq.hidden`
-- невідомий quest ids відтворювати as red placeholder використовуючи `guidenh.compat.bq.missing`
+- visible / completed quests render as a clickable link (completed quests are tinted green and append a `✓` mark)
+- locked but non-hidden quests still render as clickable quest links so they can open the BetterQuesting quest screen or the indexed guide page
+- hidden / secret quests render as a darker italic placeholder using `guidenh.compat.bq.hidden`
+- unknown quest ids render as a red placeholder using `guidenh.compat.bq.missing`
 
-Приклад:
+Example:
 
 ````md
 See <QuestLink id="01234567-89ab-cdef-0123-456789abcdef" /> for the next step.
@@ -881,17 +927,17 @@ See <QuestLink id="AAAAAAAAAAAAAAAAAAAMug==" text="Compact quest id example" /> 
 
 ### `<QuestCard>`
 
-блок-level summary card для BetterQuesting quest. Renders  quest заголовок з  той самий стан-aware styling as `<QuestLink>`, plus  quest опис as body paragraph коли  quest is видимий до  гравець.
+Block-level summary card for a BetterQuesting quest. Renders the quest title with the same state-aware styling as `<QuestLink>`, plus the quest description as a body paragraph when the quest is visible to the player.
 
-| Атрибут | Значення |
+| Attribute | Meaning |
 | --- | --- |
-| `id` | Обов’язково BetterQuesting quest id; accepts canonical UUID strings і compact Base64 ids |
-| `show_desc` | необов’язковий логічне значення (Типове `true`); Установіть до `false` до suppress  опис body |
-| `show_tooltip` | необов’язковий логічне значення (Типове `true`); Установіть до `false` до suppress  quest-опис підказка on  clickable заголовок. `showTooltip` is accepted as alias |
+| `id` | required BetterQuesting quest id; accepts canonical UUID strings and compact Base64 ids |
+| `show_desc` | optional boolean (default `true`); set to `false` to suppress the description body |
+| `show_tooltip` | optional boolean (default `true`); set to `false` to suppress the quest-description tooltip on the clickable title. `showTooltip` is accepted as an alias |
 
- accent колір of  card межа follows  quest стан: green для completed, gray для locked / прихований, red для missing, і  стандартний посилання колір для видимий quests.  заголовок remains clickable для видимий, completed, і locked-but-non-прихований quests.
+The accent color of the card border follows the quest state: green for completed, gray for locked / hidden, red for missing, and the standard link color for visible quests. The title remains clickable for visible, completed, and locked-but-non-hidden quests.
 
-Приклад:
+Example:
 
 ````md
 <QuestCard id="01234567-89ab-cdef-0123-456789abcdef" />

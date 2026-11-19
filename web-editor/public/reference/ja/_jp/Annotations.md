@@ -19,6 +19,7 @@ GuideNH のシーン注釈は `<GameScene>` / `<Scene>` 内の子タグです。
 - `<DiamondAnnotation>`
 - `<OutlineAnnotation>`
 - `<TextAnnotation>`
+- `<InputAnnotation>`
 
 `<BlockAnnotationTemplate>` は、現在のシーンにすでに配置された一致ブロックごとに子注釈を適用します。
 
@@ -261,6 +262,21 @@ GuideNH のシーン注釈は `<GameScene>` / `<Scene>` 内の子タグです。
   <RecipeFor id="minecraft:furnace" />
 </DiamondAnnotation>
 ````
+
+## `<InputAnnotation>` の流体
+
+`item` または `fluid` のどちらか一方を指定します。流体には任意の `amount`（整数）と `nbt`（SNBT）を指定できます。これらは `fluid` がある場合だけ使用できます。位置、`inputType`、修飾キー、StructureLib の表示条件も指定できます。
+
+流体のホバー情報には名前、温度、気体・液体の状態が表示されます。GregTech が読み込まれている場合、GT の設定に従った素材情報も表示されます。数量を明示すると、選択した L/mB 単位が使われます。ExportSite の入力注釈にも同じ情報がブラウザーのホバーヒントとして保持され、書式付きの数量が表示されます。
+
+```md
+<GameScene>
+  <Block id="minecraft:glass" />
+  <InputAnnotation pos="0.5 1.5 0.5" inputType="rmb" fluid="water" amount={1000} />
+</GameScene>
+```
+
+注釈は操作アイコンと流体情報を表示します。タンクへの注入は行いません。流体ブロックの配置には `Block` / `PlaceBlock` で実際のブロック ID を指定します。
 
 ## `<BlockAnnotationTemplate>`
 

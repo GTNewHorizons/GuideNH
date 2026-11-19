@@ -22,6 +22,10 @@ public class GuideSiteItemHtml {
 
     public static void appendIcon(StringBuilder html, GuideSiteExportedItem item, @Nullable String extraClass,
         float scale, boolean nativeTooltip) {
+        if (item.fluid() != null) {
+            html.append(GuideSiteFluidHtml.icon(item.fluid(), spec -> item.iconSrc(), scale, true));
+            return;
+        }
         String classes = classes("item-icon", extraClass);
         String label = item.displayName()
             .isEmpty() ? item.itemId() : item.displayName();
@@ -32,6 +36,7 @@ public class GuideSiteItemHtml {
         int size = Math.max(1, Math.round(BASE_ICON_PX * effectiveScale));
         String titleAttr = nativeTooltip ? " title=\"" + escapeHtml(label) + "\"" : "";
         if (item.hasIcon()) {
+            if (item.count() != 1) html.append("<span class=\"item-icon-stack\">");
             // Only emit an inline `style` override when the caller supplied an explicit non-default
             // scale. At scale=1 we let the CSS `.item-icon { width: calc(16px * var(--gui-scale)) }`
             // rule control the rendered size so that recipe-slot icons automatically match the
@@ -63,9 +68,13 @@ public class GuideSiteItemHtml {
                 html.append(" loading=\"lazy\"");
             }
             html.append(" decoding=\"async\">");
+            if (item.count() != 1) html.append("<span class=\"item-amount\">")
+                .append(item.count())
+                .append("</span></span>");
             return;
         }
 
+        if (item.count() != 1) html.append("<span class=\"item-icon-stack\">");
         html.append("<span class=\"")
             .append(escapeHtml(classes("item-icon item-icon-fallback", extraClass)))
             .append("\" data-item-id=\"")
@@ -86,6 +95,9 @@ public class GuideSiteItemHtml {
             .append(">")
             .append(escapeHtml(label))
             .append("</span>");
+        if (item.count() != 1) html.append("<span class=\"item-amount\">")
+            .append(item.count())
+            .append("</span></span>");
     }
 
     public static void appendSummaryContent(StringBuilder html, GuideSiteExportedItem item, @Nullable String iconClass,

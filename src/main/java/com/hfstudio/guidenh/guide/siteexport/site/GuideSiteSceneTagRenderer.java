@@ -13,7 +13,9 @@ import org.jetbrains.annotations.Nullable;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.hfstudio.guidenh.guide.compiler.tags.FluidTagAttributes;
 import com.hfstudio.guidenh.guide.compiler.tags.MdxAttrs;
+import com.hfstudio.guidenh.guide.internal.fluid.FluidStackSpec;
 import com.hfstudio.guidenh.guide.internal.localization.GuideLanguageIndex;
 import com.hfstudio.guidenh.guide.internal.util.LangUtil;
 import com.hfstudio.guidenh.guide.scene.StructureLibSceneCondition;
@@ -612,6 +614,16 @@ public class GuideSiteSceneTagRenderer implements GuideSiteHtmlCompiler.SceneTag
         String modifier = normalizeOptionalText(readOptional(flowElement, "modifier"));
         if (modifier != null) {
             data.put("modifier", modifier);
+        }
+        String fluid = readOptional(flowElement, "fluid");
+        if (fluid != null) {
+            if (readOptional(flowElement, "item") != null)
+                throw new IllegalArgumentException("InputAnnotation cannot combine item and fluid");
+            var spec = new FluidStackSpec(
+                fluid,
+                FluidTagAttributes.integer(flowElement, "amount"),
+                readOptional(flowElement, "nbt"));
+            data.put("fluid", GuideSiteFluidHtml.exportedData(spec, GuideSiteFluidIconResolver.from(itemIconResolver)));
         }
         GuideSiteExportedItem item = resolveExportedInputItem(readOptional(flowElement, "item"));
         if (item != null && !item.isEmpty()) {

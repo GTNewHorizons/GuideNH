@@ -19,6 +19,7 @@ GuideNH scene annotations are child tags inside `<GameScene>` / `<Scene>`. They 
 - `<DiamondAnnotation>`
 - `<OutlineAnnotation>`
 - `<TextAnnotation>`
+- `<InputAnnotation>`
 
 GuideNH also supports `<BlockAnnotationTemplate>`, which applies its child annotations to every already-placed matching block in the current scene.
 
@@ -302,6 +303,21 @@ Example:
   <RecipeFor id="minecraft:furnace" />
 </DiamondAnnotation>
 ````
+
+## `<InputAnnotation>` fluid targets
+
+InputAnnotation accepts either `item` or `fluid`, never both. A fluid target also accepts optional `amount` (integer) and `nbt` (SNBT). Amount and NBT require `fluid`. Existing position, inputType, modifier, and StructureLib visibility conditions remain available.
+
+Fluid hover information includes the name, temperature and gas/liquid state, plus configured GregTech material details when available. Explicit amounts use the selected L/mB unit. ExportSite input annotations retain the same text as a browser hover hint and preserve the formatted amount.
+
+```mdx
+<GameScene width="180" height="120">
+  <Block x="0" y="0" z="0" id="minecraft:stone" />
+  <InputAnnotation pos="0.5 1.5 0.5" inputType="rmb" fluid="water" amount={1000} />
+</GameScene>
+```
+
+The annotation displays an interaction icon and fluid information. It does not fill a tank or change the scene world. Fluid blocks still use real block IDs in Block / PlaceBlock.
 
 ## `<BlockAnnotationTemplate>`
 

@@ -7,9 +7,7 @@ folder, and a page transcludes it with the `<Template>` MDX tag:
 <Template name="InfoBox" name="Steel" icon="minecraft:iron_ingot" />
 ```
 
-Transclusion happens **while the page is compiled**, not while it is viewed. A template's body is read
-from its page, its parameters are substituted, and the result is compiled by the ordinary tag and
-Markdown compilers. Nothing about templates is resolved at view time.
+A template inserts its body at the call site and substitutes its parameters. It supports the same Markdown and tags as an ordinary page.
 
 Because templates are pages, they inherit everything pages already have: per-language folders, the
 `.lang` whole-page override, resource-pack priority, and live reload in development.
@@ -42,7 +40,7 @@ is reached as `name="nav/Row"`.
 
 Names ignore the case of the first character and treat `_` as a space, matching MediaWiki:
 
-- `name="infobox"` and `name="InfoBox"` are the same template
+- `name="infoBox"` and `name="InfoBox"` are the same template
 - `name="Info_Box"` and `name="Info Box"` are the same template
 - `name="InfoBox"` and `name="infobox"` are **not** the same template
 
@@ -54,8 +52,7 @@ A named argument is an attribute on the call:
 <Template name="InfoBox" name="Steel" icon="minecraft:iron_ingot" />
 ```
 
-`name` selects the template, so every other attribute is an argument. Longer values are easier to read
-as `<Arg>` children:
+The first `name` attribute selects the template. The remaining attributes are arguments; a later `name` attribute supplies the template's `name` parameter. Use `<Arg>` children for clearer calls or longer values:
 
 ```md
 <Template name="InfoBox">
@@ -94,8 +91,7 @@ Read a parameter inside an attribute with braces, which the parser hands to the 
 An argument that is not supplied and has no default is reported in the log and contributes nothing, so a
 typo is visible in the log rather than silently rendering the wrong thing.
 
-Named and positional arguments share one key space: a template may declare `<Param name="tier" />` and a
-call may still pass it positionally.
+Named and positional arguments are read separately. `<Param name="tier" />` requires a named `tier` argument; read the first positional argument with `<Param pos="1" />`. Positional arguments do not automatically bind to `tier`.
 
 ## Conditionals
 
@@ -190,7 +186,7 @@ templates.
 
 ## Code And Literal Text
 
-Braces and tags inside a fenced code block, an inline code span, or a `<pre>`/`<Code>` body are left
+Braces and tags inside a fenced code block, an inline code span, or a `<pre>` body are left
 alone. This is how you document template syntax on a page without expanding it:
 
 ````md

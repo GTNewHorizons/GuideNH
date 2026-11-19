@@ -9,10 +9,7 @@ import net.minecraft.util.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.GuideAnchor;
-import com.hfstudio.guidenh.guide.PageAnchor;
-import com.hfstudio.guidenh.guide.PageCollection;
 import com.hfstudio.guidenh.guide.color.ColorUtils;
-import com.hfstudio.guidenh.guide.compiler.IdUtils;
 import com.hfstudio.guidenh.guide.document.block.LytItemImage;
 import com.hfstudio.guidenh.guide.document.block.LytParagraph;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowContent;
@@ -131,39 +128,7 @@ public class ItemLinkScript implements LytScript {
         @Nullable String currentGuide, ScriptContext ctx) {
         if (linksTo != null && !linksTo.trim()
             .isEmpty()) {
-            ResourceLocation currentPageId;
-            try {
-                currentPageId = currentPage != null ? new ResourceLocation(currentPage) : null;
-            } catch (IllegalArgumentException ignored) {
-                currentPageId = null;
-            }
-            ResourceLocation currentGuideId;
-            try {
-                currentGuideId = currentGuide != null ? new ResourceLocation(currentGuide) : null;
-            } catch (IllegalArgumentException ignored) {
-                currentGuideId = null;
-            }
-            if (currentPageId == null) {
-                return null;
-            }
-            String pagePart = linksTo.trim();
-            String anchorPart = null;
-            int hashIdx = pagePart.indexOf('#');
-            if (hashIdx >= 0) {
-                anchorPart = pagePart.substring(hashIdx + 1);
-                pagePart = pagePart.substring(0, hashIdx);
-            }
-            try {
-                ResourceLocation pageId = pagePart.isEmpty() ? currentPageId
-                    : IdUtils.resolveLink(pagePart, currentPageId);
-                ResourceLocation guideId = resolveGuideId(currentPageId, currentGuideId, pageId);
-                if (!pageExists(guideId, pageId, ctx)) {
-                    return null;
-                }
-                return new GuideAnchor(guideId, new PageAnchor(pageId, anchorPart));
-            } catch (IllegalArgumentException ignored) {
-                return null;
-            }
+            return GuideLinkTargetResolver.resolve(linksTo, currentPage, currentGuide, ctx);
         }
 
         var resolved = GuideItemTargetResolver.resolve(stack, GuideRegistry.getAll());
@@ -171,26 +136,6 @@ public class ItemLinkScript implements LytScript {
             return null;
         }
         return new GuideAnchor(resolved.guideId(), resolved.anchor());
-    }
-
-    private static ResourceLocation resolveGuideId(ResourceLocation currentPageId,
-        @Nullable ResourceLocation currentGuideId, ResourceLocation pageId) {
-        if (currentGuideId != null && pageId.getResourceDomain()
-            .equals(currentPageId.getResourceDomain())) {
-            return currentGuideId;
-        }
-        return new ResourceLocation(
-            pageId.getResourceDomain(),
-            currentGuideId != null ? currentGuideId.getResourcePath() : "guidenh");
-    }
-
-    private static boolean pageExists(ResourceLocation guideId, ResourceLocation pageId, ScriptContext ctx) {
-        PageCollection pageCollection = ctx.getPageCollection();
-        if (pageCollection != null && guideId.equals(pageCollection.getId())) {
-            return pageCollection.pageExists(pageId);
-        }
-        var guide = GuideRegistry.getById(guideId);
-        return guide != null && guide.pageExists(pageId);
     }
 
     private static void appendIconAndFallbackText(LytFlowSpan span, ItemStack stack, @Nullable String iconPosition,

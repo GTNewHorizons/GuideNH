@@ -7,9 +7,9 @@ categories:
   - other
 ---
 
-# Debug Test Page
+# Layout Diagnostics
 
-Component regression tests: links, tables, locked preview, camera params. Back to [index](./index.md).
+Layout examples: links, tables, a locked preview and camera settings. Back to [index](./index.md).
 
 ## Hover underline + click
 

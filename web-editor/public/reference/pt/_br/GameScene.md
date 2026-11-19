@@ -1,58 +1,55 @@
-# GameScene
+# Cenas 3D
 
-Esta documentação descreve a sintaxe e os recursos de execução do GuideNH. Código, tags, caminhos, IDs e valores de atributos permanecem intactos.
+A referência detalhada desta página está disponível em inglês. Os nomes de tags, atributos, identificadores e caminhos são usados sem tradução.
 
+`<GameScene>` is GuideNH's 3D preview tag. `<Scene>` is an alias with the same behavior.
 
-`<GameScene>` é GuideNH's 3D visualização tag. `<Scene>` é Um alias com O mesmo behavior.
+## Scene Attributes
 
-## Atributos da cena
-
-| Atributo | Tipo | Padrão | Significado |
+| Attribute | Type | Default | Meaning |
 | --- | --- | --- | --- |
-| `width` | inteiro | `256` | viewport largura em pixels |
-| `height` | inteiro | `192` | viewport altura em pixels |
-| `zoom` | decimal | `1.0` | câmera zoom multiplier |
-| `perspective` | texto | `isometric-north-east` | câmera preset |
-| `rotateX` | decimal | auto | explícito X rotação substituir |
-| `rotateY` | decimal | auto | explícito Y rotação substituir |
-| `rotateZ` | decimal | auto | explícito Z rotação substituir |
-| `offsetX` | decimal | auto | espaço da tela horizontal pan |
-| `offsetY` | decimal | auto | espaço da tela vertical pan |
-| `centerX` | decimal | auto | explícito mundo rotação centro X |
-| `centerY` | decimal | auto | explícito mundo rotação centro Y |
-| `centerZ` | decimal | auto | explícito mundo rotação centro Z |
-| `interactive` | booleano expressão | `true` | enables mouse interaction |
-| `showBackground` | booleano expressão | `true` | mostra O cena fundo fill e borda |
-| `allowLayerSlider` | booleano | `true` | mostra O vertical layer slider |
-| `gridButtonEnabled` | booleano | `true` | mostra O floor grid toggle button |
-| `showGrid` | booleano | `false` | inicial visibilidade of O floor grid |
+| `width` | integer | `256` | viewport width in pixels |
+| `height` | integer | `192` | viewport height in pixels |
+| `zoom` | float | `1.0` | camera zoom multiplier |
+| `perspective` | string | `isometric-north-east` | camera preset |
+| `rotateX` | float | auto | explicit X rotation override |
+| `rotateY` | float | auto | explicit Y rotation override |
+| `rotateZ` | float | auto | explicit Z rotation override |
+| `offsetX` | float | auto | screen-space horizontal pan |
+| `offsetY` | float | auto | screen-space vertical pan |
+| `centerX` | float | auto | explicit world rotation center X |
+| `centerY` | float | auto | explicit world rotation center Y |
+| `centerZ` | float | auto | explicit world rotation center Z |
+| `interactive` | boolean expression | `true` | enables mouse interaction |
+| `showBackground` | boolean expression | `true` | shows the scene background fill and border |
+| `allowLayerSlider` | boolean | `true` | shows the vertical layer slider |
+| `gridButtonEnabled` | boolean | `true` | shows the floor grid toggle button |
+| `showGrid` | boolean | `false` | initial visibility of the floor grid |
 
-## Sobreposição de estatísticas de blocos
+## Block Statistics Overlay
 
-cenas que conter blocos enable O bloco-stat toggle button by Padrão. Adicione a `<BlockStats>`
-filho quando you want para substituir seu modo, placement, filters, visibilidade, ou tamanho. O lista é
-cached e somente rebuilt quando O cena blocos, Animação Ponder timeline estado, StructureLib seleção, ou
-bloco-stat settings alterar; normal renderização reuses O prepared linhas. Long lists são clipped para
-`maxWidth` e `maxHeight`; Se those são omitted, cada é O larger of O fixo `224` by `96` pixels e
-40% of O cena tamanho.
-Overflow receives draggable scrollbars, e O mouse wheel scrolls O lista enquanto O cursor é
-sobre O overlay. Hold Shift para wheel-rolar horizontally.
+Scenes that contain blocks enable the block-stat toggle button by default. Add a `<BlockStats>`
+child when you want to override its mode, placement, filters, visibility, or size. Long lists are clipped to
+`maxWidth` and `maxHeight`; if those are omitted, each is the larger of the fixed `224` by `96` pixels and
+40% of the scene size.
+Overflow receives draggable scrollbars, and the mouse wheel scrolls the list while the cursor is
+over the overlay. Hold Shift to wheel-scroll horizontally.
 
-em automático modo, GuideNH scans O cena's filled blocos e resolves cada bloco para O item
-stack users normally Consulte. blocos que conter vários visível components pode contribute vários
-itens de O mesmo coordenada; Este inclui AE2 cable bus parts e facades, ForgeMultipart part
-drops, e Carpenters' blocos covers ou overlays quando those mods são installed. Counts são grouped
-by `item:meta` e sorted by count.
+In automatic mode, GuideNH scans the scene's filled blocks and resolves each block to the item
+stack users normally see. Blocks that contain multiple visible components can contribute multiple
+items from the same coordinate; this includes AE2 cable bus parts and facades, ForgeMultipart part
+drops, and Carpenters' Blocks covers or overlays when those mods are installed. Counts are grouped
+by `item:meta` and sorted by count.
 
-automático lists pode também ser docked fora de O cena com `dock="left"`, `dock="top"`,
-`dock="right"`, ou `dock="bottom"`. Docked lists wrap em extra columns ou linhas based on O
-attached lado length, reserve layout espaço, e avoid O cena button coluna on O direita. clicar an
-item em Um automático lista para destacar todos correspondente cena placements com seus resolvido collision
-boxes using Um sempre-on-topo face overlay; clicar O mesmo item again para clear O destacar. Counts
-são renderizado por O ItemStack stack-tamanho overlay. Defina `showNames={true}` para append O count
-depois de cada nome as well, e passar o mouse Um item para Consulte O exact bloco count em O dica.
+Automatic lists can also be docked outside the scene with `dock="left"`, `dock="top"`,
+`dock="right"`, or `dock="bottom"`. Docked lists wrap into extra columns or rows based on the
+attached side length, reserve layout space, and avoid the scene button column on the right. Click an
+item in an automatic list to highlight all matching scene placements with their resolved collision
+boxes using an always-on-top face overlay; click the same item again to clear the highlight. Counts
+are rendered through the ItemStack stack-size overlay. Set `showNames={true}` to append the count
+after each name as well, and hover an item to see the exact block count in the tooltip.
 
-Filters pode ocultar comum blocos ou mostrar somente selecionado blocos:
+Filters can hide common blocks or show only selected blocks:
 
 ````md
 <GameScene>
@@ -63,7 +60,7 @@ Filters pode ocultar comum blocos ou mostrar somente selecionado blocos:
 </GameScene>
 ````
 
-usar manual modo quando Uma guia wants para mostrar Uma planned material lista em vez disso of O literal cena
+Use manual mode when a guide wants to show a planned material list instead of the literal scene
 contents:
 
 ````md
@@ -76,94 +73,94 @@ contents:
 </GameScene>
 ````
 
-## Sobreposições do modo de depuração
+## Debug Mode Overlays
 
-quando O `enableDebugMode` opção é ativado em O GuideNH mod config, O following extra
-overlays become disponível em O 3D cena visualização.
+When the `enableDebugMode` option is enabled in the GuideNH mod config, the following extra
+overlays become available in the 3D scene preview.
 
-### Grid coordenada Labels
+### Grid Coordinate Labels
 
-quando debug modo é **on** e O floor grid é **visível**, coordenada labels são renderizado
-abaixo cada grid linha:
+When debug mode is **on** and the floor grid is **visible**, coordinate labels are rendered
+below each grid line:
 
-- **X-axis numbers** são exibido along O perto edge of O grid (north/−Z edge em O Padrão
-  `isometric-north-east` câmera).  cada inteiro X mundo-coordenada receives Uma rótulo.
-- **Z-axis numbers** são exibido along O perto edge of O grid (east/+X edge).  cada inteiro
-  Z mundo-coordenada receives Uma rótulo.
-- **Cardinal direction initials** (`N`, `S`, `E`, `W`) são drawn at O midpoint of cada
+- **X-axis numbers** are shown along the near edge of the grid (north/−Z edge in the default
+  `isometric-north-east` camera).  Each integer X world-coordinate receives a label.
+- **Z-axis numbers** are shown along the near edge of the grid (east/+X edge).  Each integer
+  Z world-coordinate receives a label.
+- **Cardinal direction initials** (`N`, `S`, `E`, `W`) are drawn at the midpoint of each
   respective grid edge.
 
-coordenadas follow O atual mundo X/Z valores stored em O cena level, so Elas pode ser
-negative quando O structure contém blocos com negative coordenadas.
+Coordinates follow the actual world X/Z values stored in the scene level, so they can be
+negative when the structure contains blocks with negative coordinates.
 
-O grid toggle button é **sempre ativado** enquanto debug modo é active, regardless of O
-`gridButtonEnabled` Atributo, so you pode mostrar ou ocultar O grid e seu labels at qualquer time.
-O Padrão grid visibilidade (`showGrid`) é não affected.
+The grid toggle button is **always enabled** while debug mode is active, regardless of the
+`gridButtonEnabled` attribute, so you can show or hide the grid and its labels at any time.
+The default grid visibility (`showGrid`) is not affected.
 
-### bloco coordenada dica
+### Block Coordinate Tooltip
 
-quando debug modo é **on** e O cursor hovers sobre Uma bloco dentro de O cena, Uma second
-dica é renderizado acima de O primary bloco dica, showing O espaço do mundo bloco posição
-as `X, Y, Z` em gold texto.
+When debug mode is **on** and the cursor hovers over a block inside the scene, a second
+tooltip is rendered above the primary block tooltip, showing the world-space block position
+as `X, Y, Z` in gold text.
 
-Se O coordenada dica would ser clipped at O topo of O tela it automaticamente snaps
-abaixo O cursor area em vez disso (magnetic snapping).
+If the coordinate tooltip would be clipped at the top of the screen it automatically snaps
+below the cursor area instead (magnetic snapping).
 
-## Predefinições de perspectiva
+## Perspective Presets
 
-Accepted `perspective` valores:
+Accepted `perspective` values:
 
 - `isometric-north-east`
 - `isometric-north-west`
 - `up`
 
-desconhecido valores fall back para `isometric-north-east`.
+Unknown values fall back to `isometric-north-east`.
 
-## Incorporação de conteúdo e quebra de texto
+## Content Embedding and Text Wrapping
 
-qualquer bloco-level tag — including `<GameScene>` — suporta dois opcional atributos que control
-how it é embedded em O página, mirroring Microsoft Word's "texto Wrapping" opções.
+Any block-level tag — including `<GameScene>` — supports two optional attributes that control
+how it is embedded in the page, mirroring Microsoft Word's "Text Wrapping" options.
 
-| Atributo | valores | Padrão | Significado |
+| Attribute | Values | Default | Meaning |
 | --- | --- | --- | --- |
-| `wrap` | `inline` · `square` · `tight` · `through` · `top-bottom` · `behind` · `front` | `inline` | texto-wrapping modo |
+| `wrap` | `inline` · `square` · `tight` · `through` · `top-bottom` · `behind` · `front` | `inline` | Text-wrapping mode |
 | `align` | `left` · `center` · `right` | `left` | Horizontal alignment |
 
-### Modos de quebra
+### Wrap modes
 
-| modo | Word equivalent | Effect |
+| Mode | Word equivalent | Effect |
 | --- | --- | --- |
-| `inline` | em linha com texto | Padrão flow: cena occupies seu próprio vertical slot (嵌入型) |
-| `square` | Square | cena floats esquerda ou direita; surrounding texto wraps em Uma rectangle around it (方形环绕) |
-| `tight` | Tight | Tighter wrap; equivalent para `square` em Este layout system (紧密型) |
-| `through` | por | por-wrap; equivalent para `square` em Este layout system (穿越型) |
-| `top-bottom` | topo e baixo | texto somente acima de e abaixo, não beside; respects `align` para horizontal placement (上下型) |
-| `behind` | Behind texto | bloco renders behind surrounding texto; respects `align` (衬于文字下方) |
-| `front` | em front of texto | bloco renders em front of surrounding texto; respects `align` (浮于文字上方) |
+| `inline` | In line with text | Default flow: scene occupies its own vertical slot (嵌入型) |
+| `square` | Square | Scene floats left or right; surrounding text wraps in a rectangle around it (方形环绕) |
+| `tight` | Tight | Tighter wrap; equivalent to `square` in this layout system (紧密型) |
+| `through` | Through | Through-wrap; equivalent to `square` in this layout system (穿越型) |
+| `top-bottom` | Top and Bottom | Text only above and below, not beside; respects `align` for horizontal placement (上下型) |
+| `behind` | Behind text | Block renders behind surrounding text; respects `align` (衬于文字下方) |
+| `front` | In front of text | Block renders in front of surrounding text; respects `align` (浮于文字上方) |
 
-### Exemplos
+### Examples
 
-esquerda-floating cena — texto em O próximo paragraph wraps para O direita:
+Left-floating scene — text in the next paragraph wraps to the right:
 
 ````md
 <GameScene wrap="square" align="left" width="200" height="150">
   <Block id="minecraft:stone" />
 </GameScene>
 
-Texto que flui à direita da cena…
+Text that flows to the right of the scene...
 ````
 
-direita-floating cena:
+Right-floating scene:
 
 ````md
 <GameScene wrap="square" align="right" width="200" height="150">
   <Block id="minecraft:stone" />
 </GameScene>
 
-Texto que flui à esquerda da cena…
+Text that flows to the left of the scene...
 ````
 
-Centred cena (não texto wrapping):
+Centred scene (no text wrapping):
 
 ````md
 <GameScene align="center" width="200" height="150">
@@ -171,7 +168,7 @@ Centred cena (não texto wrapping):
 </GameScene>
 ````
 
-Inline em texto (flow context) — texto wraps around Uma small cena:
+Inline in text (flow context) — text wraps around a small scene:
 
 ````md
 Some text {<GameScene wrap="square" align="left" width="80" height="80">
@@ -179,7 +176,7 @@ Some text {<GameScene wrap="square" align="left" width="80" height="80">
 </GameScene>} and more text that wraps to the right.
 ````
 
-## Exemplo
+## Example
 
 ````md
 <GameScene width="256" height="160" zoom={4} perspective="isometric-north-east" interactive={true}>
@@ -189,12 +186,12 @@ Some text {<GameScene wrap="square" align="left" width="80" height="80">
 </GameScene>
 ````
 
-## Import Exemplos
+## Import Examples
 
-Estes Exemplos focus on O cena-lado behavior que most frequentemente trips people up quando importing
+These examples focus on the scene-side behavior that most often trips people up when importing
 structures.
 
-StructureLib import com explícito facing, rotação, flip, e offsets:
+StructureLib import with explicit facing, rotation, flip, and offsets:
 
 ````md
 <GameScene width="384" height="256" zoom={4} interactive={true}>
@@ -211,8 +208,8 @@ StructureLib import com explícito facing, rotação, flip, e offsets:
 </GameScene>
 ````
 
-GregTech controllers stay unformed by Padrão, even quando O imported multiblock é otherwise
-válido:
+GregTech controllers stay unformed by default, even when the imported multiblock is otherwise
+valid:
 
 ````md
 <GameScene width="384" height="256" zoom={4} interactive={true}>
@@ -220,7 +217,7 @@ válido:
 </GameScene>
 ````
 
-Defina `formed={true}` somente quando O visualização deve intentionally mostrar O formed controller estado:
+Set `formed={true}` only when the preview should intentionally show the formed controller state:
 
 ````md
 <GameScene width="384" height="256" zoom={4} interactive={true}>
@@ -228,8 +225,8 @@ Defina `formed={true}` somente quando O visualização deve intentionally mostra
 </GameScene>
 ````
 
-O mesmo Padrão também aplica para controllers placed directly com `<Block>`, including GregTech
-controllers que rely on surrounding multiblock casings:
+The same default also applies to controllers placed directly with `<Block>`, including GregTech
+controllers that rely on surrounding multiblock casings:
 
 ````md
 <GameScene zoom={4} interactive={true}>
@@ -238,7 +235,7 @@ controllers que rely on surrounding multiblock casings:
 </GameScene>
 ````
 
-Simple bloco-somente layouts pode ainda ser authored directly e remain compatible com multiblock
+Simple block-only layouts can still be authored directly and remain compatible with multiblock
 inspection logic:
 
 ````md
@@ -253,9 +250,9 @@ inspection logic:
 </GameScene>
 ````
 
-## Elementos filhos da cena
+## Scene Child Elements
 
-GuideNH atualmente registers Estes cena filho tags:
+GuideNH currently registers these scene child tags:
 
 - `<Block>`
 - `<ImportStructure>`
@@ -269,16 +266,16 @@ GuideNH atualmente registers Estes cena filho tags:
 - `<PlaceBlock>`
 - `<BlockAnnotationTemplate>`
 - `<Entity>`
-- anotação tags como `<BoxAnnotation>` e `<LineAnnotation>`
+- annotation tags such as `<BoxAnnotation>` and `<LineAnnotation>`
 
-## Sons da cena
+## Scene Sounds
 
-`<PlaySound>` pode ser placed dentro de `<GameScene>` para play sounds de cena interaction ou timeline
-entrada. Compatível triggers são:
+`<PlaySound>` can be placed inside `<GameScene>` to play sounds from scene interaction or timeline
+entry. Supported triggers are:
 
-- `click`, O Padrão
-- `hover`, fired once quando O cursor enters O cena
-- `enter`, fired once quando O cena primeiro renders
+- `click`, the default
+- `hover`, fired once when the cursor enters the scene
+- `enter`, fired once when the scene first renders
 
 ```mdx
 <GameScene width="256" height="160">
@@ -288,40 +285,53 @@ entrada. Compatível triggers são:
 </GameScene>
 ```
 
-quando `x`, `y`, e `z` são fornecido, O sound volume é attenuated em tela espaço de O
-projected cena coordenada para O clicar ponto ou cena centro. `radius` defaults para 75% of O
-shorter cena lado, e `minVolume` defaults para `0.15`.
+When `x`, `y`, and `z` are provided, the sound volume is attenuated in screen space from the
+projected scene coordinate to the click point or scene center. `radius` defaults to 75% of the
+shorter scene side, and `minVolume` defaults to `0.15`.
 
-## `<BlockStats>` e `<BlockStat>`
+## `<InputAnnotation>` fluid targets
 
-Declares ou customizes Uma Sobreposição de estatísticas de blocos. cenas com blocos enable O automático toggle
-button even quando Este filho é omitted. Adding um ou mais `<BlockStat>` filhos switches O
-overlay para manual statistics modo para que cena.
+InputAnnotation accepts either `item` or `fluid`, never both. A fluid target also accepts optional `amount` (integer) and `nbt` (SNBT). Amount and NBT require `fluid`. Existing position, inputType, modifier, and StructureLib visibility conditions remain available.
 
-`<BlockStats>` atributos:
+```mdx
+<GameScene width="180" height="120">
+  <Block x="0" y="0" z="0" id="minecraft:stone" />
+  <InputAnnotation pos="0.5 1.5 0.5" inputType="rmb" fluid="water" amount={1000} />
+</GameScene>
+```
 
-| Atributo | Obrigatório | Padrão | Significado |
+The annotation displays an interaction icon and fluid information. It does not fill a tank or change the scene world. Fluid blocks still use real block IDs in Block / PlaceBlock.
+
+## `<BlockStats>` and `<BlockStat>`
+
+Declares or customizes a block statistics overlay. Scenes with blocks enable the automatic toggle
+button even when this child is omitted. Adding one or more `<BlockStat>` children switches the
+overlay to manual statistics mode for that scene.
+
+`<BlockStats>` attributes:
+
+| Attribute | Required | Default | Meaning |
 | --- | --- | --- | --- |
-| `visible` | não | config, Padrão `false` | inicial overlay visibilidade |
-| `buttonEnabled` | não | config, Padrão `true` | mostra O bloco statistics toggle button |
-| `mode` | não | `auto` | `auto` ou `manual`; filho `<BlockStat>` entradas force manual modo |
-| `corner` | não | `topRight` | overlay corner: `topRight`, `topLeft`, `bottomRight`, ou `bottomLeft` |
-| `dock` | não | `inside` | automático lists pode attach para `inside`, `left`, `top`, `right`, ou `bottom`; manual modo sempre usa O dentro de overlay |
-| `showNames` | não | `false` | whether para mostrar item names beside icons; quando ativado O count é também appended depois de O nome |
-| `filterMode` | não | `blacklist` | `blacklist` ou `whitelist` |
-| `filter` | não | vazio | item chaves como `minecraft:stone` ou `minecraft:stone:0`, separated by spaces, commas, ou semicolons |
-| `maxWidth` | não | O larger of `224` px e 40% of O cena largura | maximum overlay largura em pixels antes de horizontal rolagem |
-| `maxHeight` | não | O larger of `96` px e 40% of O cena altura | maximum overlay altura em pixels antes de vertical rolagem |
+| `visible` | no | config, default `false` | initial overlay visibility |
+| `buttonEnabled` | no | config, default `true` | shows the block statistics toggle button |
+| `mode` | no | `auto` | `auto` or `manual`; child `<BlockStat>` entries force manual mode |
+| `corner` | no | `topRight` | overlay corner: `topRight`, `topLeft`, `bottomRight`, or `bottomLeft` |
+| `dock` | no | `inside` | automatic lists can attach to `inside`, `left`, `top`, `right`, or `bottom`; manual mode always uses the inside overlay |
+| `showNames` | no | `false` | whether to show item names beside icons; when enabled the count is also appended after the name |
+| `filterMode` | no | `blacklist` | `blacklist` or `whitelist` |
+| `filter` | no | empty | item keys such as `minecraft:stone` or `minecraft:stone:0`, separated by spaces, commas, or semicolons |
+| `maxWidth` | no | the larger of `224` px and 40% of the scene width | maximum overlay width in pixels before horizontal scrolling |
+| `maxHeight` | no | the larger of `96` px and 40% of the scene height | maximum overlay height in pixels before vertical scrolling |
 
-`<BlockStat>` atributos:
+`<BlockStat>` attributes:
 
-| Atributo | Obrigatório | Significado |
+| Attribute | Required | Meaning |
 | --- | --- | --- |
-| `item` | sim, a menos que `id` é usado | item id exibido em O lista |
-| `id` | sim, a menos que `item` é usado | existing item-stack Atributo form |
-| `count` | não | displayed count; omitting it mostra O linha once, e `count="0"` oculta O linha |
+| `item` | yes, unless `id` is used | item id shown in the list |
+| `id` | yes, unless `item` is used | existing item-stack attribute form |
+| `count` | no | displayed count; omitting it shows the row once, and `count="0"` hides the row |
 
-Exemplo:
+Example:
 
 ````md
 <GameScene>
@@ -334,29 +344,29 @@ Exemplo:
 
 ## `<Block>`
 
-Places Uma bloco em O visualização mundo.
+Places a block into the preview world.
 
-| Atributo | Obrigatório | Significado |
+| Attribute | Required | Meaning |
 | --- | --- | --- |
-| `id` | sim, a menos que `ore` é usado | bloco id |
-| `ore` | não | ore dictionary nome; O primeiro correspondente stack deve resolver para Uma bloco item |
-| `x` | não | inteiro mundo X, Padrão `0` |
-| `y` | não | inteiro mundo Y, Padrão `0` |
-| `z` | não | inteiro mundo Z, Padrão `0` |
-| `meta` | não | inteiro bloco metadata |
-| `facing` | não | `down`, `up`, `north`, `south`, `west`, `east` |
-| `nbt` | não | SNBT TileEntity compound |
-| `formed` | não | whether O placed structure controller deve ser treated as formed durante visualização sync; Padrão `false` |
+| `id` | yes, unless `ore` is used | block id |
+| `ore` | no | ore dictionary name; the first matching stack must resolve to a block item |
+| `x` | no | integer world X, default `0` |
+| `y` | no | integer world Y, default `0` |
+| `z` | no | integer world Z, default `0` |
+| `meta` | no | integer block metadata |
+| `facing` | no | `down`, `up`, `north`, `south`, `west`, `east` |
+| `nbt` | no | SNBT TileEntity compound |
+| `formed` | no | whether the placed structure controller should be treated as formed during preview sync; default `false` |
 
-Observações:
+Notes:
 
-- `ore` takes precedence sobre `id`; Se GregTech é installed, O escolhido stack é unified por `GTOreDictUnificator.setStack(...)`
-- Se `meta` é omitted e an `ore` corresponder carries concrete non-wildcard item damage, que damage é usado antes de O `facing` reserva
-- Se `meta` é omitted, some blocos derive Uma sensible Padrão de `facing`
-- Se `nbt` cria Uma TileEntity successfully, O visualização usa it
-- Defina `formed={false}` quando Uma controller-based structure deve stay unformed em visualização even though O surrounding structure é otherwise válido
+- `ore` takes precedence over `id`; if GregTech is installed, the chosen stack is unified through `GTOreDictUnificator.setStack(...)`
+- if `meta` is omitted and an `ore` match carries concrete non-wildcard item damage, that damage is used before the `facing` fallback
+- if `meta` is omitted, some blocks derive a sensible default from `facing`
+- if `nbt` creates a TileEntity successfully, the preview uses it
+- set `formed={false}` when a controller-based structure should stay unformed in preview even though the surrounding structure is otherwise valid
 
-Exemplo:
+Example:
 
 ````md
 <Block id="minecraft:furnace" x="2" facing="south" />
@@ -366,31 +376,31 @@ Exemplo:
 
 ## `<ImportStructure>`
 
-carrega Um externo structure arquivo em O cena.
+Loads an external structure file into the scene.
 
-| Atributo | Obrigatório | Significado |
+| Attribute | Required | Meaning |
 | --- | --- | --- |
-| `src` | sim | structure recurso caminho |
-| `x` | não | inteiro tradução X (alias para `offsetX`) |
-| `y` | não | inteiro tradução Y (alias para `offsetY`) |
-| `z` | não | inteiro tradução Z (alias para `offsetZ`) |
-| `offsetX` | não | inteiro tradução X (preferido sobre `x`) |
-| `offsetY` | não | inteiro tradução Y, clamped para `[0, worldHeight-1]` (preferido sobre `y`) |
-| `offsetZ` | não | inteiro tradução Z (preferido sobre `z`) |
-| `formed` | não | whether imported structure controllers deve ser treated as formed durante visualização sync; Padrão `false` |
+| `src` | yes | structure asset path |
+| `x` | no | integer translation X (alias for `offsetX`) |
+| `y` | no | integer translation Y (alias for `offsetY`) |
+| `z` | no | integer translation Z (alias for `offsetZ`) |
+| `offsetX` | no | integer translation X (preferred over `x`) |
+| `offsetY` | no | integer translation Y, clamped to `[0, worldHeight-1]` (preferred over `y`) |
+| `offsetZ` | no | integer translation Z (preferred over `z`) |
+| `formed` | no | whether imported structure controllers should be treated as formed during preview sync; default `false` |
 
-Compatível formats:
+Supported formats:
 
-- SNBT texto
+- SNBT text
 - gzipped binary NBT
 - uncompressed binary NBT
 
-Obrigatório structure chaves:
+Required structure keys:
 
 - `palette`
 - `blocks`
 
-Exemplo:
+Example:
 
 ````md
 <ImportStructure src="/assets/example_structure.snbt" />
@@ -400,37 +410,37 @@ Exemplo:
 
 ## `<ImportStructureLib>`
 
-Imports Uma StructureLib multiblock visualização by controller id.
+Imports a StructureLib multiblock preview by controller id.
 
-| Atributo | Obrigatório | Significado |
+| Attribute | Required | Meaning |
 | --- | --- | --- |
-| `controller` | sim | controller bloco id, using `modid:block[:meta]` |
-| `name` | não | opcional binding nome usado by `showWhenStructure` on Anotações, templates, e sounds |
-| `piece` | não | StructureLib piece nome substituir |
-| `facing` | não | facing substituir passed para O importer |
-| `rotation` | não | rotação substituir passed para O importer |
-| `flip` | não | flip/mirror substituir passed para O importer |
-| `channel` | não | inteiro channel substituir para channel-aware structures |
-| `tier` | não | valor inicial de tier para estruturas compatíveis |
-| `channelName` | não | nome do canal usado com a substituição raiz `channel` ou `value` |
-| `value` | não | valor do canal usado com `channelName` |
-| `locked` | não | bloqueia o valor de tier ou canal fornecido explicitamente |
-| `offsetX` | não | inteiro X offset applied para todos placed blocos (Padrão `0`) |
-| `offsetY` | não | inteiro Y offset applied para todos placed blocos, clamped para `[0, worldHeight-1]` (Padrão `0`) |
-| `offsetZ` | não | inteiro Z offset applied para todos placed blocos (Padrão `0`) |
-| `formed` | não | whether imported StructureLib controllers deve ser treated as formed durante visualização sync; Padrão `false` |
+| `controller` | yes | controller block id, using `modid:block[:meta]` |
+| `name` | no | optional binding name used by `showWhenStructure` on annotations, templates, and sounds |
+| `piece` | no | StructureLib piece name override |
+| `facing` | no | facing override passed to the importer |
+| `rotation` | no | rotation override passed to the importer |
+| `flip` | no | flip/mirror override passed to the importer |
+| `tier` | no | initial tier value for tier-aware structures |
+| `channel` | no | integer channel override for channel-aware structures |
+| `channelName` | no | name of the channel used with the root `channel` or `value` override |
+| `value` | no | channel value used with `channelName` |
+| `locked` | no | when `true`, locks the explicitly supplied root tier or channel value during interaction |
+| `offsetX` | no | integer X offset applied to all placed blocks (default `0`) |
+| `offsetY` | no | integer Y offset applied to all placed blocks, clamped to `[0, worldHeight-1]` (default `0`) |
+| `offsetZ` | no | integer Z offset applied to all placed blocks (default `0`) |
+| `formed` | no | whether imported StructureLib controllers should be treated as formed during preview sync; default `false` |
 
-Observações:
+Notes:
 
-- O imported structure starts de cena `0 0 0`; O controller é não forced para ser placed at `0 0 0`
-- Este tag enables StructureLib-específico dica, hatch destacar, e channel slider UI quando metadata é disponível
-- controller correspondente suporta O GTNH-style `modid:block:meta` form
-- usar `name` quando O cena contém vários StructureLib imports e another tag needs para destino um específico structure estado
-- `facing`, `rotation`, e `flip` usar O mesmo orientation vocabulary as StructureLib export; quando Uma requested combination é não allowed by O controller, GuideNH falls back para O primeiro válido alignment automaticamente
-- GregTech controller previews now Padrão para O controller's opposite horizontal facing de O older visualização orientation, rotating O visualização front by 180 degrees around O Y axis
-- Defina `formed={false}` quando O imported controller deve remain visibly unformed; Este é O Compatível alternative para shipping intentionally broken NBT
+- the imported structure starts from scene `0 0 0`; the controller is not forced to be placed at `0 0 0`
+- this tag enables StructureLib-specific tooltip, hatch highlight, and channel slider UI when metadata is available
+- controller matching supports the GTNH-style `modid:block:meta` form
+- use `name` when the scene contains multiple StructureLib imports and another tag needs to target one specific structure state
+- `facing`, `rotation`, and `flip` use the same orientation vocabulary as StructureLib export; when a requested combination is not allowed by the controller, GuideNH falls back to the first valid alignment automatically
+- GregTech controller previews use the opposite horizontal facing by default
+- set `formed={false}` when the imported controller should remain visibly unformed; this is the supported alternative to shipping intentionally broken NBT
 
-Exemplo:
+Example:
 
 ````md
 <ImportStructureLib controller="botanichorizons:automatedCraftingPool" />
@@ -441,7 +451,7 @@ Exemplo:
 <ImportStructureLib controller="gregtech:gt.blockmachines:15411" formed={false} />
 ````
 
-Structure-aware anotação e sound Exemplo:
+Structure-aware annotation and sound example:
 
 ````md
 <GameScene interactive={true}>
@@ -467,26 +477,24 @@ Structure-aware anotação e sound Exemplo:
 </GameScene>
 ````
 
-StructureLib defaults pode também ser supplied as filho tags. Estes defaults são part of O cena's
-inicial interativo estado, so O reset-view button restores eles depois de O user alterações tier ou
+StructureLib defaults can also be supplied as child tags. These defaults are part of the scene's
+initial interactive state, so the reset-view button restores them after the user changes tier or
 channel sliders.
 
-| filho tag | Significado |
+| Child tag | Meaning |
 | --- | --- |
-| `<Tier value="1" />` | Master tier valor. |
-| `<Tier value="4" locked={true} />` | bloqueia o valor de tier ou canal fornecido explicitamente. |
-| `<Channel name="channelName" value="1" />` | Named StructureLib channel substituir. Repeat para vários channels. |
-| `<Channel name="channelName" value="1" locked={true} />` | bloqueia o valor de tier ou canal fornecido explicitamente. |
-| `<Facing value="north" />` | Padrão facing. |
-| `<Rotation value="normal" />` | Padrão rotação. |
-| `<Flip value="none" />` | Padrão flip/mirror. |
-| `<Orientation value="north:normal:none" />` | Facing, rotação, e flip em um tag. |
-| `<GregTechActiveController />` | GregTech somente: renderizar O controller com seu active texture quando possible. |
-| `<GregTechPlaceHatches />` | GregTech somente: colocar normal GT hatches para hatch-somente visualização positions. sem Este, GT previews ainda usar survival construct para hatch-aware machines, but vazio hatch positions fall back para casing blocos. |
+| `<Tier value="1" />` | Master tier value. |
+| `<Tier value="4" locked={true} />` | Master tier value that cannot be changed by the user. |
+| `<Channel name="channelName" value="1" />` | Named StructureLib channel override. Repeat for multiple channels. |
+| `<Channel name="channelName" value="1" locked={true} />` | Named channel override that cannot be changed by the user. |
+| `<Facing value="north" />` | Default facing. |
+| `<Rotation value="normal" />` | Default rotation. |
+| `<Flip value="none" />` | Default flip/mirror. |
+| `<Orientation value="north:normal:none" />` | Facing, rotation, and flip in one tag. |
+| `<GregTechActiveController />` | GregTech only: render the controller with its active texture when possible. |
+| `<GregTechPlaceHatches />` | GregTech only: place normal GT hatches for hatch-only preview positions. Without this, GT previews still use survival construct for hatch-aware machines, but empty hatch positions fall back to casing blocks. |
 
-para GregTech controllers, GuideNH now usa O mesmo StructureLib survival-visualização caminho as O
-export command. Este fixes hatch-somente positions que normal `construct()` não pode populate enquanto
-keeping reserva casings by Padrão.
+GregTech hatch-aware previews use fallback casings unless `<GregTechPlaceHatches>` is enabled.
 
 ````md
 <GameScene width="384" height="256" zoom={4} interactive={true}>
@@ -504,22 +512,22 @@ keeping reserva casings by Padrão.
 
 ## `<IsometricCamera>`
 
-aplica explícito isometric câmera yaw/pitch/roll.
+Applies explicit isometric camera yaw/pitch/roll.
 
-Se Este tag é omitted, O cena keeps using O `<GameScene>` `perspective` preset. O Padrão
-`isometric-north-east` preset é equivalent para:
+If this tag is omitted, the scene keeps using the `<GameScene>` `perspective` preset. The default
+`isometric-north-east` preset is equivalent to:
 
 ````md
 <IsometricCamera yaw="225" pitch="30" />
 ````
 
-| Atributo | Significado |
+| Attribute | Meaning |
 | --- | --- |
-| `yaw` | decimal |
-| `pitch` | decimal |
-| `roll` | decimal |
+| `yaw` | float |
+| `pitch` | float |
+| `roll` | float |
 
-Exemplo:
+Example:
 
 ````md
 <IsometricCamera yaw="45" pitch="30" roll="0" />
@@ -527,15 +535,15 @@ Exemplo:
 
 ## `<RemoveBlocks>`
 
-Removes cada já-placed bloco correspondente Uma destino bloco id.
+Removes every already-placed block matching a target block id.
 
-| Atributo | Obrigatório | Significado |
+| Attribute | Required | Meaning |
 | --- | --- | --- |
-| `id` | sim | bloco id para remover, using `modid:block[:meta]` |
+| `id` | yes | block id to remove, using `modid:block[:meta]` |
 
-Este é useful depois de importing Uma structure quando you want para ocultar específico blocos para clarity.
+This is useful after importing a structure when you want to hide specific blocks for clarity.
 
-Exemplo:
+Example:
 
 ````md
 <ImportStructure src="/assets/example_structure.snbt" />
@@ -545,34 +553,34 @@ Exemplo:
 
 ## `<ReplaceBlock>`
 
-Replaces já-placed blocos que corresponder Uma origem bloco id (e optionally Uma partial tile entity NBT
-pattern) com Uma new bloco. O pesquisa pode ser global (todos filled blocos) ou restricted para a
+Replaces already-placed blocks that match a source block id (and optionally a partial tile entity NBT
+pattern) with a new block. The search can be global (all filled blocks) or restricted to a
 bounding box.
 
-| Atributo | Obrigatório | Significado |
+| Attribute | Required | Meaning |
 | --- | --- | --- |
-| `from` | sim | origem bloco para corresponder, using `modid:block[:meta]` |
-| `from_nbt` | não | partial SNBT compound; Uma bloco corresponde somente quando seu tile entity NBT contém todos listed chaves |
-| `to` | sim | replacement bloco, using `modid:block[:meta]` |
-| `to_nbt` | não | SNBT TileEntity compound para apply para O replacement |
-| `x` | não | bounding box emício X; Se qualquer of `x/y/z/dx/dy/dz` é present, O box modo é activated |
-| `y` | não | bounding box emício Y |
-| `z` | não | bounding box emício Z |
-| `dx` | não | bounding box length on O X axis (Padrão `1`) |
-| `dy` | não | bounding box altura on O Y axis (Padrão `1`) |
-| `dz` | não | bounding box largura/depth on O Z axis (Padrão `1`) |
-| `formed` | não | whether replacement resultado controllers deve ser treated as formed durante visualização sync; Padrão `false` |
+| `from` | yes | source block to match, using `modid:block[:meta]` |
+| `from_nbt` | no | partial SNBT compound; a block matches only when its tile entity NBT contains all listed keys |
+| `to` | yes | replacement block, using `modid:block[:meta]` |
+| `to_nbt` | no | SNBT TileEntity compound to apply to the replacement |
+| `x` | no | bounding box start X; if any of `x/y/z/dx/dy/dz` is present, the box mode is activated |
+| `y` | no | bounding box start Y |
+| `z` | no | bounding box start Z |
+| `dx` | no | bounding box length on the X axis (default `1`) |
+| `dy` | no | bounding box height on the Y axis (default `1`) |
+| `dz` | no | bounding box width/depth on the Z axis (default `1`) |
+| `formed` | no | whether replacement result controllers should be treated as formed during preview sync; default `false` |
 
-Observações:
+Notes:
 
-- quando none of `x/y/z/dx/dy/dz` são fornecido, todos filled blocos são scanned globally
-- `from_nbt` é a **partial** corresponder: somente O chaves listed em O pattern deve corresponder; extra chaves em
-  O atual tile entity são ignored
-- O replacement é performed via O mesmo bloco placement pipeline as `<Block>`, so GregTech MetaTile
-  e BartWorks tile entities são handled correctly
-- Se O replacement places Uma controller, `formed={false}` keeps que controller unformed durante visualização
+- when none of `x/y/z/dx/dy/dz` are provided, all filled blocks are scanned globally
+- `from_nbt` is a **partial** match: only the keys listed in the pattern must match; extra keys in
+  the actual tile entity are ignored
+- the replacement is performed via the same block placement pipeline as `<Block>`, so GregTech MetaTile
+  and BartWorks tile entities are handled correctly
+- if the replacement places a controller, `formed={false}` keeps that controller unformed during preview
 
-Exemplo:
+Example:
 
 ````md
 <ImportStructure src="/assets/example_structure.snbt" />
@@ -582,31 +590,31 @@ Exemplo:
 
 ## `<PlaceBlock>`
 
-Fills Um alinhado aos eixos box com a único bloco Tipo, overwriting whatever was there antes de.
-Unlike `<Block>` (que targets a único posição), `<PlaceBlock>` suporta multi-bloco regions via
-`dx`/`dy`/`dz`, ordered as length, altura, e largura/depth on O X/Y/Z axes.
+Fills an axis-aligned box with a single block type, overwriting whatever was there before.
+Unlike `<Block>` (which targets a single position), `<PlaceBlock>` supports multi-block regions via
+`dx`/`dy`/`dz`, ordered as length, height, and width/depth on the X/Y/Z axes.
 
-| Atributo | Obrigatório | Significado |
+| Attribute | Required | Meaning |
 | --- | --- | --- |
-| `id` | sim | bloco id, using `modid:block[:meta]` |
-| `nbt` | não | SNBT TileEntity compound applied para cada placed bloco |
-| `x` | não | region emício X, Padrão `0` |
-| `y` | não | region emício Y, Padrão `0` |
-| `z` | não | region emício Z, Padrão `0` |
-| `dx` | não | region length on O X axis, Padrão `1` |
-| `dy` | não | region altura on O Y axis, Padrão `1` |
-| `dz` | não | region largura/depth on O Z axis, Padrão `1` |
-| `formed` | não | whether placed controllers deve ser treated as formed durante visualização sync; Padrão `false` |
+| `id` | yes | block id, using `modid:block[:meta]` |
+| `nbt` | no | SNBT TileEntity compound applied to every placed block |
+| `x` | no | region start X, default `0` |
+| `y` | no | region start Y, default `0` |
+| `z` | no | region start Z, default `0` |
+| `dx` | no | region length on the X axis, default `1` |
+| `dy` | no | region height on the Y axis, default `1` |
+| `dz` | no | region width/depth on the Z axis, default `1` |
+| `formed` | no | whether placed controllers should be treated as formed during preview sync; default `false` |
 
-Observações:
+Notes:
 
-- todos blocos em O box são unconditionally placed (não prior-bloco check)
-- O NBT compound é copied Para cada individual placement
-- O mesmo bloco placement pipeline as `<Block>` é usado, so GregTech MetaTile e BartWorks tile entities
-  são fully Compatível
-- Se O region places um ou mais controllers, `formed={false}` keeps cada affected controller unformed
+- all blocks in the box are unconditionally placed (no prior-block check)
+- the NBT compound is copied for each individual placement
+- the same block placement pipeline as `<Block>` is used, so GregTech MetaTile and BartWorks tile entities
+  are fully supported
+- if the region places one or more controllers, `formed={false}` keeps every affected controller unformed
 
-Exemplo:
+Example:
 
 ````md
 <PlaceBlock id="minecraft:stone" x="0" y="0" z="0" dx="5" dy="1" dz="5" />
@@ -616,19 +624,19 @@ Exemplo:
 
 ## `<BlockAnnotationTemplate>`
 
-Expands um ou mais filho Anotações onto cada correspondente bloco que já exists em O atual cena.
+Expands one or more child annotations onto every matching block that already exists in the current scene.
 
-| Atributo | Obrigatório | Significado |
+| Attribute | Required | Meaning |
 | --- | --- | --- |
-| `id` | sim | bloco matcher em `modid:block[:meta]` form |
+| `id` | yes | block matcher in `modid:block[:meta]` form |
 
-Regras:
+Rules:
 
-- colocar it depois de O blocos ou imported structures que it deve corresponder
-- correspondente happens against O atual cena estado at analisar time
-- filho Anotações usar local coordenadas relativo para cada correspondente bloco
+- place it after the blocks or imported structures that it should match
+- matching happens against the current scene state at parse time
+- child annotations use local coordinates relative to each matched block
 
-Exemplo:
+Example:
 
 ````md
 <ImportStructure src="/assets/example_structure.snbt" />
@@ -641,56 +649,56 @@ Exemplo:
 
 ## `<Entity>`
 
-Adds Um entity para O visualização cena.
+Adds an entity to the preview scene.
 
-O atributos follow summon-style entity placement e SNBT dados.
+The attributes follow summon-style entity placement and SNBT data.
 
-| Atributo | Obrigatório | Significado |
+| Attribute | Required | Meaning |
 | --- | --- | --- |
-| `id` | sim | entity Tipo id; legacy names like `Sheep`, modern vanilla ids like `minecraft:sheep`, e registrado mod entity ids em qualquer um `modid.entityName` ou `modid:entityName` form são accepted |
-| `x` | não | decimal X coordenada O entity é centered on, Padrão `0.5` |
-| `y` | não | decimal Y coordenada at O baixo of O entity, Padrão `0` |
-| `z` | não | decimal Z coordenada O entity é centered on, Padrão `0.5` |
-| `rotationY` | não | yaw em degrees, Padrão `-45` |
-| `rotationX` | não | pitch em degrees, Padrão `0` |
-| `data` | não | summon-style SNBT merged em O entity NBT antes de spawn |
-| `sceneEntityId` | não | stable cena-local entity id usado by later `<Entity>` / `<RemoveEntity>` operations e by imported cena snapshots |
-| `mount` | não | stable `sceneEntityId` of O vehicle que Este entity deve ride depois de spawn |
-| `unmount` | não | booleano expressão que clears Este entity's atual stable mount relation depois de spawn ou estado replay |
-| `baby` | não | booleano expressão forcing Compatível entities em baby form; omitted leaves O entity's normal age/estado unchanged |
-| `name` | não | visualização player nome quando `id` é `player`, `fakeplayer`, `minecraft:player`, ou `minecraft:fakeplayer` |
-| `uuid` | não | visualização player UUID quando using um of O player ids acima de |
-| `showName` | não | booleano expressão controlling O visualização player nameplate, Padrão `true` para player visualização ids |
-| `showCape` | não | booleano expressão controlling O visualização player cape, Padrão `true` para player visualização ids |
-| `headRotation` | não | visualização player head rotação as `x y z` degrees |
-| `leftArmRotation` | não | visualização player esquerda arm rotação as `x y z` degrees |
-| `rightArmRotation` | não | visualização player direita arm rotação as `x y z` degrees |
-| `leftLegRotation` | não | visualização player esquerda leg rotação as `x y z` degrees |
-| `rightLegRotation` | não | visualização player direita leg rotação as `x y z` degrees |
-| `capeRotation` | não | visualização player cape rotação as `x y z` degrees; defaults para O standing-ainda angle `6 0 0` |
+| `id` | yes | entity type id; legacy names like `Sheep`, modern vanilla ids like `minecraft:sheep`, and registered mod entity ids in either `modid.entityName` or `modid:entityName` form are accepted |
+| `x` | no | float X coordinate the entity is centered on, default `0.5` |
+| `y` | no | float Y coordinate at the bottom of the entity, default `0` |
+| `z` | no | float Z coordinate the entity is centered on, default `0.5` |
+| `rotationY` | no | yaw in degrees, default `-45` |
+| `rotationX` | no | pitch in degrees, default `0` |
+| `data` | no | summon-style SNBT merged into the entity NBT before spawn |
+| `sceneEntityId` | no | stable scene-local entity id used by later `<Entity>` / `<RemoveEntity>` operations and by imported scene snapshots |
+| `mount` | no | stable `sceneEntityId` of the vehicle that this entity should ride after spawn |
+| `unmount` | no | boolean expression that clears this entity's current stable mount relation after spawn or state replay |
+| `baby` | no | boolean expression forcing supported entities into baby form; omitted leaves the entity's normal age/state unchanged |
+| `name` | no | preview player name when `id` is `player`, `fakeplayer`, `minecraft:player`, or `minecraft:fakeplayer` |
+| `uuid` | no | preview player UUID when using one of the player ids above |
+| `showName` | no | boolean expression controlling the preview player nameplate, default `true` for player preview ids |
+| `showCape` | no | boolean expression controlling the preview player cape, default `true` for player preview ids |
+| `headRotation` | no | preview player head rotation as `x y z` degrees |
+| `leftArmRotation` | no | preview player left arm rotation as `x y z` degrees |
+| `rightArmRotation` | no | preview player right arm rotation as `x y z` degrees |
+| `leftLegRotation` | no | preview player left leg rotation as `x y z` degrees |
+| `rightLegRotation` | no | preview player right leg rotation as `x y z` degrees |
+| `capeRotation` | no | preview player cape rotation as `x y z` degrees; defaults to the standing-still angle `6 0 0` |
 
-Observações:
+Notes:
 
-- entity bounds participate em cena auto-centering e visível-layer filtering
-- entity creation falls back gracefully quando O visualização mundo é não ready yet, então binds on primeiro renderizar
-- `sceneEntityId` é opcional, but strongly recommended whenever later cena mutations need para find, remover, remount, ou restore O mesmo logical entity sem scanning by bruto execução id
-- um `sceneEntityId` pode próprio mais que um execução entity instance; `<RemoveEntity sceneEntityId="..."/>` removes cada entity atualmente registrado para que stable id
-- `mount` links entities by stable cena id rather que by bruto NBT passenger lists, so replay, import/export, visualização rebuild, e Animação Ponder seeking pode todos restore O mesmo rider/vehicle relation deterministically
-- `unmount={true}` clears O stable mount relation para que entity antes de qualquer later mount é applied
-- `baby={true}` atualmente suporta visualização players, ageable mobs, vanilla zombies, e modded entities que expose stable `setChild(boolean)` ou `setBaby(boolean)` style APIs
-- filho-estado entities são re-aligned para seus atual posição depois de resizing so passar o mouse e pick bounds stay centered on O renderizado model
-- player visualização ids criar Uma client-lado fake remote player so O normal player renderer e skin pipeline pode ser usado
-- quando ambos `name` e `uuid` são omitted para Uma player visualização, GuideNH falls back para `Steve` e O vanilla Padrão skin
-- quando somente `name` é given para Uma player visualização, GuideNH primeiro tries para resolver O real online profile so skins e capes pode carregar; Se lookup fails, it falls back para Uma stable offline UUID
-- quando somente `uuid` é given para Uma player visualização, GuideNH generates Uma placeholder exibir nome e ainda tries para resolver O skin de O profile
-- `showName={false}` oculta O visualização player's overhead nome sem bypassing O normal player renderer
-- `showCape={false}` oculta O visualização player's cape enquanto ainda respecting O normal player renderizar caminho e Forge hooks
-- player pose atributos usar três espaço-separated floats mapped para model `X Y Z` rotação em degrees
-- omitted head e limb rotação atributos Mantenha O normal vanilla idle pose; omitted `capeRotation` falls back para O standing-ainda cape angle `6 0 0`
-- player previews require Um active client mundo at analisar time because Minecraft's player entity constructor não pode ser criado worldless
-- ao passar o mouse Um entity mostra seu localizado exibir nome, ou seu personalizado nome Se um was fornecido
+- entity bounds participate in scene auto-centering and visible-layer filtering
+- entity creation falls back gracefully when the preview world is not ready yet, then binds on first render
+- `sceneEntityId` is optional, but strongly recommended whenever later scene mutations need to find, remove, remount, or restore the same logical entity without scanning by raw runtime id
+- one `sceneEntityId` can own more than one runtime entity instance; `<RemoveEntity sceneEntityId="..."/>` removes every entity currently registered to that stable id
+- `mount` links entities by stable scene id rather than by raw NBT passenger lists, so replay, import/export, preview rebuild, and Ponder seeking can all restore the same rider/vehicle relation deterministically
+- `unmount={true}` clears the stable mount relation for that entity before any later mount is applied
+- `baby={true}` currently supports preview players, ageable mobs, vanilla zombies, and modded entities that expose stable `setChild(boolean)` or `setBaby(boolean)` style APIs
+- child-state entities are re-aligned to their current position after resizing so hover and pick bounds stay centered on the rendered model
+- player preview ids create a client-side fake remote player so the normal player renderer and skin pipeline can be used
+- when both `name` and `uuid` are omitted for a player preview, GuideNH falls back to `Steve` and the vanilla default skin
+- when only `name` is given for a player preview, GuideNH first tries to resolve the real online profile so skins and capes can load; if lookup fails, it falls back to a stable offline UUID
+- when only `uuid` is given for a player preview, GuideNH generates a placeholder display name and still tries to resolve the skin from the profile
+- `showName={false}` hides the preview player's overhead name without bypassing the normal player renderer
+- `showCape={false}` hides the preview player's cape while still respecting the normal player render path and Forge hooks
+- player pose attributes use three space-separated floats mapped to model `X Y Z` rotation in degrees
+- omitted head and limb rotation attributes keep the normal vanilla idle pose; omitted `capeRotation` falls back to the standing-still cape angle `6 0 0`
+- player previews require an active client world at parse time because Minecraft's player entity constructor cannot be created worldless
+- hovering an entity shows its localized display name, or its custom name if one was provided
 
-Exemplo:
+Example:
 
 ````md
 <GameScene zoom={4} interactive={true}>
@@ -699,7 +707,7 @@ Exemplo:
 </GameScene>
 ````
 
-Stable-id mount Exemplo:
+Stable-id mount example:
 
 ````md
 <GameScene zoom={4} interactive={true}>
@@ -709,7 +717,7 @@ Stable-id mount Exemplo:
 </GameScene>
 ````
 
-Removal e unmount Exemplo:
+Removal and unmount example:
 
 ````md
 <GameScene zoom={4} interactive={true}>
@@ -721,7 +729,7 @@ Removal e unmount Exemplo:
 </GameScene>
 ````
 
-Baby entity Exemplo:
+Baby entity example:
 
 ````md
 <GameScene zoom={4} interactive={true}>
@@ -731,7 +739,7 @@ Baby entity Exemplo:
 </GameScene>
 ````
 
-visualização player pose Exemplo:
+Preview player pose example:
 
 ````md
 <GameScene zoom={4} interactive={true}>
@@ -750,7 +758,7 @@ visualização player pose Exemplo:
 </GameScene>
 ````
 
-visualização player nome e cape Exemplo:
+Preview player name and cape example:
 
 ````md
 <GameScene zoom={4} interactive={true}>
@@ -762,20 +770,20 @@ visualização player nome e cape Exemplo:
 
 ## `<RemoveEntity>`
 
-Removes cada execução entity atualmente registrado para um stable `sceneEntityId`.
+Removes every runtime entity currently registered to one stable `sceneEntityId`.
 
-| Atributo | Obrigatório | Significado |
+| Attribute | Required | Meaning |
 | --- | --- | --- |
-| `sceneEntityId` | sim | stable cena-local entity id para remover |
-| `unmount` | não | booleano expressão que clears O stable mount relation antes de removal |
+| `sceneEntityId` | yes | stable scene-local entity id to remove |
+| `unmount` | no | boolean expression that clears the stable mount relation before removal |
 
-Observações:
+Notes:
 
-- Este é O cena-lado counterpart para Animação Ponder's `removeEntities`
-- removal works on O indexed stable-id registry, so it não faz need para scan todos entities cada frame
-- Se vários imported ou replayed entities share O mesmo `sceneEntityId`, Elas são removido together
+- this is the scene-side counterpart to Ponder's `removeEntities`
+- removal works on the indexed stable-id registry, so it does not need to scan all entities every frame
+- if multiple imported or replayed entities share the same `sceneEntityId`, they are removed together
 
-Exemplo:
+Example:
 
 ````md
 <GameScene zoom={4} interactive={true}>
@@ -785,30 +793,30 @@ Exemplo:
 </GameScene>
 ````
 
-## Clima
+## Weather
 
-`<Weather>` adds animated rain ou snow directly para a `GameScene`. Unlike Animação Ponder Clima presets,
-cena Clima é não timeline-owned: it keeps looping durante normal cena renderização, it não faz
-fade em ou fade out, e it não pode ser paused ou scrubbed independently. O renderer ainda usa O
-mesmo precipitation geometria caminho as Animação Ponder Clima, so local visualização e site export stay aligned.
+`<Weather>` adds animated rain or snow directly to a `GameScene`. Unlike Ponder weather presets,
+scene weather is not timeline-owned: it keeps looping during normal scene rendering, it does not
+fade in or fade out, and it cannot be paused or scrubbed independently. The renderer still uses the
+same precipitation geometry path as Ponder weather, so local preview and site export stay aligned.
 
-| Atributo | Padrão | descrição |
+| Attribute | Default | Description |
 | --- | --- | --- |
-| `weather` / `type` | `rain` | Clima kind. Compatível valores: `rain`, `snow`. |
-| `x`, `z` | cena bounds | Covered precipitation columns. Uma scalar targets um coluna. Arrays usar endpoint pairs para define um ou mais rectangles. |
-| `density` | Tipo-específico | Coverage density. Higher valores Mantenha mais precipitation columns active; lower valores sparsify O effect. |
+| `weather` / `type` | `rain` | Weather kind. Supported values: `rain`, `snow`. |
+| `x`, `z` | scene bounds | Covered precipitation columns. A scalar targets one column. Arrays use endpoint pairs to define one or more rectangles. |
+| `density` | type-specific | Coverage density. Higher values keep more precipitation columns active; lower values sparsify the effect. |
 
-Observações:
+Notes:
 
-- `<Weather>` ignores `y`; O vertical span é derived de O atual cena bounds e de O
-  highest precipitation-blocking bloco em cada covered coluna.
-- Se um axis tem unmatched extra array valores, O unmatched tail é ignored.
-- dentro de um Clima declaration, rain e snow nunca stack on O mesmo `x/z` coluna. Se vários
-  Clima tags overlap, earlier tags Mantenha O shared columns.
-- diferente non-overlapping columns em O mesmo `GameScene` pode renderizar rain e snow at O mesmo
+- `<Weather>` ignores `y`; the vertical span is derived from the current scene bounds and from the
+  highest precipitation-blocking block in each covered column.
+- If one axis has unmatched extra array values, the unmatched tail is ignored.
+- Within one weather declaration, rain and snow never stack on the same `x/z` column. If multiple
+  weather tags overlap, earlier tags keep the shared columns.
+- Different non-overlapping columns in the same `GameScene` can render rain and snow at the same
   time.
 
-Exemplo:
+Example:
 
 ````md
 <GameScene width="256" height="160" zoom={4} interactive={false}>
@@ -820,20 +828,20 @@ Exemplo:
 </GameScene>
 ````
 
-## câmera centro Behavior
+## Camera Center Behavior
 
-Se não explícito `centerX/Y/Z` é given, GuideNH auto-centers O cena de O placed bloco bounds. Se qualquer explícito centro coordenada é Defina, auto-centering é desativado e ausente coordenadas Padrão para `0`.
+If no explicit `centerX/Y/Z` is given, GuideNH auto-centers the scene from the placed block bounds. If any explicit center coordinate is set, auto-centering is disabled and missing coordinates default to `0`.
 
-## Notas de interação
+## Interaction Notes
 
-quando `interactive={true}` O cena suporta rotação, pan, zoom, reset, anotação toggles, e outro UI controls exposed by O guia tela.
+When `interactive={true}` the scene supports rotation, pan, zoom, reset, annotation toggles, and other UI controls exposed by the guide screen.
 
-- cenas spanning vários Y levels mostrar Uma visível-layer slider acima de O baixo edge
-- StructureLib cenas pode Adicione Uma hatch-destacar toggle button plus Uma channel slider at O very baixo quando O imported metadata fornece eles
-- anotação passar o mouse takes priority sobre bloco passar o mouse; bloco tooltips appear normally once não anotação hotspot é being hovered
-- StructureLib passar o mouse keeps O bloco nome on O primeiro dica linha, adds structure-específico texto starting on O second linha, e expands replacement candidates quando `Shift` é held
+- scenes spanning multiple Y levels show a visible-layer slider above the bottom edge
+- StructureLib scenes can add a hatch-highlight toggle button plus a channel slider at the very bottom when the imported metadata provides them
+- annotation hover takes priority over block hover; block tooltips appear normally once no annotation hotspot is being hovered
+- StructureLib hover keeps the block name on the first tooltip line, adds structure-specific text starting on the second line, and expands replacement candidates when `Shift` is held
 
-## Páginas relacionadas
+## Related Pages
 
 - [Annotations](Annotations)
 - [Structure Export](Structure-Export)

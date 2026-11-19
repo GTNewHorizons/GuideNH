@@ -21,10 +21,10 @@ GuideNH 在游戏场景（`<GameScene>`）块中支持思索风格的动画时�
 思索 JSON 文件遵循与 SNBT 结构文件相同的资源包路径规则：
 
 ```
-assets/<modid>/guidebooks/
-  pages/machines/my_machine.mdx       ← guide 页面
-  pages/machines/my_machine.snbt      ← 结构数据
-  pages/machines/my_machine.json      ← 思索 JSON
+assets/<modid>/guidenh/
+  _en_us/machines/my_machine.md       ← guide 页面
+  _en_us/machines/my_machine.snbt      ← 结构数据
+  _en_us/machines/my_machine.json      ← 思索 JSON
 ```
 
 `src` 属性支持相对路径和绝对 ID：
@@ -32,23 +32,22 @@ assets/<modid>/guidebooks/
 | 示例 | 解析方式 |
 |------|----------|
 | `src="my_machine.json"` | 相对于当前页面目录 |
-| `src="mymod:guidebooks/pages/machines/my_machine.json"` | 绝对路径（`mymod` 命名空间） |
+| `src="mymod:guidenh/_en_us/machines/my_machine.json"` | 绝对路径（`mymod` 命名空间） |
 
 ## JSON 格式
 
 根对象包含两个必填字段：
 
-```json
-{
-  "totalTime": 120,
-  "keyframes": []
-}
-```
+### 根字段
 
 | 字段 | 类型 | 必填 | 说明 |
 |------|------|------|------|
 | `totalTime` | 整数 | 是 | 动画总时长（20 刻 = 1 秒），最小为 1。 |
 | `keyframes` | 数组 | 是 | 关键帧对象列表。可为空数组。 |
+
+### JSON Schema 校验
+
+在 JSON 根对象加入 `"$schema": "guidenh://schema/ponder.json"`，即可在 VS Code、IDEA 和其他支持 JSON Schema 的编辑器中启用离线补全与校验。GuideNH 模组内置文件路径为 `assets/guidenh/schema/ponder_schema.json`，Wiki 示例资源包也提供一份副本；两者都不访问远程 URL。
 
 ### 关键帧字段
 
@@ -127,8 +126,6 @@ assets/<modid>/guidebooks/
 
 > **关于粒子效果：** 粒子效果只在正向播放、关键帧第一次激活时触发，粒子使用被替换方块的自身贴图。定位（倒带/快进）、重置或初始加载时粒子**不会**触发，已有粒子会被清除。
 
-
-要在编辑器中离线校验，可在 JSON 根对象加入 `"$schema": "guidenh://schema/ponder.json"`。内置 schema 位于 `wiki/resourcepack/assets/guidenh/guidenh/assets/schema/ponder_schema.json`，不会加载远程 URL。
 ---
 
 ## 关键帧音效
@@ -299,8 +296,8 @@ assets/<modid>/guidebooks/
 
 ## 实体操作
 
-游戏场景（GameScene）本身已经支持普通 `<Entity>` 标签。思索时间轴现在也可以通过
-`createEntities` 创建由时间轴管理的实体，并在后续关键帧中通过 `ref` 引用它们。
+使用 `<Entity>` 在场景中放置实体，或通过思索时间轴的 `createEntities` 动作创建实体。
+时间轴创建的实体可在后续关键帧中通过 `ref` 引用。
 
 ```json
 {
@@ -327,7 +324,7 @@ assets/<modid>/guidebooks/
 | `yaw`, `pitch` | 可选生成旋转。未填写且 `nbt` 没有 `Rotation` 时默认为 `0, 0`。 |
 | `bodyYaw`, `headYaw` | 可选的生物身体 / 头部 yaw 覆盖；若只写 `yaw`，未写这两个字段时会默认跟随 `yaw`。 |
 | `nbt` | 可选，实体创建时应用的 SNBT 复合标签。 |
-| `name`, `nameKey`, `uuid` | 可选，创建预览玩家实体时使用的玩家档案字段。 |
+| `name`, `nameKey`, `uuid` | 可选，创建预览玩家实体时使用的玩家档案字段。`nameKey` 解析成功时覆盖 `name`，找不到翻译时回退到 `name`。 |
 | `mount` | 可选，该实体创建后或后续重放时要骑乘的目标载具稳定 `sceneEntityId`。 |
 | `unmount` | 可选，布尔值；在后续新的 `mount` 应用前，先清除该实体当前稳定骑乘关系。 |
 
@@ -407,11 +404,10 @@ assets/<modid>/guidebooks/
 
 ## 注释类型
 
+每个 Ponder 注释都支持 `tooltip` 和 `tooltipKey`。`tooltipKey` 会从当前语言文件中解析；找不到翻译时回退到原始 `tooltip` 文本。
 每个注释条目需要一个 `type` 字段，共支持七种类型。
 
 ---
-
-所有 Ponder 注解都支持 `tooltip` 和 `tooltipKey`。键会从当前资源包的 `lang` 文件解析；找不到时回退到原始文本。
 
 ### `diamond` — 菱形标记
 
@@ -712,9 +708,9 @@ assets/<modid>/guidebooks/
 
 ```
 assets/mymod/guidebooks/
-  pages/machines/grinder.mdx
-  pages/machines/grinder.snbt
-  pages/machines/grinder.json
+  _en_us/machines/grinder.md
+  _en_us/machines/grinder.snbt
+  _en_us/machines/grinder.json
 ```
 
 ### `grinder.json`
@@ -824,9 +820,9 @@ assets/mymod/guidebooks/
 
 ### `grinder.snbt`
 
-标准 NBT 结构文件（通过 `/structure save` 命令或 Litematica 等工具创建）。完整的 SNBT 格式参考请见 [Getting Started](Guide-Page-Format.md)。
+使用 `<ImportStructure>` 支持的 SNBT/NBT 结构；格式说明见 [GameScene](GameScene#importstructure)。
 
-### `grinder.mdx`
+### `grinder.md`
 
 ```mdx
 # 磨碎机

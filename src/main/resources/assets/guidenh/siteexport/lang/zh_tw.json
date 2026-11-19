@@ -22,7 +22,9 @@
   "navigation": {
     "open": "導覽",
     "close": "關閉導覽",
-    "holdToOpenGuide": "長按 G 開啟指南"
+    "holdToOpenGuide": "長按 G 開啟指南",
+    "chooseGuide": "選擇指南頁面",
+    "closeChooser": "關閉頁面選擇"
   },
   "sceneLoading": {
     "error": "3D 場景載入失敗。",

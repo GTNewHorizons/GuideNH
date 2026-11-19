@@ -1,13 +1,12 @@
 # Lokalisatie
 
-Deze documentatie beschrijft de GuideNH-syntaxis en runtimefuncties. Code, tags, paden, ID's en attribuutwaarden blijven ongewijzigd.
+De uitgebreide naslag op deze pagina is beschikbaar in het Engels. Namen van tags, attributen, ID’s en paden worden zonder vertaling gebruikt.
 
+GuideNH supports localized guide pages and localized guide assets.
 
-GuideNH ondersteunt gelokaliseerd gids pages en gelokaliseerd gids assets.
+## Folder Layout
 
-## Mapindeling
-
-runtime-lokalisatie is map-based:
+Runtime localization is folder-based:
 
 ```text
 config/guidenh/DefaultGuide/<modid>/guidenh/
@@ -17,7 +16,7 @@ config/guidenh/DefaultGuide/<modid>/guidenh/
     `-- index.md
 ```
 
-De repository example resourcepack keeps its documented outer `assets/` layer:
+The repository example resource pack keeps its documented outer `assets/` layer:
 
 ```text
 wiki/resourcepack/assets/<modid>/guidenh/
@@ -27,36 +26,36 @@ wiki/resourcepack/assets/<modid>/guidenh/
     `-- index.md
 ```
 
-taal folders are recognized alleen in De underscored form. Plain folders such as `en_us/` en `zh_cn/` are no longer treated as Lokalisatie roots.
+Language folders are recognized only in the underscored form. Use `_en_us/` and `_zh_cn/`, including the leading underscore.
 
-## Volgorde voor pagina-opzoeking
+## Page Lookup Order
 
-Voor elke requested pagina-ID, GuideNH tries:
+For each requested page id, GuideNH tries:
 
 1. `_<current language>/<page>`
-2. `_<default language>/<page>` Als De huidige taal pagina is missing
-3. `<page>` zonder Een taalmap
+2. `_<default language>/<page>` if the current language page is missing
+3. `<page>` without a language folder
 
-gids pages alleen fall back naar De gids's `defaultLanguage`. Auto-discovered resource-pack gidsen still Standaard that waarde naar `en_us`, so another taal is niet promoted into Een fallbacktaal just because it exists.
+Guide pages only fall back to the guide's `defaultLanguage`. Auto-discovered resource-pack guides still default that value to `en_us`, so another language is not promoted into a fallback language just because it exists.
 
-## pagina Lang Key Overrides
+## Page Lang Key Overrides
 
-gids pages kan ook vervangen their full Markdown-bron van a `.lang` key, but alleen wanneer De physical pagina bestand
-al exists. De bestand remains De existence gate en De fallback source.
+Guide pages may also replace their full markdown source from a `.lang` key, but only when the physical page file
+already exists. The file remains the existence gate and the fallback source.
 
-- GuideNH first resolves De pagina bestand met De normal taal fallback order
-- na Een bestand has been found, GuideNH looks voor Een pagina-gelokaliseerd `.lang` waarde voor De requested taal
-- Als that key exists en is non-empty, its full waarde becomes De pagina Markdown-bron voor parsing
-- Als De key is missing of empty, GuideNH falls back naar De opgelost bestand inhoud
+- GuideNH first resolves the page file with the normal language fallback order
+- after a file has been found, GuideNH looks for a page-localized `.lang` value for the requested language
+- if that key exists and is non-empty, its full value becomes the page markdown source before parsing
+- if the key is missing or empty, GuideNH falls back to the resolved file content
 
-wanneer Een non-empty `.lang` pagina waarde is gebruikt, GuideNH merges missing frontmatter fields van De opgelost physical
-pagina voor parsing. gelokaliseerd frontmatter always wins voor fields it explicitly defines, so translated
-`navigation.title` waarden stay gelokaliseerd, terwijl newer structural fields such as `navigation.recommend`,
-`navigation.priority`, categories, item links, authorship metadata, of pagina zoomen kan be inherited van De
-fallback `.md` bestand. Deze keeps older full-pagina translations van accidentally dropping home-pagina recommendations
-wanneer De base pagina metadata is bijgewerkt.
+When a non-empty `.lang` page value is used, GuideNH merges missing frontmatter fields from the resolved physical
+page before parsing. Localized frontmatter always wins for fields it explicitly defines, so translated
+`navigation.title` values stay localized, while newer structural fields such as `navigation.recommend`,
+`navigation.priority`, categories, item links, authorship metadata, or page zoom can be inherited from the
+fallback `.md` file. This keeps older full-page translations from accidentally dropping home-page recommendations
+when the base page metadata is updated.
 
-De key format is:
+The key format is:
 
 ```text
 guidenh.page.<namespace>.<folder>.<page path without .md>
@@ -69,57 +68,72 @@ assets/guidenh/guidenh/_en_us/charts.md
 -> guidenh.page.guidenh.guidenh.charts
 ```
 
-pad separators become `.` in De key. Literal dots binnen Een pad segment are escaped so they do niet collide met
+Path separators become `.` in the key. Literal dots inside a path segment are escaped so they do not collide with
 segment separators:
 
 ```text
 foo.bar.md -> foo_x2e_bar
 ```
 
-Other non-alphanumeric characters are escaped met De zelfde `_x<hex>_` pattern.
+Other non-alphanumeric characters are escaped with the same `_x<hex>_` pattern.
 
-binnen De `.lang` waarde, literal `\n` en `\r` sequences are converted naar real regel endings voor Markdown parsing,
-so De vertaling waarde kan bevatten Een full pagina including frontmatter, headings, lists, en MDX tags.
+Inside the `.lang` value, literal `\n` and `\r` sequences are converted to real line endings before markdown parsing,
+so the translation value can contain a full page including frontmatter, headings, lists, and MDX tags.
 
-Authoring Regels:
+Authoring rules:
 
-- write De pagina as one physical `.lang` regel voor that key
-- gebruiken literal `\n` binnen De waarde wanneer you want Een Markdown regel break
-- do niet insert real regel breaks into De `.lang` waarde itself, because Forge reads `.lang` files regel by regel
-- do niet write `\\n` unless you intentionally want De final Markdown-bron naar bevatten De literal characters `\n`
+- write the page as one physical `.lang` line for that key
+- use literal `\n` inside the value when you want a markdown line break
+- do not insert real line breaks into the `.lang` value itself, because Forge reads `.lang` files line by line
+- do not write `\\n` unless you intentionally want the final markdown source to contain the literal characters `\n`
 
-GuideNH doet niet synthesize pages van `.lang` alone. Een real pagina bestand moet still exist.
+GuideNH does not synthesize pages from `.lang` alone. A real page file must still exist.
+
+## Templates And Language
+
+Template pages under a `templates/` folder follow the same language lookup order as any other page, so a
+template can have one file per language:
+
+```text
+_en_us/templates/InfoBox.md
+_zh_cn/templates/InfoBox.md
+```
+
+A template page can also be replaced by a `.lang` key like any other page. The key format appends the
+template path:
+
+```text
+guidenh.page.<namespace>.<folder>.templates.<name>
+```
 
 ## Key Length
 
-GuideNH doet niet impose Een extra character limit on Deze pagina keys. On Minecraft 1.7.10 / Forge, De backing taal
-data is effectively Een tekenreeks-eigenschap map, so De practical limits are normal memory usage en maintainability rather
-than Een dedicated hard cap. Shorter pagina paths still make keys easier naar author en review.
+GuideNH does not impose an extra character limit on these page keys. Shorter page paths still make keys easier to author and review.
 
-## Advies voor auteurs
+## Authoring Advice
 
-- Stel in `defaultLanguage` deliberately wanneer you want Een non-English fallbacktaal voor Een gids
-- Voeg toe Een shared taal-neutral pagina alleen wanneer cross-taal fallback is actually intended
-- translate pages first, then translate assets alleen wanneer tekst is embedded in De asset
-- avoid taal-specific asset filenames wanneer Een rooted shared asset would do
+- set `defaultLanguage` deliberately when you want a non-English fallback language for a guide
+- add a shared language-neutral page only when cross-language fallback is actually intended
+- translate pages first, then translate assets only when text is embedded in the asset
+- avoid language-specific asset filenames when a rooted shared asset would do
 
-## Volgorde voor asset-opzoeking
+## Asset Lookup Order
 
-gids assets gebruiken Een slightly richer fallback order:
+Guide assets use a slightly richer fallback order:
 
 1. `_<current language>/<path>`
-2. Als De huidige taal is niet De gids standaardtaal, `_<default language>/<path>`
+2. if the current language is not the guide default language, `_<default language>/<path>`
 3. `<path>`
 
-Deze makes it possible naar localize afbeeldingen of texture-like assets wanneer needed.
+This makes it possible to localize images or texture-like assets when needed.
 
-## Zoeken en taal
+## Search And Language
 
-zoeken documents store both De raw Minecraft taal en De analyzer taal gebruikt voor Lucene. Als De huidige Minecraft taal is niet mapped naar Een known analyzer, zoeken falls back naar English tokenization.
+Search documents store both the raw Minecraft language and the analyzer language used for Lucene. If the current Minecraft language is not mapped to a known analyzer, search falls back to English tokenization.
 
-## Ignore vertaling Config
+## Ignore Translation Config
 
-GuideNH doet niet expose Een globale "ignore translations" switch. Als you want Een gids naar fall back naar Een non-English taal, Stel in that gids's `defaultLanguage` explicitly in code.
+GuideNH does not expose a global "ignore translations" switch. If you want a guide to fall back to a non-English language, set that guide's `defaultLanguage` explicitly in code.
 
 ## Example
 
@@ -139,7 +153,8 @@ wiki/resourcepack/assets/guidenh/guidenh/_en_us/test1.png
 wiki/resourcepack/assets/guidenh/guidenh/_zh_cn/test1.png
 ```
 
-## Gerelateerde pagina's
+## Related Pages
 
 - [Guide Page Format](Guide-Page-Format)
+- [Templates](Templates)
 - [Images And Assets](Images-And-Assets)

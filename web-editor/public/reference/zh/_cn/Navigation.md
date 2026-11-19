@@ -1,10 +1,8 @@
-[English](Navigation)
-
 # 导航
 
 GuideNH 会根据页面 frontmatter 构建导航树。
 
-在游戏内侧边栏中，已经展开且其子树仍然可见的祖先页面会固定在顶部。多层祖先可以逐层堆叠固定，只有当对应可见子树整体滚出后，该 sticky 行才会一起被顶走，行为类似 VSCode 的文件树。
+滚动导航栏时，已展开的祖先页面会固定在顶部，直到其子页面整体滚出可见区域。多层祖先可同时固定。
 
 ## 导航 Frontmatter
 
@@ -33,6 +31,8 @@ navigation:
 | `icons` | 可选，循环物品图标列表；每项可为带可选内联 `:{snbt}` 的普通物品 id，也可为 `{id, meta?, nbt?}` map |
 | `icon_texture` | 可选，从指南资源中解析的纹理图标 |
 | `icon_textures` | 可选，循环纹理图标列表 |
+| `icon_fluid` | 可选，单个流体注册名；与 `icon_fluids` 和物品/纹理图标源互斥 |
+| `icon_fluids` | 可选，非空流体注册名列表，每秒轮换；与 `icon_fluid` 和物品/纹理图标源互斥 |
 | `required_mod` | 可选，单个模组 id；该模组未加载时页面不可见 |
 | `required_mods` | 可选，模组 id 列表；列出的全部模组都加载时页面才可见 |
 | `excluded_mod` | 可选，单个模组 id；该模组加载时页面不可见 |
@@ -137,7 +137,9 @@ navigation:
 
 ## 图标来源
 
-GuideNH 会按以下顺序选择导航/搜索图标：
+流体图标使用 `icon_fluid` 或 `icon_fluids`，只能选择其中一个，且不能同时设置物品或纹理图标。它们不会建立流体跳转绑定；请另填页面的 `fluid_id` / `fluid_ids`。
+
+未设置流体图标时，GuideNH 按以下顺序选择物品和纹理图标：
 
 1. 如果配置了 `icon_textures`，优先使用循环纹理图标
 2. 否则若 `icon_texture` 能成功加载，则使用单张纹理图标
@@ -206,6 +208,21 @@ item_ids:
 2. 如果存在，则回退到通配 meta
 3. 匹配物品表达式
 
+## 流体索引页面
+
+页面用 `fluid_id` 绑定一个流体，或用 `fluid_ids` 绑定多个流体；两个字段可以同时使用。名称精确匹配注册名，数量和 NBT 不影响绑定。可添加 `#anchor` 指向章节：
+
+```yaml
+fluid_id: water
+fluid_ids:
+  - steam#uses
+navigation:
+  title: 流体处理
+  icon_fluid: water
+```
+
+这些绑定供 `<FluidLink>` 和悬停长按 `G` 使用。可识别 NEI 流体展示及装液容器；空容器继续使用物品索引。多个目标会显示选择列表，流体页面排在容器物品页面之前。
+
 ## 标题锚点链接
 
 GuideNH 在 Markdown 链接和 `<a>` 标签中支持标题锚点跳转。
@@ -221,7 +238,7 @@ GuideNH 在 Markdown 链接和 `<a>` 标签中支持标题锚点跳转。
 **跨页面锚点：**
 
 ```md
-[查看入门教程](./Guide-Page-Format#installation)
+[查看入门教程](./getting-started.md#installation)
 [其他页面](other-guide.md#usage)
 ```
 
@@ -296,8 +313,12 @@ GuideNH 在 Markdown 链接和 `<a>` 标签中支持标题锚点跳转。
 
 | 属性 | 类型 | 默认值 | 含义 |
 | --- | --- | --- | --- |
-| `name` | string | 无 | 支持的值：`AllPages`、`Categories` |
+| `name` | string | 无 | 特殊页面名称；用 `SpecialPages` 浏览目录，例如 `AllPages`、`Categories`、`Templates` |
 | `rows` | 正整数 | `3` | MediaWiki 风格布局中的显示列数 |
+| `page` | page id | 无 | 限定需要页面目标的特殊列表 |
+| `prefix` | string | 无 | `AllPagesWithPrefix` 的标题/页面 ID 前缀 |
+| `language` | string | 无 | 翻译列表的语言筛选 |
+| `query` | string | 无 | 列表搜索文本 |
 
 ````md
 <Special name="AllPages" rows="4" />

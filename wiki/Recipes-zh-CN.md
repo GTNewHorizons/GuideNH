@@ -2,44 +2,50 @@
 
 # 配方
 
-GuideNH 可以直接在指南页面中渲染合成配方和基于 NEI 的配方。
+配方标签用于展示物品或流体的生产方式与用途。机器配方取决于已安装的配方集成；原版合成配方不依赖 NEI。
 
-## 支持的标签
+## 选择标签
 
-- `<Recipe>`
-- `<RecipeFor>`
-- `<RecipesFor>`
-
-三者使用同一套编译器和属性集。
-
-## 标签语义
-
-| 标签 | 行为 |
-| --- | --- |
-| `<Recipe>` | 为目标物品渲染单个配方 |
-| `<RecipeFor>` | 与单配方行为相同，但命名更易读 |
-| `<RecipesFor>` | 渲染多个匹配配方 |
-
-如果存在多个配方，而你使用单配方形式，GuideNH 默认只会渲染其中一个，除非额外过滤将结果缩小。
-
-## 通用属性
-
-| 属性 | 必需 | 含义 |
+| 标签 | 查询方向 | 默认结果数量 |
 | --- | --- | --- |
-| `id` | 是 | 目标物品引用 |
-| `fallbackText` | 否 | 没有可用配方时显示的文本 |
-| `handlerName` | 否 | 对 handler 名称做大小写不敏感的子串过滤 |
-| `handlerId` | 否 | 对 overlay/handler id 做大小写不敏感的精确过滤 |
-| `handlerBlacklist` | 否 | 逗号分隔，将这些 handler 从结果中剔除 |
-| `handlerWhitelist` | 否 | 逗号分隔，保留这些 handler（即使被拉黑） |
-| `handlerOrder` | 否 | 过滤后 handler 的 0 基索引 |
-| `input` | 否 | 输入物品过滤表达式 |
-| `output` | 否 | 输出物品过滤表达式 |
-| `limit` | 否 | 正整数，限制最多渲染的配方数 |
+| `<Recipe>` / `<RecipeFor>` | 生产目标 | 一个 |
+| `<Usage>` / `<RecipeUsage>` | 消耗目标 | 一个 |
+| `<RecipesFor>` | 生产目标 | 全部匹配结果 |
+| `<RecipesUsage>` | 消耗目标 | 全部匹配结果 |
 
-## 物品 id 语法
+六个标签使用相同的属性。用 `limit` 限制结果数量，用 `recipeIndex` 选择特定配方。
 
-`id`、`input` 和 `output` 都使用 GuideNH 扩展物品引用格式：
+## 属性
+
+必须提供且只能提供一个目标：物品使用 `id`，流体使用 `fluid`。流体使用区分大小写的完整 Forge 注册名，例如 `water`、`steam`，不要填写临时展示物品的数字 ID。
+
+| 属性 | 含义 |
+| --- | --- |
+| `id` | 目标物品引用，与 `fluid` 互斥 |
+| `fluid` | 目标流体注册名，与 `id` 互斥 |
+| `fallbackText` | 没有可用配方时显示的文本 |
+| `handlerName` | 配方处理器显示名称的子串，不区分大小写 |
+| `handlerId` | overlay/handler ID 的精确匹配，不区分大小写；也支持处理器简单类名的子串 |
+| `handlerBlacklist` | 逗号分隔的处理器排除列表 |
+| `handlerWhitelist` | 逗号分隔的处理器保留列表，可覆盖黑名单，但本身不缩小查询范围 |
+| `handlerOrder` | 筛选后处理器列表的索引，非负整数，从零开始 |
+| `recipeIndex` | 配方索引，非负整数，从零开始 |
+| `input` / `output` | 输入/输出物品筛选表达式 |
+| `inputFluid` / `outputFluid` | 输入/输出流体筛选表达式 |
+| `limit` | 正整数，限制最多显示的配方数量 |
+
+```md
+<RecipeFor id="minecraft:crafting_table" />
+<RecipesFor id="minecraft:torch" limit="3" />
+<RecipeFor fluid="steam" fallbackText="没有可用的蒸汽配方。" />
+<RecipesUsage fluid="water" inputFluid="water&!lava" limit="3" />
+```
+
+可选配方集成不可用时显示 `fallbackText`；未设置时显示编写错误。装液容器仍属于物品原料。
+
+## 物品引用
+
+`id`、`input`、`output` 支持以下写法：
 
 ```text
 modid:name
@@ -47,133 +53,51 @@ modid:name:meta
 modid:name:meta:{snbt}
 ```
 
-通配 meta 写法：
-
-- `*`
-- `32767`
-- 大写标记，例如 `ANY`
-
-## 过滤表达式语法
-
-`input` 和 `output` 支持：
-
-- `,` 表示 OR
-- `&` 表示 AND
-- `!` 表示 NOT
-
-示例：
-
-```text
-minecraft:planks:*
-minecraft:stick&minecraft:redstone
-!minecraft:planks:0
-minecraft:planks:*,minecraft:log:*
-```
-
-NBT 可以和这三个物品引用属性组合使用。SNBT 复合标签或列表内部的逗号、`&` 会保留在
-引用中，只有最外层的分隔符才会拆分过滤表达式：
+通配元数据可写为 `*`、`32767` 或 `ANY` 等大写标记。
 
 ```md
 <RecipeFor id='minecraft:written_book:0:{title:TestBook,author:GuideNH}' />
-<RecipesFor
-  id='minecraft:stone:3:{display:{Name:"特殊石头"}}'
-  input='minecraft:chest:0:{Items:[{id:"minecraft:diamond",Count:1b}]}'
-  output='minecraft:diamond:0:{display:{Name:"奖励"}}'
-/>
+<RecipesFor id="minecraft:stick" input="minecraft:planks:*" limit="3" />
 ```
 
-## 渲染顺序
+## 原料筛选
 
-GuideNH 会按以下顺序尝试配方：
+物品和流体筛选都支持 `,`（或）、`&`（且）、`!`（非）。填写的所有输入/输出筛选都必须匹配。物品 SNBT 复合标签或列表内部的逗号和 `&` 不会拆分物品引用。
 
-1. NEI 原生 handler 渲染
-2. NEI 槽位数据回退渲染
-3. 内置原版合成回退渲染
+```md
+<RecipesFor id="minecraft:redstone_torch" input="minecraft:stick&minecraft:redstone" limit="1" />
+<RecipesFor id="minecraft:iron_ingot" outputFluid="steam,water" />
+<RecipesUsage fluid="water" inputFluid="water&!lava" limit="3" />
+```
 
-如果都没有匹配：
+流体筛选匹配注册名，也会检查附加输出槽中的流体，不匹配数量或 NBT。无效筛选语法会显示编写错误。
 
-- 若设置了 `fallbackText`，则显示它
-- 否则显示内联编写错误
+## 处理器选择
 
-## 示例
+已知处理器时使用 `handlerId`，按显示名称查找时使用 `handlerName`，按筛选后列表选择时使用 `handlerOrder`。`recipeIndex` 用于选择查询中的配方。
 
-### 单个配方
-
-````md
-<RecipeFor id="minecraft:crafting_table" />
-````
-
-### 多个配方
-
-````md
-<RecipesFor id="minecraft:torch" />
-````
-
-### Handler 过滤
-
-````md
+```md
 <RecipesFor id="minecraft:iron_pickaxe" handlerId="repair" />
-<RecipesFor id="minecraft:fire_charge" handlerName="shapeless" />
-````
+<RecipesFor id="minecraft:fire_charge" handlerName="shapeless" limit="3" />
+<RecipeFor id="minecraft:torch" recipeIndex="0" />
+```
 
-### Handler 黑名单与白名单
+黑白名单条目对 handler ID、overlay ID 和类名进行不区分大小写的子串匹配。页面黑名单会追加到 `config/guidenh/guidenh.cfg` 的 `recipeHandlerBlacklist`；显式使用 `handlerId` 或 `handlerWhitelist` 可保留已被排除的处理器。
 
-`handlerBlacklist` 将 handler 从结果中剔除，`handlerWhitelist` 再放回来。两者都接受**英文逗号分隔的列表**，条目会与 handler id、overlay id 或类名比对，不区分大小写且按包含处理 —— 因此一条就能指名单个 handler 或整个包。
+```md
+<RecipesFor id="minecraft:planks" handlerBlacklist="fuel,repair" limit="6" />
+<RecipeFor id="minecraft:chest" handlerWhitelist="GTNEIMultiblockHandler,StructureCompatNEIHandler" fallbackText="没有可用的多方块预览。" />
+```
 
-命中黑名单的 handler 会被剔除，**除非**标签主动要它：`handlerId`、`handlerWhitelist`，以及类名的小写匹配都能保住它。
-
-**为什么是列表：单个 handler id 很少独自出现。**木板既是合成材料又是燃料，把不想要的 handler id 列出来：
-
-````md
-<RecipesFor id="minecraft:planks" handlerBlacklist="fuel,repair" />
-````
-
-**一条覆盖整个包。**条目同样按类名做子串匹配，所以一个模组 id 就能覆盖它注册的全部 handler —— 当某个模组的 handler 对这个物品全是噪音时很方便：
-
-````md
-<RecipesFor id="minecraft:chest" handlerBlacklist="gregtech,ic2,railcraft" limit="6" />
-````
-
-**白名单：在单个页面上撤销黑名单。**配置对所有页面隐藏了两个多方块 handler，在这里用白名单指名即可放回；写成列表同理：
-
-````md
-<Recipe id="minecraft:chest" handlerWhitelist="GTNEIMultiblockHandler,StructureCompatNEIHandler" fallbackText="没有多方块预览。" />
-````
-
-**白名单本身不做筛选。**它只负责把黑名单要剔除的 handler 救回来；要把结果收窄到某个 handler，用 `handlerId` / `handlerName` / `handlerOrder`，要限制渲染数量则用 `limit`。
-
-配置项 `recipeHandlerBlacklist`（`config/guidenh/guidenh.cfg`）对所有页面生效，默认包含：
+以下处理器会渲染完整多方块结构，因此默认排除：
 
 - `blockrenderer6343.integration.gregtech.GTNEIMultiblockHandler`
 - `blockrenderer6343.integration.structurelib.StructureCompatNEIHandler`
 
-页面自身的列表是**追加**到配置之后的，所以页面只能比配置隐藏更多、不能更少。改配置会影响所有页面；在标签上指名只影响该页面。
+可用白名单在某页中启用它们。查询范围较大时应设置 `limit`，避免页面过长。
 
-### 输入/输出过滤
+## 相关参考
 
-````md
-<RecipesFor id="minecraft:stick" input="minecraft:planks:*" limit="3" />
-<RecipesFor id="minecraft:stick" output="minecraft:torch" limit="2" />
-<RecipesFor id="minecraft:redstone_torch" input="minecraft:stick&minecraft:redstone" limit="1" />
-````
-
-### 回退文本
-
-````md
-<Recipe id="missingrecipe" fallbackText="This recipe is disabled." />
-````
-
-## 最佳实践
-
-- 面向可选模组整合时，优先提供 `fallbackText`
-- 若已知确切的 NEI handler，优先使用 `handlerId`
-- 当同一物品被大量 handler 命中、而只有部分值得展示时，使用 `handlerBlacklist`
-- 以下两个 handler 默认在 `config/guidenh/guidenh.cfg` 中被隐藏，因为它们渲染的是整个多方块结构；用 `handlerId` 或 `handlerWhitelist` 指名即可显示
-  - `blockrenderer6343.integration.gregtech.GTNEIMultiblockHandler`
-  - `blockrenderer6343.integration.structurelib.StructureCompatNEIHandler`
-- 当标签可能展开出大量配方时，使用 `limit`
-- 复杂过滤逻辑最好在标签旁边用注释解释，便于维护
-
-## 实时运行示例
-
-可参考 `wiki/resourcepack/assets/guidenh/guidenh/_en_us/index.md`，其中包含大量配方示例，包括 handler 过滤、通配 meta 和带 NBT 的物品 id。
+- [标签参考](Tags-Reference-zh-CN)
+- [模组兼容](Mod-Compatibility-zh-CN)
+- [示例](Examples-zh-CN)

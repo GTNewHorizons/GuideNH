@@ -2,7 +2,7 @@
 
 ## Where should I edit the built-in runtime guide?
 
-Under `wiki/resourcepack/`. The old loose source tree under `src/main/resources/assets/...` is no longer the authored source of truth for runtime guide pages.
+Edit UTF-8 pages under `wiki/resourcepack/assets/`. Load the example resource pack separately or use [Live Preview](Live-Preview); building the mod does not bundle these files.
 
 ## Where should I put a client-local guide that is not bundled into the jar?
 
@@ -19,5 +19,4 @@ Not directly. Runtime guide markdown may contain GuideNH-specific MDX tags that 
 
 ## How do I preview guide edits quickly?
 
-Use the dedicated live preview run tasks documented in [Live Preview](Live-Preview). In this repository, `runGuide`
-launches the client with the built-in example guide source folder already wired in and opens the guide on startup.
+Add the JVM arguments documented in [Live Preview](Live-Preview) to your game launch configuration, then edit the configured source folder. Use `guideme.showOnStartup` if you want the guide to open automatically.

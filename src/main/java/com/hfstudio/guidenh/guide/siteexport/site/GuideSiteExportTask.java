@@ -154,7 +154,7 @@ public class GuideSiteExportTask {
         MediaWikiSpecialDataIndexer mediaWikiIndexer = new MediaWikiSpecialDataIndexer();
         GuideSiteAssetRegistry assets = new GuideSiteAssetRegistry(outDir);
         GuideSiteTextureAnimations textureAnimations = new GuideSiteTextureAnimations(assets);
-        GuideSiteItemIconExporter itemIconExporter = new GuideSiteItemIconExporter(assets, textureAnimations);
+        GuideSiteIconExporters itemIconExporter = new GuideSiteIconExporters(assets, textureAnimations);
         GuideSiteNeiPhase1BackgroundExporter neiPhase1Exporter = new GuideSiteNeiPhase1BackgroundExporter(assets);
         writer.writeBootstrapFiles(outDir);
         GuideSiteSceneRuntimeExporter sceneExporter = new GuideSiteSceneRuntimeExporter(assets, textureAnimations);
@@ -327,7 +327,9 @@ public class GuideSiteExportTask {
                                     .getOrDefault(guide.getId(), guide);
                                 GuideSiteTemplateRegistry templates = new GuideSiteTemplateRegistry(
                                     renderedTooltipCache,
-                                    stack -> mdxRenderer.resolveItemHref(stack, variant.pageId()));
+                                    stack -> mdxRenderer.resolveItemHref(stack, variant.pageId()),
+                                    fluid -> mdxRenderer.resolveFluidHref(fluid, variant.pageId()),
+                                    fluid -> mdxRenderer.resolveFluidTargets(fluid, variant.pageId()));
                                 long compileStartedAt = System.nanoTime();
                                 GuidePage compiledPage = PageCompiler
                                     .compile(scopedGuide, scopedGuide.getExtensions(), variant.parsedPage());
@@ -858,6 +860,18 @@ public class GuideSiteExportTask {
             return;
         }
 
+        if (icon.isFluidIcon()) {
+            String iconUrl = GuideSitePageAssetExporter.toRootRelativePath(
+                GuideSiteFluidIconResolver.from(itemIconResolver)
+                    .exportFluidIcon(
+                        icon.fluidSpecs()
+                            .getFirst()));
+            if (!iconUrl.isEmpty()) {
+                searchEntry.put("iconUrl", iconUrl);
+                searchEntry.put("iconKind", "fluid");
+            }
+            return;
+        }
         if (icon.isItemIcon() && icon.itemStack() != null) {
             String iconUrl = GuideSitePageAssetExporter
                 .toRootRelativePath(itemIconResolver.exportIcon(icon.itemStack()));

@@ -22,7 +22,9 @@
   "navigation": {
     "open": "Navigation",
     "close": "Navigation schließen",
-    "holdToOpenGuide": "G gedrückt halten, um den Leitfaden zu öffnen"
+    "holdToOpenGuide": "G gedrückt halten, um den Leitfaden zu öffnen",
+    "chooseGuide": "Eine Handbuchseite auswählen",
+    "closeChooser": "Seitenauswahl schließen"
   },
   "sceneLoading": {
     "error": "3D-Szene konnte nicht geladen werden.",

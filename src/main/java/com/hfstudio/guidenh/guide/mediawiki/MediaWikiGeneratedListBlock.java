@@ -272,6 +272,10 @@ public class MediaWikiGeneratedListBlock extends LytBlock implements Interactive
     }
 
     private void renderIcon(RenderContext context, GuidePageIcon icon, int x, int y) {
+        if (icon.isFluidIcon()) {
+            icon.renderCurrentFluid(context, x, y, ICON_SIZE);
+            return;
+        }
         if (icon.isItemIcon() && icon.resolveCurrentItemStack() != null) {
             context.renderItemIcon(icon.resolveCurrentItemStack(), x, y);
             return;

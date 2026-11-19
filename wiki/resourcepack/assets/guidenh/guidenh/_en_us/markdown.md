@@ -14,6 +14,20 @@ This page is a runtime sample sheet for checking what GuideNH currently renders 
 
 See also: [Charts](./charts.md) · [Function Graphs](./function-graph.md) · [Markdown Table Extensions](./markdown-table.md)
 
+## Native fluid icons
+
+Default hover tooltips show the fluid name, temperature in kelvin and gas/liquid state. An explicit `amount`, including zero, adds the quantity in the selected L/mB unit; an omitted amount adds no quantity. Advanced tooltips also show the registry name. When GregTech is loaded, material information such as chemical formulas follows its tooltip settings. Native tooltips, connected runtime previews and ExportSite share these details; disconnected Web previews only know the supplied name and amount. NEI is not required.
+
+<FluidImage id="water" amount={1000} label="right" />
+
+<FluidLink id="steam" showIcon="left" />
+
+<ItemGrid>
+  <ItemIcon id="minecraft:bucket" />
+  <FluidIcon id="water" amount={1000} />
+  <FluidIcon id="steam" />
+</ItemGrid>
+
 ## LaTeX Formulas
 
 Render LaTeX math inline with `<Latex formula="..." />`, or as a centered display block by using the same tag

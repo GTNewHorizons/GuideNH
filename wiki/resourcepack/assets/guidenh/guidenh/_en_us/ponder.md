@@ -74,7 +74,7 @@ For offline editor validation, add `"$schema": "guidenh://schema/ponder.json"` t
 
 Use `hidden: true` for intermediate timeline states that should not create a new visible progress-bar node. This is
 especially useful for extra `modifyTileNBT` steps between two major visible beats.
-The bundled `/assets/ponder_demo.json` now includes a hidden intermediate tile-NBT update between visible milestones.
+The bundled `/assets/ponder_demo.json` includes a hidden intermediate tile-NBT update between visible milestones.
 
 ---
 

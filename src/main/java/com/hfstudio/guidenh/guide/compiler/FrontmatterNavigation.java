@@ -7,6 +7,8 @@ import net.minecraft.util.ResourceLocation;
 
 import org.jetbrains.annotations.Nullable;
 
+import com.hfstudio.guidenh.guide.internal.fluid.FluidStackSpec;
+
 /**
  * Inserts a page into the navigation tree. Null parent means top-level category.
  * <p>
@@ -38,12 +40,37 @@ public class FrontmatterNavigation {
     private final List<String> excludedMods;
     private final List<String> keywords;
     private final int loadPriority;
+    private final List<FluidStackSpec> iconFluids;
 
     public FrontmatterNavigation(String title, @Nullable ResourceLocation parent, int position, int recommend,
         @Nullable String iconItemId, int iconItemMeta, @Nullable NBTTagCompound iconNbt,
         @Nullable ResourceLocation iconTextureId, @Nullable List<NavigationIconEntry> iconEntries,
         @Nullable List<ResourceLocation> iconTextureEntries, @Nullable List<String> requiredMods,
         @Nullable List<String> excludedMods, @Nullable List<String> keywords, int loadPriority) {
+        this(
+            title,
+            parent,
+            position,
+            recommend,
+            iconItemId,
+            iconItemMeta,
+            iconNbt,
+            iconTextureId,
+            iconEntries,
+            iconTextureEntries,
+            requiredMods,
+            excludedMods,
+            keywords,
+            loadPriority,
+            List.of());
+    }
+
+    public FrontmatterNavigation(String title, @Nullable ResourceLocation parent, int position, int recommend,
+        @Nullable String iconItemId, int iconItemMeta, @Nullable NBTTagCompound iconNbt,
+        @Nullable ResourceLocation iconTextureId, @Nullable List<NavigationIconEntry> iconEntries,
+        @Nullable List<ResourceLocation> iconTextureEntries, @Nullable List<String> requiredMods,
+        @Nullable List<String> excludedMods, @Nullable List<String> keywords, int loadPriority,
+        List<FluidStackSpec> iconFluids) {
         this.title = title;
         this.parent = parent;
         this.position = position;
@@ -58,6 +85,7 @@ public class FrontmatterNavigation {
         this.excludedMods = excludedMods;
         this.keywords = keywords == null ? List.of() : List.copyOf(keywords);
         this.loadPriority = loadPriority;
+        this.iconFluids = List.copyOf(iconFluids);
     }
 
     public String title() {
@@ -125,5 +153,9 @@ public class FrontmatterNavigation {
 
     public int loadPriority() {
         return loadPriority;
+    }
+
+    public List<FluidStackSpec> iconFluids() {
+        return iconFluids;
     }
 }
