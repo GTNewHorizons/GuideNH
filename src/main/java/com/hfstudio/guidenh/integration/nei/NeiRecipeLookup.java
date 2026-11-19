@@ -20,6 +20,14 @@ import com.hfstudio.guidenh.integration.api.RecipeSlot;
 
 public class NeiRecipeLookup {
 
+    public static boolean isHandlerType(Object handler, String className) {
+        for (Class<?> type = handler.getClass(); type != null; type = type.getSuperclass()) {
+            if (type.getName()
+                .equals(className)) return true;
+        }
+        return false;
+    }
+
     private static final Map<Object, PermutationCache> PERMUTATION_CACHE = Collections
         .synchronizedMap(new WeakHashMap<>());
     private static final Map<Object, String> HANDLER_FINGERPRINT_CACHE = Collections

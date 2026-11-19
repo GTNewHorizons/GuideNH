@@ -630,6 +630,22 @@ public class GuideNhIntegrationRegistry {
         }
     }
 
+    public void renderRecipeHandlerBackground(Object handler, int recipeIndex, boolean skipForeground) {
+        for (RecipeHandlerRenderProvider provider : recipeHandlerRenderProviders()) {
+            if (provider.canRenderRecipeHandler(handler)) {
+                provider.renderRecipeHandlerBackground(handler, recipeIndex, skipForeground);
+            }
+        }
+    }
+
+    public void renderRecipeHandlerForeground(Object handler, int recipeIndex, boolean skipForeground) {
+        for (RecipeHandlerRenderProvider provider : recipeHandlerRenderProviders()) {
+            if (provider.canRenderRecipeHandler(handler)) {
+                provider.renderRecipeHandlerForeground(handler, recipeIndex, skipForeground);
+            }
+        }
+    }
+
     public String lookupRecipeHandlerName(@Nullable Object handler) {
         if (handler == null) {
             return "";

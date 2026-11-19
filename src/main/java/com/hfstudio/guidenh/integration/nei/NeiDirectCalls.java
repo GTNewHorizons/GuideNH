@@ -7,6 +7,7 @@ import net.minecraft.item.ItemStack;
 
 import org.jetbrains.annotations.Nullable;
 
+import codechicken.lib.vec.Rectangle4i;
 import codechicken.nei.NEIClientConfig;
 import codechicken.nei.NEIClientUtils;
 import codechicken.nei.NEIServerUtils;
@@ -222,21 +223,39 @@ public class NeiDirectCalls {
             return positionedStack.getTooltip();
         }
         ArrayList<String> tooltip = new ArrayList<>();
-        List<Badge> badges = positionedStack.getBadges();
-        if (badges == null) {
-            badges = defaultBadges(positionedStack, input);
-        }
-        if (badges != null) {
-            for (Badge badge : badges) {
-                if (badge == null || badge.getTooltip() == null) continue;
-                tooltip.addAll(badge.getTooltip());
-            }
+        for (Badge badge : badges(positionedStack, input)) {
+            if (badge == null || badge.getTooltip() == null) continue;
+            tooltip.addAll(badge.getTooltip());
         }
         List<String> customTooltip = positionedStack.getTooltip();
         if (customTooltip != null) {
             tooltip.addAll(customTooltip);
         }
         return tooltip.isEmpty() ? null : tooltip;
+    }
+
+    public static void drawRecipeBadges(Object handler, int recipeIndex, boolean skipOthers) {
+        HandlerInfo handlerInfo = info(handler);
+        if (handlerInfo == null || !handlerInfo.getShowBadge()) return;
+        IRecipeHandler recipeHandler = h(handler);
+        for (PositionedStack stack : recipeHandler.getIngredientStacks(recipeIndex)) drawBadges(stack, true);
+        if (!skipOthers) {
+            for (PositionedStack stack : recipeHandler.getOtherStacks(recipeIndex)) drawBadges(stack, false);
+        }
+        PositionedStack result = recipeHandler.getResultStack(recipeIndex);
+        if (result != null) drawBadges(result, false);
+    }
+
+    private static void drawBadges(PositionedStack stack, boolean input) {
+        List<Badge> badges = badges(stack, input);
+        if (badges.isEmpty()) return;
+        Rectangle4i bounds = new Rectangle4i(stack.relx, stack.rely, 16, 16);
+        for (Badge badge : badges) badge.draw(bounds);
+    }
+
+    private static List<Badge> badges(PositionedStack stack, boolean input) {
+        List<Badge> badges = stack.getBadges();
+        return badges == null ? defaultBadges(stack, input) : badges;
     }
 
     public static @Nullable String acceptsLabel(Object ps) {

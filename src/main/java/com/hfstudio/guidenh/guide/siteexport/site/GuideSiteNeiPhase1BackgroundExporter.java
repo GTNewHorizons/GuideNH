@@ -23,8 +23,7 @@ import com.hfstudio.guidenh.integration.nei.NeiRecipeLookup;
 import com.hfstudio.guidenh.integration.neicustomdiagram.NeiCustomDiagramBridge;
 
 /**
- * Renders NEI handler Phase1 ({@code drawBackground} / optionally {@code drawForeground} /
- * {@code drawExtras}) off-screen and writes a PNG shared asset for static site overlays.
+ * Renders NEI handler backgrounds and optional foregrounds off-screen into a shared PNG asset.
  *
  * @see NeiHandlerRenderer
  */
@@ -196,7 +195,6 @@ public class GuideSiteNeiPhase1BackgroundExporter implements AutoCloseable {
                 NeiRecipeLookup.callDrawBackground(handler, recipeIndex);
                 if (!skipForeground) {
                     NeiRecipeLookup.callDrawForeground(handler, recipeIndex);
-                    NeiRecipeLookup.callDrawExtras(handler, recipeIndex);
                 }
             } finally {
                 GL11.glPopMatrix();
