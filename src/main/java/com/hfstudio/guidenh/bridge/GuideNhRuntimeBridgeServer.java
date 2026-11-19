@@ -16,6 +16,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.jetbrains.annotations.NotNull;
 
+import com.hfstudio.guidenh.bridge.preview.BindingPreviewProvider;
 import com.hfstudio.guidenh.bridge.preview.FluidPreviewService;
 import com.hfstudio.guidenh.bridge.preview.ItemPreviewCache;
 import com.hfstudio.guidenh.bridge.preview.ItemPreviewProvider;
@@ -58,7 +59,10 @@ public class GuideNhRuntimeBridgeServer {
         ItemPreviewSearchService previewSearchService = new ItemPreviewSearchService();
         ItemPreviewService previewService = new ItemPreviewService(previewCache, limits);
         this.previewFacade = new RuntimePreviewFacade(
-            List.of(new ItemPreviewProvider(previewSearchService, previewService), new FluidPreviewService(limits)));
+            List.of(
+                new ItemPreviewProvider(previewSearchService, previewService),
+                new FluidPreviewService(limits),
+                new BindingPreviewProvider(previewService, limits)));
     }
 
     public void start() {

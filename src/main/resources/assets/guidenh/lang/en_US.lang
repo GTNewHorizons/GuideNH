@@ -670,6 +670,18 @@ guidenh.siteexport.language.ja_jp=Japanese
 guidenh.siteexport.language.ko_kr=Korean
 guidenh.siteexport.language.ru_ru=Russian
 
+guidenh.binding.missing=Content not found: %s
+guidenh.binding.native_site=Open this guide in GuideNH to view the native content.
+guidenh.binding.no_guide=No guide page is bound to this content: %s
+guidenh.binding.state.completed=Completed
+guidenh.binding.state.hidden=Hidden content
+guidenh.binding.state.locked=Locked
+guidenh.binding.state.missing=Content not found
+guidenh.binding.state.unavailable=Integration unavailable
+guidenh.binding.state.unknown=Progress unknown
+guidenh.binding.state.visible=Visible
+guidenh.binding.unavailable=This content cannot be opened: %s
+
 # BetterQuesting compatibility
 guidenh.compat.bq.hidden=[Hidden Quest]
 guidenh.compat.bq.locked=[Locked Quest]

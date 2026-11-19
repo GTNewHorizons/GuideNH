@@ -62,6 +62,7 @@
     "previewPending": "プレビューアダプターを準備中",
     "navigationRuntime": "ナビゲーションデータは実行時に利用できます。",
     "tooltipRuntime": "プレビューデータは実行時に利用できます。",
+    "binding.nativeSite": "ゲーム内の内容を見るには GuideNH でこのガイドを開いてください。",
     "runtimeData": "実行時データ",
     "runtimePreview": "実行時プレビュー",
     "sceneRuntime": "3D シーンは実行時に利用できます",

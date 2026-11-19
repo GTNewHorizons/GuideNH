@@ -667,6 +667,18 @@ guidenh.siteexport.language.ja_jp=日本語
 guidenh.siteexport.language.ko_kr=한국어
 guidenh.siteexport.language.ru_ru=Русский
 
+guidenh.binding.missing=未找到内容：%s
+guidenh.binding.native_site=请在 GuideNH 中打开此指南以查看原生内容。
+guidenh.binding.no_guide=没有绑定到此内容的指南页：%s
+guidenh.binding.state.completed=已完成
+guidenh.binding.state.hidden=隐藏内容
+guidenh.binding.state.locked=未解锁
+guidenh.binding.state.missing=未找到内容
+guidenh.binding.state.unavailable=集成不可用
+guidenh.binding.state.unknown=进度未知
+guidenh.binding.state.visible=可见
+guidenh.binding.unavailable=无法打开此内容：%s
+
 # BetterQuesting compatibility
 guidenh.compat.bq.hidden=[隐藏任务]
 guidenh.compat.bq.locked=[未解锁任务]

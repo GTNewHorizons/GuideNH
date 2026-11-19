@@ -21,6 +21,7 @@ public class RuntimeSemanticProviders {
         registry.register(new SoundSemanticProvider());
         registry.register(new KeybindSemanticProvider());
         registry.register(new QuestSemanticProvider());
+        registry.register(new BindingSemanticProvider());
         registry.register(new StructureLibSemanticProvider());
         registry.register(new EntitySemanticProvider());
     }

@@ -26,6 +26,7 @@
     "chooseGuide": "Choisir une page du guide",
     "closeChooser": "Fermer le choix des pages"
   },
+  "binding.nativeSite": "Ouvrez ce guide dans GuideNH pour consulter le contenu dans le jeu.",
   "sceneLoading": {
     "error": "La scène 3D n’a pas pu être chargée.",
     "retry": "Réessayer",

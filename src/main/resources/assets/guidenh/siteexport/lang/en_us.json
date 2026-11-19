@@ -26,6 +26,7 @@
     "chooseGuide": "Choose a guide page",
     "closeChooser": "Close page chooser"
   },
+  "binding.nativeSite": "Open this guide in GuideNH to view the native content.",
   "sceneLoading": {
     "error": "The 3D scene could not be loaded.",
     "retry": "Retry",

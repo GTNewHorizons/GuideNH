@@ -26,6 +26,7 @@
     "chooseGuide": "ガイドページを選択",
     "closeChooser": "ページ選択を閉じる"
   },
+  "binding.nativeSite": "ゲーム内の内容を見るには GuideNH でこのガイドを開いてください。",
   "sceneLoading": {
     "error": "3D シーンを読み込めません。",
     "retry": "再試行",

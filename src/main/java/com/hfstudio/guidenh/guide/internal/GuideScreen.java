@@ -66,6 +66,7 @@ import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
 import com.hfstudio.guidenh.guide.document.DefaultStyles;
 import com.hfstudio.guidenh.guide.document.LytRect;
+import com.hfstudio.guidenh.guide.document.block.LytBindingIcon;
 import com.hfstudio.guidenh.guide.document.block.LytDocument;
 import com.hfstudio.guidenh.guide.document.block.LytHeading;
 import com.hfstudio.guidenh.guide.document.block.LytItemImage;
@@ -73,6 +74,7 @@ import com.hfstudio.guidenh.guide.document.block.LytNode;
 import com.hfstudio.guidenh.guide.document.block.LytParagraph;
 import com.hfstudio.guidenh.guide.document.block.LytSlot;
 import com.hfstudio.guidenh.guide.document.block.LytVisitor;
+import com.hfstudio.guidenh.guide.document.flow.LytBindingLink;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowAnchor;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowContent;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowInlineBlock;
@@ -4764,6 +4766,20 @@ public class GuideScreen extends GuiContainer
             return;
         }
         for (var target : flowTargets(interaction.hit)) {
+            if (target instanceof LytBindingLink binding) {
+                OpenGuideHotkey.resetResourceHover();
+                OpenGuideHotkey.updateBindingHover(
+                    binding.getBindingSpec()
+                        .key());
+                return;
+            }
+            if (target instanceof LytFlowInlineBlock wrapper && wrapper.getBlock() instanceof LytBindingIcon binding) {
+                OpenGuideHotkey.resetResourceHover();
+                OpenGuideHotkey.updateBindingHover(
+                    binding.getBindingSpec()
+                        .key());
+                return;
+            }
             FluidContent content = fluidContent(target);
             FluidStackSpec fluid = content == null ? null : content.getFluidSpecAt(interaction.docX, interaction.docY);
             if (fluid != null) {
@@ -4772,6 +4788,13 @@ public class GuideScreen extends GuiContainer
             }
         }
         for (LytNode node = interaction.hit.node(); node != null; node = node.getParent()) {
+            if (node instanceof LytBindingIcon binding) {
+                OpenGuideHotkey.resetResourceHover();
+                OpenGuideHotkey.updateBindingHover(
+                    binding.getBindingSpec()
+                        .key());
+                return;
+            }
             FluidContent content = fluidContent(node);
             FluidStackSpec fluid = content == null ? null : content.getFluidSpecAt(interaction.docX, interaction.docY);
             if (fluid != null) {

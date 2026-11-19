@@ -68,6 +68,8 @@ import com.hfstudio.guidenh.guide.compiler.tags.mediawiki.TemplateCompiler;
 import com.hfstudio.guidenh.guide.extensions.Extension;
 import com.hfstudio.guidenh.guide.extensions.ExtensionCollection;
 import com.hfstudio.guidenh.guide.extensions.ExtensionPoint;
+import com.hfstudio.guidenh.guide.internal.binding.BindingBlockCompiler;
+import com.hfstudio.guidenh.guide.internal.binding.BindingLinkCompiler;
 import com.hfstudio.guidenh.guide.internal.syntax.BuiltinSyntaxContributor;
 import com.hfstudio.guidenh.guide.scene.SceneTagCompiler;
 import com.hfstudio.guidenh.guide.scene.annotation.compiler.BlockAnnotationElementCompiler;
@@ -139,6 +141,8 @@ public class DefaultExtensions {
                 new SuperscriptTagCompiler(),
                 new ColorTagCompiler(),
                 new ItemLinkCompiler(),
+                new BindingLinkCompiler(),
+                new BindingBlockCompiler(),
                 new FloatingImageCompiler(),
                 new BreakCompiler(),
                 new WordBreakCompiler(),

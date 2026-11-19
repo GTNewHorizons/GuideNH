@@ -48,14 +48,14 @@ public class ReplaceBlockElementCompiler implements SceneElementTagCompiler {
             return;
         }
 
-        String fromNbtStr = MdxAttrs.getString(compiler, errorSink, el, "from_nbt", null);
+        String fromNbtStr = MdxAttrs.getString(compiler, errorSink, el, "fromNbt", null);
         NBTTagCompound fromNbt = null;
         if (fromNbtStr != null && !fromNbtStr.trim()
             .isEmpty()) {
             try {
                 fromNbt = GuideTextNbtCodec.readTextSafeCompound(fromNbtStr.trim());
             } catch (Exception e) {
-                errorSink.appendError(compiler, "Bad from_nbt: " + e.getMessage(), el);
+                errorSink.appendError(compiler, "Bad fromNbt: " + e.getMessage(), el);
                 return;
             }
         }
@@ -82,14 +82,14 @@ public class ReplaceBlockElementCompiler implements SceneElementTagCompiler {
         }
         int toMeta = toMatcher.getMeta() != null ? toMatcher.getMeta() : 0;
 
-        String toNbtStr = MdxAttrs.getString(compiler, errorSink, el, "to_nbt", null);
+        String toNbtStr = MdxAttrs.getString(compiler, errorSink, el, "toNbt", null);
         NBTTagCompound toNbt = null;
         if (toNbtStr != null && !toNbtStr.trim()
             .isEmpty()) {
             try {
                 toNbt = GuideTextNbtCodec.readTextSafeCompound(toNbtStr.trim());
             } catch (Exception e) {
-                errorSink.appendError(compiler, "Bad to_nbt: " + e.getMessage(), el);
+                errorSink.appendError(compiler, "Bad toNbt: " + e.getMessage(), el);
                 return;
             }
         }

@@ -37,6 +37,8 @@ import com.hfstudio.guidenh.guide.compiler.tags.MermaidCompiler.MermaidPlacehold
 import com.hfstudio.guidenh.guide.document.block.ImageRegionAnnotation;
 import com.hfstudio.guidenh.guide.document.block.LytAlertBox;
 import com.hfstudio.guidenh.guide.document.block.LytAlignedBlock;
+import com.hfstudio.guidenh.guide.document.block.LytBindingCard;
+import com.hfstudio.guidenh.guide.document.block.LytBindingIcon;
 import com.hfstudio.guidenh.guide.document.block.LytBlock;
 import com.hfstudio.guidenh.guide.document.block.LytCodeBlock;
 import com.hfstudio.guidenh.guide.document.block.LytContentTabsBlock;
@@ -84,6 +86,7 @@ import com.hfstudio.guidenh.guide.document.block.recipes.LytStandardRecipeBox;
 import com.hfstudio.guidenh.guide.document.block.table.LytTable;
 import com.hfstudio.guidenh.guide.document.block.table.LytTableCell;
 import com.hfstudio.guidenh.guide.document.block.table.LytTableRow;
+import com.hfstudio.guidenh.guide.document.flow.LytBindingLink;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowAnchor;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowBreak;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowContent;
@@ -98,6 +101,8 @@ import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.ItemTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.ItemTooltipAppender;
 import com.hfstudio.guidenh.guide.document.interaction.TextTooltip;
+import com.hfstudio.guidenh.guide.internal.binding.BindingNavigationService;
+import com.hfstudio.guidenh.guide.internal.binding.BindingRuntime;
 import com.hfstudio.guidenh.guide.internal.item.GuideDisplayItemStacks;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidDiagramType;
 import com.hfstudio.guidenh.guide.internal.mermaid.flowchart.FlowchartParser;
@@ -373,6 +378,16 @@ public class GuideSiteTooltipRenderer {
             case LytContentTabsBlock tabs -> {
                 appendContentTabs(html, tabs, currentPageId, assetExporter, itemIconResolver, templates,
                     allowNestedItemTooltips);
+                return;
+            }
+            case LytBindingCard binding -> {
+                html.append(new GuideSiteBindingTagRenderer(null, Map.of(), itemIconResolver, assetExporter)
+                    .renderSpec(binding.getBindingSpec(), "BindingCard", currentPageId));
+                return;
+            }
+            case LytBindingIcon binding -> {
+                html.append(new GuideSiteBindingTagRenderer(null, Map.of(), itemIconResolver, assetExporter)
+                    .renderSpec(binding.getBindingSpec(), "BindingIcon", currentPageId));
                 return;
             }
             case LytQuoteBox quote -> {
@@ -810,6 +825,16 @@ public class GuideSiteTooltipRenderer {
     private void appendLink(StringBuilder html, LytFlowLink link, @Nullable ResourceLocation currentPageId,
         @Nullable GuideSitePageAssetExporter assetExporter, GuideSiteItemIconResolver itemIconResolver,
         @Nullable GuideSiteTemplateRegistry templates, boolean allowNestedItemTooltips) {
+        if (link instanceof LytBindingLink binding) {
+            var spec = binding.getBindingSpec();
+            html.append(
+                GuideSiteBindingHtml.link(
+                    spec,
+                    BindingRuntime.describe(spec.key(), BindingRuntime.view(spec.showTooltip(), true)),
+                    BindingNavigationService.findTargets(spec.key()),
+                    currentPageId));
+            return;
+        }
         String href = null;
         PageAnchor pageAnchor = link.getPageAnchor();
         if (pageAnchor != null) {

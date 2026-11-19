@@ -62,6 +62,7 @@
     "previewPending": "Preparando o adaptador de visualização",
     "navigationRuntime": "Os dados de navegação estão disponíveis em tempo de execução.",
     "tooltipRuntime": "Os dados de visualização estão disponíveis em tempo de execução.",
+    "binding.nativeSite": "Abra este guia no GuideNH para ver o conteúdo no jogo.",
     "runtimeData": "Dados de execução",
     "runtimePreview": "Visualização em tempo de execução",
     "sceneRuntime": "A cena 3D está disponível em tempo de execução",
