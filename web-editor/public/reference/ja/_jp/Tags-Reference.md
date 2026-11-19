@@ -748,6 +748,10 @@ $$\begin{pmatrix} a & b \\ c & d \end{pmatrix}$$
 
 Cartesian チャート (列 / Bar / 行 / Scatter) additionally 受け付けます axis 属性 `xAxisLabel`, `xAxisMin`, `xAxisMax`, `xAxisStep`, `xAxisUnit`, `xAxisTickFormat` と  一致する `yAxis*` 設定します, plus `showXGrid={true}` / `showYGrid={true}` へ toggle gridlines.
 
+無効または過大な目盛り書式は自動数値書式に戻ります。書式文字列は 256 文字、フィールド幅は 128、精度は 20 が上限です。 数値目盛りが重なる場合は一部のラベルを省略しますが、対応するグリッド線は維持されます。
+
+`ColumnChart`、`LineChart`、`ScatterChart` は、描画領域内の空白部分でも金色の水平補助線を表示し、左の軸に現在の Y 値を強調表示します。`BarChart` は垂直補助線を使い、下側に X 値を表示します。数値は軸の書式と単位に従います。線上には文字を置かず、領域の外では非表示になります。極端に小さい正の目盛間隔は、描画処理を制限するため自動的に広げられます。
+
 子要素:
 
 * `<Series name="..." color="#..." data="10,20,30"/>` 用 category-based チャート (列 / Bar / categorical 行).
@@ -781,6 +785,8 @@ Extra 属性: `categories` (X-axis または Y-axis labels, comma separated), `b
 
 - `<LineSeries name="…" data="v1,v2,…" color="#rrggbb" icon="…"/>` — drawn as a 折れ線 overlay on 上 of  bars. 各 行 点 sits at  cluster 中央 of  一致する category index;  overlay shares  host チャート's 値 axis. You できます declare 複数の `<LineSeries>` へ overlay several trends.
 - `<PieInset size="60" position="topRight" title="…" startAngleDeg="-90" direction="clockwise" titleColor="#rrggbb">` — small pie チャート drawn 内部 1 つ of  four corners (`topRight`, `topLeft`, `bottomRight`, `bottomLeft`) of  plot area. Its `<Slice>` 子要素 share  同じ 構文 as で `<PieChart>`.
+
+`PieInset` の扇形は下にある棒や折れ線より優先してホバーに反応し、名前、値、割合、任意の `tooltip` を表示します。ゲーム内ではアイテムのツールチップも維持されます。扇形の上では主グラフの補助線が消えます。使用される挿入円グラフは最初の一つだけです。`position="rightOutside"` は右側に専用領域を確保します。`startAngleDeg="0"`、`direction="counterclockwise"`、単一の扇形による完全な円にも対応します。
 
 ```mdx
 <ColumnChart title="Quarterly output" categories="Q1,Q2,Q3,Q4">

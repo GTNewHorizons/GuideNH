@@ -742,6 +742,10 @@ $$\begin{pmatrix} a & b \\ c & d \end{pmatrix}$$
 
 笛卡尔系图表（柱形/条形/折线/散点）支持坐标轴属性 `xAxisLabel`、`xAxisMin`、`xAxisMax`、`xAxisStep`、`xAxisUnit`、`xAxisTickFormat`，以及对应的`yAxis*`，外加 `showXGrid={true}` 與 `showYGrid={true}` 控制網格線。
 
+無效或過大的刻度格式會回退為自動數字格式。格式字串最多 256 個字元，欄位寬度最多 128，精度最多 20。 數值刻度文字擁擠時會自動省略部分標籤，其對應的網格線保持不變。
+
+`ColumnChart`、`LineChart` 和 `ScatterChart` 在滑鼠進入繪圖區後顯示金色水平輔助虛線，空白處也有效，左側座標軸會醒目顯示目前的 Y 值。`BarChart` 使用垂直輔助線，並在底部標示 X 值。數值遵循對應軸的刻度格式與單位；線上不放文字，移出繪圖區後隱藏。極小的正刻度間距會自動合併，以限制繪製工作量。
+
 子元素：
 
 * `<Series name="..." color="#..." data="10,20,30"/>` — 用於依類別取值的圖表（柱形/長條/類別 X 折線）。
@@ -775,6 +779,8 @@ $$\begin{pmatrix} a & b \\ c & d \end{pmatrix}$$
 
 - `<LineSeries name="…" data="v1,v2,…" color="#rrggbb" icon="…"/>` — 在柱簇上方再疊加一條折線。每個折點位於對應類別簇中心，與宿主圖共用數值軸；可同時宣告多條 `<LineSeries>`。
 - `<PieInset size="60" position="topRight" title="…" startAngleDeg="-90" direction="clockwise" titleColor="#rrggbb">` — 在绘图区四角之一（`topRight`/`topLeft`/`bottomRight`/`bottomLeft`）绘制小型饼图，内部 `<Slice>` 子元素与 `<PieChart>` 一致。
+
+`PieInset` 扇區會優先於底層長條與折線回應滑鼠停留：提示顯示名稱、數值、百分比及 `tooltip` 附加文字；遊戲內若有物品圖示，會保留物品提示。停留於扇區時隱藏主圖輔助線。僅使用第一個內嵌圓餅圖；`position="rightOutside"` 在右側預留獨立區域。支援 `startAngleDeg="0"`、`direction="counterclockwise"` 和單扇區完整圓形。
 
 ```mdx
 <ColumnChart title="季度产量" categories="Q1,Q2,Q3,Q4">

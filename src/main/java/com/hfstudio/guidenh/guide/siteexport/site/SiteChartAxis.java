@@ -1,13 +1,12 @@
 package com.hfstudio.guidenh.guide.siteexport.site;
 
-import java.util.IllegalFormatException;
-import java.util.Locale;
-
 import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.compiler.tags.MdxAttrs;
 import com.hfstudio.guidenh.guide.compiler.tags.chart.ChartAttrParser;
+import com.hfstudio.guidenh.guide.document.block.chart.AxisRange;
 import com.hfstudio.guidenh.guide.document.block.chart.ChartAxisOptions;
+import com.hfstudio.guidenh.guide.document.block.chart.ChartNumberFormat;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 
 public class SiteChartAxis {
@@ -81,6 +80,14 @@ public class SiteChartAxis {
         return label;
     }
 
+    public String unit() {
+        return unit;
+    }
+
+    public String tickFormat() {
+        return tickFormat;
+    }
+
     @Nullable
     public Double min() {
         return min;
@@ -112,25 +119,12 @@ public class SiteChartAxis {
     }
 
     public double[] rangeFor(double dataMin, double dataMax, double dataStep) {
-        double low = min != null ? min : Math.floor(dataMin / dataStep) * dataStep;
-        double high = max != null ? max : Math.ceil(dataMax / dataStep) * dataStep;
-        if (low == high) {
-            high = low + dataStep;
-        }
-        return new double[] { low, high };
+        AxisRange range = AxisRange.compute(min, max, dataStep, dataMin, dataMax);
+        return new double[] { range.min, range.max };
     }
 
     public String formatTick(double value) {
-        String text;
-        if (tickFormat != null && !tickFormat.isEmpty()) {
-            try {
-                text = String.format(Locale.ROOT, tickFormat, value);
-            } catch (IllegalFormatException e) {
-                text = GuideSiteGraphRenderer.formatChartValue(value);
-            }
-        } else {
-            text = GuideSiteGraphRenderer.formatChartValue(value);
-        }
-        return unit != null && !unit.isEmpty() ? text + unit : text;
+        return ChartNumberFormat.format(value, tickFormat, unit);
     }
+
 }

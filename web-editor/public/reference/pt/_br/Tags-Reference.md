@@ -748,6 +748,10 @@ Consulte [GameScene](GameScene) para cena import/removal behavior e [Annotations
 
 Cartesian Gráficos (coluna / Bar / linha / Scatter) additionally aceitam axis atributos `xAxisLabel`, `xAxisMin`, `xAxisMax`, `xAxisStep`, `xAxisUnit`, `xAxisTickFormat` e O correspondente `yAxis*` Defina, plus `showXGrid={true}` / `showYGrid={true}` para toggle gridlines.
 
+Formatos de escala inválidos ou grandes demais usam a formatação numérica automática. Os limites são 256 caracteres, largura de campo de 128 e precisão de 20. Os rótulos numéricos sobrepostos são omitidos quando necessário, sem remover suas linhas de grade.
+
+`ColumnChart`, `LineChart` e `ScatterChart` mostram uma guia horizontal dourada na área do gráfico, inclusive em espaços vazios, e destacam o valor Y à esquerda. `BarChart` usa uma guia vertical com o valor X abaixo. Os valores seguem o formato e a unidade do eixo. A linha não contém texto e desaparece fora da área. Passos positivos extremamente pequenos são ampliados automaticamente para limitar o trabalho de renderização.
+
 filhos:
 
 * `<Series name="..." color="#..." data="10,20,30"/>` para category-based Gráficos (coluna / Bar / categorical linha).
@@ -781,6 +785,8 @@ Extra atributos: `categories` (X-axis ou Y-axis labels, comma separated), `barWi
 
 - `<LineSeries name="…" data="v1,v2,…" color="#rrggbb" icon="…"/>` — drawn as Uma polilinha overlay on topo of O bars. cada linha ponto sits at O cluster centro of O correspondente category index; O overlay shares O host gráfico's valor axis. You pode declare vários `<LineSeries>` para overlay several trends.
 - `<PieInset size="60" position="topRight" title="…" startAngleDeg="-90" direction="clockwise" titleColor="#rrggbb">` — Uma small pie gráfico drawn dentro de um of O four corners (`topRight`, `topLeft`, `bottomRight`, `bottomLeft`) of O plot area. seu `<Slice>` filhos share O mesmo sintaxe as em `<PieChart>`.
+
+Os setores de `PieInset` têm prioridade sobre barras e linhas inferiores ao passar o ponteiro: a dica mostra nome, valor, porcentagem e o texto opcional `tooltip`. As dicas de itens são preservadas no jogo. A guia principal fica oculta sobre um setor. Apenas o primeiro gráfico inserido é usado. `position="rightOutside"` reserva uma área à direita. Há suporte a `startAngleDeg="0"`, `direction="counterclockwise"` e a um único setor formando o círculo completo.
 
 ```mdx
 <ColumnChart title="Quarterly output" categories="Q1,Q2,Q3,Q4">
