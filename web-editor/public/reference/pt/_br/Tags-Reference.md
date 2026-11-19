@@ -544,11 +544,11 @@ Research tags select Thaumcraft. Generic tags use `type` to select the content s
 
 #### Navigation
 
-These rules apply to ResearchLink/Card and BindingLink/Card links or card titles.
+These rules apply to ResearchLink/Card and BindingLink/Card links or cards.
 
 | `target` | Left click | Right click |
 | --- | --- | --- |
-| `auto` (default) | Bound guides first, native UI as fallback | Bound guides, native UI as fallback |
+| `auto` | Bound guides first, native UI as fallback | Bound guides, native UI as fallback |
 | `native` | Native UI | Bound guides, native UI as fallback |
 | `guide` | Guides only; report when none exist | Bound guides, native UI as fallback |
 
@@ -571,7 +571,7 @@ Inline content link.
 
 #### `<ResearchCard>`
 
-Block content summary; click the title to navigate.
+Block content summary. Left-click the card to navigate; right-click to open its bound guides.
 
 | Attribute | Meaning |
 | --- | --- |
@@ -580,7 +580,7 @@ Block content summary; click the title to navigate.
 | `showDesc` | Show the content description; default `true` |
 | `showIcon` | Show the icon; default `true` |
 | `showParents` | Show visible prerequisites; default `false` |
-| `target` | `auto`, `native` or `guide`; default `auto`, as above |
+| `target` | `auto`, `native` or `guide`; default `native`, as above |
 | `showTooltip` | Show tooltip; default `true` |
 
 ```mdx
@@ -619,7 +619,7 @@ Inline content link.
 
 #### `<BindingCard>`
 
-Block content summary; click the title to navigate.
+Block content summary. Left-click the card to navigate; right-click to open its bound guides.
 
 | Attribute | Meaning |
 | --- | --- |
@@ -629,7 +629,7 @@ Block content summary; click the title to navigate.
 | `showDesc` | Show the content description; default `true` |
 | `showIcon` | Show the icon; default `true` |
 | `showParents` | Show visible prerequisites; default `false` |
-| `target` | `auto`, `native` or `guide`; default `auto`, as above |
+| `target` | `auto`, `native` or `guide`; default `native`, as above |
 | `showTooltip` | Show tooltip; default `true` |
 
 ```mdx

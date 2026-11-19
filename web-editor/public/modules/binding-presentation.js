@@ -24,7 +24,7 @@ export function bindingSpec(name, attributes) {
   if (!type || !id || /[\x00-\x1f\x7f]/.test(id)) throw new Error("Binding type and id are required");
   const scale = Number(attr(attributes, "scale") ?? 1);
   if (!Number.isFinite(scale) || scale <= 0) throw new Error("Binding scale must be finite and positive");
-  const target = name.startsWith("Quest") ? "native" : String(attr(attributes, "target") || "auto");
+  const target = name.startsWith("Quest") ? "native" : String(attr(attributes, "target") || (name.endsWith("Card") ? "native" : "auto"));
   if (!["auto", "native", "guide"].includes(target)) throw new Error("Binding target must be auto, native, or guide");
   return { type, id, scale, target, showTooltip: booleanAttr(attributes, "showTooltip") ?? true };
 }

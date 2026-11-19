@@ -513,11 +513,11 @@ ExportSite 的物品數量和流體數量使用網站自帶的 Pixeloid Mono 字
 
 #### 導航規則
 
-以下規則用於 ResearchLink/Card 和 BindingLink/Card 的連結或卡片標題。
+以下規則用於 ResearchLink/Card 和 BindingLink/Card 的連結或卡片。
 
 | `target` | 左鍵 | 右鍵 |
 | --- | --- | --- |
-| `auto`（預設） | 優先開啟指南，無繫結時開啟原生介面 | 開啟指南，無繫結時開啟原生介面 |
+| `auto` | 優先開啟指南，無繫結時開啟原生介面 | 開啟指南，無繫結時開啟原生介面 |
 | `native` | 開啟原生介面 | 開啟指南，無繫結時開啟原生介面 |
 | `guide` | 只開啟指南，無繫結時給出提示 | 開啟指南，無繫結時開啟原生介面 |
 
@@ -540,7 +540,7 @@ ExportSite 的物品數量和流體數量使用網站自帶的 Pixeloid Mono 字
 
 #### `<ResearchCard>`
 
-塊級內容摘要卡片，點選標題進行導航。
+塊級內容摘要卡片。左鍵點選卡片進行導航，右鍵開啟繫結指南。
 
 | 屬性 | 說明 |
 | --- | --- |
@@ -549,7 +549,7 @@ ExportSite 的物品數量和流體數量使用網站自帶的 Pixeloid Mono 字
 | `showDesc` | 顯示內容簡介；預設 `true` |
 | `showIcon` | 顯示圖示；預設 `true` |
 | `showParents` | 顯示可見前置內容；預設 `false` |
-| `target` | `auto`、`native` 或 `guide`，預設 `auto`，規則見上表 |
+| `target` | `auto`、`native` 或 `guide`，預設 `native`，規則見上表 |
 | `showTooltip` | 顯示提示，預設 `true` |
 
 ```mdx
@@ -588,7 +588,7 @@ ExportSite 的物品數量和流體數量使用網站自帶的 Pixeloid Mono 字
 
 #### `<BindingCard>`
 
-塊級內容摘要卡片，點選標題進行導航。
+塊級內容摘要卡片。左鍵點選卡片進行導航，右鍵開啟繫結指南。
 
 | 屬性 | 說明 |
 | --- | --- |
@@ -598,7 +598,7 @@ ExportSite 的物品數量和流體數量使用網站自帶的 Pixeloid Mono 字
 | `showDesc` | 顯示內容簡介；預設 `true` |
 | `showIcon` | 顯示圖示；預設 `true` |
 | `showParents` | 顯示可見前置內容；預設 `false` |
-| `target` | `auto`、`native` 或 `guide`，預設 `auto`，規則見上表 |
+| `target` | `auto`、`native` 或 `guide`，預設 `native`，規則見上表 |
 | `showTooltip` | 顯示提示，預設 `true` |
 
 ```mdx

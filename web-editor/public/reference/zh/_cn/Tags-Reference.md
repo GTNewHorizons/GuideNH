@@ -515,11 +515,11 @@ ExportSite 的物品数量和流体数量使用网站自带的 Pixeloid Mono 字
 
 #### 导航规则
 
-以下规则用于 ResearchLink/Card 和 BindingLink/Card 的链接或卡片标题。
+以下规则用于 ResearchLink/Card 和 BindingLink/Card 的链接或卡片。
 
 | `target` | 左键 | 右键 |
 | --- | --- | --- |
-| `auto`（默认） | 优先打开指南，无绑定时打开原生界面 | 打开指南，无绑定时打开原生界面 |
+| `auto` | 优先打开指南，无绑定时打开原生界面 | 打开指南，无绑定时打开原生界面 |
 | `native` | 打开原生界面 | 打开指南，无绑定时打开原生界面 |
 | `guide` | 只打开指南，无绑定时给出提示 | 打开指南，无绑定时打开原生界面 |
 
@@ -542,7 +542,7 @@ ExportSite 的物品数量和流体数量使用网站自带的 Pixeloid Mono 字
 
 #### `<ResearchCard>`
 
-块级内容摘要卡片，点击标题进行导航。
+块级内容摘要卡片。左键点击卡片进行导航，右键打开绑定指南。
 
 | 属性 | 说明 |
 | --- | --- |
@@ -551,7 +551,7 @@ ExportSite 的物品数量和流体数量使用网站自带的 Pixeloid Mono 字
 | `showDesc` | 显示内容简介；默认 `true` |
 | `showIcon` | 显示图标；默认 `true` |
 | `showParents` | 显示可见前置内容；默认 `false` |
-| `target` | `auto`、`native` 或 `guide`，默认 `auto`，规则见上表 |
+| `target` | `auto`、`native` 或 `guide`，默认 `native`，规则见上表 |
 | `showTooltip` | 显示提示，默认 `true` |
 
 ```mdx
@@ -590,7 +590,7 @@ ExportSite 的物品数量和流体数量使用网站自带的 Pixeloid Mono 字
 
 #### `<BindingCard>`
 
-块级内容摘要卡片，点击标题进行导航。
+块级内容摘要卡片。左键点击卡片进行导航，右键打开绑定指南。
 
 | 属性 | 说明 |
 | --- | --- |
@@ -600,7 +600,7 @@ ExportSite 的物品数量和流体数量使用网站自带的 Pixeloid Mono 字
 | `showDesc` | 显示内容简介；默认 `true` |
 | `showIcon` | 显示图标；默认 `true` |
 | `showParents` | 显示可见前置内容；默认 `false` |
-| `target` | `auto`、`native` 或 `guide`，默认 `auto`，规则见上表 |
+| `target` | `auto`、`native` 或 `guide`，默认 `native`，规则见上表 |
 | `showTooltip` | 显示提示，默认 `true` |
 
 ```mdx

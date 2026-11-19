@@ -18,7 +18,7 @@ public class BindingTagParser {
             key,
             element.getAttributeString("text", null),
             element.getAttributeString("title", null),
-            quest ? "native" : element.getAttributeString("target", "auto"),
+            quest ? "native" : element.getAttributeString("target", name.endsWith("Card") ? "native" : "auto"),
             bool(element, "showTooltip", true),
             bool(element, "showDesc", true),
             bool(element, "showIcon", true),
