@@ -4926,9 +4926,10 @@ public class GuideScreen extends GuiContainer
         @Nullable DocumentInteractionState interaction) {
         ItemStack stack = tooltip.getStack();
         FontRenderer font = GuideItemTooltipRenderSupport.resolveFont(stack, mc.fontRenderer);
-        List<String> lines = new ArrayList<>(GuideItemTooltipLines.build(tooltip, mc));
+        LytRect bounds = resolveTooltipBounds(interaction);
+        List<String> lines = new ArrayList<>(wrapTooltipLines(GuideItemTooltipLines.build(tooltip, mc), font, bounds));
         List<ItemStack> permutations = tooltip.getPermutations();
-        int maxColumns = 11;
+        int maxColumns = Math.min(11, Math.max(1, (bounds.width() - 8) / 18));
         int maxRows = 4;
         int visibleCount = Math.min(permutations.size(), maxColumns * maxRows);
         int columns = Math.min(maxColumns, visibleCount);
@@ -4940,11 +4941,10 @@ public class GuideScreen extends GuiContainer
             lines.add(spacer);
         }
 
-        LytRect bounds = resolveTooltipBounds(interaction);
         TooltipLayout layout = computeHoveringTextLayout(lines, mouseX, mouseY, font, bounds);
         drawHoveringText(lines, layout.mouseAnchorX(), layout.mouseAnchorY(), font);
 
-        int firstItemY = layout.top() + (labelLine + 1) * 10;
+        int firstItemY = layout.top() + (labelLine + 1) * 10 + 2;
         if (screenDebugComponents.isEnabled()) {
             var tooltipEntry = collectTooltipDebugComponents(lines, font, layout);
             for (int index = 0; index < visibleCount; index++) {
@@ -5182,6 +5182,7 @@ public class GuideScreen extends GuiContainer
         if (lines == null || lines.isEmpty()) {
             return;
         }
+        lines = wrapTooltipLines(lines, font, bounds);
         TooltipLayout layout = computeHoveringTextLayout(lines, mouseX, mouseY, font, bounds);
         drawHoveringText(lines, layout.mouseAnchorX(), layout.mouseAnchorY(), font);
         if (screenDebugComponents.isEnabled()) {
@@ -5217,6 +5218,7 @@ public class GuideScreen extends GuiContainer
         if (lines == null || lines.isEmpty()) {
             return;
         }
+        lines = wrapTooltipLines(lines, font, bounds);
 
         int tooltipWidth = 0;
         for (String line : lines) {
@@ -5247,6 +5249,21 @@ public class GuideScreen extends GuiContainer
                 font,
                 new TooltipLayout(textX - 12, textY + 12, textX, textY, tooltipWidth, tooltipHeight, false));
         }
+    }
+
+    private List<String> wrapTooltipLines(List<String> lines, FontRenderer font, LytRect bounds) {
+        int maxWidth = Math.max(1, bounds.width() - 8);
+        List<String> wrapped = null;
+        for (int index = 0; index < lines.size(); index++) {
+            String line = lines.get(index);
+            if (font.getStringWidth(line) > maxWidth) {
+                if (wrapped == null) wrapped = new ArrayList<>(lines.subList(0, index));
+                wrapped.addAll(font.listFormattedStringToWidth(line, maxWidth));
+            } else if (wrapped != null) {
+                wrapped.add(line);
+            }
+        }
+        return wrapped != null ? wrapped : lines;
     }
 
     private TooltipLayout computeHoveringTextLayout(List<String> lines, int mouseX, int mouseY, FontRenderer font,
@@ -5288,7 +5305,7 @@ public class GuideScreen extends GuiContainer
     }
 
     private int computeTooltipHeight(int lineCount) {
-        return lineCount == 1 ? 8 : 8 + (lineCount - 1) * 10;
+        return lineCount == 1 ? 8 : 10 + (lineCount - 1) * 10;
     }
 
     private record TooltipLayout(int mouseAnchorX, int mouseAnchorY, int textX, int top, int width, int height,
