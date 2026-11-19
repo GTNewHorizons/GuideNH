@@ -388,9 +388,41 @@ public class SceneEditorMultilineTextArea {
     public void setVerticalScrollFraction(float fraction) {
         int maxOffset = Math.max(0, scrollState.getContentPixels() - scrollState.getViewportPixels());
         int offset = Math.round(Math.clamp(fraction, 0f, 1f) * maxOffset);
+        setVerticalScrollPixels(offset);
+    }
+
+    public int getVerticalScrollPixels() {
+        return scrollState.getOffsetPixels();
+    }
+
+    public int getMaxVerticalScrollPixels() {
+        return scrollState.getMaxOffsetPixels();
+    }
+
+    public void setVerticalScrollPixels(int offset) {
         scrollState.setOffsetPixels(offset);
         snapVisualOffsetsToTarget();
         syncImeFocusProxy();
+    }
+
+    public long getTextLayoutRevision() {
+        return layoutCache.getRevision();
+    }
+
+    public double getContentYForOffset(int offset) {
+        var lines = layoutCache.getVisualLines();
+        int low = 0;
+        int high = lines.size();
+        while (low + 1 < high) {
+            int middle = (low + high) >>> 1;
+            if (lines.get(middle)
+                .startIndex() <= offset) low = middle;
+            else high = middle;
+        }
+        var line = lines.get(low);
+        double fraction = Math
+            .clamp((offset - line.startIndex()) / (double) Math.max(1, line.endIndex() - line.startIndex()), 0, 1);
+        return (low + fraction) * getLineHeight();
     }
 
     public void setWrapEnabled(boolean wrapEnabled) {

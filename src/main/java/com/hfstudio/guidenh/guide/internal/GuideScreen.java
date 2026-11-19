@@ -101,6 +101,7 @@ import com.hfstudio.guidenh.guide.internal.editor.autocomplete.AutocompleteCommi
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.GuideEditorAutocompleteController;
 import com.hfstudio.guidenh.guide.internal.editor.gui.EditorTextInsertion;
 import com.hfstudio.guidenh.guide.internal.editor.gui.SceneEditorMultilineTextArea;
+import com.hfstudio.guidenh.guide.internal.editor.guide.GuideEditorScrollMap;
 import com.hfstudio.guidenh.guide.internal.editor.guide.GuideScreenEditorAction;
 import com.hfstudio.guidenh.guide.internal.editor.guide.GuideScreenEditorActionRegistry;
 import com.hfstudio.guidenh.guide.internal.editor.guide.GuideScreenEditorConflictPrompt;
@@ -396,6 +397,8 @@ public class GuideScreen extends GuiContainer
     private boolean guideEditorTextSelectionDrag;
     private int guideEditorPreviewScrollbarGrabOffset;
     private int guideEditorPreviewScrollY;
+    @Nullable
+    private GuideEditorScrollMap guideEditorScrollMap;
     private int guideEditorPreviewVisualScalePermille = -1;
     private long guideEditorDividerHoverStartedAtMillis;
     private int guideEditorActionToolbarBottom;
@@ -1506,6 +1509,7 @@ public class GuideScreen extends GuiContainer
             guideEditorDraftPage = null;
             releaseGuideEditorPreviewRuntime();
             guideEditorPreviewPage = null;
+            guideEditorScrollMap = null;
             guideEditorExternalFileCheckEnabled = false;
             return;
         }
@@ -1686,6 +1690,7 @@ public class GuideScreen extends GuiContainer
                     resolveVisualScale(getVisualReferenceContentWidth(), previewWidth));
             }
             guideEditorPreviewDirty = false;
+            syncGuideEditorPreviewScrollFromEditor();
             ClientProxy.getLytHost()
                 .invalidatePage(
                     currentAnchor.pageId()
@@ -2182,6 +2187,7 @@ public class GuideScreen extends GuiContainer
             case TOGGLE_WRAP:
                 GuideScreenEditorState.setWrapEnabled(!GuideScreenEditorState.isWrapEnabled());
                 guideEditorTextArea.setWrapEnabled(GuideScreenEditorState.isWrapEnabled());
+                syncGuideEditorPreviewScrollFromEditor();
                 return;
             default:
                 GuideScreenEditorTextActions.Result result = GuideScreenEditorTextActions.apply(
@@ -3819,6 +3825,10 @@ public class GuideScreen extends GuiContainer
                 .updateLayout(createLayoutContext(layoutWidth, getVisualReferenceContentWidth()), layoutWidth);
             guideEditorPreviewVisualScalePermille = previewVisualScalePermille;
         }
+        if (guideEditorScrollMap == null
+            || !guideEditorScrollMap.matches(previewDocument, guideEditorTextArea, getGuideEditorPreviewPaneHeight())) {
+            syncGuideEditorPreviewScrollFromEditor();
+        }
         int renderHeight = Math.max(1, height);
         int maxScroll = Math.max(0, previewDocument.getContentHeight() - renderHeight);
         if (guideEditorPreviewScrollY > maxScroll) {
@@ -4306,32 +4316,32 @@ public class GuideScreen extends GuiContainer
 
     private void syncGuideEditorPreviewScrollFromEditor() {
         if (guideEditorTextArea == null || guideEditorPreviewPage == null
-            || guideEditorPreviewPage.document() == null) {
+            || guideEditorPreviewPage.document() == null
+            || guideEditorPreviewDirty) {
             return;
         }
-        int pageHeight = guideEditorPreviewPage.document()
-            .getContentHeight();
-        int viewportHeight = Math.max(1, getGuideEditorPreviewPaneHeight());
-        int maxScroll = Math.max(0, pageHeight - viewportHeight);
-        if (maxScroll <= 0) {
-            guideEditorPreviewScrollY = 0;
-            return;
-        }
-        float fraction = guideEditorTextArea.getVerticalScrollFraction();
-        guideEditorPreviewScrollY = Math.clamp(Math.round(maxScroll * fraction), 0, maxScroll);
+        guideEditorPreviewScrollY = guideEditorScrollMap().toPreview(guideEditorTextArea.getVerticalScrollPixels());
     }
 
     private void syncGuideEditorEditorScrollFromPreview() {
         if (guideEditorTextArea == null || guideEditorPreviewPage == null
-            || guideEditorPreviewPage.document() == null) {
+            || guideEditorPreviewPage.document() == null
+            || guideEditorPreviewDirty) {
             return;
         }
-        int pageHeight = guideEditorPreviewPage.document()
-            .getContentHeight();
+        if (guideEditorPreviewPage.document()
+            .getContentHeight() <= getGuideEditorPreviewPaneHeight()) return;
+        guideEditorTextArea.setVerticalScrollPixels(guideEditorScrollMap().toEditor(guideEditorPreviewScrollY));
+    }
+
+    private GuideEditorScrollMap guideEditorScrollMap() {
+        var document = guideEditorPreviewPage.document();
         int viewportHeight = Math.max(1, getGuideEditorPreviewPaneHeight());
-        int maxScroll = Math.max(0, pageHeight - viewportHeight);
-        float fraction = maxScroll <= 0 ? 0f : guideEditorPreviewScrollY / (float) maxScroll;
-        guideEditorTextArea.setVerticalScrollFraction(fraction);
+        if (guideEditorScrollMap == null
+            || !guideEditorScrollMap.matches(document, guideEditorTextArea, viewportHeight)) {
+            guideEditorScrollMap = GuideEditorScrollMap.create(document, guideEditorTextArea, viewportHeight);
+        }
+        return guideEditorScrollMap;
     }
 
     private boolean isInsideGuideEditorPreviewScrollbar(int mouseX, int mouseY) {
@@ -7209,6 +7219,7 @@ public class GuideScreen extends GuiContainer
         registeredSceneLabels.clear();
         resetPendingSceneRegistrations();
         guideEditorPreviewPage = null;
+        guideEditorScrollMap = null;
         guideEditorDraftPage = null;
         guideEditorDraftSource = null;
         guideEditorSavedSource = null;
