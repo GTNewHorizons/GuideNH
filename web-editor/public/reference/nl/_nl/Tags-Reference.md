@@ -544,7 +544,7 @@ Research tags select Thaumcraft. Generic tags use `type` to select the content s
 
 #### Navigation
 
-These rules apply to ResearchLink/Card and BindingLink/Card links or cards.
+These rules apply to ResearchLink/Card and BindingLink/Card links or card title text.
 
 | `target` | Left click | Right click |
 | --- | --- | --- |
@@ -571,7 +571,7 @@ Inline content link.
 
 #### `<ResearchCard>`
 
-Block content summary. Left-click the card to navigate; right-click to open its bound guides.
+Block content summary. Left-click the title to navigate; right-click the title to open bound guides.
 
 | Attribute | Meaning |
 | --- | --- |
@@ -619,7 +619,7 @@ Inline content link.
 
 #### `<BindingCard>`
 
-Block content summary. Left-click the card to navigate; right-click to open its bound guides.
+Block content summary. Left-click the title to navigate; right-click the title to open bound guides.
 
 | Attribute | Meaning |
 | --- | --- |

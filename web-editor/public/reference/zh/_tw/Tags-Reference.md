@@ -513,7 +513,7 @@ ExportSite 的物品數量和流體數量使用網站自帶的 Pixeloid Mono 字
 
 #### 導航規則
 
-以下規則用於 ResearchLink/Card 和 BindingLink/Card 的連結或卡片。
+以下規則用於 ResearchLink/Card 和 BindingLink/Card 的連結或卡片標題文字。
 
 | `target` | 左鍵 | 右鍵 |
 | --- | --- | --- |
@@ -540,7 +540,7 @@ ExportSite 的物品數量和流體數量使用網站自帶的 Pixeloid Mono 字
 
 #### `<ResearchCard>`
 
-塊級內容摘要卡片。左鍵點選卡片進行導航，右鍵開啟繫結指南。
+塊級內容摘要卡片。左鍵點選標題跳轉，右鍵點選標題開啟繫結指南。
 
 | 屬性 | 說明 |
 | --- | --- |
@@ -588,7 +588,7 @@ ExportSite 的物品數量和流體數量使用網站自帶的 Pixeloid Mono 字
 
 #### `<BindingCard>`
 
-塊級內容摘要卡片。左鍵點選卡片進行導航，右鍵開啟繫結指南。
+塊級內容摘要卡片。左鍵點選標題跳轉，右鍵點選標題開啟繫結指南。
 
 | 屬性 | 說明 |
 | --- | --- |

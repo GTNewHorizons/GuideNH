@@ -10,7 +10,6 @@ import com.hfstudio.guidenh.guide.document.block.LytParagraph;
 import com.hfstudio.guidenh.guide.document.flow.LytBindingLink;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowInlineBlock;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowSpan;
-import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;
 import com.hfstudio.guidenh.guide.document.interaction.TextTooltip;
 import com.hfstudio.guidenh.guide.internal.host.ScriptContext;
 import com.hfstudio.guidenh.guide.internal.item.GuideDisplayItemStacks;
@@ -64,7 +63,7 @@ public class BindingPresentation {
             return fallback;
         }
         var titleLink = link(spec, display);
-        var box = new LytBindingCard(spec, titleLink instanceof InteractiveElement action ? action : null);
+        var box = new LytBindingCard(spec);
         box.setQuoteStyle(
             display.state()
                 .equals(BindingState.COMPLETED) ? ColorUtils.MC_GREEN
