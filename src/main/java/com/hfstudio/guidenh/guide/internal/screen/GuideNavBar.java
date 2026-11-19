@@ -7,6 +7,7 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Function;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
@@ -217,6 +218,9 @@ public class GuideNavBar implements DebugComponent {
     private long resizeHoverStartedAtMillis;
     @Nullable
     private GuiTextField searchField;
+    private String searchTitle;
+    private String searchPlaceholder;
+    private Function<NavigationNode, String> searchText = NavigationNode::title;
     private boolean searchActive;
     private GuideTitleQuery titleQuery = new GuideTitleQuery("");
     private int unfilteredScrollY;
@@ -456,8 +460,13 @@ public class GuideNavBar implements DebugComponent {
             return;
         }
         GuideTitleQuery filter = titleQuery.isEmpty() ? null : titleQuery;
-        GuideNavProjection.ProjectionResult projected = projection
-            .project(tree, bookmarkState, expandedNodeKeys, bookmarkGroupExpanded, filter);
+        GuideNavProjection.ProjectionResult projected = projection.project(
+            tree,
+            bookmarkState,
+            expandedNodeKeys,
+            bookmarkGroupExpanded,
+            filter,
+            filter == null ? null : node -> filter.test(searchText.apply(node)));
         projected = projection.withTemplates(projected, templateRows, templateGroupExpanded, filter);
         for (GuideNavProjection.ProjectedRow projectedRow : projected.rows()) {
             rows.add(new Row(projectedRow));
@@ -760,18 +769,28 @@ public class GuideNavBar implements DebugComponent {
         }
         int titleX = field.xPosition;
         int titleW = field.width;
-        if (searchActive) {
+        if (searchActive || searchPlaceholder != null) {
             GL11.glEnable(GL11.GL_SCISSOR_TEST);
             setScissor(mc, titleX, y, titleW, TITLE_H - 1, DisplayScale.scaleFactor());
             try {
                 field.drawTextBox();
+                if (field.getText()
+                    .isEmpty() && !field.isFocused()
+                    && searchPlaceholder != null) {
+                    fr.drawString(
+                        fr.trimStringToWidth(searchPlaceholder, titleW),
+                        titleX,
+                        field.yPosition,
+                        ColorUtils.ARGB_FF666666.getColor(),
+                        false);
+                }
             } finally {
                 GL11.glDisable(GL11.GL_SCISSOR_TEST);
             }
             return;
         }
         if (titleW > 0) {
-            String title = GuidebookText.NavigationTitle.text();
+            String title = searchTitle != null ? searchTitle : GuidebookText.NavigationTitle.text();
             String renderedTitle = fr.getStringWidth(title) > titleW
                 ? fr.trimStringToWidth(title, Math.max(0, titleW - 4)) + "…"
                 : title;
@@ -810,6 +829,17 @@ public class GuideNavBar implements DebugComponent {
 
     public boolean isSearchFocused() {
         return searchActive && searchField != null && searchField.isFocused();
+    }
+
+    public void setSearchPresentation(String title, String placeholder, Function<NavigationNode, String> searchText) {
+        this.searchTitle = title;
+        this.searchPlaceholder = placeholder;
+        this.searchText = searchText;
+    }
+
+    public void focusSearch(Minecraft mc, boolean showNewPageButton) {
+        searchActive = true;
+        ensureSearchField(mc.fontRenderer, showNewPageButton).setFocused(true);
     }
 
     public void tickSearchField() {
@@ -903,7 +933,7 @@ public class GuideNavBar implements DebugComponent {
         if (searchField == null) {
             return false;
         }
-        int width = searchActive ? searchField.width
+        int width = searchActive || searchPlaceholder != null ? searchField.width
             : Math.min(searchField.width, font.getStringWidth(GuidebookText.NavigationTitle.text()));
         return mouseX >= searchField.xPosition && mouseX < searchField.xPosition + width
             && mouseY >= y
