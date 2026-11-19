@@ -3,6 +3,7 @@ package com.hfstudio.guidenh.guide.internal.editor.guide;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.function.IntToDoubleFunction;
 
 import com.hfstudio.guidenh.guide.document.block.LytDocument;
 import com.hfstudio.guidenh.guide.document.block.LytNode;
@@ -48,6 +49,13 @@ public class GuideEditorScrollMap {
 
     public static GuideEditorScrollMap create(LytDocument document, SceneEditorMultilineTextArea editor,
         int viewportHeight) {
+        var map = create(document, editor::getContentYForOffset, editor.getMaxVerticalScrollPixels(), viewportHeight);
+        map.editorRevision = editor.getTextLayoutRevision();
+        return map;
+    }
+
+    public static GuideEditorScrollMap create(LytDocument document, IntToDoubleFunction editorYForOffset,
+        int maxEditorScroll, int viewportHeight) {
         var anchors = new ArrayList<Anchor>();
         document.visit(new LytVisitor() {
 
@@ -56,17 +64,20 @@ public class GuideEditorScrollMap {
                 if (node == document) return Result.CONTINUE;
                 var source = node.getSourceNode();
                 var bounds = node.getBounds();
-                if (source != null && source.position() != null && bounds != null && bounds.height() > 0) {
+                if (source != null && source.position() != null
+                    && bounds != null
+                    && bounds.height() > 0
+                    && hasPageSourcePosition(node)) {
                     var position = source.position();
                     anchors.add(
                         new Anchor(
-                            editor.getContentYForOffset(
+                            editorYForOffset.applyAsDouble(
                                 position.start()
                                     .offset()),
                             bounds.y()));
                     anchors.add(
                         new Anchor(
-                            editor.getContentYForOffset(
+                            editorYForOffset.applyAsDouble(
                                 position.end()
                                     .offset()),
                             bounds.bottom()));
@@ -83,15 +94,36 @@ public class GuideEditorScrollMap {
         }
         var map = new GuideEditorScrollMap(
             anchors,
-            editor.getMaxVerticalScrollPixels(),
+            maxEditorScroll,
             Math.max(0, document.getContentHeight() - viewportHeight));
         map.document = document;
         map.documentRevision = document.getContentRevision();
-        map.editorRevision = editor.getTextLayoutRevision();
         map.previewWidth = document.getAvailableWidth();
         map.previewHeight = document.getContentHeight();
         map.viewportHeight = viewportHeight;
         return map;
+    }
+
+    private static boolean hasPageSourcePosition(LytNode node) {
+        var position = node.getSourceNode()
+            .position();
+        for (var parent = node.getParent(); parent != null; parent = parent.getParent()) {
+            var source = parent.getSourceNode();
+            if (source != null && source.position() != null
+                && (position.start()
+                    .offset()
+                    < source.position()
+                        .start()
+                        .offset()
+                    || position.end()
+                        .offset()
+                        > source.position()
+                            .end()
+                            .offset())) {
+                return false;
+            }
+        }
+        return true;
     }
 
     public boolean matches(LytDocument document, SceneEditorMultilineTextArea editor, int viewportHeight) {

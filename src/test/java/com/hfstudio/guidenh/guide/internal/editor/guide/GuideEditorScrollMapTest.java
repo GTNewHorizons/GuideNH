@@ -4,12 +4,104 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
+import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 
+import com.hfstudio.guidenh.guide.compiler.GuideMarkdownOptions;
+import com.hfstudio.guidenh.guide.document.LytRect;
+import com.hfstudio.guidenh.guide.document.block.LytBlock;
+import com.hfstudio.guidenh.guide.document.block.LytDocument;
+import com.hfstudio.guidenh.guide.document.block.LytFloatAwareBlock;
 import com.hfstudio.guidenh.guide.internal.editor.guide.GuideEditorScrollMap.Anchor;
+import com.hfstudio.guidenh.guide.internal.markdown.MdAstToMdxConverter;
+import com.hfstudio.guidenh.guide.layout.LayoutContext;
+import com.hfstudio.guidenh.guide.render.RenderContext;
+import com.hfstudio.guidenh.libs.mdast.MdAst;
+import com.hfstudio.guidenh.libs.mdast.model.MdAstNode;
 
 public class GuideEditorScrollMapTest {
+
+    @Test
+    public void reparsedContainerChildrenDoNotMapLocalOffsetsIntoThePageFrontmatter() {
+        String source = "---\ntitle: Example\n" + "# Metadata\n".repeat(30)
+            + "---\n\nFirst paragraph.\n\nContainer body.\n\nLast paragraph.\n";
+        var root = MdAst.fromMarkdown(source, GuideMarkdownOptions.runtime());
+        MdAstToMdxConverter.convert(root, Map.of());
+        var firstSource = (MdAstNode) root.children()
+            .get(0);
+        var containerSource = (MdAstNode) root.children()
+            .get(1);
+        var lastSource = (MdAstNode) root.children()
+            .get(2);
+        var localRoot = MdAst.fromMarkdown("Reparsed child.", GuideMarkdownOptions.runtime());
+        var localSource = (MdAstNode) localRoot.children()
+            .get(0);
+        var document = new LytDocument() {
+
+            @Override
+            public int getContentHeight() {
+                return 1000;
+            }
+        };
+        document.setSourceNode(root);
+        document.append(block(firstSource, 0, 40));
+        var container = new LytFloatAwareBlock(block(localSource, 300, 40)) {
+
+            @Override
+            public LytRect getBounds() {
+                return new LytRect(0, 300, 100, 40);
+            }
+        };
+        container.setSourceNode(containerSource);
+        document.append(container);
+        document.append(block(lastSource, 700, 40));
+
+        var map = GuideEditorScrollMap.create(document, offset -> offset, 1000, 100);
+
+        assertEquals(0, map.toPreview(20));
+        assertEquals(
+            0,
+            map.toPreview(
+                firstSource.position()
+                    .start()
+                    .offset()));
+        assertEquals(
+            300,
+            map.toPreview(
+                containerSource.position()
+                    .start()
+                    .offset()));
+        assertEquals(
+            700,
+            map.toPreview(
+                lastSource.position()
+                    .start()
+                    .offset()));
+    }
+
+    private static LytBlock block(MdAstNode source, int y, int height) {
+        var block = new LytBlock() {
+
+            @Override
+            public LytRect getBounds() {
+                return new LytRect(0, y, 100, height);
+            }
+
+            @Override
+            protected LytRect computeLayout(LayoutContext context, int x, int top, int availableWidth) {
+                return getBounds();
+            }
+
+            @Override
+            public void render(RenderContext context) {}
+
+            @Override
+            protected void onLayoutMoved(int deltaX, int deltaY) {}
+        };
+        block.setSourceNode(source);
+        return block;
+    }
 
     @Test
     public void frontmatterDoesNotAdvanceThePreviewAndBlocksUseTheirOwnHeight() {
