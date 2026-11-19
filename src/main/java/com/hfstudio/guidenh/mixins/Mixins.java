@@ -14,10 +14,10 @@ public enum Mixins implements IMixins {
 
     EARLY(Side.CLIENT, "forge.AccessorForgeHooksClient", "forge.AccessorGuiIngameForge", "fml.AccessorFMLClientHandler",
         "minecraft.AccessorAbstractResourcePack", "minecraft.AccessorFallbackResourceManager",
-        "minecraft.AccessorSimpleReloadableResourceManager", "forge.AccessorShapedOreRecipe",
-        "forge.AccessorShapelessOreRecipe", "minecraft.AccessorTextureManager", "minecraft.AccessorTextureMap",
-        "minecraft.AccessorTextureAtlasSprite", "minecraft.MixinTessellatorSceneExportCapture",
-        "minecraft.MixinModelRendererSceneExportCapture"),
+        "minecraft.AccessorSimpleReloadableResourceManager", "minecraft.MixinResourcePackReload",
+        "forge.AccessorShapedOreRecipe", "forge.AccessorShapelessOreRecipe", "minecraft.AccessorTextureManager",
+        "minecraft.AccessorTextureMap", "minecraft.AccessorTextureAtlasSprite",
+        "minecraft.MixinTessellatorSceneExportCapture", "minecraft.MixinModelRendererSceneExportCapture"),
 
     AE2_EXTERNAL_CABLE_PARTS(Side.CLIENT, Phase.LATE, Mods.AE2, "compat.ae2.MixinPartQuartzFiber",
         "compat.ae2.MixinPartP2PTunnelME", "compat.ae2.MixinPartToggleBus"),
