@@ -597,7 +597,7 @@ public class PageCompiler {
         }
         ParsedGuidePage parsed = inlineMarkdownParseCache.get(source);
         if (parsed == null) {
-            parsed = parse(sourcePack, "en_us", pageId, source);
+            parsed = parse(sourcePack, language, pageId, source);
             inlineMarkdownParseCache.put(source, parsed);
         }
         compileInlineFragment(

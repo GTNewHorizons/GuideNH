@@ -21,6 +21,7 @@ import com.hfstudio.guidenh.guide.internal.mermaid.FrontmatterKey;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidArrowHead;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidEdgeStyle;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidNodeShape;
+import com.hfstudio.guidenh.guide.internal.mermaid.MermaidParser;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidSourceExtractor;
 import com.hfstudio.guidenh.guide.internal.mermaid.NodeShapeDefinition;
 import com.hfstudio.guidenh.guide.internal.util.GuideStringLines;
@@ -477,32 +478,21 @@ public class FlowchartParser {
             if (icon != null) {
                 label = stripIconFromLabel(label);
                 if (label.isEmpty()) label = id;
+                String quotedSource = labelSource.trim();
+                String sourceBody = stripWrappingQuotes(quotedSource);
+                String contentSource = stripIconFromLabel(sourceBody);
+                labelSource = sourceBody.equals(quotedSource) ? contentSource
+                    : quotedSource.charAt(0) + contentSource + quotedSource.charAt(quotedSource.length() - 1);
                 LOGGER.warn(
                     "Node '{}' uses icon '{}' — TrueType font icon rendering is not implemented; rendering as text badge",
                     id,
                     icon);
             }
 
-            int mdStart = -1, mdEnd = -1;
-            if (label.startsWith("\"`") && label.endsWith("`\"")) {
-                mdStart = 2;
-                mdEnd = label.length() - 2;
-            } else if (label.startsWith("`\"") && label.endsWith("\"`")) {
-                mdStart = 2;
-                mdEnd = label.length() - 2;
-            } else if (label.startsWith("`") && label.endsWith("`")) {
-                mdStart = 1;
-                mdEnd = label.length() - 1;
-            }
-            if (mdStart >= 0 && mdEnd > mdStart) {
-                String inner = label.substring(mdStart, mdEnd);
-                if (!inner.isEmpty()) {
-                    label = inner;
-                    markdownLabel = true;
-                    LOGGER.warn(
-                        "Node '{}' has markdownLabel=true — markdown text rendering is not implemented; falling back to plain text",
-                        id);
-                }
+            String sourceBody = stripWrappingQuotes(labelSource.trim());
+            if (sourceBody.length() > 2 && sourceBody.startsWith("`") && sourceBody.endsWith("`")) {
+                label = MermaidParser.normalizeMarkdownLabel(labelSource);
+                markdownLabel = true;
             }
         }
 
@@ -522,6 +512,8 @@ public class FlowchartParser {
         MermaidNodeShape shape = MermaidNodeShape.DEFAULT;
         String label = id;
         @Nullable
+        String labelSource = null;
+        @Nullable
         String icon = null;
         @Nullable
         Map<String, String> extra = null;
@@ -535,13 +527,17 @@ public class FlowchartParser {
                 .toLowerCase(Locale.ROOT);
             String value = pair.substring(colon + 1)
                 .trim();
+            String rawValue = value;
             value = unquote(value);
             switch (key) {
                 case "shape" -> {
                     MermaidNodeShape s = parseShapeName(value);
                     if (s != null) shape = s;
                 }
-                case "label" -> label = value.isEmpty() ? id : value;
+                case "label" -> {
+                    label = value.isEmpty() ? id : MermaidParser.normalizeMarkdownLabel(rawValue);
+                    labelSource = value.isEmpty() ? null : rawValue;
+                }
                 case "icon" -> {
                     icon = value.isEmpty() ? null : value;
                     if (icon != null) {
@@ -568,7 +564,7 @@ public class FlowchartParser {
             }
         }
 
-        return new NodeSpec(id, label, shape, classes, icon, false, extra, null);
+        return new NodeSpec(id, label, shape, classes, icon, false, extra, labelSource);
     }
 
     @Nullable

@@ -3,11 +3,20 @@ package com.hfstudio.guidenh.guide.document.block.shapes;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 
 final class ShapeUtils {
 
     private ShapeUtils() {}
+
+    static LytRect centeredContent(int x, int y, int width, int height, int contentW, int contentH) {
+        width = Math.max(width, 1);
+        height = Math.max(height, 1);
+        int w = Math.min(Math.max(contentW, 1), width);
+        int h = Math.min(Math.max(contentH, 1), height);
+        return new LytRect(x + (width - w) / 2, y + (height - h) / 2, w, h);
+    }
 
     /**
      * Fills a polygon using a triangle fan from the centroid.
