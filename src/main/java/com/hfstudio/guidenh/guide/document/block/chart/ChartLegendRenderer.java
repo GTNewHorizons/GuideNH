@@ -21,7 +21,9 @@ public class ChartLegendRenderer {
 
     protected ChartLegendRenderer() {}
 
-    /** A single legend entry. */
+    /**
+     * A single legend entry.
+     */
     public static class LegendEntry {
 
         public final String name;
@@ -39,11 +41,13 @@ public class ChartLegendRenderer {
         }
 
         public boolean hasIcon() {
-            return icon != null && (icon.hasItemStack() || icon.hasImage());
+            return icon != null && (icon.hasFluid() || icon.hasItemStack() || icon.hasImage());
         }
     }
 
-    /** Layout result for the legend and remaining plot area. */
+    /**
+     * Layout result for the legend and remaining plot area.
+     */
     public static class Layout {
 
         public final List<LegendEntry> entries;
@@ -261,6 +265,10 @@ public class ChartLegendRenderer {
     }
 
     private static void drawSwatch(RenderContext context, LegendEntry entry, int x, int y, int size) {
+        if (entry.icon != null && entry.icon.hasFluid()) {
+            entry.icon.renderFluid(context, x, y, size);
+            return;
+        }
         if (entry.icon != null && entry.icon.hasItemStack()) {
             float scale = (float) size / 16f;
             GL11.glPushMatrix();

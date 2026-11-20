@@ -7,6 +7,7 @@ import net.minecraft.item.ItemStack;
 
 import org.jetbrains.annotations.Nullable;
 
+import codechicken.lib.vec.Rectangle4i;
 import codechicken.nei.NEIClientConfig;
 import codechicken.nei.NEIClientUtils;
 import codechicken.nei.NEIServerUtils;
@@ -27,13 +28,8 @@ import codechicken.nei.recipe.TemplateRecipeHandler;
 public class NeiDirectCalls {
 
     /**
-     * Serializes the window in which this class substitutes NEI's static handler list.
-     *
-     * <p>
-     * The list is NEI's own static field, saved, swapped for a private copy and restored. Without this lock
-     * two callers interleave and the restore of the second puts a private copy into NEI's field for good,
-     * because it saved the first caller's copy rather than the original. The cache in front of the crafting
-     * and usage queries holds its own lock, but the site export reaches these two entry points directly.
+     * Protects NEI's static handler-list swap and restoration. All entry points, including site export, must
+     * use this lock to avoid restoring another caller's temporary list.
      */
     private static final Object NEI_LIST_LOCK = new Object();
 
@@ -81,7 +77,9 @@ public class NeiDirectCalls {
         return h(handler).getRecipeName();
     }
 
-    /** Returns {@code null} when the handler's default {@code getHandlerId()} returns null. */
+    /**
+     * Returns {@code null} when the handler's default {@code getHandlerId()} returns null.
+     */
     public static @Nullable String handlerId(Object handler) {
         return h(handler).getHandlerId();
     }
@@ -102,7 +100,9 @@ public class NeiDirectCalls {
         h(handler).drawForeground(idx);
     }
 
-    /** Calls {@code drawExtras} only when {@code handler} is a {@link TemplateRecipeHandler}. */
+    /**
+     * Calls {@code drawExtras} only when {@code handler} is a {@link TemplateRecipeHandler}.
+     */
     public static void drawExtras(Object handler, int idx) {
         if (handler instanceof TemplateRecipeHandler tmpl) {
             tmpl.drawExtras(idx);
@@ -223,21 +223,39 @@ public class NeiDirectCalls {
             return positionedStack.getTooltip();
         }
         ArrayList<String> tooltip = new ArrayList<>();
-        List<Badge> badges = positionedStack.getBadges();
-        if (badges == null) {
-            badges = defaultBadges(positionedStack, input);
-        }
-        if (badges != null) {
-            for (Badge badge : badges) {
-                if (badge == null || badge.getTooltip() == null) continue;
-                tooltip.addAll(badge.getTooltip());
-            }
+        for (Badge badge : badges(positionedStack, input)) {
+            if (badge == null || badge.getTooltip() == null) continue;
+            tooltip.addAll(badge.getTooltip());
         }
         List<String> customTooltip = positionedStack.getTooltip();
         if (customTooltip != null) {
             tooltip.addAll(customTooltip);
         }
         return tooltip.isEmpty() ? null : tooltip;
+    }
+
+    public static void drawRecipeBadges(Object handler, int recipeIndex, boolean skipOthers) {
+        HandlerInfo handlerInfo = info(handler);
+        if (handlerInfo == null || !handlerInfo.getShowBadge()) return;
+        IRecipeHandler recipeHandler = h(handler);
+        for (PositionedStack stack : recipeHandler.getIngredientStacks(recipeIndex)) drawBadges(stack, true);
+        if (!skipOthers) {
+            for (PositionedStack stack : recipeHandler.getOtherStacks(recipeIndex)) drawBadges(stack, false);
+        }
+        PositionedStack result = recipeHandler.getResultStack(recipeIndex);
+        if (result != null) drawBadges(result, false);
+    }
+
+    private static void drawBadges(PositionedStack stack, boolean input) {
+        List<Badge> badges = badges(stack, input);
+        if (badges.isEmpty()) return;
+        Rectangle4i bounds = new Rectangle4i(stack.relx, stack.rely, 16, 16);
+        for (Badge badge : badges) badge.draw(bounds);
+    }
+
+    private static List<Badge> badges(PositionedStack stack, boolean input) {
+        List<Badge> badges = stack.getBadges();
+        return badges == null ? defaultBadges(stack, input) : badges;
     }
 
     public static @Nullable String acceptsLabel(Object ps) {

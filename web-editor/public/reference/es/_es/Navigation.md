@@ -1,18 +1,14 @@
 # Navegación
 
+La referencia detallada de esta página está disponible en inglés. Los nombres de etiquetas, atributos, identificadores y rutas se utilizan sin traducir.
 
-Esta documentación describe la sintaxis y las funciones de ejecución de GuideNH. El código, las etiquetas, las rutas, los identificadores y los valores de atributos se conservan sin cambios.
+GuideNH builds its navigation tree from page frontmatter.
 
-GuideNH builds su navigation tree de página frontmatter.
+Expanded ancestors stay pinned while their child pages scroll beneath them. Multiple levels can remain visible until their descendants leave the visible area.
 
-en El en-game sidebar, expanded ancestor páginas permanecer pinned at El arriba mientras sus todavía-visible
-descendants desplazar underneath. varios expanded ancestor levels puede pila at once, y cada sticky
-fila es pushed away solo cuando su entire visible subtree scrolls out, similar Un El VSCode archivo
-explorer.
+## Navigation Frontmatter
 
-## Navigation frontmatter
-
-El `navigation` map controls whether Un página appears en El guíUn tree.
+The `navigation` map controls whether a page appears in the guide tree.
 
 ```yaml
 navigation:
@@ -22,40 +18,42 @@ navigation:
   icon: minecraft:diamond_block
 ```
 
-### campo Reference
+### Field Reference
 
-| campo | descripción |
+| Field | Description |
 | --- | --- |
-| `title` | obligatorio mostrar título |
-| `keyword` | opcional único búsqueda keyword o alias |
-| `keywords` | opcional lista of búsqueda keywords o aliases |
-| `parent` | opcional padre página id, resuelto like Un guíUn página enlace |
-| `position` | opcional sibling ordering hint |
-| `recommend` | opcional home-página recommendation priority; absent significa El página es no mostrado en El Recommended panel |
-| `priority` | opcional cargar priority para mismo-ruta página anula; predeterminado `0` |
-| `icon` | opcional único elemento icon; admite inline `mod:item:meta:{snbt}` tails |
-| `icons` | opcional cycling elemento icons lista; entradas puede ser simple elemento ids con opcional inline `:{snbt}` o `{id, meta?, nbt?}` maps |
-| `icon_texture` | opcional texture icon resuelto de guíUn recursos |
-| `icon_textures` | opcional cycling texture icon lista |
-| `required_mod` | opcional único mod id; página es ocultas cuando esto mod es no cargado |
-| `required_mods` | opcional lista of mod ids; página es ocultas salvo todos listed mods son cargado |
-| `excluded_mod` | opcional único mod id; página es ocultas cuando esto mod es cargado |
-| `excluded_mods` | opcional lista of mod ids; página es ocultas cuando cualquier listed mod es cargado |
+| `title` | Required display title |
+| `keyword` | Optional single search keyword or alias |
+| `keywords` | Optional list of search keywords or aliases |
+| `parent` | Optional parent page id, resolved like a guide page link |
+| `position` | Optional sibling ordering hint |
+| `recommend` | Optional home-page recommendation priority; absent means the page is not shown in the Recommended panel |
+| `priority` | Optional load priority for same-path page overrides; default `0` |
+| `icon` | Optional single item icon; supports inline `mod:item:meta:{snbt}` tails |
+| `icons` | Optional cycling item icons list; entries may be plain item ids with optional inline `:{snbt}` or `{id, meta?, nbt?}` maps |
+| `icon_texture` | Optional texture icon resolved from guide assets |
+| `icon_textures` | Optional cycling texture icon list |
+| `icon_fluid` | Optional single fluid registry name; excludes `icon_fluids` and item/texture sources |
+| `icon_fluids` | Optional nonempty fluid registry-name list cycling once per second; excludes `icon_fluid` and item/texture sources |
+| `required_mod` | Optional single mod id; page is hidden when this mod is not loaded |
+| `required_mods` | Optional list of mod ids; page is hidden unless all listed mods are loaded |
+| `excluded_mod` | Optional single mod id; page is hidden when this mod is loaded |
+| `excluded_mods` | Optional list of mod ids; page is hidden when any listed mod is loaded |
 
 ### `navigation.position`
 
-`navigation.position` es un opcional entero usado Un orden sibling páginas en El navigation tree.
+`navigation.position` is an optional integer used to order sibling pages in the navigation tree.
 
-- faltante `position` predeterminados a `0`.
-- Larger valores appear earlier.
-- Si dos páginas have El mismo valor, Estas son sorted by título alphabetically.
+- Missing `position` defaults to `0`.
+- Larger values appear earlier.
+- If two pages have the same value, they are sorted by title alphabetically.
 
-### búsqueda Keywords
+### Search Keywords
 
-`navigation.keyword` añade uno búsqueda alias. `navigation.keywords` añade Un lista of aliases. ambos campos
-puede ser usado together; valores son trimmed y duplicate valores son ignored. Keyword coincide usar El mismo
-idioma analyzer y prefix coincidente as título y página contenido searches, mientras resultados continue Un mostrar
-El normal navigation título.
+`navigation.keyword` adds one search alias. `navigation.keywords` adds a list of aliases. Both fields
+can be used together; values are trimmed and duplicate values are ignored. Keyword matches use the same
+language analyzer and prefix matching as title and page content searches, while results continue to show
+the normal navigation title.
 
 ```yaml
 navigation:
@@ -66,17 +64,17 @@ navigation:
     - autocrafting machine
 ```
 
-## Home página Recommendations
+## Home Page Recommendations
 
 ### `navigation.recommend`
 
-`navigation.recommend` es un opcional entero usado by El home página Recommended panel.
+`navigation.recommend` is an optional integer used by the home page Recommended panel.
 
-- páginas solo appear en El Recommended panel cuando esto campo es present.
-- `0` es válido.
-- Larger valores appear earlier.
-- Si dos páginas have El mismo valor, Estas son sorted by título alphabetically.
-- El panel works at El `GuidePage` level, so cada recommended página entrada jumps directly Un que página.
+- Pages only appear in the Recommended panel when this field is present.
+- `0` is valid.
+- Larger values appear earlier.
+- If two pages have the same value, they are sorted by title alphabetically.
+- Each recommendation opens its page directly.
 
 ```yaml
 navigation:
@@ -87,10 +85,10 @@ navigation:
 
 ## Mod Requirements
 
-usar `required_mod` o `required_mods` Un require uno o más cargado mods. usar `excluded_mod` o
-`excluded_mods` Un ocultar Un página cuando uno o más incompatible mods son cargado. cuando Un condición es no
-met, El página es excluded de El navigation tree y todos página indices (elemento, category, etc.) so it
-no puede ser found a través de navigation o búsqueda.
+Use `required_mod` or `required_mods` to require one or more loaded mods. Use `excluded_mod` or
+`excluded_mods` to hide a page when one or more incompatible mods are loaded. When a condition is not
+met, the page is excluded from the navigation tree and all page indices (item, category, etc.) so it
+cannot be found through navigation or search.
 
 ```yaml
 navigation:
@@ -106,10 +104,10 @@ navigation:
     - appliedenergistics2
 ```
 
-ambos claves puede ser combined; El página es solo mostrado cuando cada listed mod es present.
+Both keys may be combined; the page is only shown when every listed mod is present.
 
-obligatorio y excluded condiciones puede también ser combined. todos obligatorio mods debe ser cargado y none of El
-excluded mods puede ser cargado.
+Required and excluded conditions can also be combined. All required mods must be loaded and none of the
+excluded mods may be loaded.
 
 ```yaml
 navigation:
@@ -121,10 +119,10 @@ navigation:
     - legacy_addon
 ```
 
-## cargar Priority
+## Load Priority
 
-cuando several cargado recurso packs provide El mismo guíUn página ruta, GuideNH reads El página
-frontmatter primero y chooses El candidate con El highest `navigation.priority`.
+When several loaded resource packs provide the same guide page path, GuideNH reads the page
+frontmatter first and chooses the candidate with the highest `navigation.priority`.
 
 ```yaml
 navigation:
@@ -133,48 +131,50 @@ navigation:
   priority: 100
 ```
 
-Reglas:
+Rules:
 
-- faltante `priority` es `0`
-- valores son signed Java integers up a `2147483647`
+- missing `priority` is `0`
+- values are integers
 - higher priority wins
-- Si priorities son equal, El later processed recurso pack entrada wins, coincidente Minecraft recurso-pack anular orden
-- priority solo decides entre candidates para El mismo página ruta y idioma/reserva layer
+- if priorities are equal, the later processed resource pack entry wins, matching Minecraft resource-pack override order
+- priority only decides between candidates for the same page path and language/fallback layer
 
-esto es useful cuando Un mod ships Un baseline guíUn página y Un pack wants Un reemplazar it sin relying solo on
-recurso-pack ordering.
+This is useful when a mod ships a baseline guide page and a pack wants to replace it without relying only on
+resource-pack ordering.
 
 ## Icon Sources
 
-GuideNH chooses navigation/búsqueda icons en esto orden:
+Choose `icon_fluid` or `icon_fluids` for fluid icons. The two fields are mutually exclusive and cannot accompany item or texture sources. Icons do not create fluid navigation bindings; add page-level `fluid_id` / `fluid_ids` separately.
 
-1. `icon_textures` Si at least uno texture entrada es configured
-2. `icon_texture` Si El texture archivo carga successfully
-3. `icons` Si at least uno configured elemento resolves successfully
-4. `icon` Si El elemento exists
-5. no icon Si neither es usable
+When no fluid icon is configured, GuideNH chooses item and texture icons in this order:
 
-Texture icons son leer de ejecución recursos, so relativo página-local files como `test1.png` funcionan.
+1. `icon_textures` if at least one texture entry is configured
+2. `icon_texture` if the texture file loads successfully
+3. `icons` if at least one configured item resolves successfully
+4. `icon` if the item exists
+5. no icon if neither is usable
 
-## padre y raíz Nodes
+Texture icons are read from runtime assets, so relative page-local files such as `test1.png` work.
 
-- Omit `parent` Un crear Un raíz node.
-- Establezca `parent: index.md` o cualquier otro página id Un crear Un hijo node.
-- El padre página debe exist en El mismo guíUn navigation tree.
+## Parent And Root Nodes
 
-`navigation.parent` usa El mismo espacio de nombres Reglas as Markdown página enlaces:
+- Omit `parent` to create a root node.
+- Set `parent: index.md` or any other page id to create a child node.
+- The parent page must exist in the same guide navigation tree.
 
-- `parent: index.md` y `parent: ./index.md` resolver dentro de El actual página espacio de nombres.
-- `parent: /index.md` resolves de El actual página espacio de nombres raíz.
-- `parent: gregtech:index.md` o `parent: gregtech:/index.md` explicitly targets another espacio de nombres.
+`navigation.parent` uses the same namespace rules as Markdown page links:
 
-datos-driven guías son isolated by espacio de nombres. páginas under `assets/guidenh/guidenh/_en_us/...` belong a
-`guidenh:guidenh`; páginas under `assets/gregtech/guidenh/_en_us/...` belong a `gregtech:guidenh`.
-relativo parents y enlaces nunca fall a través de Un another mod's mismo-named página.
+- `parent: index.md` and `parent: ./index.md` resolve inside the current page namespace.
+- `parent: /index.md` resolves from the current page namespace root.
+- `parent: gregtech:index.md` or `parent: gregtech:/index.md` explicitly targets another namespace.
 
-## Category páginas
+Data-driven guides are isolated by namespace. Pages under `assets/guidenh/guidenh/_en_us/...` belong to
+`guidenh:guidenh`; pages under `assets/gregtech/guidenh/_en_us/...` belong to `gregtech:guidenh`.
+Relative parents and links never fall through to another mod's same-named page.
 
-páginas puede join uno o más named categories usando frontmatter:
+## Category Pages
+
+Pages can join one or more named categories using frontmatter:
 
 ```yaml
 categories:
@@ -182,14 +182,14 @@ categories:
   - machines|Arc Furnace
 ```
 
-cada entrada puede ser cualquiera Un category nombre o `category|sort key`.
+Each entry can be either a category name or `category|sort key`.
 
-Those categories son queryable a través de El built-en `<Category name="machines" rows="3" />` etiqueta y también auto-crear ocultas searchable páginas como `Category:machines`.
-GuideNH también auto-crea El ocultas searchable special páginas `Special:AllPages` y `Special:Categories`.
+Those categories are queryable through the built-in `<Category name="machines" rows="3" />` tag and also auto-create hidden searchable pages such as `Category:machines`.
+GuideNH also auto-creates the hidden searchable special pages `Special:AllPages` and `Special:Categories`.
 
-## elemento-Indexed páginas
+## Item-Indexed Pages
 
-páginas puede registrar elemento-a-página mappings usando `item_id` (uno valor) o `item_ids` (Un lista):
+Pages can register item-to-page mappings using `item_id` (one value) or `item_ids` (a list):
 
 ```yaml
 item_id: "minecraft:potion 16384-16462,!16386 | ae2:white_paint_ball:*"
@@ -200,52 +200,83 @@ item_ids:
   - minecraft:iron_ore#crafting
 ```
 
-These mappings son usado by `<ItemLink>`. `item_id` es uno NEI-style expresión y cada `item_ids`
-entrada es El mismo tipo of expresión. para Ejemplo, `minecraft:potion 16384-16462,!16386` coincide a
-metadatos range except para `16386`, mientras `minecraft:potion 0-16,20-36,!28` combines dos metadatos ranges y
-excludes `28`. `ae2:white_paint_ball:*` es un compatible strict todos-meta mapping.
+These mappings are used by `<ItemLink>`. `item_id` is one NEI-style expression and each `item_ids`
+entry is the same kind of expression. For example, `minecraft:potion 16384-16462,!16386` matches a
+metadata range except for `16386`, while `minecraft:potion 0-16,20-36,!28` combines two metadata ranges and
+excludes `28`. `ae2:white_paint_ball:*` is a compatible strict all-meta mapping.
 
-Un opcional `#anchor` suffix scrolls Un Un específico heading cuando El enlace es clicked.
-El ancla es formed by lowercasing El heading texto y replacing spaces con hyphens
+An optional `#anchor` suffix scrolls to a specific heading when the link is clicked.
+The anchor is formed by lowercasing the heading text and replacing spaces with hyphens
 (e.g. `## Crafting Recipe` → `#crafting-recipe`).
 
-Lookup comportamiento:
+Lookup behavior:
 
-1. exact elemento + exact meta
-2. wildcard-meta reserva Si present
-3. coincidente elemento expresión
+1. exact item + exact meta
+2. wildcard-meta fallback if present
+3. matching item expression
 
-## Heading ancla enlaces
+## Fluid-indexed pages
 
-GuideNH admite heading ancla navigation en Markdown enlaces y `<a>` etiquetas.
-Anchors son derived de heading texto by lowercasing y replacing spaces con hyphens.
+Use `fluid_id` for one fluid or `fluid_ids` for a list; both fields may coexist. Bindings match exact registry names independently of amount and NBT. Append `#anchor` to open a section:
 
-**mismo-página ancla:**
+```yaml
+fluid_id: water
+fluid_ids:
+  - steam#uses
+navigation:
+  title: Fluid handling
+  icon_fluid: water
+```
+
+Bindings serve `<FluidLink>` and the hover-and-hold `G` shortcut. Recognized NEI fluid displays and filled containers are supported; empty containers retain item navigation. Multiple targets open a chooser with fluid pages before container-item pages.
+
+## External content pages
+
+Use `bindings` to index this page by a BetterQuesting quest, Thaumcraft research or another registered content type:
+
+```yaml
+bindings:
+  - {type: "thaumcraft", id: "INFUSION", anchor: "apparatus"}
+  - {type: "betterquesting", id: "01234567-89ab-cdef-0123-456789abcdef", anchor: "quest"}
+```
+
+When several pages or sections reference the same content, GuideNH opens the destination selector used for items. Identical page/anchor pairs merge; different anchors remain selectable. An omitted `anchor` means the top of the page. Full field and quoting rules are in [Frontmatter](Guide-Page-Format#external-content-bindings).
+
+`QuestLink` and `QuestCard` titles open BetterQuesting on left click. Right click opens bound guide destinations and falls back to BetterQuesting when none exist. Research and generic links/cards default to opening bound guides first; their `target` attribute selects the left-click action. See [Tags Reference](Tags-Reference#research-and-custom-content).
+
+Hold the open-guide key (default `G`) while hovering a supported quest button, research entry or content icon to select its bound guides. With no binding, that hotkey does nothing. Mod-specific hover areas and return navigation are described in [Mod Compatibility](Mod-Compatibility).
+
+## Heading Anchor Links
+
+GuideNH supports heading anchor navigation in Markdown links and `<a>` tags.
+Anchors are derived from heading text by lowercasing and replacing spaces with hyphens.
+
+**Same-page anchor:**
 
 ```md
 [Jump to Installation](#installation)
 [Jump to Crafting Recipe](#crafting-recipe)
 ```
 
-**Cross-página ancla:**
+**Cross-page anchor:**
 
 ```md
-[See Getting Started](./Guide-Page-Format#installation)
+[See Getting Started](./getting-started.md#installation)
 [Another guide](other-guide.md#usage)
 ```
 
-**absoluto ruta ancla** (usando El guíUn espacio de nombres, avoids relativo ruta ambiguity en subdirectories):
+**Absolute path anchor** (using the guide namespace, avoids relative path ambiguity in subdirectories):
 
 ```md
 [Absolute link](guidenh:other-guide.md#usage)
 [Any namespace](mymods:crafting/iron.md#smelting)
 ```
 
-El `namespace:path` format resolves Un El guíUn página whose id coincide `namespace:path`.
-esto es identical Un what relativo paths resolver a, but avoids `../` navigation.
-El página debe exist en El mismo guíUn as El enlace origen.
+The `namespace:path` format resolves to the guide page whose id matches `namespace:path`.
+This is identical to what relative paths resolve to, but avoids `../` navigation.
+The target page must be loaded.
 
-**Named inline anchors** puede también ser colocado con `<a name="...">` en MDX:
+**Named inline anchors** can also be placed with `<a name="...">` in MDX:
 
 ```md
 <a name="custom-anchor" />
@@ -255,20 +286,20 @@ El página debe exist en El mismo guíUn as El enlace origen.
 [Jump here](#custom-anchor)
 ```
 
-Navigating Un Un enlace con Un ancla scrolls El guíUn Un El destino heading o named ancla.
+Navigating to a link with an anchor scrolls the guide to the target heading or named anchor.
 
 ## `<SubPages>`
 
-`<SubPages>` renderiza enlaces Un navigation hijos.
+`<SubPages>` renders links to navigation children.
 
-### atributos
+### Attributes
 
-| atributo | tipo | predeterminado | significado |
+| Attribute | Type | Default | Meaning |
 | --- | --- | --- | --- |
-| `id` | página id o vacío cadena | actual página | página whose hijos deberíUn ser listed |
-| `alphabetical` | booleano expresión | `false` | Sort hijos by título en su lugar of navigation orden |
+| `id` | page id or empty string | current page | Page whose children should be listed |
+| `alphabetical` | boolean expression | `false` | Sort children by title instead of navigation order |
 
-### Ejemplos
+### Examples
 
 ````md
 <SubPages />
@@ -276,54 +307,58 @@ Navigating Un Un enlace con Un ancla scrolls El guíUn Un El destino heading o n
 <SubPages id="" alphabetical={true} />
 ````
 
-Special case: `id=""` lists raíz navigation nodes.
+Special case: `id=""` lists root navigation nodes.
 
 ## `<Category>`
 
-`<Category>` renderiza enlaces Un cada página en Un named category.
+`<Category>` renders links to every page in a named category.
 
-### atributos
+### Attributes
 
-| atributo | tipo | predeterminado | significado |
+| Attribute | Type | Default | Meaning |
 | --- | --- | --- | --- |
-| `name` | cadena | none | Category nombre Un renderizan |
-| `rows` | positive entero | `3` | número of mostrar columnas en El MediaWiki-style diseño |
+| `name` | string | none | Category name to render |
+| `rows` | positive integer | `3` | Number of display columns in the MediaWiki-style layout |
 
 ````md
 <Category name="machines" rows="3" />
 ````
 
-Si El category es faltante, GuideNH renderiza Un inline error.
+If the category is missing, GuideNH renders an inline error.
 
-El mismo category también tiene Un auto-generado ocultas searchable página at `Category:machines`.
+The same category also has an auto-generated hidden searchable page at `Category:machines`.
 
 ## `<Special>`
 
-`<Special>` renderiza uno of El built-en MediaWiki-style special página listings.
+`<Special>` renders one of the built-in MediaWiki-style special page listings.
 
-### atributos
+### Attributes
 
-| atributo | tipo | predeterminado | significado |
+| Attribute | Type | Default | Meaning |
 | --- | --- | --- | --- |
-| `name` | cadena | none | Compatible valores: `AllPages`, `Categories` |
-| `rows` | positive entero | `3` | número of mostrar columnas en El MediaWiki-style diseño |
+| `name` | string | none | Special page name; use `SpecialPages` for the catalog, including `AllPages`, `Categories` and `Templates` |
+| `rows` | positive integer | `3` | Number of display columns in the MediaWiki-style layout |
+| `page` | page id | none | Page target for special lists that require one |
+| `prefix` | string | none | Title/page-ID prefix for `AllPagesWithPrefix` |
+| `language` | string | none | Language filter for translation lists |
+| `query` | string | none | List search text |
 
 ````md
 <Special name="AllPages" rows="4" />
 <Special name="Categories" rows="3" />
 ````
 
-El mismo contenido es también disponible a través de El ocultas searchable páginas `Special:AllPages` y `Special:Categories`.
+The same content is also available through the hidden searchable pages `Special:AllPages` and `Special:Categories`.
 
-## búsqueda resultado Titles
+## Search Result Titles
 
-búsqueda titles son derived en esto orden:
+Search titles are derived in this order:
 
 1. `navigation.title`
-2. primero level-1 heading (`# Heading`)
-3. sin procesar página id
+2. first level-1 heading (`# Heading`)
+3. raw page id
 
-## Related páginas
+## Related Pages
 
 - [Guide Page Format](Guide-Page-Format)
 - [Search](Search)

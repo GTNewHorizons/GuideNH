@@ -25,8 +25,11 @@
   "navigation": {
     "open": "Nawigacja",
     "close": "Zamknij nawigację",
-    "holdToOpenGuide": "Przytrzymaj G, aby otworzyć poradnik"
+    "holdToOpenGuide": "Przytrzymaj G, aby otworzyć poradnik",
+    "chooseGuide": "Wybierz stronę poradnika",
+    "closeChooser": "Zamknij wybór strony"
   },
+  "binding.nativeSite": "Otwórz ten poradnik w GuideNH, aby zobaczyć zawartość w grze.",
   "sceneLoading": {
     "error": "Nie można załadować sceny 3D.",
     "retry": "Spróbuj ponownie",

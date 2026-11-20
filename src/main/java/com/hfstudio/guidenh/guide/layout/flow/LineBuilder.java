@@ -14,8 +14,8 @@ import com.hfstudio.guidenh.guide.color.ConstantColor;
 import com.hfstudio.guidenh.guide.document.DefaultStyles;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.block.LytBlock;
+import com.hfstudio.guidenh.guide.document.block.LytIconImage;
 import com.hfstudio.guidenh.guide.document.block.LytImage;
-import com.hfstudio.guidenh.guide.document.block.LytItemImage;
 import com.hfstudio.guidenh.guide.document.flow.InlineBlockAlignment;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowAnchor;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowBreak;
@@ -59,7 +59,9 @@ public class LineBuilder implements Consumer<LytFlowContent> {
     private final StringBuilder lineBuffer = new StringBuilder();
     private float[] lineBufferPrefixWidths = new float[64];
 
-    /** Reusable CharacterIterator wrapping {@link #lineBuffer} to avoid String allocation in BreakIterator. */
+    /**
+     * Reusable CharacterIterator wrapping {@link #lineBuffer} to avoid String allocation in BreakIterator.
+     */
     private final StringBuilderCharIterator charIterator = new StringBuilderCharIterator();
 
     /**
@@ -99,7 +101,6 @@ public class LineBuilder implements Consumer<LytFlowContent> {
         } else if (content instanceof LytFlowInlineBlock inlineBlock) {
             appendInlineBlock(inlineBlock);
         } else if (content instanceof LytFlowAnchor anchor) {
-            // Simply set the current layout position for the anchor
             anchor.setLayoutY(lineBoxY);
         } else {
             throw new IllegalArgumentException("Don't know how to layout flow content: " + content);
@@ -303,6 +304,7 @@ public class LineBuilder implements Consumer<LytFlowContent> {
      */
     private boolean iterateRuns(CharSequence text, ResolvedTextStyle style, char lastChar, LineConsumer consumer) {
         float curLineWidth = 0;
+        int runPadding = style.inlineCode() ? LineTextRun.INLINE_CODE_EXTRA_WIDTH : 0;
 
         lineBuffer.setLength(0);
         lineBufferPrefixWidths[0] = 0f;
@@ -356,6 +358,8 @@ public class LineBuilder implements Consumer<LytFlowContent> {
                     lineBuffer.setLength(0);
                     lineBufferPrefixWidths[0] = 0f;
                     wordBreakOffset = -1;
+                    curLineWidth = 0;
+                    visibleGlyphSeen = false;
                     lastCharWasWhitespace = true;
                     remainingLineWidth = getAvailableHorizontalSpace();
                     continue;
@@ -374,7 +378,7 @@ public class LineBuilder implements Consumer<LytFlowContent> {
 
             var advance = context.getRenderedAdvance(codePoint, style, visibleGlyphSeen);
             // Break line if necessary
-            if (curLineWidth + advance > remainingLineWidth) {
+            if (curLineWidth + advance + runPadding > remainingLineWidth) {
                 int precedingBreakOpportunity;
 
                 // BreakIterator will only ever break *AFTER* whitespace, but since we ignore the last break opportunity
@@ -385,11 +389,12 @@ public class LineBuilder implements Consumer<LytFlowContent> {
                     // Find break opportunities and include the current character in it.
                     // Append the char temporarily to avoid a string-concatenation allocation.
                     var breakIterator = LINE_BREAK_ITERATOR.get();
-                    lineBuffer.append((char) codePoint);
+                    int bufferLength = lineBuffer.length();
+                    lineBuffer.appendCodePoint(codePoint);
                     charIterator.reset(lineBuffer);
                     breakIterator.setText(charIterator);
                     precedingBreakOpportunity = breakIterator.preceding(lineBuffer.length());
-                    lineBuffer.setLength(lineBuffer.length() - 1);
+                    lineBuffer.setLength(bufferLength);
                     // An explicit <wbr> later in the word wins over the last natural opportunity.
                     precedingBreakOpportunity = Math.max(precedingBreakOpportunity, wordBreakOffset);
                 }
@@ -397,8 +402,9 @@ public class LineBuilder implements Consumer<LytFlowContent> {
                 // If the preceding text chunk ended on a whitespace, we can break there if the
                 // current word does not offer us any opportunity to.
                 boolean lineBufferHasVisibleGlyph = containsVisibleGlyph(lineBuffer);
-                if (lineBufferHasVisibleGlyph && (precedingBreakOpportunity > 0
-                    || precedingBreakOpportunity == 0 && (canBreakAtStart || wordBreakOffset == 0))) {
+                if (lineBufferHasVisibleGlyph
+                    && (precedingBreakOpportunity > 0 || precedingBreakOpportunity == 0 && openLineElement != null
+                        && (canBreakAtStart || wordBreakOffset == 0))) {
                     // Determine width up until the break opportunity.
                     float widthAtBreakOpportunity = lineBufferPrefixWidths[precedingBreakOpportunity];
 
@@ -424,7 +430,7 @@ public class LineBuilder implements Consumer<LytFlowContent> {
                         // Text glued to an inline image (e.g. punctuation after an item link) takes it along
                         moveGluedTailToNextLine(true);
                     }
-                    ensureTextSpaceIsAvailable(advance);
+                    ensureTextSpaceIsAvailable(advance + runPadding);
 
                     // If no wider lane exists (for example, a genuinely narrow table cell), keep
                     // the glyph in the line rather than emitting an empty line and dropping it.
@@ -435,7 +441,7 @@ public class LineBuilder implements Consumer<LytFlowContent> {
                 } else {
                     // The word touches an inline image at the end of the line (e.g. an item link's icon):
                     // wrap them together instead of splitting the word.
-                    if (moveGluedTailToNextLine(true) && curLineWidth + advance <= remainingLineWidth) {
+                    if (moveGluedTailToNextLine(true) && curLineWidth + advance + runPadding <= remainingLineWidth) {
                         curLineWidth += advance;
                         appendCodePointToLineBuffer(codePoint, advance);
                         visibleGlyphSeen = visibleGlyphSeen || advance > 0f;
@@ -645,7 +651,6 @@ public class LineBuilder implements Consumer<LytFlowContent> {
         int actualRight = lineBoxX;
         for (var el = openLineElement; el != null; el = el.next) {
             el.bounds = el.bounds.move(xTranslation, yTranslation);
-            // Ensure that inline blocks update their blocks absolute position
             if (el instanceof LineBlock lineBlock) {
                 lineBlock.layoutBlock(context, el.bounds.width());
             }
@@ -713,7 +718,7 @@ public class LineBuilder implements Consumer<LytFlowContent> {
     }
 
     private int getInlineImageYOffset(LineElement element) {
-        if (element instanceof LineBlock lineBlock && lineBlock.getBlock() instanceof LytItemImage itemImage) {
+        if (element instanceof LineBlock lineBlock && lineBlock.getBlock() instanceof LytIconImage itemImage) {
             return itemImage.getInlineVerticalOffset();
         }
         return 0;
@@ -725,7 +730,7 @@ public class LineBuilder implements Consumer<LytFlowContent> {
 
     private static boolean isInlineImage(LytBlock block) {
         return block instanceof LytImage
-            || block instanceof LytItemImage itemImage && itemImage.isInline() && itemImage.isShowingIcon();
+            || block instanceof LytIconImage itemImage && itemImage.isInline() && itemImage.isShowingIcon();
     }
 
     /**
@@ -898,7 +903,9 @@ public class LineBuilder implements Consumer<LytFlowContent> {
         private int end;
         private int pos;
 
-        /** Points this iterator at the full content of {@code buf}. */
+        /**
+         * Points this iterator at the full content of {@code buf}.
+         */
         public void reset(StringBuilder buf) {
             this.sb = buf;
             this.begin = 0;

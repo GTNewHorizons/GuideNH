@@ -394,14 +394,8 @@ public class StructureLibSceneMetadata {
         }
 
         /**
-         * A defensive copy of candidate stacks.
-         *
-         * <p>
-         * Copying an {@link ItemStack} makes Forge run capability collection on it, which dominates the cost
-         * of building tooltip metadata, so a list is only copied when it is not already detached. The
-         * metadata builder hands over lists whose every stack it created itself, so the list and its
-         * contents are already owned here; re-copying them would pay the capability cost a second time for
-         * no benefit.
+         * Copies stacks unless the builder already detached and transferred ownership of the list. Avoids
+         * repeating Forge capability collection for stacks already owned by this metadata.
          */
         static List<ItemStack> immutableStacks(@Nullable List<ItemStack> stacks, boolean alreadyDetached) {
             if (stacks == null || stacks.isEmpty()) return List.of();

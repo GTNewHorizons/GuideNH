@@ -9,33 +9,8 @@ import com.hfstudio.guidenh.guide.render.RenderContext;
 import lombok.Getter;
 
 /**
- * A document-level float block that wraps an inner block and registers it as a left-side or
- * right-side CSS-style float in the shared {@link LayoutContext}.
- *
- * <p>
- * Subsequent paragraphs and flow-containers that are laid out with the same
- * {@link LayoutContext} will automatically wrap their text around the floated content, because
- * the float bounds are visible to every call to
- * {@link LayoutContext#getLeftFloatRightEdge()} /
- * {@link LayoutContext#getRightFloatLeftEdge()}.
- *
- * <p>
- * This block always reports <em>zero height</em> so that the next block in the document
- * begins at the same vertical position as the float. The inner content visually extends
- * downward into the following paragraphs, exactly like CSS {@code float: left / right}.
- *
- * <p>
- * Example — left-floating GameScene that surrounding text wraps around:
- * 
- * <pre>
- * {@code
- * <GameScene wrap="square" align="left" width="200" height="150">
- *   <Block id="minecraft:stone" />
- * </GameScene>
- *
- * Some paragraph text that will flow to the right of the scene...
- * }
- * </pre>
+ * Registers left or right float bounds in the shared LayoutContext so subsequent text wraps around its
+ * content. Reports zero height to let the following block start beside the float.
  */
 @Getter
 public class LytDocumentFloat extends LytBlock {

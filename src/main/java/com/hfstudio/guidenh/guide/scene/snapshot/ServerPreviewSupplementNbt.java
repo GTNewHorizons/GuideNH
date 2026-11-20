@@ -19,7 +19,9 @@ public class ServerPreviewSupplementNbt {
 
     protected ServerPreviewSupplementNbt() {}
 
-    /** Current on-disk wire for per-supplement sub-compounds. */
+    /**
+     * Current on-disk wire for per-supplement sub-compounds.
+     */
     public static final int STRUCTURE_WIRE_V1 = 1;
 
     public static void putSupplement(NBTTagCompound structureBlock, String supplementId, byte[] rawPayload) {

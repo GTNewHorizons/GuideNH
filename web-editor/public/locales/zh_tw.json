@@ -76,6 +76,7 @@
     "previewPending": "正在準備預覽配接器",
     "navigationRuntime": "導覽資料可在執行階段使用。",
     "tooltipRuntime": "預覽資料可在執行階段使用。",
+    "binding.nativeSite": "請在 GuideNH 中開啟此指南以查看原生內容。",
     "runtimeData": "執行階段資料",
     "runtimePreview": "執行階段預覽",
     "sceneRuntime": "3D 場景可在執行階段使用",

@@ -35,10 +35,9 @@ StructureLib 默认值可以写成子标签，点击 reset view 时会恢复这�
 
 将光标移到 StructureLib 结构方块上可以看到额外的结构说明；按住 `Shift` 会展开候选替换方块。如果该结构提供仓室或信道元数据，还会自动出现仓室高亮按钮和底部滑条。
 
-`facing`、`rotation` 和 `flip` 使用与 StructureLib 导出一致的朝向词汇。如果控制器不允许请求的组合，GuideNH 会自动回退到第一个有效对齐。GregTech 控制器预览的默认朝向也已经相对旧预览方向绕 Y 轴旋转 180 度。
+`facing`、`rotation` 和 `flip` 使用与 StructureLib 导出一致的朝向词汇。如果控制器不允许请求的组合，GuideNH 会自动回退到第一个有效对齐。
 
-如果某个控制器即使周围结构完整也需要保持未成型，可添加 `formed={false}`。目前最常见的内置示例
-仍然是 GregTech 控制器。
+GregTech 控制器默认保持未成型，即使周围结构完整。需要展示成型状态时，设置 `formed={true}`。
 
 控制器默认未成型的预览示例：
 
@@ -120,7 +119,7 @@ StructureLib 默认值可以写成子标签，点击 reset view 时会恢复这�
   <ReplaceBlock from="minecraft:cobblestone" to="minecraft:brick_block" x="1" y="0" z="1" dx="3" dy="1" dz="3" />
 </GameScene>
 
-使用 `from_nbt` 可进一步将匹配范围缩小到 TileEntity NBT 中包含特定键的方块；使用 `to_nbt`
+使用 `fromNbt` 可进一步将匹配范围缩小到 TileEntity NBT 中包含特定键的方块；使用 `toNbt`
 可为替换后的方块指定 TileEntity 数据。如果替换结果里包含控制器，`formed={false}` 可以让这些
 控制器继续保持未成型。
 

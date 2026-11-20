@@ -17,6 +17,8 @@ public class SceneEditorMultilineTextLayoutCache {
     private int contentWidthPixels;
     @Getter
     private int contentHeightPixels;
+    @Getter
+    private long revision;
 
     public void rebuild(String text, FontRenderer fontRenderer, int textWidth, boolean wrapEnabled, int lineHeight) {
         visualLines.clear();
@@ -44,6 +46,7 @@ public class SceneEditorMultilineTextLayoutCache {
 
         readonlyVisualLines = List.copyOf(new ArrayList<>(visualLines));
         contentHeightPixels = visualLines.size() * Math.max(0, lineHeight);
+        revision++;
     }
 
     public List<VisualLine> getVisualLines() {

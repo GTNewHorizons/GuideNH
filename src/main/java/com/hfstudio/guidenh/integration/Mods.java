@@ -17,6 +17,8 @@ public enum Mods implements IMod, ITargetMod {
     NotEnoughItems("NotEnoughItems"),
     NeiCustomDiagram("neicustomdiagram"),
     BetterQuesting("betterquesting"),
+    Thaumcraft("Thaumcraft"),
+    AspectRecipeIndex("aspectrecipeindex"),
     StructureLib("structurelib"),
     AE2("appliedenergistics2"),
     GregTech("gregtech"),
@@ -36,6 +38,7 @@ public enum Mods implements IMod, ITargetMod {
     TinkersConstruct("TConstruct"),
     BlockRenderer6343("blockrenderer6343"),
     Angelica("angelica"),
+    ServerUtilities("serverutilities"),
     ;
     // spotless:on
 

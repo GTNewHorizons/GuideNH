@@ -14,18 +14,28 @@ import net.minecraft.client.gui.FontRenderer;
  */
 public interface SceneEditorMenuWidgetContext {
 
-    /** Returns the active Minecraft client instance. */
+    /**
+     * Returns the active Minecraft client instance.
+     */
     Minecraft minecraft();
 
-    /** Returns the font renderer used by the editor menu. */
+    /**
+     * Returns the font renderer used by the editor menu.
+     */
     FontRenderer fontRenderer();
 
-    /** Draws a filled, half-open rectangle. */
+    /**
+     * Draws a filled, half-open rectangle.
+     */
     void drawRect(int left, int top, int right, int bottom, int color);
 
-    /** Draws a one-pixel border around a rectangle. */
+    /**
+     * Draws a one-pixel border around a rectangle.
+     */
     void drawBorder(int left, int top, int width, int height, int color);
 
-    /** Draws a string at the supplied pixel position. */
+    /**
+     * Draws a string at the supplied pixel position.
+     */
     void drawString(String text, int x, int y, int color);
 }

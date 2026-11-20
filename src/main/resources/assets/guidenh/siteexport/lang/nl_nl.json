@@ -25,8 +25,11 @@
   "navigation": {
     "open": "Navigatie",
     "close": "Navigatie sluiten",
-    "holdToOpenGuide": "Houd G ingedrukt om de gids te openen"
+    "holdToOpenGuide": "Houd G ingedrukt om de gids te openen",
+    "chooseGuide": "Een gidspagina kiezen",
+    "closeChooser": "Paginakeuze sluiten"
   },
+  "binding.nativeSite": "Open deze gids in GuideNH om de inhoud in het spel te bekijken.",
   "sceneLoading": {
     "error": "De 3D-scène kon niet worden geladen.",
     "retry": "Opnieuw proberen",

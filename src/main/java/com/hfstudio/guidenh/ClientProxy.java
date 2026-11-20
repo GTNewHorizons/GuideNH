@@ -3,6 +3,7 @@ package com.hfstudio.guidenh;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.IReloadableResourceManager;
 import net.minecraftforge.client.ClientCommandHandler;
+import net.minecraftforge.client.event.GuiOpenEvent;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.world.WorldEvent;
 
@@ -24,13 +25,17 @@ import com.hfstudio.guidenh.guide.internal.GuideME;
 import com.hfstudio.guidenh.guide.internal.GuideOnStartup;
 import com.hfstudio.guidenh.guide.internal.GuideReloadListener;
 import com.hfstudio.guidenh.guide.internal.compile.CompileWorker;
+import com.hfstudio.guidenh.guide.internal.fluid.FluidCatalog;
 import com.hfstudio.guidenh.guide.internal.host.LytHost;
 import com.hfstudio.guidenh.guide.internal.host.LytHostWorkItem;
+import com.hfstudio.guidenh.guide.internal.host.scripts.BindingScript;
 import com.hfstudio.guidenh.guide.internal.host.scripts.BlockImageScript;
 import com.hfstudio.guidenh.guide.internal.host.scripts.CategoryScript;
 import com.hfstudio.guidenh.guide.internal.host.scripts.CommandLinkScript;
 import com.hfstudio.guidenh.guide.internal.host.scripts.CsvTableScript;
 import com.hfstudio.guidenh.guide.internal.host.scripts.FloatingImageScript;
+import com.hfstudio.guidenh.guide.internal.host.scripts.FluidImageScript;
+import com.hfstudio.guidenh.guide.internal.host.scripts.FluidLinkScript;
 import com.hfstudio.guidenh.guide.internal.host.scripts.ImageScript;
 import com.hfstudio.guidenh.guide.internal.host.scripts.ItemGridScript;
 import com.hfstudio.guidenh.guide.internal.host.scripts.ItemImageScript;
@@ -62,7 +67,10 @@ import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.integration.GuideNhClientIntegrationBootstrap;
 import com.hfstudio.guidenh.integration.Mods;
 import com.hfstudio.guidenh.integration.ae2.network.Ae2NetworkRegistration;
+import com.hfstudio.guidenh.integration.api.GuideNhIntegrationRegistry;
 import com.hfstudio.guidenh.integration.nei.GuideScreenNeiBridge;
+import com.hfstudio.guidenh.integration.thaumcraft.ThaumcraftBindingProvider;
+import com.hfstudio.guidenh.integration.thaumcraft.ThaumcraftResearchNavigation;
 import com.hfstudio.guidenh.network.GuideNhClientBridgeHandler;
 import com.hfstudio.guidenh.network.GuideNhClientBridgeMessage;
 import com.hfstudio.guidenh.network.GuideNhNetwork;
@@ -74,6 +82,7 @@ import cpw.mods.fml.common.event.FMLInitializationEvent;
 import cpw.mods.fml.common.event.FMLLoadCompleteEvent;
 import cpw.mods.fml.common.event.FMLPostInitializationEvent;
 import cpw.mods.fml.common.event.FMLPreInitializationEvent;
+import cpw.mods.fml.common.eventhandler.EventPriority;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.network.FMLNetworkEvent;
 import cpw.mods.fml.relauncher.Side;
@@ -122,6 +131,8 @@ public class ClientProxy extends CommonProxy {
         ((IReloadableResourceManager) Minecraft.getMinecraft()
             .getResourceManager()).registerReloadListener(new GuideReloadListener());
         DefaultGuideResourcePackManager.init();
+        ((IReloadableResourceManager) Minecraft.getMinecraft()
+            .getResourceManager()).registerReloadListener(FluidCatalog.INSTANCE);
         ClientCommandHandler.instance.registerCommand(new GuideNhClientCommand());
         StructureExportBootstrap.registerClientCommands();
         GuideNhClientBridgeController.init();
@@ -143,7 +154,6 @@ public class ClientProxy extends CommonProxy {
         MasterScheduler.getInstance()
             .submit(new ElkWarmupWorkItem());
 
-        // Phase 3: LytScript registrations
         lytHost.registerScript("CommandLink", new CommandLinkScript());
         lytHost.registerScript("Img", new ImageScript());
         lytHost.registerScript("FloatingImage", new FloatingImageScript());
@@ -157,6 +167,8 @@ public class ClientProxy extends CommonProxy {
         lytHost.registerScript("ItemGrid", new ItemGridScript());
         lytHost.registerScript("ItemImage", new ItemImageScript());
         lytHost.registerScript("ItemLink", new ItemLinkScript());
+        lytHost.registerScript("FluidImage", new FluidImageScript());
+        lytHost.registerScript("FluidLink", new FluidLinkScript());
         lytHost.registerScript("Category", new CategoryScript());
         lytHost.registerScript("Special", new SpecialScript());
         lytHost.registerScript("BlockImage", new BlockImageScript());
@@ -164,11 +176,10 @@ public class ClientProxy extends CommonProxy {
         lytHost.registerScript("Mermaid", new MermaidScript());
         lytHost.registerScript("QuestLink", new QuestLinkScript());
         lytHost.registerScript("QuestCard", new QuestCardScript());
-        // Phase 3: SceneScript handles Scene and GameScene
+        lytHost.registerScript("Binding", new BindingScript());
         SceneScript sceneScript = new SceneScript();
         lytHost.registerScript("Scene", sceneScript);
         lytHost.registerScript("GameScene", sceneScript);
-        // Phase 3: RecipeScript handles Recipe, Usage, RecipeFor, RecipeUsage, RecipesFor, RecipesUsage
         RecipeScript recipeScript = new RecipeScript();
         lytHost.registerScript("Recipe", recipeScript);
         lytHost.registerScript("Usage", recipeScript);
@@ -228,6 +239,11 @@ public class ClientProxy extends CommonProxy {
             .clear();
     }
 
+    @SubscribeEvent(priority = EventPriority.LOWEST)
+    public void onGuiOpened(GuiOpenEvent event) {
+        if (Mods.Thaumcraft.isModLoaded()) ThaumcraftResearchNavigation.onGuiOpened(event.gui);
+    }
+
     @SubscribeEvent
     public void onClientWorldUnload(WorldEvent.Unload event) {
         if (!event.world.isRemote) {
@@ -237,14 +253,19 @@ public class ClientProxy extends CommonProxy {
     }
 
     /**
-     * WorldClient is reachable from tile entities, entities, RenderBlocks, and the preview
-     * player. Clear all GuideNH-owned links at both lifecycle boundaries; the operation is
-     * intentionally idempotent because Forge can emit unload and disconnect in either order.
+     * Releases client references to preview worlds on unload and disconnect. Idempotent because Forge may emit
+     * either event first.
      */
     private static void clearClientRuntimeState(String reason) {
         if (!GuideNhClientTaskScheduler.isOnClientThread()) {
             GuideNhClientTaskScheduler.execute(() -> clearClientRuntimeState(reason));
             return;
+        }
+        if (Mods.Thaumcraft.isModLoaded()) {
+            ThaumcraftResearchNavigation.clear();
+            var provider = GuideNhIntegrationRegistry.global()
+                .bindingProvider("thaumcraft");
+            if (provider instanceof ThaumcraftBindingProvider thaumcraft) thaumcraft.invalidate();
         }
         GuidebookLevel.releaseAllRuntimeWorlds();
         GuidebookLevelRenderer.getInstance()

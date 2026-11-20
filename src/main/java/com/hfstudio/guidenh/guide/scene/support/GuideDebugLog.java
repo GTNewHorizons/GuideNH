@@ -128,6 +128,9 @@ public class GuideDebugLog {
 
     public static void warn(@Nullable CharSequence message, Object... args) {
         if (!isEnabled()) {
+            if (activeDiagnostics != null && message != null && message.length() > 0) {
+                record(DiagnosticLevel.WARNING, message.toString(), args);
+            }
             return;
         }
         warnAlways(message, args);
@@ -198,12 +201,7 @@ public class GuideDebugLog {
             || (context == null && Thread.currentThread() != collector.owner)) {
             return;
         }
-        ParameterizedMessage formatted = new ParameterizedMessage(message, args);
-        String rendered = formatted.getFormattedMessage();
-        if (formatted.getThrowable() != null) {
-            rendered += " (cause: " + formatted.getThrowable() + ")";
-        }
-        collector.add(level, withContext(rendered));
+        collector.add(level, message, args);
     }
 
     private enum DiagnosticLevel {
@@ -213,22 +211,27 @@ public class GuideDebugLog {
 
     private static class DiagnosticCollector {
 
+        private static final int MAX_RECORDED_DIAGNOSTICS = 256;
         private final Thread owner = Thread.currentThread();
         private final List<Diagnostic> entries = new ArrayList<>();
         private int warningCount;
         private int errorCount;
 
-        private synchronized void add(DiagnosticLevel level, String message) {
-            entries.add(new Diagnostic(level, message));
+        private synchronized void add(DiagnosticLevel level, String message, Object... args) {
             if (level == DiagnosticLevel.ERROR) {
                 errorCount++;
             } else {
                 warningCount++;
             }
-        }
-
-        private synchronized List<Diagnostic> snapshot() {
-            return List.copyOf(entries);
+            if (entries.size() >= MAX_RECORDED_DIAGNOSTICS) {
+                return;
+            }
+            ParameterizedMessage formatted = new ParameterizedMessage(message, args);
+            String rendered = formatted.getFormattedMessage();
+            if (formatted.getThrowable() != null) {
+                rendered += " (cause: " + formatted.getThrowable() + ")";
+            }
+            entries.add(new Diagnostic(level, withContext(rendered)));
         }
 
         private synchronized DiagnosticSummary summary() {

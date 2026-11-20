@@ -8,6 +8,7 @@ import net.minecraft.client.gui.FontRenderer;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.input.Keyboard;
 
+import com.hfstudio.guidenh.guide.internal.debug.DebugComponent;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider.AutocompleteCandidate;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver.CompositeResolver;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver.MarkdownSyntaxResolver;
@@ -19,8 +20,10 @@ import com.hfstudio.guidenh.guide.syntax.GuideSyntaxModel;
 import com.hfstudio.guidenh.guide.syntax.SyntaxEnvironment;
 import com.hfstudio.guidenh.guide.syntax.SyntaxSelection;
 
-/** Owns the guide editor's syntax completion session: it resolves what the cursor is inside, asks the guide's. */
-public class GuideEditorAutocompleteController {
+/**
+ * Owns the guide editor's syntax completion session: it resolves what the cursor is inside, asks the guide's.
+ */
+public class GuideEditorAutocompleteController implements DebugComponent {
 
     public enum KeyResult {
         IGNORED,
@@ -172,6 +175,11 @@ public class GuideEditorAutocompleteController {
         popup.draw(fontRenderer, mouseX, mouseY);
     }
 
+    @Override
+    public List<DebugComponent.ComponentEntry> getDebugComponents() {
+        return popup.getDebugComponents();
+    }
+
     public KeyResult handleKey(String text, char typedChar, int keyCode) {
         if (!popup.isOpen()) {
             return KeyResult.IGNORED;
@@ -222,8 +230,18 @@ public class GuideEditorAutocompleteController {
             return true;
         }
         popup.mouseClicked(mouseX, mouseY);
-        acceptSelected(text);
+        if (!popup.isDraggingScrollbar()) {
+            acceptSelected(text);
+        }
         return true;
+    }
+
+    public boolean handleMouseDragged(int mouseX, int mouseY, int button) {
+        return popup.mouseDragged(mouseX, mouseY, button);
+    }
+
+    public boolean handleMouseReleased(int button) {
+        return popup.mouseReleased(button);
     }
 
     public boolean handleWheel(int mouseX, int mouseY, int wheelDelta) {

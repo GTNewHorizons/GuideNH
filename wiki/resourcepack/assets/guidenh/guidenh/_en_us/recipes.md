@@ -9,11 +9,17 @@ categories:
 
 # Recipes
 
-`<Recipe>`, `<RecipeFor>`, and `<RecipesFor>` widget tests.
+Examples show recipes, usages and filters for items and fluids.
 
 > Recipe boxes are rendered by NEI's native handlers — crafting table, furnace, brewing stand, etc. all show their own background/animation. Without NEI, we fall back to a built-in 3x3 crafting display.
 
-The small icon in the top-left shows which "recipe pool" the entry belongs to (sourced from `GuiRecipeTab.handlerMap`).
+The small icon in the top-left shows which "recipe pool" the entry belongs to.
+
+## Native fluid recipes
+
+<RecipeFor fluid="steam" fallbackText="No fluid recipe provider is available." />
+
+<RecipesUsage fluid="water" inputFluid="water&amp;!lava" limit="3" fallbackText="No fluid usage provider is available." />
 
 ## Basic Examples
 
@@ -159,7 +165,7 @@ A page's own `handlerBlacklist` is added to the configured one, so a page can hi
 
 **Ore dictionary `ore` attribute:**
 
-- First match item: <ItemImage ore="ingotIron" /> iron ingot via ore name
+- First match item: <ItemImage id="minecraft:iron_ingot" ore="ingotIron" /> iron ingot via ore name
 - First match text link: <ItemLink ore="stickWood" />
 - Block preview: <BlockImage ore="logWood" scale="3" />
 - `ore` takes precedence over `id`: <ItemImage id="minecraft:apple" ore="gemDiamond" />
@@ -171,31 +177,7 @@ A page's own `handlerBlacklist` is added to the configured one, so a page can hi
 
 ## Inline NEI recipe links
 
-Use a custom action link to open NEI from prose without rendering a recipe card. This follows the existing `&[label](sound:...)` convention.
-
-```md
-&[Check all Coke Oven recipes](nei:handler?handlerId=gt.recipe.cokeoven)
-&[Check recipes](nei:recipes?id=minecraft:iron_ingot)
-&[Check usages](nei:usage?id=gregtech:gt.blockmachines:236&handlerId=gt.recipe.cokeoven)
-
-<NeiRecipeLink handlerId="gt.recipe.cokeoven">Check NEI</NeiRecipeLink>
-<NeiRecipeLink id="minecraft:iron_ingot">Check **recipes**</NeiRecipeLink>
-<NeiRecipeLink mode="usage" id="gregtech:gt.blockmachines:236" handlerId="gt.recipe.cokeoven" title="NEI">Check usages</NeiRecipeLink>
-
-&[Book recipes with SNBT](nei:recipes?id=minecraft:written_book:0:%7Btitle:%22Guide%2BNEI%22%2Cauthor:GuideNH%7D)
-```
-
-`handler` requires `handlerId` and forbids `id`; it opens every recipe in the selected handler. `recipes` requires `id` and opens recipes producing that item. `usage` requires `id` and opens usages including catalyst behavior, regardless of Ctrl. The latter two modes accept an optional `handlerId` filter.
-
-`<NeiRecipeLink>` accepts only `id`, `handlerId`, `mode`, and optional tooltip `title`. Without `mode`, an `id` selects `recipes`; otherwise it selects `handler`. Visible inline children are required. Use the tag for rich formatting; custom action labels are plain text.
-
-Handler selection matches the exact overlay identifier or handler ID, case-insensitively. Unlike the existing recipe-card `handlerId` filter, it does not use a class-name substring fallback. Normal and serial handlers are included; categories sharing a Java class remain distinct.
-
-Item IDs use the current page namespace when omitted and retain registry-name casing, metadata and SNBT. Wildcard metadata uses the existing concrete-stack rules; it does not request every metadata variant. URI values are decoded once as strict UTF-8; literal `+` stays `+`. Percent-encode SNBT and reserved characters such as `&`, `#`, `%`, `?`, and `)`.
-
-Duplicate or unknown query parameters, invalid escapes, fragments, unsupported modes, conflicting attributes, and missing targets produce authoring errors. Only ampersand actions and `<NeiRecipeLink>` are NEI entry points; ordinary, reference, and HTML-anchor links are not aliases, and `nei://` is unsupported.
-
-Items and NEI recipes are resolved only on click. Missing NEI or an empty result leaves the guide open and reports a localized message. Web Editor, exported sites and IDE previews show inactive text with an explanation to open the guide in GuideNH.
+Action links open every recipe in a handler, recipes producing an item, or item usages. Use `<NeiRecipeLink>` for formatted labels and enter an exact NEI identifier for `handlerId`.
 
 &[Check all Coke Oven recipes](nei:handler?handlerId=gt.recipe.cokeoven)
 
@@ -205,6 +187,8 @@ Items and NEI recipes are resolved only on click. Missing NEI or an empty result
 
 <NeiRecipeLink id="minecraft:iron_ingot" title="NEI">Check **recipes**</NeiRecipeLink>
 
-An item icon can be the complete clickable content:
+<NeiRecipeLink mode="usage" id="gregtech:gt.blockmachines:236" handlerId="gt.recipe.cokeoven">Check usages</NeiRecipeLink>
 
-<NeiRecipeLink id="minecraft:iron_ingot"><ItemImage id="minecraft:iron_ingot" /></NeiRecipeLink>
+Percent encode SNBT and reserved characters in URI values; a literal `+` remains unchanged:
+
+&[Book recipes with SNBT](nei:recipes?id=minecraft:written_book:0:%7Btitle:%22Guide%2BNEI%22%2Cauthor:GuideNH%7D)

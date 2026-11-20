@@ -1,58 +1,55 @@
-# GameScene
+# 3D-сцени
 
-Ця документація описує синтаксис і функції виконання GuideNH. Код, теги, шляхи, ідентифікатори та значення атрибутів збережено без змін.
+Докладний довідник на цій сторінці доступний англійською. Назви тегів, атрибути, ідентифікатори та шляхи потрібно використовувати без перекладу.
 
+`<GameScene>` is GuideNH's 3D preview tag. `<Scene>` is an alias with the same behavior.
 
-`<GameScene>` is GuideNH's 3D перегляд тег. `<Scene>` is alias з  той самий поведінка.
+## Scene Attributes
 
-## Атрибути сцени
-
-| Атрибут | Тип | Типове | Значення |
+| Attribute | Type | Default | Meaning |
 | --- | --- | --- | --- |
-| `width` | ціле число | `256` | viewport ширина in пікселі |
-| `height` | ціле число | `192` | viewport висота in пікселі |
-| `zoom` | число з плаваючою комою | `1.0` | камера масштаб multiplier |
-| `perspective` | рядок | `isometric-north-east` | камера preset |
-| `rotateX` | число з плаваючою комою | auto | явний X обертання перевизначати |
-| `rotateY` | число з плаваючою комою | auto | явний Y обертання перевизначати |
-| `rotateZ` | число з плаваючою комою | auto | явний Z обертання перевизначати |
-| `offsetX` | число з плаваючою комою | auto | простір екрана horizontal pan |
-| `offsetY` | число з плаваючою комою | auto | простір екрана vertical pan |
-| `centerX` | число з плаваючою комою | auto | явний світ обертання центр X |
-| `centerY` | число з плаваючою комою | auto | явний світ обертання центр Y |
-| `centerZ` | число з плаваючою комою | auto | явний світ обертання центр Z |
-| `interactive` | логічне значення вираз | `true` | enables mouse interaction |
-| `showBackground` | логічне значення вираз | `true` | shows  сцена тло fill і межа |
-| `allowLayerSlider` | логічне значення | `true` | shows  vertical layer slider |
-| `gridButtonEnabled` | логічне значення | `true` | shows  floor grid toggle button |
-| `showGrid` | логічне значення | `false` | початковий видимість of  floor grid |
+| `width` | integer | `256` | viewport width in pixels |
+| `height` | integer | `192` | viewport height in pixels |
+| `zoom` | float | `1.0` | camera zoom multiplier |
+| `perspective` | string | `isometric-north-east` | camera preset |
+| `rotateX` | float | auto | explicit X rotation override |
+| `rotateY` | float | auto | explicit Y rotation override |
+| `rotateZ` | float | auto | explicit Z rotation override |
+| `offsetX` | float | auto | screen-space horizontal pan |
+| `offsetY` | float | auto | screen-space vertical pan |
+| `centerX` | float | auto | explicit world rotation center X |
+| `centerY` | float | auto | explicit world rotation center Y |
+| `centerZ` | float | auto | explicit world rotation center Z |
+| `interactive` | boolean expression | `true` | enables mouse interaction |
+| `showBackground` | boolean expression | `true` | shows the scene background fill and border |
+| `allowLayerSlider` | boolean | `true` | shows the vertical layer slider |
+| `gridButtonEnabled` | boolean | `true` | shows the floor grid toggle button |
+| `showGrid` | boolean | `false` | initial visibility of the floor grid |
 
-## Накладка статистики блоків
+## Block Statistics Overlay
 
-сцени який містити блоки enable  блок-stat toggle button by Типове. Додайте a `<BlockStats>`
-дочірній елемент коли you want до перевизначати його режим, placement, filters, видимість, або розмір.  список is
-cached і лише rebuilt коли  сцена блоки, Анімація Ponder timeline стан, StructureLib вибір, або
-блок-stat settings змінити; normal відтворення reuses  prepared рядки. Long lists є clipped до
-`maxWidth` і `maxHeight`; Якщо those є пропущений, кожен is  larger of  фіксований `224` by `96` пікселі і
-40% of  сцена розмір.
-Overflow receives draggable scrollbars, і  mouse wheel scrolls  список поки  cursor is
-over  overlay. Hold Shift до wheel-прокручування horizontally.
+Scenes that contain blocks enable the block-stat toggle button by default. Add a `<BlockStats>`
+child when you want to override its mode, placement, filters, visibility, or size. Long lists are clipped to
+`maxWidth` and `maxHeight`; if those are omitted, each is the larger of the fixed `224` by `96` pixels and
+40% of the scene size.
+Overflow receives draggable scrollbars, and the mouse wheel scrolls the list while the cursor is
+over the overlay. Hold Shift to wheel-scroll horizontally.
 
-In автоматичний режим, GuideNH scans  сцена's filled блоки і resolves кожен блок до  предмет
-стос users normally Дивіться. блоки який містити кілька видимий components може contribute кілька
-items з  той самий координата; Цей includes AE2 cable bus parts і facades, ForgeMultipart part
-drops, і Carpenters' блоки covers або overlays коли those mods є installed. Counts є grouped
-by `item:meta` і sorted by count.
+In automatic mode, GuideNH scans the scene's filled blocks and resolves each block to the item
+stack users normally see. Blocks that contain multiple visible components can contribute multiple
+items from the same coordinate; this includes AE2 cable bus parts and facades, ForgeMultipart part
+drops, and Carpenters' Blocks covers or overlays when those mods are installed. Counts are grouped
+by `item:meta` and sorted by count.
 
-автоматичний lists може також be docked поза  сцена з `dock="left"`, `dock="top"`,
-`dock="right"`, або `dock="bottom"`. Docked lists перенесення до extra стовпці або рядки based on 
-attached бік length, reserve структура простір, і avoid  сцена button стовпець on  праворуч. натискання an
-предмет in автоматичний список до виділяти усі відповідний сцена placements з їхні розв’язаний collision
-boxes використовуючи завжди-on-угорі face overlay; натискання  той самий предмет again до clear  виділяти. Counts
-є відтворений through  ItemStack стос-розмір overlay. Установіть `showNames={true}` до append  count
-після кожен назва as well, і наведення an предмет до Дивіться  exact блок count in  підказка.
+Automatic lists can also be docked outside the scene with `dock="left"`, `dock="top"`,
+`dock="right"`, or `dock="bottom"`. Docked lists wrap into extra columns or rows based on the
+attached side length, reserve layout space, and avoid the scene button column on the right. Click an
+item in an automatic list to highlight all matching scene placements with their resolved collision
+boxes using an always-on-top face overlay; click the same item again to clear the highlight. Counts
+are rendered through the ItemStack stack-size overlay. Set `showNames={true}` to append the count
+after each name as well, and hover an item to see the exact block count in the tooltip.
 
-Filters може приховувати звичайний блоки або показувати лише вибраний блоки:
+Filters can hide common blocks or show only selected blocks:
 
 ````md
 <GameScene>
@@ -63,7 +60,7 @@ Filters може приховувати звичайний блоки або п�
 </GameScene>
 ````
 
-використовувати manual режим коли a посібник wants до показувати planned material список замість цього of  literal сцена
+Use manual mode when a guide wants to show a planned material list instead of the literal scene
 contents:
 
 ````md
@@ -76,94 +73,94 @@ contents:
 </GameScene>
 ````
 
-## Накладки режиму налагодження
+## Debug Mode Overlays
 
-коли  `enableDebugMode` параметр is увімкнено in  GuideNH mod config,  following extra
-overlays become доступний in  3D сцена перегляд.
+When the `enableDebugMode` option is enabled in the GuideNH mod config, the following extra
+overlays become available in the 3D scene preview.
 
-### Grid координата Labels
+### Grid Coordinate Labels
 
-коли debug режим is **on** і  floor grid is **видимий**, координата labels є відтворений
-below кожен grid рядок:
+When debug mode is **on** and the floor grid is **visible**, coordinate labels are rendered
+below each grid line:
 
-- **X-вісь numbers** є показано уздовж  near край of  grid (north/−Z край in  Типове
-  `isometric-north-east` камера).  кожен ціле число X світ-координата receives мітка.
-- **Z-вісь numbers** є показано уздовж  near край of  grid (east/+X край).  кожен ціле число
-  Z світ-координата receives мітка.
-- **Cardinal direction initials** (`N`, `S`, `E`, `W`) є drawn at  midpoint of кожен
-  respective grid край.
+- **X-axis numbers** are shown along the near edge of the grid (north/−Z edge in the default
+  `isometric-north-east` camera).  Each integer X world-coordinate receives a label.
+- **Z-axis numbers** are shown along the near edge of the grid (east/+X edge).  Each integer
+  Z world-coordinate receives a label.
+- **Cardinal direction initials** (`N`, `S`, `E`, `W`) are drawn at the midpoint of each
+  respective grid edge.
 
-координати follow  actual світ X/Z значення stored in  сцена level, so Вони може be
-negative коли  структура містить блоки з negative координати.
+Coordinates follow the actual world X/Z values stored in the scene level, so they can be
+negative when the structure contains blocks with negative coordinates.
 
- grid toggle button is **завжди увімкнено** поки debug режим is active, regardless of 
-`gridButtonEnabled` Атрибут, so you може показувати або приховувати  grid і його labels at any час.
- Типове grid видимість (`showGrid`) is не affected.
+The grid toggle button is **always enabled** while debug mode is active, regardless of the
+`gridButtonEnabled` attribute, so you can show or hide the grid and its labels at any time.
+The default grid visibility (`showGrid`) is not affected.
 
-### блок координата підказка
+### Block Coordinate Tooltip
 
-коли debug режим is **on** і  cursor hovers over a блок усередині  сцена, second
-підказка is відтворений над  primary блок підказка, showing  простір світу блок позиція
-as `X, Y, Z` in gold текст.
+When debug mode is **on** and the cursor hovers over a block inside the scene, a second
+tooltip is rendered above the primary block tooltip, showing the world-space block position
+as `X, Y, Z` in gold text.
 
-Якщо  координата підказка would be clipped at  угорі of  екран it автоматично snaps
-below  cursor area замість цього (magnetic snapping).
+If the coordinate tooltip would be clipped at the top of the screen it automatically snaps
+below the cursor area instead (magnetic snapping).
 
-## Профілі перспективи
+## Perspective Presets
 
-Accepted `perspective` значення:
+Accepted `perspective` values:
 
 - `isometric-north-east`
 - `isometric-north-west`
 - `up`
 
-невідомий значення fall назад до `isometric-north-east`.
+Unknown values fall back to `isometric-north-east`.
 
-## Вбудовування вмісту та перенесення тексту
+## Content Embedding and Text Wrapping
 
-Any блок-level тег — including `<GameScene>` — підтримує два необов’язковий атрибути який control
-how it is embedded in  сторінка, mirroring Microsoft Word's "текст Wrapping" параметри.
+Any block-level tag — including `<GameScene>` — supports two optional attributes that control
+how it is embedded in the page, mirroring Microsoft Word's "Text Wrapping" options.
 
-| Атрибут | значення | Типове | Значення |
+| Attribute | Values | Default | Meaning |
 | --- | --- | --- | --- |
-| `wrap` | `inline` · `square` · `tight` · `through` · `top-bottom` · `behind` · `front` | `inline` | текст-wrapping режим |
+| `wrap` | `inline` · `square` · `tight` · `through` · `top-bottom` · `behind` · `front` | `inline` | Text-wrapping mode |
 | `align` | `left` · `center` · `right` | `left` | Horizontal alignment |
 
-### Режими перенесення
+### Wrap modes
 
-| режим | Word equivalent | Effect |
+| Mode | Word equivalent | Effect |
 | --- | --- | --- |
-| `inline` | In рядок з текст | Типове flow: сцена occupies його власний vertical slot (嵌入型) |
-| `square` | Square | сцена floats ліворуч або праворуч; surrounding текст wraps in rectangle around it (方形环绕) |
-| `tight` | Tight | Tighter перенесення; equivalent до `square` in Цей структура system (紧密型) |
-| `through` | Through | Through-перенесення; equivalent до `square` in Цей структура system (穿越型) |
-| `top-bottom` | угорі і унизу | текст лише над і below, не beside; respects `align` для horizontal placement (上下型) |
-| `behind` | Behind текст | блок renders behind surrounding текст; respects `align` (衬于文字下方) |
-| `front` | In спереду of текст | блок renders in спереду of surrounding текст; respects `align` (浮于文字上方) |
+| `inline` | In line with text | Default flow: scene occupies its own vertical slot (嵌入型) |
+| `square` | Square | Scene floats left or right; surrounding text wraps in a rectangle around it (方形环绕) |
+| `tight` | Tight | Tighter wrap; equivalent to `square` in this layout system (紧密型) |
+| `through` | Through | Through-wrap; equivalent to `square` in this layout system (穿越型) |
+| `top-bottom` | Top and Bottom | Text only above and below, not beside; respects `align` for horizontal placement (上下型) |
+| `behind` | Behind text | Block renders behind surrounding text; respects `align` (衬于文字下方) |
+| `front` | In front of text | Block renders in front of surrounding text; respects `align` (浮于文字上方) |
 
-### Приклади
+### Examples
 
-ліворуч-floating сцена — текст in  наступний paragraph wraps до  праворуч:
+Left-floating scene — text in the next paragraph wraps to the right:
 
 ````md
 <GameScene wrap="square" align="left" width="200" height="150">
   <Block id="minecraft:stone" />
 </GameScene>
 
-Текст, що обтікає праворуч від сцени…
+Text that flows to the right of the scene...
 ````
 
-праворуч-floating сцена:
+Right-floating scene:
 
 ````md
 <GameScene wrap="square" align="right" width="200" height="150">
   <Block id="minecraft:stone" />
 </GameScene>
 
-Текст, що обтікає ліворуч від сцени…
+Text that flows to the left of the scene...
 ````
 
-Centred сцена (no текст wrapping):
+Centred scene (no text wrapping):
 
 ````md
 <GameScene align="center" width="200" height="150">
@@ -171,7 +168,7 @@ Centred сцена (no текст wrapping):
 </GameScene>
 ````
 
-Inline in текст (flow context) — текст wraps around small сцена:
+Inline in text (flow context) — text wraps around a small scene:
 
 ````md
 Some text {<GameScene wrap="square" align="left" width="80" height="80">
@@ -179,7 +176,7 @@ Some text {<GameScene wrap="square" align="left" width="80" height="80">
 </GameScene>} and more text that wraps to the right.
 ````
 
-## Приклад
+## Example
 
 ````md
 <GameScene width="256" height="160" zoom={4} perspective="isometric-north-east" interactive={true}>
@@ -189,12 +186,12 @@ Some text {<GameScene wrap="square" align="left" width="80" height="80">
 </GameScene>
 ````
 
-## Import Приклади
+## Import Examples
 
-Ці Приклади focus on  сцена-бік поведінка який most часто trips people up коли importing
-структури.
+These examples focus on the scene-side behavior that most often trips people up when importing
+structures.
 
-StructureLib import з явний facing, обертання, flip, і offsets:
+StructureLib import with explicit facing, rotation, flip, and offsets:
 
 ````md
 <GameScene width="384" height="256" zoom={4} interactive={true}>
@@ -211,8 +208,8 @@ StructureLib import з явний facing, обертання, flip, і offsets:
 </GameScene>
 ````
 
-GregTech controllers залишаються unformed by Типове, even коли  імпортований multiblock is otherwise
-дійсний:
+GregTech controllers stay unformed by default, even when the imported multiblock is otherwise
+valid:
 
 ````md
 <GameScene width="384" height="256" zoom={4} interactive={true}>
@@ -220,7 +217,7 @@ GregTech controllers залишаються unformed by Типове, even ко�
 </GameScene>
 ````
 
-Установіть `formed={true}` лише коли  перегляд слід intentionally показувати  formed controller стан:
+Set `formed={true}` only when the preview should intentionally show the formed controller state:
 
 ````md
 <GameScene width="384" height="256" zoom={4} interactive={true}>
@@ -228,8 +225,8 @@ GregTech controllers залишаються unformed by Типове, even ко�
 </GameScene>
 ````
 
- той самий Типове також застосовує до controllers розміщений directly з `<Block>`, including GregTech
-controllers який rely on surrounding multiblock casings:
+The same default also applies to controllers placed directly with `<Block>`, including GregTech
+controllers that rely on surrounding multiblock casings:
 
 ````md
 <GameScene zoom={4} interactive={true}>
@@ -238,7 +235,7 @@ controllers який rely on surrounding multiblock casings:
 </GameScene>
 ````
 
-простий блок-лише layouts може досі be authored directly і remain compatible з multiblock
+Simple block-only layouts can still be authored directly and remain compatible with multiblock
 inspection logic:
 
 ````md
@@ -253,9 +250,9 @@ inspection logic:
 </GameScene>
 ````
 
-## Дочірні елементи сцени
+## Scene Child Elements
 
-GuideNH зараз registers Ці сцена дочірній елемент теги:
+GuideNH currently registers these scene child tags:
 
 - `<Block>`
 - `<ImportStructure>`
@@ -269,16 +266,16 @@ GuideNH зараз registers Ці сцена дочірній елемент т�
 - `<PlaceBlock>`
 - `<BlockAnnotationTemplate>`
 - `<Entity>`
-- анотація теги наприклад `<BoxAnnotation>` і `<LineAnnotation>`
+- annotation tags such as `<BoxAnnotation>` and `<LineAnnotation>`
 
-## Звуки сцени
+## Scene Sounds
 
-`<PlaySound>` може be розміщений усередині `<GameScene>` до play sounds з сцена interaction або timeline
-запис. Підтримувані triggers є:
+`<PlaySound>` can be placed inside `<GameScene>` to play sounds from scene interaction or timeline
+entry. Supported triggers are:
 
-- `click`,  Типове
-- `hover`, fired once коли  cursor enters  сцена
-- `enter`, fired once коли  сцена перший renders
+- `click`, the default
+- `hover`, fired once when the cursor enters the scene
+- `enter`, fired once when the scene first renders
 
 ```mdx
 <GameScene width="256" height="160">
@@ -288,40 +285,53 @@ GuideNH зараз registers Ці сцена дочірній елемент т�
 </GameScene>
 ```
 
-коли `x`, `y`, і `z` є provided,  sound volume is attenuated in екран простір з 
-projected сцена координата до  натискання точка або сцена центр. `radius` типові до 75% of 
-shorter сцена бік, і `minVolume` типові до `0.15`.
+When `x`, `y`, and `z` are provided, the sound volume is attenuated in screen space from the
+projected scene coordinate to the click point or scene center. `radius` defaults to 75% of the
+shorter scene side, and `minVolume` defaults to `0.15`.
 
-## `<BlockStats>` і `<BlockStat>`
+## `<InputAnnotation>` fluid targets
 
-Declares або customizes a Накладка статистики блоків. сцени з блоки enable  автоматичний toggle
-button even коли Цей дочірній елемент is пропущений. Adding один або more `<BlockStat>` дочірні елементи switches 
-overlay до manual statistics режим для який сцена.
+InputAnnotation accepts either `item` or `fluid`, never both. A fluid target also accepts optional `amount` (integer) and `nbt` (SNBT). Amount and NBT require `fluid`. Existing position, inputType, modifier, and StructureLib visibility conditions remain available.
 
-`<BlockStats>` атрибути:
+```mdx
+<GameScene width="180" height="120">
+  <Block x="0" y="0" z="0" id="minecraft:stone" />
+  <InputAnnotation pos="0.5 1.5 0.5" inputType="rmb" fluid="water" amount={1000} />
+</GameScene>
+```
 
-| Атрибут | Обов’язково | Типове | Значення |
+The annotation displays an interaction icon and fluid information. It does not fill a tank or change the scene world. Fluid blocks still use real block IDs in Block / PlaceBlock.
+
+## `<BlockStats>` and `<BlockStat>`
+
+Declares or customizes a block statistics overlay. Scenes with blocks enable the automatic toggle
+button even when this child is omitted. Adding one or more `<BlockStat>` children switches the
+overlay to manual statistics mode for that scene.
+
+`<BlockStats>` attributes:
+
+| Attribute | Required | Default | Meaning |
 | --- | --- | --- | --- |
-| `visible` | no | config, Типове `false` | початковий overlay видимість |
-| `buttonEnabled` | no | config, Типове `true` | shows  блок statistics toggle button |
-| `mode` | no | `auto` | `auto` або `manual`; дочірній елемент `<BlockStat>` записи force manual режим |
-| `corner` | no | `topRight` | overlay corner: `topRight`, `topLeft`, `bottomRight`, або `bottomLeft` |
-| `dock` | no | `inside` | автоматичний lists може attach до `inside`, `left`, `top`, `right`, або `bottom`; manual режим завжди використовує  усередині overlay |
-| `showNames` | no | `false` | whether до показувати предмет names beside icons; коли увімкнено  count is також appended після  назва |
-| `filterMode` | no | `blacklist` | `blacklist` або `whitelist` |
-| `filter` | no | empty | предмет ключі наприклад `minecraft:stone` або `minecraft:stone:0`, separated by spaces, commas, або semicolons |
-| `maxWidth` | no |  larger of `224` px і 40% of  сцена ширина | maximum overlay ширина in пікселі до horizontal прокручування |
-| `maxHeight` | no |  larger of `96` px і 40% of  сцена висота | maximum overlay висота in пікселі до vertical прокручування |
+| `visible` | no | config, default `false` | initial overlay visibility |
+| `buttonEnabled` | no | config, default `true` | shows the block statistics toggle button |
+| `mode` | no | `auto` | `auto` or `manual`; child `<BlockStat>` entries force manual mode |
+| `corner` | no | `topRight` | overlay corner: `topRight`, `topLeft`, `bottomRight`, or `bottomLeft` |
+| `dock` | no | `inside` | automatic lists can attach to `inside`, `left`, `top`, `right`, or `bottom`; manual mode always uses the inside overlay |
+| `showNames` | no | `false` | whether to show item names beside icons; when enabled the count is also appended after the name |
+| `filterMode` | no | `blacklist` | `blacklist` or `whitelist` |
+| `filter` | no | empty | item keys such as `minecraft:stone` or `minecraft:stone:0`, separated by spaces, commas, or semicolons |
+| `maxWidth` | no | the larger of `224` px and 40% of the scene width | maximum overlay width in pixels before horizontal scrolling |
+| `maxHeight` | no | the larger of `96` px and 40% of the scene height | maximum overlay height in pixels before vertical scrolling |
 
-`<BlockStat>` атрибути:
+`<BlockStat>` attributes:
 
-| Атрибут | Обов’язково | Значення |
+| Attribute | Required | Meaning |
 | --- | --- | --- |
-| `item` | yes, unless `id` is використовується | предмет id показано in  список |
-| `id` | yes, unless `item` is використовується | existing предмет-стос Атрибут form |
-| `count` | no | displayed count; omitting it shows  рядок once, і `count="0"` hides  рядок |
+| `item` | yes, unless `id` is used | item id shown in the list |
+| `id` | yes, unless `item` is used | existing item-stack attribute form |
+| `count` | no | displayed count; omitting it shows the row once, and `count="0"` hides the row |
 
-Приклад:
+Example:
 
 ````md
 <GameScene>
@@ -334,29 +344,29 @@ overlay до manual statistics режим для який сцена.
 
 ## `<Block>`
 
-Places a блок до  перегляд світ.
+Places a block into the preview world.
 
-| Атрибут | Обов’язково | Значення |
+| Attribute | Required | Meaning |
 | --- | --- | --- |
-| `id` | yes, unless `ore` is використовується | блок id |
-| `ore` | no | ore dictionary назва;  перший відповідний стос має розв’язати до a блок предмет |
-| `x` | no | ціле число світ X, Типове `0` |
-| `y` | no | ціле число світ Y, Типове `0` |
-| `z` | no | ціле число світ Z, Типове `0` |
-| `meta` | no | ціле число блок метадані |
+| `id` | yes, unless `ore` is used | block id |
+| `ore` | no | ore dictionary name; the first matching stack must resolve to a block item |
+| `x` | no | integer world X, default `0` |
+| `y` | no | integer world Y, default `0` |
+| `z` | no | integer world Z, default `0` |
+| `meta` | no | integer block metadata |
 | `facing` | no | `down`, `up`, `north`, `south`, `west`, `east` |
 | `nbt` | no | SNBT TileEntity compound |
-| `formed` | no | whether  розміщений структура controller слід be treated as formed during перегляд sync; Типове `false` |
+| `formed` | no | whether the placed structure controller should be treated as formed during preview sync; default `false` |
 
-Примітки:
+Notes:
 
-- `ore` takes precedence over `id`; Якщо GregTech is installed,  вибраний стос is unified through `GTOreDictUnificator.setStack(...)`
-- Якщо `meta` is пропущений і an `ore` відповідати carries concrete non-wildcard предмет damage, який damage is використовується до  `facing` резервний варіант
-- Якщо `meta` is пропущений, some блоки derive sensible Типове з `facing`
-- Якщо `nbt` creates TileEntity successfully,  перегляд використовує it
-- Установіть `formed={false}` коли controller-based структура слід залишаються unformed in перегляд even though  surrounding структура is otherwise дійсний
+- `ore` takes precedence over `id`; if GregTech is installed, the chosen stack is unified through `GTOreDictUnificator.setStack(...)`
+- if `meta` is omitted and an `ore` match carries concrete non-wildcard item damage, that damage is used before the `facing` fallback
+- if `meta` is omitted, some blocks derive a sensible default from `facing`
+- if `nbt` creates a TileEntity successfully, the preview uses it
+- set `formed={false}` when a controller-based structure should stay unformed in preview even though the surrounding structure is otherwise valid
 
-Приклад:
+Example:
 
 ````md
 <Block id="minecraft:furnace" x="2" facing="south" />
@@ -366,31 +376,31 @@ Places a блок до  перегляд світ.
 
 ## `<ImportStructure>`
 
-завантажує зовнішній структура файл до  сцена.
+Loads an external structure file into the scene.
 
-| Атрибут | Обов’язково | Значення |
+| Attribute | Required | Meaning |
 | --- | --- | --- |
-| `src` | yes | структура ресурс шлях |
-| `x` | no | ціле число переклад X (alias для `offsetX`) |
-| `y` | no | ціле число переклад Y (alias для `offsetY`) |
-| `z` | no | ціле число переклад Z (alias для `offsetZ`) |
-| `offsetX` | no | ціле число переклад X (бажаний over `x`) |
-| `offsetY` | no | ціле число переклад Y, clamped до `[0, worldHeight-1]` (бажаний over `y`) |
-| `offsetZ` | no | ціле число переклад Z (бажаний over `z`) |
-| `formed` | no | whether імпортований структура controllers слід be treated as formed during перегляд sync; Типове `false` |
+| `src` | yes | structure asset path |
+| `x` | no | integer translation X (alias for `offsetX`) |
+| `y` | no | integer translation Y (alias for `offsetY`) |
+| `z` | no | integer translation Z (alias for `offsetZ`) |
+| `offsetX` | no | integer translation X (preferred over `x`) |
+| `offsetY` | no | integer translation Y, clamped to `[0, worldHeight-1]` (preferred over `y`) |
+| `offsetZ` | no | integer translation Z (preferred over `z`) |
+| `formed` | no | whether imported structure controllers should be treated as formed during preview sync; default `false` |
 
-Підтримувані formats:
+Supported formats:
 
-- SNBT текст
+- SNBT text
 - gzipped binary NBT
 - uncompressed binary NBT
 
-Обов’язково структура ключі:
+Required structure keys:
 
 - `palette`
 - `blocks`
 
-Приклад:
+Example:
 
 ````md
 <ImportStructure src="/assets/example_structure.snbt" />
@@ -400,37 +410,37 @@ Places a блок до  перегляд світ.
 
 ## `<ImportStructureLib>`
 
-імпорти StructureLib multiblock перегляд by controller id.
+Imports a StructureLib multiblock preview by controller id.
 
-| Атрибут | Обов’язково | Значення |
+| Attribute | Required | Meaning |
 | --- | --- | --- |
-| `controller` | yes | controller блок id, використовуючи `modid:block[:meta]` |
-| `name` | no | необов’язковий binding назва використовується by `showWhenStructure` on Анотації, templates, і sounds |
-| `piece` | no | StructureLib piece назва перевизначати |
-| `facing` | no | facing перевизначати passed до  importer |
-| `rotation` | no | обертання перевизначати passed до  importer |
-| `flip` | no | flip/mirror перевизначати passed до  importer |
-| `channel` | no | ціле число channel перевизначати для channel-aware структури |
-| `tier` | ні | початкове значення tier для структур із рівнями |
-| `channelName` | ні | назва каналу для кореневого перевизначення `channel` або `value` |
-| `value` | ні | значення каналу разом із `channelName` |
-| `locked` | ні | блокує явно задане значення tier або каналу |
-| `offsetX` | no | ціле число X offset applied до усі розміщений блоки (Типове `0`) |
-| `offsetY` | no | ціле число Y offset applied до усі розміщений блоки, clamped до `[0, worldHeight-1]` (Типове `0`) |
-| `offsetZ` | no | ціле число Z offset applied до усі розміщений блоки (Типове `0`) |
-| `formed` | no | whether імпортований StructureLib controllers слід be treated as formed during перегляд sync; Типове `false` |
+| `controller` | yes | controller block id, using `modid:block[:meta]` |
+| `name` | no | optional binding name used by `showWhenStructure` on annotations, templates, and sounds |
+| `piece` | no | StructureLib piece name override |
+| `facing` | no | facing override passed to the importer |
+| `rotation` | no | rotation override passed to the importer |
+| `flip` | no | flip/mirror override passed to the importer |
+| `tier` | no | initial tier value for tier-aware structures |
+| `channel` | no | integer channel override for channel-aware structures |
+| `channelName` | no | name of the channel used with the root `channel` or `value` override |
+| `value` | no | channel value used with `channelName` |
+| `locked` | no | when `true`, locks the explicitly supplied root tier or channel value during interaction |
+| `offsetX` | no | integer X offset applied to all placed blocks (default `0`) |
+| `offsetY` | no | integer Y offset applied to all placed blocks, clamped to `[0, worldHeight-1]` (default `0`) |
+| `offsetZ` | no | integer Z offset applied to all placed blocks (default `0`) |
+| `formed` | no | whether imported StructureLib controllers should be treated as formed during preview sync; default `false` |
 
-Примітки:
+Notes:
 
--  імпортований структура starts з сцена `0 0 0`;  controller is не forced до be розміщений at `0 0 0`
-- Цей тег enables StructureLib-певний підказка, hatch виділяти, і channel slider UI коли метадані is доступний
-- controller відповідний підтримує  GTNH-style `modid:block:meta` form
-- використовувати `name` коли  сцена містить кілька StructureLib імпорти і another тег needs до ціль один певний структура стан
-- `facing`, `rotation`, і `flip` використовувати  той самий орієнтація vocabulary as StructureLib export; коли requested combination is не allowed by  controller, GuideNH falls назад до  перший дійсний alignment автоматично
-- GregTech controller previews now Типове до  controller's opposite horizontal facing з  older перегляд орієнтація, rotating  перегляд спереду by 180 degrees around  Y вісь
-- Установіть `formed={false}` коли  імпортований controller слід remain visibly unformed; Цей is  Підтримувані alternative до shipping intentionally broken NBT
+- the imported structure starts from scene `0 0 0`; the controller is not forced to be placed at `0 0 0`
+- this tag enables StructureLib-specific tooltip, hatch highlight, and channel slider UI when metadata is available
+- controller matching supports the GTNH-style `modid:block:meta` form
+- use `name` when the scene contains multiple StructureLib imports and another tag needs to target one specific structure state
+- `facing`, `rotation`, and `flip` use the same orientation vocabulary as StructureLib export; when a requested combination is not allowed by the controller, GuideNH falls back to the first valid alignment automatically
+- GregTech controller previews use the opposite horizontal facing by default
+- set `formed={false}` when the imported controller should remain visibly unformed; this is the supported alternative to shipping intentionally broken NBT
 
-Приклад:
+Example:
 
 ````md
 <ImportStructureLib controller="botanichorizons:automatedCraftingPool" />
@@ -441,7 +451,7 @@ Places a блок до  перегляд світ.
 <ImportStructureLib controller="gregtech:gt.blockmachines:15411" formed={false} />
 ````
 
-структура-aware анотація і sound Приклад:
+Structure-aware annotation and sound example:
 
 ````md
 <GameScene interactive={true}>
@@ -467,26 +477,24 @@ Places a блок до  перегляд світ.
 </GameScene>
 ````
 
-StructureLib типові може також be supplied as дочірній елемент теги. Ці типові є part of  сцена's
-початковий інтерактивний стан, so  reset-перегляд button restores їх після  user зміни tier або
+StructureLib defaults can also be supplied as child tags. These defaults are part of the scene's
+initial interactive state, so the reset-view button restores them after the user changes tier or
 channel sliders.
 
-| дочірній елемент тег | Значення |
+| Child tag | Meaning |
 | --- | --- |
-| `<Tier value="1" />` | Master tier значення. |
-| `<Tier value="4" locked={true} />` | блокує явно задане значення tier або каналу. |
-| `<Channel name="channelName" value="1" />` | Named StructureLib channel перевизначати. Repeat для кілька канали. |
-| `<Channel name="channelName" value="1" locked={true} />` | блокує явно задане значення tier або каналу. |
-| `<Facing value="north" />` | Типове facing. |
-| `<Rotation value="normal" />` | Типове обертання. |
-| `<Flip value="none" />` | Типове flip/mirror. |
-| `<Orientation value="north:normal:none" />` | Facing, обертання, і flip in один тег. |
-| `<GregTechActiveController />` | GregTech лише: відтворювати  controller з його active texture коли possible. |
-| `<GregTechPlaceHatches />` | GregTech лише: place normal GT hatches для hatch-лише перегляд positions. без Цей, GT previews досі використовувати survival construct для hatch-aware machines, but empty hatch positions fall назад до casing блоки. |
+| `<Tier value="1" />` | Master tier value. |
+| `<Tier value="4" locked={true} />` | Master tier value that cannot be changed by the user. |
+| `<Channel name="channelName" value="1" />` | Named StructureLib channel override. Repeat for multiple channels. |
+| `<Channel name="channelName" value="1" locked={true} />` | Named channel override that cannot be changed by the user. |
+| `<Facing value="north" />` | Default facing. |
+| `<Rotation value="normal" />` | Default rotation. |
+| `<Flip value="none" />` | Default flip/mirror. |
+| `<Orientation value="north:normal:none" />` | Facing, rotation, and flip in one tag. |
+| `<GregTechActiveController />` | GregTech only: render the controller with its active texture when possible. |
+| `<GregTechPlaceHatches />` | GregTech only: place normal GT hatches for hatch-only preview positions. Without this, GT previews still use survival construct for hatch-aware machines, but empty hatch positions fall back to casing blocks. |
 
-для GregTech controllers, GuideNH now використовує  той самий StructureLib survival-перегляд шлях as 
-export command. Цей fixes hatch-лише positions який normal `construct()` не може populate поки
-keeping резервний варіант casings by Типове.
+GregTech hatch-aware previews use fallback casings unless `<GregTechPlaceHatches>` is enabled.
 
 ````md
 <GameScene width="384" height="256" zoom={4} interactive={true}>
@@ -504,22 +512,22 @@ keeping резервний варіант casings by Типове.
 
 ## `<IsometricCamera>`
 
-застосовує явний isometric камера yaw/pitch/roll.
+Applies explicit isometric camera yaw/pitch/roll.
 
-Якщо Цей тег is пропущений,  сцена зберігає використовуючи  `<GameScene>` `perspective` preset.  Типове
-`isometric-north-east` preset is equivalent до:
+If this tag is omitted, the scene keeps using the `<GameScene>` `perspective` preset. The default
+`isometric-north-east` preset is equivalent to:
 
 ````md
 <IsometricCamera yaw="225" pitch="30" />
 ````
 
-| Атрибут | Значення |
+| Attribute | Meaning |
 | --- | --- |
-| `yaw` | число з плаваючою комою |
-| `pitch` | число з плаваючою комою |
-| `roll` | число з плаваючою комою |
+| `yaw` | float |
+| `pitch` | float |
+| `roll` | float |
 
-Приклад:
+Example:
 
 ````md
 <IsometricCamera yaw="45" pitch="30" roll="0" />
@@ -527,15 +535,15 @@ keeping резервний варіант casings by Типове.
 
 ## `<RemoveBlocks>`
 
-Removes кожен вже-розміщений блок відповідний ціль блок id.
+Removes every already-placed block matching a target block id.
 
-| Атрибут | Обов’язково | Значення |
+| Attribute | Required | Meaning |
 | --- | --- | --- |
-| `id` | yes | блок id до видалити, використовуючи `modid:block[:meta]` |
+| `id` | yes | block id to remove, using `modid:block[:meta]` |
 
-Цей is useful після importing структура коли you want до приховувати певний блоки для clarity.
+This is useful after importing a structure when you want to hide specific blocks for clarity.
 
-Приклад:
+Example:
 
 ````md
 <ImportStructure src="/assets/example_structure.snbt" />
@@ -545,34 +553,34 @@ Removes кожен вже-розміщений блок відповідний �
 
 ## `<ReplaceBlock>`
 
-Replaces вже-розміщений блоки який відповідати source блок id (і optionally partial блок сутність NBT
-pattern) з новий блок.  пошук може be глобальний (усі filled блоки) або restricted до a
+Replaces already-placed blocks that match a source block id (and optionally a partial tile entity NBT
+pattern) with a new block. The search can be global (all filled blocks) or restricted to a
 bounding box.
 
-| Атрибут | Обов’язково | Значення |
+| Attribute | Required | Meaning |
 | --- | --- | --- |
-| `from` | yes | source блок до відповідати, використовуючи `modid:block[:meta]` |
-| `from_nbt` | no | partial SNBT compound; a блок відповідає лише коли його блок сутність NBT містить усі listed ключі |
-| `to` | yes | заміна блок, використовуючи `modid:block[:meta]` |
-| `to_nbt` | no | SNBT TileEntity compound до apply до  заміна |
-| `x` | no | bounding box початок X; Якщо any of `x/y/z/dx/dy/dz` is present,  box режим is activated |
-| `y` | no | bounding box початок Y |
-| `z` | no | bounding box початок Z |
-| `dx` | no | bounding box length on  X вісь (Типове `1`) |
-| `dy` | no | bounding box висота on  Y вісь (Типове `1`) |
-| `dz` | no | bounding box ширина/depth on  Z вісь (Типове `1`) |
-| `formed` | no | whether заміна результат controllers слід be treated as formed during перегляд sync; Типове `false` |
+| `from` | yes | source block to match, using `modid:block[:meta]` |
+| `fromNbt` | no | partial SNBT compound; a block matches only when its tile entity NBT contains all listed keys |
+| `to` | yes | replacement block, using `modid:block[:meta]` |
+| `toNbt` | no | SNBT TileEntity compound to apply to the replacement |
+| `x` | no | bounding box start X; if any of `x/y/z/dx/dy/dz` is present, the box mode is activated |
+| `y` | no | bounding box start Y |
+| `z` | no | bounding box start Z |
+| `dx` | no | bounding box length on the X axis (default `1`) |
+| `dy` | no | bounding box height on the Y axis (default `1`) |
+| `dz` | no | bounding box width/depth on the Z axis (default `1`) |
+| `formed` | no | whether replacement result controllers should be treated as formed during preview sync; default `false` |
 
-Примітки:
+Notes:
 
-- коли none of `x/y/z/dx/dy/dz` є provided, усі filled блоки є scanned globally
-- `from_nbt` is a **partial** відповідати: лише  ключі listed in  pattern має відповідати; extra ключі in
-   actual блок сутність є ignored
--  заміна is performed via  той самий блок placement pipeline as `<Block>`, so GregTech MetaTile
-  і BartWorks блок entities є handled correctly
-- Якщо  заміна places controller, `formed={false}` зберігає який controller unformed during перегляд
+- when none of `x/y/z/dx/dy/dz` are provided, all filled blocks are scanned globally
+- `fromNbt` is a **partial** match: only the keys listed in the pattern must match; extra keys in
+  the actual tile entity are ignored
+- the replacement is performed via the same block placement pipeline as `<Block>`, so GregTech MetaTile
+  and BartWorks tile entities are handled correctly
+- if the replacement places a controller, `formed={false}` keeps that controller unformed during preview
 
-Приклад:
+Example:
 
 ````md
 <ImportStructure src="/assets/example_structure.snbt" />
@@ -582,31 +590,31 @@ bounding box.
 
 ## `<PlaceBlock>`
 
-Fills an вирівняний за осями box з a один блок Тип, overwriting whatever was there до.
-Unlike `<Block>` (який targets a один позиція), `<PlaceBlock>` підтримує multi-блок regions via
-`dx`/`dy`/`dz`, ordered as length, висота, і ширина/depth on  X/Y/Z осі.
+Fills an axis-aligned box with a single block type, overwriting whatever was there before.
+Unlike `<Block>` (which targets a single position), `<PlaceBlock>` supports multi-block regions via
+`dx`/`dy`/`dz`, ordered as length, height, and width/depth on the X/Y/Z axes.
 
-| Атрибут | Обов’язково | Значення |
+| Attribute | Required | Meaning |
 | --- | --- | --- |
-| `id` | yes | блок id, використовуючи `modid:block[:meta]` |
-| `nbt` | no | SNBT TileEntity compound applied до кожен розміщений блок |
-| `x` | no | region початок X, Типове `0` |
-| `y` | no | region початок Y, Типове `0` |
-| `z` | no | region початок Z, Типове `0` |
-| `dx` | no | region length on  X вісь, Типове `1` |
-| `dy` | no | region висота on  Y вісь, Типове `1` |
-| `dz` | no | region ширина/depth on  Z вісь, Типове `1` |
-| `formed` | no | whether розміщений controllers слід be treated as formed during перегляд sync; Типове `false` |
+| `id` | yes | block id, using `modid:block[:meta]` |
+| `nbt` | no | SNBT TileEntity compound applied to every placed block |
+| `x` | no | region start X, default `0` |
+| `y` | no | region start Y, default `0` |
+| `z` | no | region start Z, default `0` |
+| `dx` | no | region length on the X axis, default `1` |
+| `dy` | no | region height on the Y axis, default `1` |
+| `dz` | no | region width/depth on the Z axis, default `1` |
+| `formed` | no | whether placed controllers should be treated as formed during preview sync; default `false` |
 
-Примітки:
+Notes:
 
-- усі блоки in  box є unconditionally розміщений (no prior-блок check)
--  NBT compound is copied Для кожного individual placement
--  той самий блок placement pipeline as `<Block>` is використовується, so GregTech MetaTile і BartWorks блок entities
-  є fully Підтримувані
-- Якщо  region places один або more controllers, `formed={false}` зберігає кожен affected controller unformed
+- all blocks in the box are unconditionally placed (no prior-block check)
+- the NBT compound is copied for each individual placement
+- the same block placement pipeline as `<Block>` is used, so GregTech MetaTile and BartWorks tile entities
+  are fully supported
+- if the region places one or more controllers, `formed={false}` keeps every affected controller unformed
 
-Приклад:
+Example:
 
 ````md
 <PlaceBlock id="minecraft:stone" x="0" y="0" z="0" dx="5" dy="1" dz="5" />
@@ -616,19 +624,19 @@ Unlike `<Block>` (який targets a один позиція), `<PlaceBlock>` п
 
 ## `<BlockAnnotationTemplate>`
 
-Expands один або more дочірній елемент Анотації onto кожен відповідний блок який вже exists in  поточний сцена.
+Expands one or more child annotations onto every matching block that already exists in the current scene.
 
-| Атрибут | Обов’язково | Значення |
+| Attribute | Required | Meaning |
 | --- | --- | --- |
-| `id` | yes | блок matcher in `modid:block[:meta]` form |
+| `id` | yes | block matcher in `modid:block[:meta]` form |
 
-Правила:
+Rules:
 
-- place it після  блоки або імпортований структури який it слід відповідати
-- відповідний happens against  поточний сцена стан at аналізувати час
-- дочірній елемент Анотації використовувати локальний координати відносний до кожен відповідний блок
+- place it after the blocks or imported structures that it should match
+- matching happens against the current scene state at parse time
+- child annotations use local coordinates relative to each matched block
 
-Приклад:
+Example:
 
 ````md
 <ImportStructure src="/assets/example_structure.snbt" />
@@ -641,56 +649,56 @@ Expands один або more дочірній елемент Анотації on
 
 ## `<Entity>`
 
-додає сутність до  перегляд сцена.
+Adds an entity to the preview scene.
 
- атрибути follow summon-style сутність placement і SNBT дані.
+The attributes follow summon-style entity placement and SNBT data.
 
-| Атрибут | Обов’язково | Значення |
+| Attribute | Required | Meaning |
 | --- | --- | --- |
-| `id` | yes | сутність Тип id; legacy names like `Sheep`, modern vanilla ids like `minecraft:sheep`, і зареєстрований mod сутність ids in either `modid.entityName` або `modid:entityName` form є accepted |
-| `x` | no | число з плаваючою комою X координата  сутність is centered on, Типове `0.5` |
-| `y` | no | число з плаваючою комою Y координата at  унизу of  сутність, Типове `0` |
-| `z` | no | число з плаваючою комою Z координата  сутність is centered on, Типове `0.5` |
-| `rotationY` | no | yaw in degrees, Типове `-45` |
-| `rotationX` | no | pitch in degrees, Типове `0` |
-| `data` | no | summon-style SNBT merged до  сутність NBT до spawn |
-| `sceneEntityId` | no | stable сцена-локальний сутність id використовується by later `<Entity>` / `<RemoveEntity>` operations і by імпортований сцена snapshots |
-| `mount` | no | stable `sceneEntityId` of  vehicle який Цей сутність слід ride після spawn |
-| `unmount` | no | логічне значення вираз який clears Цей сутність's поточний stable mount relation після spawn або стан replay |
-| `baby` | no | логічне значення вираз forcing Підтримувані entities до baby form; пропущений leaves  сутність's normal age/стан unchanged |
-| `name` | no | перегляд гравець назва коли `id` is `player`, `fakeplayer`, `minecraft:player`, або `minecraft:fakeplayer` |
-| `uuid` | no | перегляд гравець UUID коли використовуючи один of  гравець ids над |
-| `showName` | no | логічне значення вираз controlling  перегляд гравець nameplate, Типове `true` для гравець перегляд ids |
-| `showCape` | no | логічне значення вираз controlling  перегляд гравець cape, Типове `true` для гравець перегляд ids |
-| `headRotation` | no | перегляд гравець head обертання as `x y z` degrees |
-| `leftArmRotation` | no | перегляд гравець ліворуч arm обертання as `x y z` degrees |
-| `rightArmRotation` | no | перегляд гравець праворуч arm обертання as `x y z` degrees |
-| `leftLegRotation` | no | перегляд гравець ліворуч leg обертання as `x y z` degrees |
-| `rightLegRotation` | no | перегляд гравець праворуч leg обертання as `x y z` degrees |
-| `capeRotation` | no | перегляд гравець cape обертання as `x y z` degrees; типові до  standing-досі angle `6 0 0` |
+| `id` | yes | entity type id; legacy names like `Sheep`, modern vanilla ids like `minecraft:sheep`, and registered mod entity ids in either `modid.entityName` or `modid:entityName` form are accepted |
+| `x` | no | float X coordinate the entity is centered on, default `0.5` |
+| `y` | no | float Y coordinate at the bottom of the entity, default `0` |
+| `z` | no | float Z coordinate the entity is centered on, default `0.5` |
+| `rotationY` | no | yaw in degrees, default `-45` |
+| `rotationX` | no | pitch in degrees, default `0` |
+| `data` | no | summon-style SNBT merged into the entity NBT before spawn |
+| `sceneEntityId` | no | stable scene-local entity id used by later `<Entity>` / `<RemoveEntity>` operations and by imported scene snapshots |
+| `mount` | no | stable `sceneEntityId` of the vehicle that this entity should ride after spawn |
+| `unmount` | no | boolean expression that clears this entity's current stable mount relation after spawn or state replay |
+| `baby` | no | boolean expression forcing supported entities into baby form; omitted leaves the entity's normal age/state unchanged |
+| `name` | no | preview player name when `id` is `player`, `fakeplayer`, `minecraft:player`, or `minecraft:fakeplayer` |
+| `uuid` | no | preview player UUID when using one of the player ids above |
+| `showName` | no | boolean expression controlling the preview player nameplate, default `true` for player preview ids |
+| `showCape` | no | boolean expression controlling the preview player cape, default `true` for player preview ids |
+| `headRotation` | no | preview player head rotation as `x y z` degrees |
+| `leftArmRotation` | no | preview player left arm rotation as `x y z` degrees |
+| `rightArmRotation` | no | preview player right arm rotation as `x y z` degrees |
+| `leftLegRotation` | no | preview player left leg rotation as `x y z` degrees |
+| `rightLegRotation` | no | preview player right leg rotation as `x y z` degrees |
+| `capeRotation` | no | preview player cape rotation as `x y z` degrees; defaults to the standing-still angle `6 0 0` |
 
-Примітки:
+Notes:
 
-- сутність межі participate in сцена auto-centering і видимий-layer filtering
-- сутність creation falls назад gracefully коли  перегляд світ is не ready yet, потім binds on перший відтворювати
-- `sceneEntityId` is необов’язковий, but strongly recommended whenever later сцена mutations need до find, видалити, remount, або restore  той самий logical сутність без scanning by raw виконання id
-- один `sceneEntityId` може власний more ніж один виконання сутність instance; `<RemoveEntity sceneEntityId="..."/>` removes кожен сутність зараз зареєстрований до який stable id
-- `mount` links entities by stable сцена id rather ніж by raw NBT passenger lists, so replay, import/export, перегляд rebuild, і Анімація Ponder seeking може усі restore  той самий rider/vehicle relation deterministically
-- `unmount={true}` clears  stable mount relation для який сутність до any later mount is applied
-- `baby={true}` зараз підтримує перегляд players, ageable mobs, vanilla zombies, і modded entities який expose stable `setChild(boolean)` або `setBaby(boolean)` style APIs
-- дочірній елемент-стан entities є re-aligned до їхні поточний позиція після resizing so наведення і pick межі залишаються centered on  відтворений model
-- гравець перегляд ids створити client-бік fake remote гравець so  normal гравець renderer і skin pipeline може be використовується
-- коли both `name` і `uuid` є пропущений для гравець перегляд, GuideNH falls назад до `Steve` і  vanilla Типове skin
-- коли лише `name` is given для гравець перегляд, GuideNH перший tries до розв’язати  real online profile so skins і capes може завантажити; Якщо lookup fails, it falls назад до stable offline UUID
-- коли лише `uuid` is given для гравець перегляд, GuideNH generates placeholder відображати назва і досі tries до розв’язати  skin з  profile
-- `showName={false}` hides  перегляд гравець's overhead назва без bypassing  normal гравець renderer
-- `showCape={false}` hides  перегляд гравець's cape поки досі respecting  normal гравець відтворювати шлях і Forge hooks
-- гравець pose атрибути використовувати three простір-separated floats mapped до model `X Y Z` обертання in degrees
-- пропущений head і limb обертання атрибути Збережіть  normal vanilla idle pose; пропущений `capeRotation` falls назад до  standing-досі cape angle `6 0 0`
-- гравець previews require active client світ at аналізувати час because Minecraft's гравець сутність constructor не може be створений worldless
-- наведення сутність shows його локалізований відображати назва, або його власний назва Якщо один was provided
+- entity bounds participate in scene auto-centering and visible-layer filtering
+- entity creation falls back gracefully when the preview world is not ready yet, then binds on first render
+- `sceneEntityId` is optional, but strongly recommended whenever later scene mutations need to find, remove, remount, or restore the same logical entity without scanning by raw runtime id
+- one `sceneEntityId` can own more than one runtime entity instance; `<RemoveEntity sceneEntityId="..."/>` removes every entity currently registered to that stable id
+- `mount` links entities by stable scene id rather than by raw NBT passenger lists, so replay, import/export, preview rebuild, and Ponder seeking can all restore the same rider/vehicle relation deterministically
+- `unmount={true}` clears the stable mount relation for that entity before any later mount is applied
+- `baby={true}` currently supports preview players, ageable mobs, vanilla zombies, and modded entities that expose stable `setChild(boolean)` or `setBaby(boolean)` style APIs
+- child-state entities are re-aligned to their current position after resizing so hover and pick bounds stay centered on the rendered model
+- player preview ids create a client-side fake remote player so the normal player renderer and skin pipeline can be used
+- when both `name` and `uuid` are omitted for a player preview, GuideNH falls back to `Steve` and the vanilla default skin
+- when only `name` is given for a player preview, GuideNH first tries to resolve the real online profile so skins and capes can load; if lookup fails, it falls back to a stable offline UUID
+- when only `uuid` is given for a player preview, GuideNH generates a placeholder display name and still tries to resolve the skin from the profile
+- `showName={false}` hides the preview player's overhead name without bypassing the normal player renderer
+- `showCape={false}` hides the preview player's cape while still respecting the normal player render path and Forge hooks
+- player pose attributes use three space-separated floats mapped to model `X Y Z` rotation in degrees
+- omitted head and limb rotation attributes keep the normal vanilla idle pose; omitted `capeRotation` falls back to the standing-still cape angle `6 0 0`
+- player previews require an active client world at parse time because Minecraft's player entity constructor cannot be created worldless
+- hovering an entity shows its localized display name, or its custom name if one was provided
 
-Приклад:
+Example:
 
 ````md
 <GameScene zoom={4} interactive={true}>
@@ -699,7 +707,7 @@ Expands один або more дочірній елемент Анотації on
 </GameScene>
 ````
 
-Stable-id mount Приклад:
+Stable-id mount example:
 
 ````md
 <GameScene zoom={4} interactive={true}>
@@ -709,7 +717,7 @@ Stable-id mount Приклад:
 </GameScene>
 ````
 
-Removal і unmount Приклад:
+Removal and unmount example:
 
 ````md
 <GameScene zoom={4} interactive={true}>
@@ -721,7 +729,7 @@ Removal і unmount Приклад:
 </GameScene>
 ````
 
-Baby сутність Приклад:
+Baby entity example:
 
 ````md
 <GameScene zoom={4} interactive={true}>
@@ -731,7 +739,7 @@ Baby сутність Приклад:
 </GameScene>
 ````
 
-перегляд гравець pose Приклад:
+Preview player pose example:
 
 ````md
 <GameScene zoom={4} interactive={true}>
@@ -750,7 +758,7 @@ Baby сутність Приклад:
 </GameScene>
 ````
 
-перегляд гравець назва і cape Приклад:
+Preview player name and cape example:
 
 ````md
 <GameScene zoom={4} interactive={true}>
@@ -762,20 +770,20 @@ Baby сутність Приклад:
 
 ## `<RemoveEntity>`
 
-Removes кожен виконання сутність зараз зареєстрований до один stable `sceneEntityId`.
+Removes every runtime entity currently registered to one stable `sceneEntityId`.
 
-| Атрибут | Обов’язково | Значення |
+| Attribute | Required | Meaning |
 | --- | --- | --- |
-| `sceneEntityId` | yes | stable сцена-локальний сутність id до видалити |
-| `unmount` | no | логічне значення вираз який clears  stable mount relation до removal |
+| `sceneEntityId` | yes | stable scene-local entity id to remove |
+| `unmount` | no | boolean expression that clears the stable mount relation before removal |
 
-Примітки:
+Notes:
 
-- Цей is  сцена-бік counterpart до Анімація Ponder's `removeEntities`
-- removal works on  indexed stable-id registry, so it не need до scan усі entities кожен frame
-- Якщо кілька імпортований або replayed entities share  той самий `sceneEntityId`, Вони є видалений together
+- this is the scene-side counterpart to Ponder's `removeEntities`
+- removal works on the indexed stable-id registry, so it does not need to scan all entities every frame
+- if multiple imported or replayed entities share the same `sceneEntityId`, they are removed together
 
-Приклад:
+Example:
 
 ````md
 <GameScene zoom={4} interactive={true}>
@@ -785,30 +793,30 @@ Removes кожен виконання сутність зараз зареєст
 </GameScene>
 ````
 
-## Погода
+## Weather
 
-`<Weather>` додає animated rain або snow directly до a `GameScene`. Unlike Анімація Ponder Погода presets,
-сцена Погода is не timeline-owned: it зберігає looping during normal сцена відтворення, it не
-fade in або fade out, і it не може be paused або scrubbed independently.  renderer досі використовує 
-той самий precipitation геометрією шлях as Анімація Ponder Погода, so локальний перегляд і site export залишаються aligned.
+`<Weather>` adds animated rain or snow directly to a `GameScene`. Unlike Ponder weather presets,
+scene weather is not timeline-owned: it keeps looping during normal scene rendering, it does not
+fade in or fade out, and it cannot be paused or scrubbed independently. The renderer still uses the
+same precipitation geometry path as Ponder weather, so local preview and site export stay aligned.
 
-| Атрибут | Типове | опис |
+| Attribute | Default | Description |
 | --- | --- | --- |
-| `weather` / `type` | `rain` | Погода тип. Підтримувані значення: `rain`, `snow`. |
-| `x`, `z` | сцена межі | Covered precipitation стовпці. scalar targets один стовпець. Arrays використовувати endpoint pairs до define один або more rectangles. |
-| `density` | Тип-певний | Coverage density. Higher значення Збережіть more precipitation стовпці active; lower значення sparsify  effect. |
+| `weather` / `type` | `rain` | Weather kind. Supported values: `rain`, `snow`. |
+| `x`, `z` | scene bounds | Covered precipitation columns. A scalar targets one column. Arrays use endpoint pairs to define one or more rectangles. |
+| `density` | type-specific | Coverage density. Higher values keep more precipitation columns active; lower values sparsify the effect. |
 
-Примітки:
+Notes:
 
-- `<Weather>` ignores `y`;  vertical span is derived з  поточний сцена межі і з 
-  highest precipitation-blocking блок in кожен covered стовпець.
-- Якщо один вісь має unmatched extra array значення,  unmatched tail is ignored.
-- усередині один Погода declaration, rain і snow ніколи стос on  той самий `x/z` стовпець. Якщо кілька
-  Погода теги overlap, earlier теги Збережіть  shared стовпці.
-- інший non-overlapping стовпці in  той самий `GameScene` може відтворювати rain і snow at  той самий
-  час.
+- `<Weather>` ignores `y`; the vertical span is derived from the current scene bounds and from the
+  highest precipitation-blocking block in each covered column.
+- If one axis has unmatched extra array values, the unmatched tail is ignored.
+- Within one weather declaration, rain and snow never stack on the same `x/z` column. If multiple
+  weather tags overlap, earlier tags keep the shared columns.
+- Different non-overlapping columns in the same `GameScene` can render rain and snow at the same
+  time.
 
-Приклад:
+Example:
 
 ````md
 <GameScene width="256" height="160" zoom={4} interactive={false}>
@@ -820,20 +828,20 @@ fade in або fade out, і it не може be paused або scrubbed independe
 </GameScene>
 ````
 
-## камера центр поведінка
+## Camera Center Behavior
 
-Якщо no явний `centerX/Y/Z` is given, GuideNH auto-centers  сцена з  розміщений блок межі. Якщо any явний центр координата is Установіть, auto-centering is вимкнено і missing координати Типове до `0`.
+If no explicit `centerX/Y/Z` is given, GuideNH auto-centers the scene from the placed block bounds. If any explicit center coordinate is set, auto-centering is disabled and missing coordinates default to `0`.
 
-## Примітки щодо взаємодії
+## Interaction Notes
 
-коли `interactive={true}`  сцена підтримує обертання, pan, масштаб, reset, анотація toggles, і other UI controls exposed by  посібник екран.
+When `interactive={true}` the scene supports rotation, pan, zoom, reset, annotation toggles, and other UI controls exposed by the guide screen.
 
-- сцени spanning кілька Y levels показувати a видимий-layer slider над  унизу край
-- StructureLib сцени може Додайте hatch-виділяти toggle button plus channel slider at  very унизу коли  імпортований метадані надає їх
-- анотація наведення takes priority over блок наведення; блок tooltips appear normally once no анотація hotspot is being hovered
-- StructureLib наведення зберігає  блок назва on  перший підказка рядок, додає структура-певний текст starting on  second рядок, і expands заміна candidates коли `Shift` is held
+- scenes spanning multiple Y levels show a visible-layer slider above the bottom edge
+- StructureLib scenes can add a hatch-highlight toggle button plus a channel slider at the very bottom when the imported metadata provides them
+- annotation hover takes priority over block hover; block tooltips appear normally once no annotation hotspot is being hovered
+- StructureLib hover keeps the block name on the first tooltip line, adds structure-specific text starting on the second line, and expands replacement candidates when `Shift` is held
 
-## Пов’язані сторінки
+## Related Pages
 
 - [Annotations](Annotations)
 - [Structure Export](Structure-Export)

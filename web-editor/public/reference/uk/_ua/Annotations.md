@@ -1,19 +1,19 @@
 # Анотації
 
-Ця документація описує синтаксис і функції виконання GuideNH. Код, теги, шляхи, ідентифікатори та значення атрибутів збережено без змін.
+Докладний довідник на цій сторінці доступний англійською. Назви тегів, атрибути, ідентифікатори та шляхи потрібно використовувати без перекладу.
 
+GuideNH scene annotations are child tags inside `<GameScene>` / `<Scene>`. They render in world space and may contain child markdown/tag content that becomes a rich tooltip.
 
-GuideNH сцена Анотації є дочірній елемент теги усередині `<GameScene>` / `<Scene>`. Вони відтворювати in світ простір і може містити дочірній елемент Markdown/тег вміст який стає розширений підказка.
+## General Rules
 
-## Загальні правила
+- annotations only work inside a scene
+- child content becomes the tooltip body
+- annotations can be hidden with the scene UI toggle
+- `alwaysOnTop` draws above scene geometry when supported by the annotation type
+- all scene annotations also accept optional `showWhenStructure`, `showWhenTier`, and `showWhenChannels` gates when the scene uses `<ImportStructureLib>`
+- Game and Site Export use the same rainbow gradient and cycle duration.
 
-- Анотації лише працюють усередині a сцена
-- дочірній елемент вміст стає  підказка body
-- Анотації може be прихований з  сцена UI toggle
-- `alwaysOnTop` малює над сцена геометрією коли Підтримувані by  анотація Тип
-- усі сцена Анотації також приймають необов’язковий `showWhenStructure`, `showWhenTier`, і `showWhenChannels` умови коли  сцена використовує `<ImportStructureLib>`
-
-## Підтримувані теги анотацій
+## Supported Annotation Tags
 
 - `<BlockAnnotation>`
 - `<BoxAnnotation>`
@@ -21,28 +21,29 @@ GuideNH сцена Анотації є дочірній елемент теги 
 - `<DiamondAnnotation>`
 - `<OutlineAnnotation>`
 - `<TextAnnotation>`
+- `<InputAnnotation>`
 
-GuideNH також підтримує `<BlockAnnotationTemplate>`, який застосовує його дочірній елемент Анотації до кожен вже-розміщений відповідний блок in  поточний сцена.
+GuideNH also supports `<BlockAnnotationTemplate>`, which applies its child annotations to every already-placed matching block in the current scene.
 
-## Умови StructureLib
+## StructureLib Conditions
 
-коли a сцена містить `<ImportStructureLib>`, кожен анотація тег може restrict його видимість до певний
-StructureLib стан:
+When a scene contains `<ImportStructureLib>`, every annotation tag may restrict its visibility to a specific
+StructureLib state:
 
-| Атрибут | Значення |
+| Attribute | Meaning |
 | --- | --- |
-| `showWhenStructure` | bind  анотація до named `<ImportStructureLib name="...">`; omit it коли  сцена лише імпорти один StructureLib структура |
-| `showWhenTier` | tier фільтр наприклад `2`, `1..3`, `!2`, або `1..5,!3` |
-| `showWhenChannels` | per-channel фільтр наприклад `input:1..3, casing:!2, fluid:4` |
+| `showWhenStructure` | bind the annotation to a named `<ImportStructureLib name="...">`; omit it when the scene only imports one StructureLib structure |
+| `showWhenTier` | tier filter such as `2`, `1..3`, `!2`, or `1..5,!3` |
+| `showWhenChannels` | per-channel filter such as `input:1..3, casing:!2, fluid:4` |
 
-Правила:
+Rules:
 
-- `showWhenTier` і `showWhenChannels` є combined з logical і
-- `showWhenChannels` може mention кілька канали in один Атрибут
-- negated-лише clauses like `!2` mean "any значення except 2"
--  той самий атрибути є також Підтримувані by `<PlaySound>` і `<BlockAnnotationTemplate>` дочірній елемент Анотації
+- `showWhenTier` and `showWhenChannels` are combined with logical AND
+- `showWhenChannels` may mention multiple channels in one attribute
+- negated-only clauses like `!2` mean "any value except 2"
+- the same attributes are also supported by `<PlaySound>` and `<BlockAnnotationTemplate>` child annotations
 
-Приклад:
+Example:
 
 ````md
 <GameScene interactive={true}>
@@ -55,83 +56,91 @@ StructureLib стан:
     showWhenTier="2..4,!3"
     showWhenChannels="input:1..3, casing:!2"
   >
-    Видно лише для вибраного стану StructureLib.
+    Only visible for the selected StructureLib state.
   </BlockAnnotation>
 </GameScene>
 ````
 
 ## `<BlockAnnotation>`
 
-Підсвічує один об’єм блока 1x1x1.
+Highlights a single 1x1x1 block volume.
 
-| Атрибут | Обов’язково | Значення |
+| Attribute | Required | Meaning |
 | --- | --- | --- |
-| `pos` | yes | `x y z` вектор |
-| `color` | no | `#RRGGBB`, `#AARRGGBB`, або `transparent` |
-| `thickness` | no | товщина лінії число з плаваючою комою |
-| `alwaysOnTop` | no | логічне значення вираз |
+| `pos` | yes | `x y z` vector |
+| `color` | no | `#RRGGBB`, `#AARRGGBB`, or `transparent` |
+| `colorMode` | no | `solid` (default) or `rainbow`; rainbow rotates through 360 degrees around the projected annotation center, replacing RGB while preserving the alpha of `color` |
+| `colorPeriod` | no | positive finite rainbow cycle period in seconds; default `2.4`; invalid values produce a page error |
+| `thickness` | no | line thickness float |
+| `alwaysOnTop` | no | boolean expression |
 
-Приклад:
+
+Example:
 
 ````md
 <BlockAnnotation pos="2 0 2" color="#33DDEE" alwaysOnTop={true}>
-  Підсвічує блок контролера.
+  Highlights the controller block.
 </BlockAnnotation>
+<BlockAnnotation pos="4 0 2" color="#80FFFFFF" colorMode="rainbow" colorPeriod="4.8" />
 ````
 
 ## `<BoxAnnotation>`
 
-Підсвічує довільну коробку, вирівняну за осями.
+Highlights an arbitrary axis-aligned box.
 
-| Атрибут | Обов’язково | Значення |
+| Attribute | Required | Meaning |
 | --- | --- | --- |
-| `min` | yes | `x y z` minimum вектор |
-| `max` | yes | `x y z` maximum вектор |
-| `color` | no | анотація колір |
-| `thickness` | no | товщина лінії число з плаваючою комою |
-| `alwaysOnTop` | no | логічне значення вираз |
+| `min` | yes | `x y z` minimum vector |
+| `max` | yes | `x y z` maximum vector |
+| `color` | no | annotation color |
+| `colorMode` | no | `solid` (default) or `rainbow`; rainbow rotates through 360 degrees around the projected annotation center, replacing RGB while preserving the alpha of `color` |
+| `colorPeriod` | no | positive finite rainbow cycle period in seconds; default `2.4`; invalid values produce a page error |
+| `thickness` | no | line thickness float |
+| `alwaysOnTop` | no | boolean expression |
 
-GuideNH автоматично swaps min/max координати per вісь коли Вони є provided in reverse порядок.
 
-Приклад:
+GuideNH automatically swaps min/max coordinates per axis when they are provided in reverse order.
+
+Example:
 
 ````md
 <BoxAnnotation min="0 1 0" max="1 1.6 0.6" color="#EE3333" thickness="0.04">
-  Підсвічування області на половину висоти.
+  Half-height area highlight.
 </BoxAnnotation>
+<BoxAnnotation min="2 0 0" max="4 1.5 0.5" color="#80FFFFFF" colorMode="rainbow" colorPeriod="2.4" />
 ````
 
 ## `<LineAnnotation>`
 
-малює a відрізок або ламана in світ простір.
+Draws a line segment or polyline in world space.
 
-| Атрибут | Обов’язково | Значення |
+| Attribute | Required | Meaning |
 | --- | --- | --- |
-| `from` | yes, unless `points` is Установіть | `x y z` початок вектор |
-| `to` | yes, unless `points` is Установіть | `x y z` кінець вектор |
-| `points` | no | Semicolon-separated `x y z` точки для a ламана; overrides `from` / `to` |
-| `color` | no | анотація колір |
-| `thickness` | no | товщина лінії число з плаваючою комою |
-| `alwaysOnTop` | no | логічне значення вираз |
-| `arrow` | no | `start` або `end`; пропущений означає no стрілка |
-| `showPoints` | no | логічне значення вираз; shows кожен точка as small cube |
-| `pointColor` | no | Типове cube колір; пропущений використовує  рядок колір |
-| `pointSize` | no | Типове cube розмір; пропущений використовує a значення slightly larger ніж `thickness` |
+| `from` | yes, unless `points` is set | `x y z` start vector |
+| `to` | yes, unless `points` is set | `x y z` end vector |
+| `points` | no | Semicolon-separated `x y z` points for a polyline; overrides `from` / `to` |
+| `color` | no | annotation color |
+| `thickness` | no | line thickness float |
+| `alwaysOnTop` | no | boolean expression |
+| `arrow` | no | `start` or `end`; omitted means no arrow |
+| `showPoints` | no | boolean expression; shows every point as a small cube |
+| `pointColor` | no | default cube color; omitted uses the line color |
+| `pointSize` | no | default cube size; omitted uses a value slightly larger than `thickness` |
 
-`LineAnnotation` може містити `<LinePoint>` дочірні елементи до перевизначати точка marker styling. `LinePoint`
-використовує `index`, необов’язковий `show`, необов’язковий `color`, і необов’язковий `size`. точки є zero-indexed.
-Arrows може лише be розміщений on  початок або кінець of  рядок; intermediate ламана точки не може carry
+`LineAnnotation` may contain `<LinePoint>` children to override point marker styling. `LinePoint`
+uses `index`, optional `show`, optional `color`, and optional `size`. Points are zero-indexed.
+Arrows can only be placed on the start or end of the line; intermediate polyline points cannot carry
 arrows.
 
-Приклад:
+Example:
 
 ````md
 <LineAnnotation from="0.5 1.2 0.5" to="2.5 1.2 2.5" color="#FFD24C" thickness="0.08">
-  Сигнальний шлях.
+  Signal path.
 </LineAnnotation>
 ````
 
-ламана з 3D endpoint стрілка і вибраний точка маркери:
+Polyline with a 3D endpoint arrow and selected point markers:
 
 ````md
 <LineAnnotation
@@ -142,20 +151,20 @@ arrows.
 >
   <LinePoint index="0" show color="#66CCFF" />
   <LinePoint index="1" show color="#FF8844" size="0.12" />
-  Сигнальний шлях через вигин.
+  Signal path through a bend.
 </LineAnnotation>
 ````
 
 ## `<DiamondAnnotation>`
 
-Places a екран-facing diamond marker at a світ позиція.
+Places a screen-facing diamond marker at a world position.
 
-| Атрибут | Обов’язково | Значення |
+| Attribute | Required | Meaning |
 | --- | --- | --- |
-| `pos` | yes | `x y z` marker позиція |
-| `color` | no | tint колір; пропущений типові до bright green |
+| `pos` | yes | `x y z` marker position |
+| `color` | no | tint color; omitted defaults to bright green |
 
-Приклад:
+Example:
 
 ````md
 <DiamondAnnotation pos="0.5 2.2 0.5" color="#FFD24C">
@@ -166,40 +175,43 @@ Places a екран-facing diamond marker at a світ позиція.
 
 ## `<OutlineAnnotation>`
 
-Малює світний контур силуету навколо блоків і сутностей, як ефект світіння. Контур повторює відмальовану форму кожної цілі, лишається видимим крізь блоки й сутності перед нею і зливається з дотичними контурами в одну фігуру.
+Draws a glow-style silhouette outline around blocks and entities, like the Glowing effect. The contour follows the rendered shape of every target, stays visible through blocks and entities in front of it, and merges with touching outlines into one shape.
 
-| Атрибут | Обов’язково | Значення |
+| Attribute | Required | Meaning |
 | --- | --- | --- |
-| `pos` | ні | блок `x y z` для обведення; типово `0 0 0`, тобто знайдений блок усередині `<BlockAnnotationTemplate>` |
-| `min` / `max` | ні | кутові блоки області включно; обводиться кожен блок усередині |
-| `entity` | ні | `sceneEntityId` сутності `<Entity>` для обведення |
-| `target` | ні | `blocks` (типово), `entities` або `all`: що обводиться в області; `entities` без області обводить усі сутності |
-| `mode` | ні | `auto` (типово), `geometry`, `cutout` або `bounds` |
-| `color` | ні | колір контуру; якщо пропущено, білий, а для сутностей колір їхньої команди на табло |
-| `thickness` | ні | товщина контуру в пікселях GUI, від `0.25` до `8`, типово `1` |
-| `alwaysOnTop` | ні | логічний вираз; приховані частини зберігають повну яскравість замість затемнення |
-| `pulse` | ні | логічний вираз; контур пульсує, як дихання |
-| `pulsePeriod` | ні | період пульсації в секундах, типово `2` |
+| `pos` | no | `x y z` block to outline; defaults to `0 0 0`, the matched block inside `<BlockAnnotationTemplate>` |
+| `min` / `max` | no | inclusive block corners of a region; every block inside it is outlined |
+| `entity` | no | `sceneEntityId` of an `<Entity>` to outline |
+| `target` | no | `blocks` (default), `entities`, or `all`: what is outlined inside the region; `entities` without a region outlines every entity |
+| `mode` | no | `auto` (default), `geometry`, `cutout`, or `bounds` |
+| `color` | no | outline color; omitted uses white, or the scoreboard team color for entities |
+| `colorMode` | no | `solid` (default) or `rainbow`; rainbow rotates through 360 degrees around the projected annotation center, replacing RGB while preserving the alpha of `color` |
+| `colorPeriod` | no | positive finite rainbow cycle period in seconds; default `2.4`; invalid values produce a page error |
+| `thickness` | no | outline width in GUI pixels, `0.25` to `8`, default `1` |
+| `alwaysOnTop` | no | boolean expression; occluded parts keep full brightness instead of being dimmed |
+| `pulse` | no | boolean expression; makes the outline breathe |
+| `pulsePeriod` | no | breathing period in seconds, default `2` |
 
-Режими силуету:
 
-- `auto` обирає для кожної цілі. Замкнені моделі (куби, скло, лід, рідини, панелі, багатоскладові й кабельні блоки, моделі OBJ і TESR) використовують свою геометрію, тож прозорі текстури на кшталт скла обводять увесь блок, а не рамку скла. Спрайтове відмалювання (квіти, саджанці, посіви, смолоскипи, рейки, драбини, ліани, редстоун) і сутності використовують альфу текстури, тож контур повторює намальовану форму, а не полігони. Блоки, що нічого не малюють, використовують рамку виділення.
-- `geometry` завжди використовує відмальовану геометрію.
-- `cutout` завжди використовує альфу текстури.
-- `bounds` обводить рамки виділення блоків і хітбокси сутностей.
+Silhouette modes:
 
-Правила:
+- `auto` decides per target. Closed models (cubes, glass, ice, fluids, panes, multipart and cable blocks, OBJ and TESR models) use their geometry, so see-through textures such as glass outline the whole block instead of the glass frame. Sprite-like renders (flowers, saplings, crops, torches, rails, ladders, vines, redstone) and entities use texture alpha, so the outline follows the drawn shape instead of the quads. Blocks that render nothing use their selection box.
+- `geometry` always uses the rendered geometry.
+- `cutout` always uses texture alpha.
+- `bounds` outlines the selection boxes of blocks and the bounding boxes of entities.
 
-- контур малюється лише ззовні силуету; сама ціль не зафарбовується
-- частини, приховані іншими блоками чи сутностями, лишаються видимими й затемнюються, як інші приховані анотації; `alwaysOnTop` зберігає повну яскравість
-- невидимі сутності теж отримують контур
-- дотичні чи накладені контури зливаються в один, зокрема між різними анотаціями
-- напівпрозорі кольори й м’який край змішуються зі сценою, тож край ніколи не стає чорним
-- дочірній вміст стає підказкою; вона з’являється при наведенні на будь-який обведений блок чи сутність
-- усередині `<BlockAnnotationTemplate>` атрибут `pos` задається відносно кожного знайденого блоку, а контури всіх збігів зливаються в одну фігуру
-- експортовані сайти малюють той самий контур за допомогою WebGL
+Rules:
 
-Приклад:
+- the contour is drawn outside the silhouette only; the target itself is not tinted
+- parts hidden behind other blocks or entities stay visible and are dimmed like other occluded annotations; `alwaysOnTop` keeps them at full brightness
+- invisible entities still get an outline
+- touching or overlapping outlines merge into one contour, also across different annotations
+- translucent colors and the soft edge are blended with the scene, so the edge never turns black
+- child content becomes the tooltip; hovering any outlined block or entity shows it
+- inside `<BlockAnnotationTemplate>`, `pos` is relative to each matched block and the outlines of all matches merge into one shape
+- exported sites draw the same outline with WebGL
+
+Example:
 
 ````md
 <GameScene zoom={3} interactive={true}>
@@ -207,14 +219,14 @@ Places a екран-facing diamond marker at a світ позиція.
   <Block id="minecraft:red_flower" x="2" />
   <Entity id="minecraft:sheep" sceneEntityId="sheep" x="1.5" z="2.5" />
   <OutlineAnnotation pos="0 0 0" color="#55FFFF">
-    Скло обводиться як цілий куб.
+    Glass is outlined as a full cube.
   </OutlineAnnotation>
-  <OutlineAnnotation pos="2 0 0" color="#FFFF55" thickness="1.5" />
+  <OutlineAnnotation pos="2 0 0" color="#80FFFFFF" colorMode="rainbow" colorPeriod="2.4" thickness="1.5" />
   <OutlineAnnotation entity="sheep" color="#FFAA00" alwaysOnTop={true} pulse={true} />
 </GameScene>
 ````
 
-Обвести всі відповідні блоки структури:
+Outline every matching block of a structure:
 
 ````md
 <BlockAnnotationTemplate id="minecraft:glass">
@@ -224,34 +236,34 @@ Places a екран-facing diamond marker at a світ позиція.
 
 ## `<TextAnnotation>`
 
-малює speech-бульбашка текст мітка over  сцена. It може either follow a простір світу якір точка або
-залишаються фіксований відносний до  сцена центр. Unlike  other анотація теги, його дочірній елемент вміст is 
-бульбашка текст itself rather ніж a наведення підказка.
+Draws a speech-bubble text label over the scene. It can either follow a world-space anchor point or
+stay fixed relative to the scene center. Unlike the other annotation tags, its child content is the
+bubble text itself rather than a hover tooltip.
 
-| Атрибут | Обов’язково | Значення |
+| Attribute | Required | Meaning |
 | --- | --- | --- |
-| `pos` | no | `x y z` простір світу якір вектор |
-| `x`, `y`, `z` | no | Alternative простір світу якір components коли `pos` is пропущений |
-| `text` | no | бульбашка текст; дочірній елемент Markdown is використовується коли пропущений |
-| `textKey` | no | ключ перекладу розв’язаний з ресурс-pack `lang` files до falling назад до `text` або дочірній елемент Markdown |
-| `color` | no | бульбашка межа колір; типові до light grey |
-| `backgroundAlpha` | no | тло opacity з `0` до `255`; типові до `204` |
-| `maxWidth` | no | перенесення ширина in пікселі; `0` зберігає a один рядок |
-| `independent` | no | `true` зберігає  бульбашка фіксований in екран простір |
-| `yOffset` | no | піксель offset з  сцена центр коли `independent={true}` |
-| `connectorSide` | no | `bottom`, `top`, `left`, `right`, або `none`; типові до `bottom` |
-| `connectorOffset` | no | піксель offset уздовж  бульбашка край; positive moves праворуч для угорі/унизу і down для ліворуч/праворуч |
-| `connectorLength` | no | піксель length of  з’єднувач рядок; типові до `6` |
-| `hlMinX/Y/Z`, `hlMaxX/Y/Z` | no | необов’язковий companion виділяти box межі |
-| `highlightColor` | no | необов’язковий виділяти box колір |
+| `pos` | no | `x y z` world-space anchor vector |
+| `x`, `y`, `z` | no | Alternative world-space anchor components when `pos` is omitted |
+| `text` | no | Bubble text; child markdown is used when omitted |
+| `textKey` | no | Translation key resolved from resource-pack `lang` files before falling back to `text` or child markdown |
+| `color` | no | Bubble border color; defaults to light grey |
+| `backgroundAlpha` | no | Background opacity from `0` to `255`; defaults to `204` |
+| `maxWidth` | no | Wrap width in pixels; `0` keeps a single line |
+| `independent` | no | `true` keeps the bubble fixed in screen space |
+| `yOffset` | no | Pixel offset from the scene center when `independent={true}` |
+| `connectorSide` | no | `bottom`, `top`, `left`, `right`, or `none`; defaults to `bottom` |
+| `connectorOffset` | no | Pixel offset along the bubble edge; positive moves right for top/bottom and down for left/right |
+| `connectorLength` | no | Pixel length of the connector line; defaults to `6` |
+| `hlMinX/Y/Z`, `hlMaxX/Y/Z` | no | Optional companion highlight box bounds |
+| `highlightColor` | no | Optional highlight box color |
 
-світ-anchored bubbles малювати з’єднувач рядок до їхні якір. використовувати `connectorSide` до вибрати який
-край of  бульбашка точки at  якір, `connectorOffset` до move  attachment точка уздовж який
-край, і `connectorLength` до control  gap between  бульбашка і якір. Independent bubbles
-є centered horizontally in  сцена і використовувати `yOffset` для vertical placement. Вони do не малювати a
-з’єднувач.  той самий виконання анотація is також використовується коли importing Анімація Ponder `text` Анотації.
+World-anchored bubbles draw a connector line to their anchor. Use `connectorSide` to choose which
+edge of the bubble points at the anchor, `connectorOffset` to move the attachment point along that
+edge, and `connectorLength` to control the gap between the bubble and anchor. Independent bubbles
+are centered horizontally in the scene and use `yOffset` for vertical placement. They do not draw a
+connector. The same runtime annotation is also used when importing Ponder `text` annotations.
 
-Приклад:
+Example:
 
 ````md
 <TextAnnotation
@@ -264,11 +276,11 @@ Places a екран-facing diamond marker at a світ позиція.
   connectorOffset={8}
   connectorLength={12}
 >
-  Вставте сюди предмети з **пріоритетом**.
+  Insert items here with **priority**.
 </TextAnnotation>
 ````
 
-фіксований простір екрана Приклад:
+Fixed screen-space example:
 
 ````md
 <TextAnnotation independent={true} yOffset={40} color="#FFFFCC00" backgroundAlpha={140}>
@@ -276,16 +288,16 @@ Places a екран-facing diamond marker at a світ позиція.
 </TextAnnotation>
 ````
 
-## розширений підказка вміст
+## Rich Tooltip Content
 
-анотація дочірні елементи є скомпільований as normal GuideNH вміст, so tooltips може містити:
+Annotation children are compiled as normal GuideNH content, so tooltips may contain:
 
-- Markdown paragraphs і headings
-- предмет/блок зображення
-- Рецепти
-- nested non-інтерактивний сцени
+- markdown paragraphs and headings
+- item/block images
+- recipes
+- nested non-interactive scenes
 
-Приклад:
+Example:
 
 ````md
 <DiamondAnnotation pos="0.5 1.5 0.5">
@@ -294,34 +306,49 @@ Places a екран-facing diamond marker at a світ позиція.
 </DiamondAnnotation>
 ````
 
+## `<InputAnnotation>` fluid targets
+
+InputAnnotation accepts either `item` or `fluid`, never both. A fluid target also accepts optional `amount` (integer) and `nbt` (SNBT). Amount and NBT require `fluid`. Existing position, inputType, modifier, and StructureLib visibility conditions remain available.
+
+Fluid hover information includes the name, temperature and gas/liquid state, plus configured GregTech material details when available. Explicit amounts use the selected L/mB unit. ExportSite input annotations retain the same text as a browser hover hint and preserve the formatted amount.
+
+```mdx
+<GameScene width="180" height="120">
+  <Block x="0" y="0" z="0" id="minecraft:stone" />
+  <InputAnnotation pos="0.5 1.5 0.5" inputType="rmb" fluid="water" amount={1000} />
+</GameScene>
+```
+
+The annotation displays an interaction icon and fluid information. It does not fill a tank or change the scene world. Fluid blocks still use real block IDs in Block / PlaceBlock.
+
 ## `<BlockAnnotationTemplate>`
 
-використовувати it коли you want до stamp  той самий анотація onto кожен відповідний блок.
+Use it when you want to stamp the same annotation onto every matching block.
 
-| Атрибут | Обов’язково | Значення |
+| Attribute | Required | Meaning |
 | --- | --- | --- |
-| `id` | yes | блок matcher in `modid:block[:meta]` form |
+| `id` | yes | block matcher in `modid:block[:meta]` form |
 
-Правила:
+Rules:
 
--  template лише sees блоки який вже exist коли it is проаналізований
-- place it після `<Block>`, `<ImportStructure>`, або `<ImportStructureLib>` теги який слід feed it
-- дочірній елемент Анотації використовувати локальний координати відносний до кожен відповідний блок
+- the template only sees blocks that already exist when it is parsed
+- place it after `<Block>`, `<ImportStructure>`, or `<ImportStructureLib>` tags that should feed it
+- child annotations use local coordinates relative to each matched block
 
-Приклад:
+Example:
 
 ````md
 <GameScene zoom={2}>
   <ImportStructure src="/assets/example_structure.snbt" />
   <BlockAnnotationTemplate id="minecraft:log">
     <DiamondAnnotation pos="0.5 0.5 0.5" color="#ff0000">
-      Підказка, створена шаблоном
+      Template-generated tooltip
     </DiamondAnnotation>
   </BlockAnnotationTemplate>
 </GameScene>
 ````
 
-## Пов’язані сторінки
+## Related Pages
 
 - [GameScene](GameScene)
 - [Examples](Examples)

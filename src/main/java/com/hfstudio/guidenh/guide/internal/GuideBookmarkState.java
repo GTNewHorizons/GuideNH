@@ -43,6 +43,11 @@ public class GuideBookmarkState {
     private boolean loaded;
     private int version;
 
+    public GuideBookmarkState() {
+        this.store = null;
+        this.loaded = true;
+    }
+
     public GuideBookmarkState(GuideBookmarkStore store) {
         this.store = store;
     }
@@ -86,7 +91,9 @@ public class GuideBookmarkState {
             bookmarked = true;
         }
         version++;
-        store.save(bookmarks);
+        if (store != null) {
+            store.save(bookmarks);
+        }
         return bookmarked;
     }
 
@@ -98,7 +105,9 @@ public class GuideBookmarkState {
         boolean changed = bookmarks.removeIf(pageId -> pageId == null || !validPageIds.contains(pageId));
         if (changed) {
             version++;
-            store.save(bookmarks);
+            if (store != null) {
+                store.save(bookmarks);
+            }
         }
         return changed;
     }

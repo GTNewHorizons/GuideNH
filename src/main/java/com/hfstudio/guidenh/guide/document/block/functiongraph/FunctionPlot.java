@@ -31,7 +31,9 @@ public class FunctionPlot {
     @Nullable
     private LytParagraph richTooltipSummary;
 
-    /** HTML compiled by the site exporter from child Markdown. */
+    /**
+     * HTML compiled by the site exporter from child Markdown.
+     */
     @Nullable
     private String siteTooltipHtml;
 

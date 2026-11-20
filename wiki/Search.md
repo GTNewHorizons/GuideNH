@@ -1,6 +1,6 @@
 # Search
 
-GuideNH maintains an in-memory Lucene index for guide search.
+Search finds pages by title, keywords and searchable text.
 
 ## What Gets Indexed
 
@@ -53,7 +53,7 @@ Search analyzers are chosen from the current Minecraft language when possible. U
 
 ## Query Scope
 
-By default, guide search returns up to 25 matches. The search page can also be restricted to a single guide internally when needed.
+Guide search returns up to 25 matches by default.
 
 ## Authoring Tips For Better Results
 
@@ -64,7 +64,7 @@ By default, guide search returns up to 25 matches. The search page can also be r
 
 ## Example Search Targets
 
-The built-in example guide is a good search smoke-test because it includes:
+The built-in example guide is a good place to explore search because it includes:
 
 - markdown syntax examples
 - recipe pages

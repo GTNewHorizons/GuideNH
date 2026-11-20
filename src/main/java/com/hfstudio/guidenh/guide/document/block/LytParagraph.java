@@ -196,18 +196,24 @@ public class LytParagraph extends LytBlock implements LytFlowContainer, DebugFlo
         return paragraph;
     }
 
-    /** Warm amber-yellow italic text for placeholder blocks awaiting async materialization. */
+    /**
+     * Warm amber-yellow italic text for placeholder blocks awaiting async materialization.
+     */
     public static final TextStyle PLACEHOLDER_STYLE = TextStyle.builder()
         .italic(true)
         .color(new ConstantColor(ColorUtils.ARGB_FFE8A317.getColor()))
         .build();
 
-    /** Red text style for inline error messages. */
+    /**
+     * Red text style for inline error messages.
+     */
     public static final TextStyle ERROR_STYLE = TextStyle.builder()
         .color(ColorUtils.ERROR_TEXT)
         .build();
 
-    /** Creates a placeholder paragraph (amber, italic) for deferred content. */
+    /**
+     * Creates a placeholder paragraph (amber, italic) for deferred content.
+     */
     public static LytParagraph placeholder(String text) {
         var paragraph = new LytParagraph();
         paragraph.setStyle(PLACEHOLDER_STYLE);
@@ -215,7 +221,9 @@ public class LytParagraph extends LytBlock implements LytFlowContainer, DebugFlo
         return paragraph;
     }
 
-    /** Creates an error paragraph (red text) for inline error reporting. */
+    /**
+     * Creates an error paragraph (red text) for inline error reporting.
+     */
     public static LytParagraph error(String text) {
         var paragraph = new LytParagraph();
         paragraph.setStyle(ERROR_STYLE);

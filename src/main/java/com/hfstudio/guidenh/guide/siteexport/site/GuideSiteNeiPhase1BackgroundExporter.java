@@ -23,8 +23,7 @@ import com.hfstudio.guidenh.integration.nei.NeiRecipeLookup;
 import com.hfstudio.guidenh.integration.neicustomdiagram.NeiCustomDiagramBridge;
 
 /**
- * Renders NEI handler Phase1 ({@code drawBackground} / optionally {@code drawForeground} /
- * {@code drawExtras}) off-screen and writes a PNG shared asset for static site overlays.
+ * Renders NEI handler backgrounds and optional foregrounds off-screen into a shared PNG asset.
  *
  * @see NeiHandlerRenderer
  */
@@ -40,7 +39,9 @@ public class GuideSiteNeiPhase1BackgroundExporter implements AutoCloseable {
      */
     public static final int VIEWPORT_MARGIN_PX = 6;
 
-    /** Upper bound avoids extreme handler sizes blowing memory during export. */
+    /**
+     * Upper bound avoids extreme handler sizes blowing memory during export.
+     */
     private static final int MAX_EXPORT_EDGE = 1024;
     private static final int RASTER_SCALE = 2;
 
@@ -194,7 +195,6 @@ public class GuideSiteNeiPhase1BackgroundExporter implements AutoCloseable {
                 NeiRecipeLookup.callDrawBackground(handler, recipeIndex);
                 if (!skipForeground) {
                     NeiRecipeLookup.callDrawForeground(handler, recipeIndex);
-                    NeiRecipeLookup.callDrawExtras(handler, recipeIndex);
                 }
             } finally {
                 GL11.glPopMatrix();
@@ -277,7 +277,9 @@ public class GuideSiteNeiPhase1BackgroundExporter implements AutoCloseable {
         pixelBuffer = null;
     }
 
-    /** Non-null fields when capture succeeds; use {@link #relativeUrl} in HTML/CSS. */
+    /**
+     * Non-null fields when capture succeeds; use {@link #relativeUrl} in HTML/CSS.
+     */
     public static class Result {
 
         public final String relativeUrl;

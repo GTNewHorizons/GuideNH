@@ -41,23 +41,23 @@ public class EllipseShape implements ShapeRenderer {
 
     @Override
     public LytRect contentBounds(LytRect nodeRect, int cw, int ch, int padX, int padY) {
-        int cx = nodeRect.x() + nodeRect.width() / 2;
-        int cy = nodeRect.y() + nodeRect.height() / 2;
-        int insW = (int) (nodeRect.width() / Math.sqrt(2));
-        int insH = (int) (nodeRect.height() / Math.sqrt(2));
-        int availW = Math.max(insW - 2 * padX, 1);
-        int availH = Math.max(insH - 2 * padY, 1);
-        int contentW = Math.min(availW, cw);
-        int contentH = Math.min(availH, ch);
-        return new LytRect(cx - contentW / 2, cy - contentH / 2, contentW, contentH);
+        int insW = 2 * (int) ((nodeRect.width() / 2.0) / Math.sqrt(2));
+        int insH = 2 * (int) ((nodeRect.height() / 2.0) / Math.sqrt(2));
+        return ShapeUtils.centeredContent(
+            nodeRect.x() + (nodeRect.width() - insW) / 2 + padX,
+            nodeRect.y() + (nodeRect.height() - insH) / 2 + padY,
+            insW - 2 * padX,
+            insH - 2 * padY,
+            cw,
+            ch);
     }
 
     @Override
     public LytRect minNodeRect(int cw, int ch, int padX, int padY) {
         int pw = cw + 2 * padX;
         int ph = ch + 2 * padY;
-        int w = (int) Math.ceil(pw * Math.sqrt(2));
-        int h = (int) Math.ceil(ph * Math.sqrt(2));
+        int w = 2 * (int) Math.ceil(((pw + 1) / 2.0) * Math.sqrt(2));
+        int h = 2 * (int) Math.ceil(((ph + 1) / 2.0) * Math.sqrt(2));
         return new LytRect(0, 0, w, h);
     }
 }

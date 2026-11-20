@@ -2,14 +2,13 @@
 
 GuideNH строит дерево навигации на основе заголовка страницы.
 
-На боковой панели в игре развернутые страницы предков остаются закрепленными вверху, хотя их все еще видно.
-потомки прокручиваются ниже. Несколько расширенных уровней предков могут складываться одновременно, и каждый из них является липким.
-строка отодвигается только тогда, когда все ее видимое поддерево прокручивается, как в файле VSCode.
-проводник.
+GuideNH builds its navigation tree from page frontmatter.
 
-## Основа навигации
+Expanded ancestors stay pinned while their child pages scroll beneath them. Multiple levels can remain visible until their descendants leave the visible area.
 
-Карта `navigation` определяет, будет ли страница отображаться в дереве направляющих.
+## Navigation Frontmatter
+
+The `navigation` map controls whether a page appears in the guide tree.
 
 ```yaml
 navigation:
@@ -19,40 +18,42 @@ navigation:
   icon: minecraft:diamond_block
 ```
 
-### Ссылка на поле
+### Field Reference
 
-| Поле | Описание |
+| Field | Description |
 | --- | --- |
-| `title` | Обязательное отображаемое название |
-| `keyword` | Необязательное ключевое слово или псевдоним для одного поиска. |
-| `keywords` | Необязательный список ключевых слов или псевдонимов для поиска. |
-| `parent` | необязательный идентификатор родительской страницы, разрешаемый как ссылка на страницу руководства. |
-| `position` | Дополнительная подсказка по упорядочению одноуровневых элементов |
-| `recommend` | дополнительный приоритет рекомендаций на главной странице; отсутствует означает, что страница не отображается на панели «Рекомендовано». |
-| `priority` | необязательный приоритет загрузки для переопределений страниц с одним и тем же путем; по умолчанию `0` |
-| `icon` | дополнительный значок отдельного элемента; поддерживает встроенные хвосты `mod:item:meta:{snbt}` |
-| `icons` | список дополнительных значков элементов велосипедного движения; записи могут быть простыми идентификаторами элементов с дополнительными встроенными картами `:{snbt}` или `{id, meta?, nbt?}`. |
-| `icon_texture` | дополнительный значок текстуры, полученный из ресурсов направляющих. |
-| `icon_textures` | Дополнительный список значков велосипедных текстур. |
-| `required_mod` | Необязательный идентификатор одного мода; страница скрыта, когда этот мод не загружен |
-| `required_mods` | Необязательный список идентификаторов модов; страница скрыта, пока не загружены все перечисленные моды |
-| `excluded_mod` | Необязательный идентификатор одного мода; страница скрыта при загрузке этого мода |
-| `excluded_mods` | Необязательный список идентификаторов модов; страница скрыта при загрузке любого указанного мода |
+| `title` | Required display title |
+| `keyword` | Optional single search keyword or alias |
+| `keywords` | Optional list of search keywords or aliases |
+| `parent` | Optional parent page id, resolved like a guide page link |
+| `position` | Optional sibling ordering hint |
+| `recommend` | Optional home-page recommendation priority; absent means the page is not shown in the Recommended panel |
+| `priority` | Optional load priority for same-path page overrides; default `0` |
+| `icon` | Optional single item icon; supports inline `mod:item:meta:{snbt}` tails |
+| `icons` | Optional cycling item icons list; entries may be plain item ids with optional inline `:{snbt}` or `{id, meta?, nbt?}` maps |
+| `icon_texture` | Optional texture icon resolved from guide assets |
+| `icon_textures` | Optional cycling texture icon list |
+| `icon_fluid` | Optional single fluid registry name; excludes `icon_fluids` and item/texture sources |
+| `icon_fluids` | Optional nonempty fluid registry-name list cycling once per second; excludes `icon_fluid` and item/texture sources |
+| `required_mod` | Optional single mod id; page is hidden when this mod is not loaded |
+| `required_mods` | Optional list of mod ids; page is hidden unless all listed mods are loaded |
+| `excluded_mod` | Optional single mod id; page is hidden when this mod is loaded |
+| `excluded_mods` | Optional list of mod ids; page is hidden when any listed mod is loaded |
 
 ### `navigation.position`
 
-`navigation.position` — это необязательное целое число, используемое для упорядочивания одноуровневых страниц в дереве навигации.
+`navigation.position` is an optional integer used to order sibling pages in the navigation tree.
 
-- отсутствует `position`, по умолчанию используется `0`.
-- Большие значения появляются раньше.
-- Если две страницы имеют одинаковое значение, они сортируются по названию в алфавитном порядке.
+- Missing `position` defaults to `0`.
+- Larger values appear earlier.
+- If two pages have the same value, they are sorted by title alphabetically.
 
-### Ключевые слова для поиска
+### Search Keywords
 
-`navigation.keyword` добавляет один псевдоним поиска. `navigation.keywords` добавляет список псевдонимов. Оба поля
-можно использовать вместе; значения обрезаются, а повторяющиеся значения игнорируются. Соответствие ключевых слов использует то же самое
-анализатор языка и сопоставление префиксов при поиске по заголовку и содержимому страницы, при этом результаты продолжают отображаться.
-обычный заголовок навигации.
+`navigation.keyword` adds one search alias. `navigation.keywords` adds a list of aliases. Both fields
+can be used together; values are trimmed and duplicate values are ignored. Keyword matches use the same
+language analyzer and prefix matching as title and page content searches, while results continue to show
+the normal navigation title.
 
 ```yaml
 navigation:
@@ -63,17 +64,17 @@ navigation:
     - autocrafting machine
 ```
 
-## Рекомендации на главной странице
+## Home Page Recommendations
 
 ### `navigation.recommend`
 
-`navigation.recommend` — необязательное целое число, используемое панелью «Рекомендовано» на домашней странице.
+`navigation.recommend` is an optional integer used by the home page Recommended panel.
 
-- Страницы отображаются на панели «Рекомендовано» только при наличии этого поля.
-- `0` действителен.
-- Большие значения появляются раньше.
-- Если две страницы имеют одинаковое значение, они сортируются по названию в алфавитном порядке.
-- Панель работает на уровне `GuidePage`, поэтому каждая рекомендуемая запись на странице переходит непосредственно на эту страницу.
+- Pages only appear in the Recommended panel when this field is present.
+- `0` is valid.
+- Larger values appear earlier.
+- If two pages have the same value, they are sorted by title alphabetically.
+- Each recommendation opens its page directly.
 
 ```yaml
 navigation:
@@ -82,12 +83,12 @@ navigation:
   recommend: 0
 ```
 
-## Требования к моду
+## Mod Requirements
 
-используйте `required_mod` или `required_mods`, чтобы потребовать один или несколько загруженных модов. Используйте `excluded_mod` или
-`excluded_mods`, чтобы скрыть страницу при загрузке одного или нескольких несовместимых модов. Когда условие не
-выполнено, страница исключается из дерева навигации и всех индексов страниц (элементов, категорий и т. д.), поэтому
-невозможно найти с помощью навигации или поиска.
+Use `required_mod` or `required_mods` to require one or more loaded mods. Use `excluded_mod` or
+`excluded_mods` to hide a page when one or more incompatible mods are loaded. When a condition is not
+met, the page is excluded from the navigation tree and all page indices (item, category, etc.) so it
+cannot be found through navigation or search.
 
 ```yaml
 navigation:
@@ -103,10 +104,10 @@ navigation:
     - appliedenergistics2
 ```
 
-Оба ключа можно комбинировать; страница отображается только при наличии каждого перечисленного мода.
+Both keys may be combined; the page is only shown when every listed mod is present.
 
-Обязательные и исключенные условия также можно комбинировать. Все необходимые моды должны быть загружены и ни один из
-исключенные моды могут быть загружены.
+Required and excluded conditions can also be combined. All required mods must be loaded and none of the
+excluded mods may be loaded.
 
 ```yaml
 navigation:
@@ -118,10 +119,10 @@ navigation:
     - legacy_addon
 ```
 
-## Приоритет загрузки
+## Load Priority
 
-Если несколько загруженных пакетов ресурсов предоставляют один и тот же путь к странице руководства, GuideNH считывает страницу.
-сначала указывается заголовок и выбирается кандидат с самым высоким значением `navigation.priority`.
+When several loaded resource packs provide the same guide page path, GuideNH reads the page
+frontmatter first and chooses the candidate with the highest `navigation.priority`.
 
 ```yaml
 navigation:
@@ -130,48 +131,50 @@ navigation:
   priority: 100
 ```
 
-Правила:
+Rules:
 
-- отсутствует `priority` — `0`.
-- значения представляют собой целые числа Java со знаком до `2147483647`.
-- победы с более высоким приоритетом
-- если приоритеты равны, побеждает более поздняя обработанная запись пакета ресурсов, соответствующая порядку переопределения пакета ресурсов Minecraft.
-- приоритет определяется только между кандидатами для одного и того же пути к странице и языка/резервного уровня.
+- missing `priority` is `0`
+- values are integers
+- higher priority wins
+- if priorities are equal, the later processed resource pack entry wins, matching Minecraft resource-pack override order
+- priority only decides between candidates for the same page path and language/fallback layer
 
-Это полезно, когда мод содержит базовую страницу руководства, и пакет хочет заменить ее, не полагаясь только на
-заказ пакетов ресурсов.
+This is useful when a mod ships a baseline guide page and a pack wants to replace it without relying only on
+resource-pack ordering.
 
-## Источники значков
+## Icon Sources
 
-GuideNH выбирает значки навигации/поиска в следующем порядке:
+Choose `icon_fluid` or `icon_fluids` for fluid icons. The two fields are mutually exclusive and cannot accompany item or texture sources. Icons do not create fluid navigation bindings; add page-level `fluid_id` / `fluid_ids` separately.
 
-1. `icon_textures`, если настроена хотя бы одна запись текстуры.
-2. `icon_texture`, если файл текстуры загружается успешно.
-3. `icons`, если хотя бы один настроенный элемент разрешается успешно.
-4. `icon`, если элемент существует.
-5. нет значка, если ни один из них не может быть использован.
+When no fluid icon is configured, GuideNH chooses item and texture icons in this order:
 
-значки текстур считываются из ресурсов среды выполнения, поэтому работают относительные локальные файлы страницы, такие как `test1.png`.
+1. `icon_textures` if at least one texture entry is configured
+2. `icon_texture` if the texture file loads successfully
+3. `icons` if at least one configured item resolves successfully
+4. `icon` if the item exists
+5. no icon if neither is usable
 
-## Родительские и корневые узлы
+Texture icons are read from runtime assets, so relative page-local files such as `test1.png` work.
 
-- опустите `parent`, чтобы создать корневой узел.
-- установите `parent: index.md` или любой другой идентификатор страницы, чтобы создать дочерний узел.
-- родительская страница должна существовать в том же дереве навигации руководства.
+## Parent And Root Nodes
 
-`navigation.parent` использует те же правила пространства имен, что и ссылки на страницы Markdown:
+- Omit `parent` to create a root node.
+- Set `parent: index.md` or any other page id to create a child node.
+- The parent page must exist in the same guide navigation tree.
 
-- `parent: index.md` и `parent: ./index.md` разрешаются внутри пространства имен текущей страницы.
-- `parent: /index.md` разрешается из корня пространства имен текущей страницы.
-- `parent: gregtech:index.md` или `parent: gregtech:/index.md` явно нацелены на другое пространство имен.
+`navigation.parent` uses the same namespace rules as Markdown page links:
 
-Руководства, управляемые данными, изолированы по пространству имен. Страницы под номером `assets/guidenh/guidenh/_en_us/...` принадлежат
-`guidenh:guidenh`; страницы под `assets/gregtech/guidenh/_en_us/...` принадлежат `gregtech:guidenh`.
-Относительные родители и ссылки никогда не попадают на одноименную страницу другого мода.
+- `parent: index.md` and `parent: ./index.md` resolve inside the current page namespace.
+- `parent: /index.md` resolves from the current page namespace root.
+- `parent: gregtech:index.md` or `parent: gregtech:/index.md` explicitly targets another namespace.
 
-## Страницы категорий
+Data-driven guides are isolated by namespace. Pages under `assets/guidenh/guidenh/_en_us/...` belong to
+`guidenh:guidenh`; pages under `assets/gregtech/guidenh/_en_us/...` belong to `gregtech:guidenh`.
+Relative parents and links never fall through to another mod's same-named page.
 
-Страницы могут присоединяться к одной или нескольким именованным категориям с помощью заголовка:
+## Category Pages
+
+Pages can join one or more named categories using frontmatter:
 
 ```yaml
 categories:
@@ -179,14 +182,14 @@ categories:
   - machines|Arc Furnace
 ```
 
-каждая запись может быть либо именем категории, либо `category|sort key`.
+Each entry can be either a category name or `category|sort key`.
 
-Эти категории доступны для запроса через встроенный тег `<Category name="machines" rows="3" />`, а также автоматически создают скрытые страницы с возможностью поиска, такие как `Category:machines`.
-GuideNH также автоматически создает скрытые специальные страницы с возможностью поиска `Special:AllPages` и `Special:Categories`.
+Those categories are queryable through the built-in `<Category name="machines" rows="3" />` tag and also auto-create hidden searchable pages such as `Category:machines`.
+GuideNH also auto-creates the hidden searchable special pages `Special:AllPages` and `Special:Categories`.
 
-## Страницы, индексированные по элементам
+## Item-Indexed Pages
 
-страницы могут регистрировать сопоставления элементов со страницами, используя `item_id` (одно значение) или `item_ids` (список):
+Pages can register item-to-page mappings using `item_id` (one value) or `item_ids` (a list):
 
 ```yaml
 item_id: "minecraft:potion 16384-16462,!16386 | ae2:white_paint_ball:*"
@@ -197,52 +200,83 @@ item_ids:
   - minecraft:iron_ore#crafting
 ```
 
-эти сопоставления используются `<ItemLink>`. `item_id` — это одно выражение в стиле NEI, и каждое `item_ids`
-запись — это выражение того же типа. Например, `minecraft:potion 16384-16462,!16386` соответствует
-диапазон метаданных, за исключением `16386`, а `minecraft:potion 0-16,20-36,!28` объединяет два диапазона метаданных и
-исключает `28`. `ae2:white_paint_ball:*` — это совместимое строгое мета-отображение.
+These mappings are used by `<ItemLink>`. `item_id` is one NEI-style expression and each `item_ids`
+entry is the same kind of expression. For example, `minecraft:potion 16384-16462,!16386` matches a
+metadata range except for `16386`, while `minecraft:potion 0-16,20-36,!28` combines two metadata ranges and
+excludes `28`. `ae2:white_paint_ball:*` is a compatible strict all-meta mapping.
 
-необязательный суффикс `#anchor` позволяет перейти к определенному заголовку при нажатии на ссылку.
-привязка формируется путем перевода текста заголовка в нижний регистр и замены пробелов дефисами.
-(например, `## Crafting Recipe` → `#crafting-recipe`).
+An optional `#anchor` suffix scrolls to a specific heading when the link is clicked.
+The anchor is formed by lowercasing the heading text and replacing spaces with hyphens
+(e.g. `## Crafting Recipe` → `#crafting-recipe`).
 
-Поведение поиска:
+Lookup behavior:
 
-1. точный предмет + точная мета
-2. запасной вариант мета-подстановочного знака, если он присутствует.
-3. соответствующее выражение элемента
+1. exact item + exact meta
+2. wildcard-meta fallback if present
+3. matching item expression
 
-## Привязка заголовков ссылок
+## Fluid-indexed pages
 
-GuideNH поддерживает навигацию по привязке заголовков в ссылках Markdown и тегах `<a>`.
-Привязки извлекаются из текста заголовка путем написания строчными буквами и замены пробелов дефисами.
+Use `fluid_id` for one fluid or `fluid_ids` for a list; both fields may coexist. Bindings match exact registry names independently of amount and NBT. Append `#anchor` to open a section:
 
-**Привязка на той же странице:**
+```yaml
+fluid_id: water
+fluid_ids:
+  - steam#uses
+navigation:
+  title: Fluid handling
+  icon_fluid: water
+```
+
+Bindings serve `<FluidLink>` and the hover-and-hold `G` shortcut. Recognized NEI fluid displays and filled containers are supported; empty containers retain item navigation. Multiple targets open a chooser with fluid pages before container-item pages.
+
+## External content pages
+
+Use `bindings` to index this page by a BetterQuesting quest, Thaumcraft research or another registered content type:
+
+```yaml
+bindings:
+  - {type: "thaumcraft", id: "INFUSION", anchor: "apparatus"}
+  - {type: "betterquesting", id: "01234567-89ab-cdef-0123-456789abcdef", anchor: "quest"}
+```
+
+When several pages or sections reference the same content, GuideNH opens the destination selector used for items. Identical page/anchor pairs merge; different anchors remain selectable. An omitted `anchor` means the top of the page. Full field and quoting rules are in [Frontmatter](Guide-Page-Format#external-content-bindings).
+
+`QuestLink` and `QuestCard` titles open BetterQuesting on left click. Right click opens bound guide destinations and falls back to BetterQuesting when none exist. Research and generic links/cards default to opening bound guides first; their `target` attribute selects the left-click action. See [Tags Reference](Tags-Reference#research-and-custom-content).
+
+Hold the open-guide key (default `G`) while hovering a supported quest button, research entry or content icon to select its bound guides. With no binding, that hotkey does nothing. Mod-specific hover areas and return navigation are described in [Mod Compatibility](Mod-Compatibility).
+
+## Heading Anchor Links
+
+GuideNH supports heading anchor navigation in Markdown links and `<a>` tags.
+Anchors are derived from heading text by lowercasing and replacing spaces with hyphens.
+
+**Same-page anchor:**
 
 ```md
 [Jump to Installation](#installation)
 [Jump to Crafting Recipe](#crafting-recipe)
 ```
 
-**Межстраничная привязка:**
+**Cross-page anchor:**
 
 ```md
-[See Getting Started](./Guide-Page-Format#installation)
+[See Getting Started](./getting-started.md#installation)
 [Another guide](other-guide.md#usage)
 ```
 
-**Привязка к абсолютному пути** (с использованием направляющего пространства имен позволяет избежать неоднозначности относительного пути в подкаталогах):
+**Absolute path anchor** (using the guide namespace, avoids relative path ambiguity in subdirectories):
 
 ```md
 [Absolute link](guidenh:other-guide.md#usage)
 [Any namespace](mymods:crafting/iron.md#smelting)
 ```
 
-формат `namespace:path` преобразуется в страницу руководства, идентификатор которой соответствует `namespace:path`.
-это идентично разрешению относительных путей, но без навигации по `../`.
-страница должна существовать в том же руководстве, что и источник ссылки.
+The `namespace:path` format resolves to the guide page whose id matches `namespace:path`.
+This is identical to what relative paths resolve to, but avoids `../` navigation.
+The target page must be loaded.
 
-**Именованные встроенные привязки** также можно разместить с помощью `<a name="...">` в MDX:
+**Named inline anchors** can also be placed with `<a name="...">` in MDX:
 
 ```md
 <a name="custom-anchor" />
@@ -252,20 +286,20 @@ GuideNH поддерживает навигацию по привязке заг
 [Jump here](#custom-anchor)
 ```
 
-переход к ссылке с привязкой прокручивает руководство к целевому заголовку или именованной привязке.
+Navigating to a link with an anchor scrolls the guide to the target heading or named anchor.
 
 ## `<SubPages>`
 
-`<SubPages>` отображает ссылки на дочерние элементы навигации.
+`<SubPages>` renders links to navigation children.
 
-### Атрибуты
+### Attributes
 
-| Атрибут | Тип | По умолчанию | Значение |
+| Attribute | Type | Default | Meaning |
 | --- | --- | --- | --- |
-| `id` | идентификатор страницы или пустая строка. | текущая страница | Страница, дочерние элементы которой должны быть перечислены. |
-| `alphabetical` | логическое выражение | `false` | сортировка детей по названию, а не по порядку навигации. |
+| `id` | page id or empty string | current page | Page whose children should be listed |
+| `alphabetical` | boolean expression | `false` | Sort children by title instead of navigation order |
 
-### Примеры
+### Examples
 
 ````md
 <SubPages />
@@ -273,55 +307,59 @@ GuideNH поддерживает навигацию по привязке заг
 <SubPages id="" alphabetical={true} />
 ````
 
-Особый случай: `id=""` перечисляет корневые узлы навигации.
+Special case: `id=""` lists root navigation nodes.
 
 ## `<Category>`
 
-`<Category>` отображает ссылки на каждую страницу в именованной категории.
+`<Category>` renders links to every page in a named category.
 
-### Атрибуты
+### Attributes
 
-| Атрибут | Тип | По умолчанию | Значение |
+| Attribute | Type | Default | Meaning |
 | --- | --- | --- | --- |
-| `name` | строка | нет | Имя категории для отображения. |
-| `rows` | положительное целое число | `3` | Количество отображаемых столбцов в макете в стиле MediaWiki. |
+| `name` | string | none | Category name to render |
+| `rows` | positive integer | `3` | Number of display columns in the MediaWiki-style layout |
 
 ````md
 <Category name="machines" rows="3" />
 ````
 
-если категория отсутствует, GuideNH отображает встроенную ошибку.
+If the category is missing, GuideNH renders an inline error.
 
-В этой же категории также есть автоматически созданная скрытая страница с возможностью поиска по адресу `Category:machines`.
+The same category also has an auto-generated hidden searchable page at `Category:machines`.
 
 ## `<Special>`
 
-`<Special>` отображает один из встроенных списков специальных страниц в стиле MediaWiki.
+`<Special>` renders one of the built-in MediaWiki-style special page listings.
 
-### Атрибуты
+### Attributes
 
-| Атрибут | Тип | По умолчанию | Значение |
+| Attribute | Type | Default | Meaning |
 | --- | --- | --- | --- |
-| `name` | строка | нет | Поддерживаемые значения: `AllPages`, `Categories`. |
-| `rows` | положительное целое число | `3` | Количество отображаемых столбцов в макете в стиле MediaWiki. |
+| `name` | string | none | Special page name; use `SpecialPages` for the catalog, including `AllPages`, `Categories` and `Templates` |
+| `rows` | positive integer | `3` | Number of display columns in the MediaWiki-style layout |
+| `page` | page id | none | Page target for special lists that require one |
+| `prefix` | string | none | Title/page-ID prefix for `AllPagesWithPrefix` |
+| `language` | string | none | Language filter for translation lists |
+| `query` | string | none | List search text |
 
 ````md
 <Special name="AllPages" rows="4" />
 <Special name="Categories" rows="3" />
 ````
 
-тот же контент также доступен на скрытых страницах с возможностью поиска `Special:AllPages` и `Special:Categories`.
+The same content is also available through the hidden searchable pages `Special:AllPages` and `Special:Categories`.
 
-## Заголовки результатов поиска
+## Search Result Titles
 
-Заголовки поиска формируются в следующем порядке:
+Search titles are derived in this order:
 
 1. `navigation.title`
-2. заголовок первого уровня 1 (`# Heading`).
-3. необработанный идентификатор страницы
+2. first level-1 heading (`# Heading`)
+3. raw page id
 
-## Похожие страницы
+## Related Pages
 
-- [Формат страницы руководства](Guide-Page-Format)
+- [Guide Page Format](Guide-Page-Format)
 - [Search](Search)
-- [Справочник тегов](Tags-Reference)
+- [Tags Reference](Tags-Reference)

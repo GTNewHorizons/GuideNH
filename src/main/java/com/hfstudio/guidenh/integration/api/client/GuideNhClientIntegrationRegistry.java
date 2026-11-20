@@ -2,10 +2,13 @@ package com.hfstudio.guidenh.integration.api.client;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 import net.minecraft.block.Block;
 import net.minecraft.client.entity.AbstractClientPlayer;
+import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.renderer.RenderBlocks;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.item.ItemStack;
@@ -16,6 +19,9 @@ import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.PageAnchor;
 import com.hfstudio.guidenh.guide.internal.MutableGuide;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
+import com.hfstudio.guidenh.integration.api.binding.BindingHoverTarget;
+import com.hfstudio.guidenh.integration.api.binding.GuideBindingHoverProvider;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
@@ -31,7 +37,41 @@ public class GuideNhClientIntegrationRegistry {
     private volatile List<PreviewPlayerModelProvider> previewPlayerModelProviders = List.of();
     private volatile List<PreviewPlayerElytraProvider> previewPlayerElytraProviders = List.of();
     private volatile List<PreviewBlockRenderProvider> previewBlockRenderProviders = List.of();
+    private volatile List<GuideBindingHoverProvider> bindingHoverProviders = List.of();
+    private final Set<GuideBindingHoverProvider> failedBindingHoverProviders = ConcurrentHashMap.newKeySet();
     private volatile List<QuestHoverProvider> questHoverProviders = List.of();
+    private volatile List<FluidStackExtractor> fluidStackExtractors = List.of();
+    private volatile List<FluidDisplayAdapter> fluidDisplayAdapters = List.of();
+    private volatile List<HoveredFluidProvider> hoveredFluidProviders = List.of();
+    private volatile List<FluidTooltipProvider> fluidTooltipProviders = List.of();
+
+    public synchronized void registerBindingHoverProvider(GuideBindingHoverProvider provider) {
+        if (provider == null) throw new IllegalArgumentException("provider");
+        if (!bindingHoverProviders.contains(provider))
+            bindingHoverProviders = appendProvider(bindingHoverProviders, provider);
+    }
+
+    public List<GuideBindingHoverProvider> bindingHoverProviders() {
+        return bindingHoverProviders;
+    }
+
+    @Nullable
+    public BindingHoverTarget findHoveredBinding(GuiScreen screen, int x, int y) {
+        for (var provider : bindingHoverProviders) {
+            try {
+                var target = provider.findHoveredBinding(screen, x, y);
+                failedBindingHoverProviders.remove(provider);
+                if (target != null) return target;
+            } catch (RuntimeException exception) {
+                if (failedBindingHoverProviders.add(provider)) GuideDebugLog.warn(
+                    "[GuideNH] Binding hover provider {} failed",
+                    provider.getClass()
+                        .getName(),
+                    exception);
+            }
+        }
+        return null;
+    }
 
     public GuideNhClientIntegrationRegistry() {}
 
@@ -109,6 +149,46 @@ public class GuideNhClientIntegrationRegistry {
         updatedProviders.addAll(currentProviders);
         updatedProviders.add(provider);
         return List.copyOf(updatedProviders);
+    }
+
+    public synchronized void registerFluidStackExtractor(FluidStackExtractor provider) {
+        if (provider == null) throw new IllegalArgumentException("provider");
+        if (!fluidStackExtractors.contains(provider))
+            fluidStackExtractors = appendProvider(fluidStackExtractors, provider);
+    }
+
+    public List<FluidStackExtractor> fluidStackExtractors() {
+        return fluidStackExtractors;
+    }
+
+    public synchronized void registerFluidDisplayAdapter(FluidDisplayAdapter provider) {
+        if (provider == null) throw new IllegalArgumentException("provider");
+        if (!fluidDisplayAdapters.contains(provider))
+            fluidDisplayAdapters = appendProvider(fluidDisplayAdapters, provider);
+    }
+
+    public List<FluidDisplayAdapter> fluidDisplayAdapters() {
+        return fluidDisplayAdapters;
+    }
+
+    public synchronized void registerFluidTooltipProvider(FluidTooltipProvider provider) {
+        if (provider == null) throw new IllegalArgumentException("provider");
+        if (!fluidTooltipProviders.contains(provider))
+            fluidTooltipProviders = appendProvider(fluidTooltipProviders, provider);
+    }
+
+    public List<FluidTooltipProvider> fluidTooltipProviders() {
+        return fluidTooltipProviders;
+    }
+
+    public synchronized void registerHoveredFluidProvider(HoveredFluidProvider provider) {
+        if (provider == null) throw new IllegalArgumentException("provider");
+        if (!hoveredFluidProviders.contains(provider))
+            hoveredFluidProviders = appendProvider(hoveredFluidProviders, provider);
+    }
+
+    public List<HoveredFluidProvider> hoveredFluidProviders() {
+        return hoveredFluidProviders;
     }
 
     @Nullable

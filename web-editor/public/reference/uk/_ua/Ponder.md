@@ -1,16 +1,15 @@
-# Ponder Animation Timeline
+# Часова шкала Ponder
 
-Ця документація описує синтаксис і функції виконання GuideNH. Код, теги, шляхи, ідентифікатори та значення атрибутів збережено без змін.
+Докладний довідник на цій сторінці доступний англійською. Назви тегів, атрибути, ідентифікатори та шляхи потрібно використовувати без перекладу.
 
+GuideNH supports Ponder-style animated timelines inside `<GameScene>` blocks. You supply an
+external JSON file that defines keyframes, camera movements and in-world annotations, and
+GuideNH renders an interactive progress bar with play/pause controls below the 3D scene.
 
-GuideNH підтримує Анімація Ponder-style animated timelines усередині `<GameScene>` блоки. You supply an
-зовнішній JSON файл який defines keyframes, камера movements і in-світ Анотації, і
-GuideNH renders an інтерактивний progress bar з play/pause controls below  3D сцена.
+## Quick Start
 
-## Швидкий старт
-
-1. створити a Анімація Ponder JSON файл і place it in your пакет ресурсів (Дивіться [File Placement](#file-placement)).
-2. Додайте `<ImportPonder src="..."/>` усередині a `<GameScene>` блок alongside `<ImportStructure>`.
+1. Create a Ponder JSON file and place it in your resource pack (see [File Placement](#file-placement)).
+2. Add `<ImportPonder src="..."/>` inside a `<GameScene>` block alongside `<ImportStructure>`.
 
 ```mdx
 <GameScene zoom="4">
@@ -19,28 +18,28 @@ GuideNH renders an інтерактивний progress bar з play/pause control
 </GameScene>
 ```
 
-> **Примітка:** `<ImportPonder>` має appear усередині a `<GameScene>` блок.  `src` Атрибут is
-> Обов’язково. структура дані is досі provided by `<ImportStructure>` або `<ImportStructureLib>`.
+> **Note:** `<ImportPonder>` must appear inside a `<GameScene>` block. The `src` attribute is
+> required. Structure data is still provided by `<ImportStructure>` or `<ImportStructureLib>`.
 
-## Розміщення файлів
+## File Placement
 
-Анімація Ponder JSON files follow  той самий ресурс-pack шлях Правила as SNBT структури:
+Ponder JSON files follow the same resource-pack path rules as SNBT structures:
 
 ```
-assets/<modid>/guidebooks/
-  pages/machines/my_machine.mdx       <- guide page
-  pages/machines/my_machine.snbt      <- structure data
-  pages/machines/my_machine.json      <- Ponder JSON
+assets/<modid>/guidenh/
+  _en_us/machines/my_machine.md       <- guide page
+  _en_us/machines/my_machine.snbt      <- structure data
+  _en_us/machines/my_machine.json      <- Ponder JSON
 ```
 
- `src` Атрибут accepts both відносний і абсолютний IDs:
+The `src` attribute accepts both relative and absolute IDs:
 
-| Приклад | розв’язаний as |
+| Example | Resolved as |
 |---------|-------------|
-| `src="my_machine.json"` | відносний до  поточний сторінка's каталог |
-| `src="mymod:guidebooks/pages/machines/my_machine.json"` | абсолютний (`mymod` простір імен) |
+| `src="my_machine.json"` | Relative to the current page's directory |
+| `src="mymod:guidenh/_en_us/machines/my_machine.json"` | Absolute (`mymod` namespace) |
 
-## Формат JSON
+## JSON Format
 
 ```json
 {
@@ -86,59 +85,61 @@ assets/<modid>/guidebooks/
 }
 ```
 
-### Кореневі поля
+### Root fields
 
-| поле | Тип | Обов’язково | опис |
+| Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `totalTime` | ціле число | Yes | Total duration in ticks (20 ticks = 1 second). Minimum clamped до 1. |
-| `keyframes` | array | Yes | список of keyframe objects. може be empty. |
+| `totalTime` | integer | Yes | Total duration in ticks (20 ticks = 1 second). Minimum clamped to 1. |
+| `keyframes` | array | Yes | List of keyframe objects. May be empty. |
 
-### Поля ключових кадрів
+For offline editor validation, add `"$schema": "guidenh://schema/ponder.json"` to the JSON root. The GuideNH mod exposes the bundled schema at `assets/guidenh/schema/ponder_schema.json`; the wiki example resource pack keeps a copy at `wiki/resourcepack/assets/guidenh/guidenh/assets/schema/ponder_schema.json`. Neither copy loads a remote URL.
 
-| поле | Тип | Обов’язково | опис |
+### Keyframe fields
+
+| Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `time` | ціле число | Yes | Tick at який Цей keyframe occurs (0 <= час <= totalTime). |
-| `hidden` | логічне значення | No | коли `true`,  keyframe досі застосовує камера/NBT/сутність/анотація стан at його `time`, but no видимий node is drawn для it on  progress bar і видимий keyframe Навігація skips it. |
-| `label` | рядок | No | необов’язковий резервний варіант мітка показано коли наведення  keyframe node on  progress bar. |
-| `labelKey` | рядок | No | ключ перекладу для  keyframe мітка. коли розв’язаний, it overrides `label`. |
-| `camera` | object | No | камера стан at Цей keyframe. Null поля inherit з  попередній keyframe. |
-| `cameraEaseTicks` | ціле число або null | No | How many ticks  камера takes до ease з  **попередній** keyframe до Цей один. `null` (Типове) = ease over  full segment. `0` = instant snap. `N > 0` = ease over N ticks, потім hold at  ціль позиція. |
-| `layer` | ціле число або null | No | видимий layer перевизначати. `null` (або пропущений) shows усі layers. 1-based index. |
-| `annotations` | array | No | список of анотація objects показано поки Цей keyframe is active. |
-| `sounds` | array | No | список of sounds played once коли Цей keyframe стає active during forward playback. |
-| `particles` | array | No | список of виконання particle bursts або presets fired коли Цей keyframe стає active during forward playback. |
-| `blockChanges` | array | No | список of блок replacements applied коли Цей keyframe перший стає active. |
-| `mergeTileNBT` | array | No | Merge SNBT compounds до блок entities at блок positions. |
-| `modifyTileNBT` | array | No | Установіть один блок-сутність NBT шлях до SNBT значення. |
-| `removeTileNBT` | array | No | видалити один блок-сутність NBT шлях. |
-| `createEntities` | array | No | створити Анімація Ponder-owned entities який може be referenced by later сутність NBT operations. |
-| `setEntityNBT` | array | No | замінити referenced сутність's NBT з  supplied SNBT compound. |
-| `mergeEntityNBT` | array | No | Merge SNBT compound до referenced сутність. |
-| `modifyEntityNBT` | array | No | Установіть один referenced сутність NBT шлях до SNBT значення. |
-| `removeEntityNBT` | array | No | видалити один referenced сутність NBT шлях. |
-| `removeEntities` | array | No | видалити один або more Анімація Ponder-owned entities by `ref` використовуючи  stable сцена-сутність registry. |
+| `time` | integer | Yes | Tick at which this keyframe occurs (0 <= time <= totalTime). |
+| `hidden` | boolean | No | When `true`, the keyframe still applies camera/NBT/entity/annotation state at its `time`, but no visible node is drawn for it on the progress bar and visible keyframe navigation skips it. |
+| `label` | string | No | Optional fallback label shown when hovering the keyframe node on the progress bar. |
+| `labelKey` | string | No | Translation key for the keyframe label. When resolved, it overrides `label`. |
+| `camera` | object | No | Camera state at this keyframe. Null fields inherit from the previous keyframe. |
+| `cameraEaseTicks` | integer or null | No | How many ticks the camera takes to ease from the **previous** keyframe to this one. `null` (default) = ease over the full segment. `0` = instant snap. `N > 0` = ease over N ticks, then hold at the target position. |
+| `layer` | integer or null | No | Visible layer override. `null` (or omitted) shows all layers. 1-based index. |
+| `annotations` | array | No | List of annotation objects shown while this keyframe is active. |
+| `sounds` | array | No | List of sounds played once when this keyframe becomes active during forward playback. |
+| `particles` | array | No | List of runtime particle bursts or presets fired when this keyframe becomes active during forward playback. |
+| `blockChanges` | array | No | List of block replacements applied when this keyframe first becomes active. |
+| `mergeTileNBT` | array | No | Merge SNBT compounds into tile entities at block positions. |
+| `modifyTileNBT` | array | No | Set one tile-entity NBT path to an SNBT value. |
+| `removeTileNBT` | array | No | Remove one tile-entity NBT path. |
+| `createEntities` | array | No | Create Ponder-owned entities that can be referenced by later entity NBT operations. |
+| `setEntityNBT` | array | No | Replace a referenced entity's NBT with the supplied SNBT compound. |
+| `mergeEntityNBT` | array | No | Merge an SNBT compound into a referenced entity. |
+| `modifyEntityNBT` | array | No | Set one referenced entity NBT path to an SNBT value. |
+| `removeEntityNBT` | array | No | Remove one referenced entity NBT path. |
+| `removeEntities` | array | No | Remove one or more Ponder-owned entities by `ref` using the stable scene-entity registry. |
 
-прихований keyframes є useful коли you want additional intermediate стан зміни без adding новий видимий node
-до  timeline. для Приклад, you може split several `modifyTileNBT` updates across кілька ticks, mark 
-intermediate keyframes as прихований, і Збережіть лише  major beats видимий on  progress bar.
+Hidden keyframes are useful when you want additional intermediate state changes without adding a new visible node
+to the timeline. For example, you can split several `modifyTileNBT` updates across multiple ticks, mark the
+intermediate keyframes as hidden, and keep only the major beats visible on the progress bar.
 
-### Поля камери
+### Camera fields
 
-усі Поля камери є необов’язковий. Any `null` або пропущений поле inherits його значення з  nearest
-prior keyframe який defined it; Якщо no prior keyframe defined  поле,  сцена's Типове
-камера значення is використовується.
+All camera fields are optional. Any `null` or omitted field inherits its value from the nearest
+prior keyframe that defined it; if no prior keyframe defined the field, the scene's default
+camera value is used.
 
-| поле | Тип | опис |
+| Field | Type | Description |
 |-------|------|-------------|
-| `zoom` | число з плаваючою комою | камера масштаб level (0.1 - 10.0). |
-| `rotX` | число з плаваючою комою | X-вісь обертання in degrees. |
-| `rotY` | число з плаваючою комою | Y-вісь обертання in degrees. |
-| `rotZ` | число з плаваючою комою | Z-вісь обертання in degrees. |
-| `offX` | число з плаваючою комою | Horizontal pan offset in екран пікселі. |
-| `offY` | число з плаваючою комою | Vertical pan offset in екран пікселі. |
+| `zoom` | float | Camera zoom level (0.1 - 10.0). |
+| `rotX` | float | X-axis rotation in degrees. |
+| `rotY` | float | Y-axis rotation in degrees. |
+| `rotZ` | float | Z-axis rotation in degrees. |
+| `offX` | float | Horizontal pan offset in screen pixels. |
+| `offY` | float | Vertical pan offset in screen pixels. |
 
- камера smoothly interpolates between adjacent keyframes використовуючи an **ease-in/ease-out** curve.
-використовувати `cameraEaseTicks` on  **destination** keyframe до control  easing duration:
+The camera smoothly interpolates between adjacent keyframes using an **ease-in/ease-out** curve.
+Use `cameraEaseTicks` on the **destination** keyframe to control the easing duration:
 
 ```json
 { "time": 60, "cameraEaseTicks": 0,  "camera": { "rotY": 90 } }   <- instant snap
@@ -146,11 +147,11 @@ prior keyframe який defined it; Якщо no prior keyframe defined  поле
 { "time": 180, "camera": { "rotY": 270 } }                         <- ease over full segment (default)
 ```
 
-## блок зміни
+## Block Changes
 
- `blockChanges` array in keyframe replaces блоки in  live структура коли який keyframe
-стає active. Цей дозволяє  animation до показувати до-і-після states, place або видалити
-блоки, або animate machine powering on.
+The `blockChanges` array in a keyframe replaces blocks in the live structure when that keyframe
+becomes active. This allows the animation to show before-and-after states, place or remove
+blocks, or animate a machine powering on.
 
 ```json
 {
@@ -166,26 +167,26 @@ prior keyframe який defined it; Якщо no prior keyframe defined  поле
 }
 ```
 
-| поле | Тип | Типове | опис |
+| Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `x`, `y`, `z` | ціле число | - | **Обов’язково.** позиція of  блок до змінити (структура координати). |
-| `block` | рядок | - | **Обов’язково.** Registry назва, e.g. `"minecraft:furnace"`. використовувати `"minecraft:air"` до видалити. |
-| `meta` | ціле число | `0` | блок метадані / damage значення. |
-| `particles` | логічне значення | `true` | Whether до spawn блок-texture particle effects коли Цей блок змінити fires during forward playback. Particles є taken з  блок's власний icon texture. Установіть до `false` до suppress (e.g., для silent removal). |
-| `nbt` | рядок | `null` | SNBT рядок для блок сутність тег, e.g. для chests, furnaces, etc. проаналізований з `JsonToNBT`. ключі має be **unquoted** (стандартний SNBT format). Ignored Якщо  блок має no блок сутність. |
+| `x`, `y`, `z` | integer | - | **Required.** Position of the block to change (structure coordinates). |
+| `block` | string | - | **Required.** Registry name, e.g. `"minecraft:furnace"`. Use `"minecraft:air"` to remove. |
+| `meta` | integer | `0` | Block metadata / damage value. |
+| `particles` | boolean | `true` | Whether to spawn block-texture particle effects when this block change fires during forward playback. Particles are taken from the block's own icon texture. Set to `false` to suppress (e.g., for silent removal). |
+| `nbt` | string | `null` | SNBT string for a tile entity tag, e.g. for chests, furnaces, etc. Parsed with `JsonToNBT`. Keys must be **unquoted** (standard SNBT format). Ignored if the block has no tile entity. |
 
-**Seek-safe:** коли seeking backwards  виконання restores усі changed positions до їхні
-original структура стан, потім re-застосовує зміни з keyframes 0 through  поточний один.
- displayed структура is завжди correct regardless of seek direction.
+**Seek-safe:** When seeking backwards the runtime restores all changed positions to their
+original structure state, then re-applies changes from keyframes 0 through the current one.
+The displayed structure is always correct regardless of seek direction.
 
-> **Примітка on particles:** блок-texture particles fire once, лише during forward playback коли 
-> keyframe перший стає active. Вони є cleared on seek, restart, або початковий завантажити.
+> **Note on particles:** Block-texture particles fire once, only during forward playback when the
+> keyframe first becomes active. They are cleared on seek, restart, or initial load.
 
 ## Keyframe Sounds
 
-Додайте a `sounds` array до keyframe до play один або more посібник sounds коли  keyframe стає active
-during forward playback. Seeking і початковий завантажити do не play keyframe sounds; restart clears 
-play history so  sounds може fire again.
+Add a `sounds` array to a keyframe to play one or more guide sounds when the keyframe becomes active
+during forward playback. Seeking and initial load do not play keyframe sounds; restart clears the
+play history so the sounds can fire again.
 
 ```json
 {
@@ -198,28 +199,26 @@ play history so  sounds може fire again.
 }
 ```
 
-Sound поля:
+Sound fields:
 
-| поле | Тип | Типове | опис |
+| Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `sound` | рядок | - | Sound event id, e.g. `guidenh:machine.start`. |
-| `src` | рядок | - | Sound файл id або шлях; `guidenh:sounds/machine/start.ogg` стає `guidenh:machine.start`. |
-| `volume` | число з плаваючою комою | `1.0` | Playback volume до attenuation. |
-| `pitch` | число з плаваючою комою | `1.0` | Playback pitch. |
-| `cooldown` | ціле число | `250` | Minimum milliseconds до  той самий sound може play again. |
-| `x`, `y`, `z` | число з плаваючою комою | none | необов’язковий сцена-простір source позиція для простір екрана attenuation. |
-| `radius` | число з плаваючою комою | сцена short бік * 0.75 | Attenuation radius in екран пікселі. |
-| `minVolume` | число з плаваючою комою | `0.15` | Minimum attenuation factor. |
+| `sound` | string | - | Sound event id, e.g. `guidenh:machine.start`. |
+| `src` | string | - | Sound file id or path; `guidenh:sounds/machine/start.ogg` becomes `guidenh:machine.start`. |
+| `volume` | float | `1.0` | Playback volume before attenuation. |
+| `pitch` | float | `1.0` | Playback pitch. |
+| `cooldown` | integer | `250` | Minimum milliseconds before the same sound can play again. |
+| `x`, `y`, `z` | float | none | Optional scene-space source position for screen-space attenuation. |
+| `radius` | float | scene short side * 0.75 | Attenuation radius in screen pixels. |
+| `minVolume` | float | `0.15` | Minimum attenuation factor. |
 
-
-Для офлайн-перевірки в редакторі додайте до кореня JSON `"$schema": "guidenh://schema/ponder.json"`. Вбудована схема зберігається в `wiki/resourcepack/assets/guidenh/guidenh/assets/schema/ponder_schema.json` і не завантажує віддалені URL.
 ---
 
 ## Keyframe Particles
 
-Додайте a `particles` array до keyframe коли you want один-shot particle bursts або timeline-локальний
-Погода overlays during forward playback. Ці particles є не re-fired during reverse
-scrubbing, і seek/restart clears їх до replaying  active стан.
+Add a `particles` array to a keyframe when you want one-shot particle bursts or timeline-local
+weather overlays during forward playback. These particles are not re-fired during reverse
+scrubbing, and seek/restart clears them before replaying the active state.
 
 Generic particles:
 
@@ -261,7 +260,7 @@ Explosion preset:
 }
 ```
 
-Погода preset:
+Weather preset:
 
 ```json
 {
@@ -279,49 +278,49 @@ Explosion preset:
 }
 ```
 
-Particle поля:
+Particle fields:
 
-| поле | Тип | Типове | опис |
+| Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `preset` | рядок | none | Special preset. `explosion` spawns vanilla-style flash/smoke burst. `rain` enables  Погода preset. |
-| `weather` | рядок | `rain` | Погода Тип використовується by `preset: "rain"`. Підтримувані значення: `rain`, `snow`. |
-| `name` | рядок | none | Generic particle appearance. Підтримувані значення: `billboard`, `smoke`, `largesmoke`, `explode`, `flash`, `largeexplode`, `hugeexplosion`. |
-| `particle` / `kind` | рядок | none | Compatibility aliases для `name`. |
-| `x`, `z` | число з плаваючою комою або array | сцена межі | Particle origin або Погода coverage. Generic particles використовувати scalar координати. для `preset: "rain"`, scalar значення ціль один precipitation стовпець і arrays define rectangular coverage by endpoint pairs. |
-| `vx`, `vy`, `vz` | число з плаваючою комою | `0.0` | початковий motion вектор. `motionX/Y/Z` є accepted aliases. |
-| `time` / `lifetime` | ціле число | preset-певний | Particle lifetime in ticks. для `preset: "rain"` Цей is  total Погода duration, including fade-in і fade-out. |
-| `size` | число з плаваючою комою | preset-певний | Generic particle half-розмір in блок units. |
-| `amount` | ціле число | preset-певний | Generic particle count. для `explosion`, пропущений amount scales з `power`. для `preset: "rain"`, Цей is  average per-tick Погода density. |
-| `power` | число з плаваючою комою | `2.0` | Explosion strength для  `explosion` preset. |
+| `preset` | string | none | Special preset. `explosion` spawns a vanilla-style flash/smoke burst. `rain` enables the weather preset. |
+| `weather` | string | `rain` | Weather type used by `preset: "rain"`. Supported values: `rain`, `snow`. |
+| `name` | string | none | Generic particle appearance. Supported values: `billboard`, `smoke`, `largesmoke`, `explode`, `flash`, `largeexplode`, `hugeexplosion`. |
+| `particle` / `kind` | string | none | Compatibility aliases for `name`. |
+| `x`, `z` | float or array | scene bounds | Particle origin or weather coverage. Generic particles use scalar coordinates. For `preset: "rain"`, scalar values target one precipitation column and arrays define rectangular coverage by endpoint pairs. |
+| `vx`, `vy`, `vz` | float | `0.0` | Initial motion vector. `motionX/Y/Z` are accepted aliases. |
+| `time` / `lifetime` | integer | preset-specific | Particle lifetime in ticks. For `preset: "rain"` this is the total weather duration, including fade-in and fade-out. |
+| `size` | float | preset-specific | Generic particle half-size in block units. |
+| `amount` | integer | preset-specific | Generic particle count. For `explosion`, omitted amount scales from `power`. For `preset: "rain"`, this is the average per-tick weather density. |
+| `power` | float | `2.0` | Explosion strength for the `explosion` preset. |
 
-Погода preset Примітки:
+Weather preset notes:
 
-- `preset: "rain"` is  shared Погода preset запис точка. використовувати `weather: "rain"` для rainfall або
-  `weather: "snow"` для snowfall.
-- Цей preset is timeline-owned Погода. It підтримує replay, pause, seek, і fast-forward together
-  з  rest of  Анімація Ponder timeline.
-- для завжди-on сцена Погода поза  Анімація Ponder timeline, використовувати  `<Weather>` тег усередині
-  `<GameScene>` замість цього.
-- Погода presets ignore `y`;  vertical spawn range is derived з  поточний сцена межі.
-- `x: 5, z: 8` targets один precipitation стовпець. Arrays використовувати endpoint pairs:
-  `x: [1, 5, 10, 12], z: [2, 6, 20, 24]` creates два covered rectangles.
-- Якщо один вісь має extra unmatched array значення,  unmatched tail is ignored.
--  виконання автоматично shapes  effect з short початок transition, steady middle
-  section, і an кінець transition.
+- `preset: "rain"` is the shared weather preset entry point. Use `weather: "rain"` for rainfall or
+  `weather: "snow"` for snowfall.
+- This preset is timeline-owned weather. It supports replay, pause, seek, and fast-forward together
+  with the rest of the Ponder timeline.
+- For always-on scene weather outside the Ponder timeline, use the `<Weather>` tag inside
+  `<GameScene>` instead.
+- Weather presets ignore `y`; the vertical spawn range is derived from the current scene bounds.
+- `x: 5, z: 8` targets one precipitation column. Arrays use endpoint pairs:
+  `x: [1, 5, 10, 12], z: [2, 6, 20, 24]` creates two covered rectangles.
+- If one axis has extra unmatched array values, the unmatched tail is ignored.
+- The runtime automatically shapes the effect with a short start transition, a steady middle
+  section, and an end transition.
 - Rain spawns fast falling drops plus occasional ground splashes. Snow spawns slower drifting
-  flakes без splash particles.
--  Погода area is derived з  поточний GameScene межі so  effect scales з 
-  імпортований структура замість цього of hard-coded box.
--  той самий `x/z` стовпець ніколи stacks кілька Погода types at  той самий час. Earlier overlapping
-  Погода declarations Збережіть  shared стовпці; later ones лише відтворювати on  remaining area.
+  flakes without splash particles.
+- The weather area is derived from the current GameScene bounds so the effect scales with the
+  imported structure instead of a hard-coded box.
+- The same `x/z` column never stacks multiple weather types at the same time. Earlier overlapping
+  weather declarations keep the shared columns; later ones only render on the remaining area.
 
 ---
 
-## блок сутність NBT Operations
+## Tile Entity NBT Operations
 
-використовувати `mergeTileNBT`, `modifyTileNBT`, і `removeTileNBT` коли  блок stays in place but його
-блок сутність дані зміни. Operations є seek-safe: GuideNH restores  original блок NBT і
-потім replays усі operations з keyframe 0 through  active keyframe.
+Use `mergeTileNBT`, `modifyTileNBT`, and `removeTileNBT` when the block stays in place but its
+tile entity data changes. Operations are seek-safe: GuideNH restores the original tile NBT and
+then replays all operations from keyframe 0 through the active keyframe.
 
 ```json
 {
@@ -345,23 +344,23 @@ Particle поля:
 }
 ```
 
-| поле | використовується by | опис |
+| Field | Used by | Description |
 |-------|---------|-------------|
-| `x`, `y`, `z` | усі | блок-сутність блок позиція in структура координати. |
-| `nbt` | `mergeTileNBT` | SNBT compound merged до  блок сутність. Existing compound ключі є merged recursively; other значення замінити  old значення. |
-| `path` | `modifyTileNBT`, `removeTileNBT` | Dotted NBT шлях з список indexes, e.g. `Items[0].Count` або `InputTanks[0].TankContent.Amount`. |
-| `value` | `modifyTileNBT` | SNBT значення записаний at `path`, e.g. `3b`, `500`, `"\"text\""`, `{Count:1b,id:"minecraft:stone"}`. |
+| `x`, `y`, `z` | all | Tile-entity block position in structure coordinates. |
+| `nbt` | `mergeTileNBT` | SNBT compound merged into the tile entity. Existing compound keys are merged recursively; other values replace the old value. |
+| `path` | `modifyTileNBT`, `removeTileNBT` | Dotted NBT path with list indexes, e.g. `Items[0].Count` or `InputTanks[0].TankContent.Amount`. |
+| `value` | `modifyTileNBT` | SNBT value written at `path`, e.g. `3b`, `500`, `"\"text\""`, `{Count:1b,id:"minecraft:stone"}`. |
 
-Paths follow  той самий idea as Minecraft's `/data` paths: використовувати dots для compound ключі і
-`[index]` для список записи. список traversal зараз expects  traversed список записи до be
-compounds, який відповідає звичайний блок NBT наприклад inventories, tanks, і recipe slots.
+Paths follow the same idea as Minecraft's `/data` paths: use dots for compound keys and
+`[index]` for list entries. List traversal currently expects the traversed list entries to be
+compounds, which matches common tile NBT such as inventories, tanks, and recipe slots.
 
 ---
 
-## сутність Actions
+## Entity Actions
 
-Regular `<Entity>` теги є вже Підтримувані in `GameScene`. Анімація Ponder timelines може також створити
-їхні власний entities з `createEntities`, потім ціль those entities by `ref` in later keyframes.
+Regular `<Entity>` tags are already supported in `GameScene`. Ponder timelines can also create
+their own entities with `createEntities`, then target those entities by `ref` in later keyframes.
 
 ```json
 {
@@ -379,20 +378,20 @@ Regular `<Entity>` теги є вже Підтримувані in `GameScene`. �
 }
 ```
 
-| поле | опис |
+| Field | Description |
 |-------|-------------|
-| `ref` | Обов’язково локальний reference назва для later operations. |
-| `sceneEntityId` | необов’язковий stable сцена-локальний id використовується для mount relations, replay-safe заміна, import/export restore, і any later removal of Цей logical сутність. типові до внутрішній id derived з `ref`. |
-| `id` | сутність ID, e.g. `minecraft:pig`, `Pig`, або mod сутність ID Підтримувані by  сцена сутність loader. |
-| `x`, `y`, `z` | необов’язковий spawn позиція. типові до `0, 0, 0` unless `nbt` supplies `Pos`. |
-| `yaw`, `pitch` | необов’язковий spawn обертання. типові до `0, 0` unless `nbt` supplies `Rotation`. |
-| `bodyYaw`, `headYaw` | необов’язковий living-сутність body/head yaw overrides. Якщо пропущений поки `yaw` is present, Вони follow `yaw`. |
-| `nbt` | необов’язковий SNBT compound applied коли  сутність is створений. |
-| `name`, `nameKey`, `uuid` | необов’язковий перегляд-гравець profile поля коли creating a перегляд гравець сутність. |
-| `mount` | необов’язковий stable `sceneEntityId` of  vehicle який Цей сутність слід ride після creation або later replay. |
-| `unmount` | необов’язковий логічне значення який clears  сутність's поточний stable mount relation до any later `mount` is applied. |
+| `ref` | Required local reference name for later operations. |
+| `sceneEntityId` | Optional stable scene-local id used for mount relations, replay-safe replacement, import/export restore, and any later removal of this logical entity. Defaults to an internal id derived from `ref`. |
+| `id` | Entity ID, e.g. `minecraft:pig`, `Pig`, or a mod entity ID supported by the scene entity loader. |
+| `x`, `y`, `z` | Optional spawn position. Defaults to `0, 0, 0` unless `nbt` supplies `Pos`. |
+| `yaw`, `pitch` | Optional spawn rotation. Defaults to `0, 0` unless `nbt` supplies `Rotation`. |
+| `bodyYaw`, `headYaw` | Optional living-entity body/head yaw overrides. If omitted while `yaw` is present, they follow `yaw`. |
+| `nbt` | Optional SNBT compound applied when the entity is created. |
+| `name`, `nameKey`, `uuid` | Optional preview-player profile fields when creating a preview player entity. `nameKey` overrides `name` when its translation is available and falls back to `name`. |
+| `mount` | Optional stable `sceneEntityId` of the vehicle that this entity should ride after creation or later replay. |
+| `unmount` | Optional boolean that clears the entity's current stable mount relation before any later `mount` is applied. |
 
-після creation, використовувати  сутність NBT operations:
+After creation, use the entity NBT operations:
 
 ```json
 {
@@ -409,7 +408,7 @@ Regular `<Entity>` теги є вже Підтримувані in `GameScene`. �
 }
 ```
 
-`setEntityNBT` is також доступний коли you want до замінити  сутність's NBT замість цього of merging:
+`setEntityNBT` is also available when you want to replace the entity's NBT instead of merging:
 
 ```json
 {
@@ -420,7 +419,7 @@ Regular `<Entity>` теги є вже Підтримувані in `GameScene`. �
 }
 ```
 
-сутність actions може також оновити transform, перегляд-гравець pose, і stable mount стан без
+Entity actions can also update transform, preview-player pose, and stable mount state without
 changing NBT:
 
 ```json
@@ -436,7 +435,7 @@ changing NBT:
 }
 ```
 
-до detach або видалити timeline сутність, використовувати `unmount` або `removeEntities`:
+To detach or remove a timeline entity, use `unmount` or `removeEntities`:
 
 ```json
 {
@@ -450,39 +449,38 @@ changing NBT:
 }
 ```
 
-Like блок operations, сутність operations є replayed з  beginning whenever  active
-keyframe зміни, so seeking backwards removes Анімація Ponder-створений entities і recreates  correct
-стан для  ціль tick.
+Like tile operations, entity operations are replayed from the beginning whenever the active
+keyframe changes, so seeking backwards removes Ponder-created entities and recreates the correct
+state for the target tick.
 
-Примітки:
+Notes:
 
-- `ref` identifies який Анімація Ponder-owned сутність  поточний action слід edit або видалити.
-- `sceneEntityId` і `mount` identify stable cross-сутність relations. `mount` завжди точки до a
-  stable сцена id, не до another `ref`.
-- Relying on raw passenger NBT alone is не recommended для cross-сутність сцена relationships. 
-  stable registry is what зберігає mount і removal поведінка deterministic across replay, rebuild,
-  import/export, і редактор перегляд refresh.
-
----
-
-## анотація Fade
-
-Анотації smoothly fade in over **5 game ticks** (250 ms) whenever  active keyframe
-зміни during playback. Seeking або pausing завжди shows Анотації at full opacity.
+- `ref` identifies which Ponder-owned entity the current action should edit or remove.
+- `sceneEntityId` and `mount` identify stable cross-entity relations. `mount` always points to a
+  stable scene id, not to another `ref`.
+- Relying on raw passenger NBT alone is not recommended for cross-entity scene relationships. The
+  stable registry is what keeps mount and removal behavior deterministic across replay, rebuild,
+  import/export, and editor preview refresh.
 
 ---
 
-## анотація Types
+## Annotation Fade
 
-кожен запис in  `annotations` array requires a `type` поле. Seven types є доступний.
+Annotations smoothly fade in over **5 game ticks** (250 ms) whenever the active keyframe
+changes during playback. Seeking or pausing always shows annotations at full opacity.
 
 ---
 
-Кожна анотація Ponder підтримує `tooltip` і `tooltipKey`. Ключ розв’язується з активних файлів `lang`, а якщо його немає, використовується початковий текст.
+## Annotation Types
+
+Every Ponder annotation accepts `tooltip` and `tooltipKey`. The key is resolved from the active `lang` files and falls back to the original text when it is missing.
+Each entry in the `annotations` array requires a `type` field. Seven types are available.
+
+---
 
 ### `diamond`
 
-Renders 3D diamond marker at a світ позиція.
+Renders a 3D diamond marker at a world position.
 
 ```json
 {
@@ -496,19 +494,19 @@ Renders 3D diamond marker at a світ позиція.
 }
 ```
 
-| поле | Тип | Типове | опис |
+| Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `x`, `y`, `z` | число з плаваючою комою | `0.0` | простір світу позиція of  diamond tip. |
-| `color` | рядок | `"0xFF00E000"` | ARGB колір as `"0xAARRGGBB"`. |
-| `tooltip` | рядок | `""` | резервний варіант текст показано on наведення. |
-| `tooltipKey` | рядок | `""` | ключ перекладу для  наведення текст. коли розв’язаний, it overrides `tooltip`. |
-| `alwaysOnTop` | логічне значення | `false` | Якщо true, відтворений through solid блоки. |
+| `x`, `y`, `z` | float | `0.0` | World-space position of the diamond tip. |
+| `color` | string | `"0xFF00E000"` | ARGB color as `"0xAARRGGBB"`. |
+| `tooltip` | string | `""` | Fallback text shown on hover. |
+| `tooltipKey` | string | `""` | Translation key for the hover text. When resolved, it overrides `tooltip`. |
+| `alwaysOnTop` | boolean | `false` | If true, rendered through solid blocks. |
 
 ---
 
 ### `box`
 
-Renders wireframe вирівняний за осями box з `min` до `max`.
+Renders a wireframe axis-aligned box from `min` to `max`.
 
 ```json
 {
@@ -521,20 +519,20 @@ Renders wireframe вирівняний за осями box з `min` до `max`.
 }
 ```
 
-| поле | Тип | Типове | опис |
+| Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `minX/Y/Z` | число з плаваючою комою | `0.0` | Minimum corner. |
-| `maxX/Y/Z` | число з плаваючою комою | `1.0` | Maximum corner. |
-| `color` | рядок | `"0xFFFFFFFF"` | ARGB рядок колір. |
-| `lineWidth` | число з плаваючою комою | Типове | GL рядок ширина. |
-| `alwaysOnTop` | логічне значення | `false` | відтворювати through блоки. |
+| `minX/Y/Z` | float | `0.0` | Minimum corner. |
+| `maxX/Y/Z` | float | `1.0` | Maximum corner. |
+| `color` | string | `"0xFFFFFFFF"` | ARGB line color. |
+| `lineWidth` | float | default | GL line width. |
+| `alwaysOnTop` | boolean | `false` | Render through blocks. |
 
 ---
 
 ### `block`
 
-Renders wireframe around один whole блок. Цей is  Анімація Ponder JSON equivalent of
-`<BlockAnnotation pos="x y z">` in regular `GameScene`.
+Renders a wireframe around one whole block. This is the Ponder JSON equivalent of
+`<BlockAnnotation pos="x y z">` in a regular `GameScene`.
 
 ```json
 {
@@ -546,23 +544,23 @@ Renders wireframe around один whole блок. Цей is  Анімація Po
 }
 ```
 
-`"type": "blockBox"` і `"type": "block_box"` є accepted aliases.
+`"type": "blockBox"` and `"type": "block_box"` are accepted aliases.
 
-| поле | Тип | Типове | опис |
+| Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `pos` | число[3] або рядок | `[0, 0, 0]` | блок координата as `[x, y, z]` або `"x y z"`. |
-| `x`, `y`, `z` | число | `0` | Alternative блок координата поля. значення є floored. |
-| `blockX/Y/Z` | ціле число | `0` | Legacy-style блок координата поля. |
-| `color` | рядок | `"0xFFFFFFFF"` | ARGB рядок колір. |
-| `lineWidth` | число з плаваючою комою | Типове | GL рядок ширина. |
-| `alwaysOnTop` | логічне значення | `false` | відтворювати through блоки. |
+| `pos` | number[3] or string | `[0, 0, 0]` | Block coordinate as `[x, y, z]` or `"x y z"`. |
+| `x`, `y`, `z` | number | `0` | Alternative block coordinate fields. Values are floored. |
+| `blockX/Y/Z` | integer | `0` | Legacy-style block coordinate fields. |
+| `color` | string | `"0xFFFFFFFF"` | ARGB line color. |
+| `lineWidth` | float | default | GL line width. |
+| `alwaysOnTop` | boolean | `false` | Render through blocks. |
 
 ---
 
 ### `line`
 
-Renders a відрізок або ламана between світ positions. `points` takes priority over
-`fromX/Y/Z` і `toX/Y/Z` коли it містить at least два дійсний точки.
+Renders a line segment or polyline between world positions. `points` takes priority over
+`fromX/Y/Z` and `toX/Y/Z` when it contains at least two valid points.
 
 ```json
 {
@@ -576,7 +574,7 @@ Renders a відрізок або ламана between світ positions. `poin
 }
 ```
 
-ламана точки може be записаний either as a рядок або as array:
+Polyline points can be written either as a string or as an array:
 
 ```json
 {
@@ -587,21 +585,21 @@ Renders a відрізок або ламана between світ positions. `poin
 }
 ```
 
-| поле | Тип | Типове | опис |
+| Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `fromX/Y/Z` | число з плаваючою комою | `0.0` | початок точка. |
-| `toX/Y/Z` | число з плаваючою комою | `1.0` | кінець точка. |
-| `points` | рядок або array | `null` | ламана точки. використовувати `"x y z; x y z; ..."` або `[[x,y,z], ...]`. |
-| `color` | рядок | `"0xFFFFFFFF"` | ARGB рядок колір. |
-| `arrow` | рядок | `null` | `start` або `end`; пропущений або недійсний значення малювати no стрілка. |
-| `lineWidth` | число з плаваючою комою | Типове | GL рядок ширина. |
-| `alwaysOnTop` | логічне значення | `false` | відтворювати through блоки. |
+| `fromX/Y/Z` | float | `0.0` | Start point. |
+| `toX/Y/Z` | float | `1.0` | End point. |
+| `points` | string or array | `null` | Polyline points. Use `"x y z; x y z; ..."` or `[[x,y,z], ...]`. |
+| `color` | string | `"0xFFFFFFFF"` | ARGB line color. |
+| `arrow` | string | `null` | `start` or `end`; omitted or invalid values draw no arrow. |
+| `lineWidth` | float | default | GL line width. |
+| `alwaysOnTop` | boolean | `false` | Render through blocks. |
 
 ---
 
 ### `blockface`
 
-Підсвічує всі грані одного блока напівпрозорим суцільним накладанням.
+Highlights all faces of a single block with a translucent solid overlay.
 
 ```json
 {
@@ -612,23 +610,23 @@ Renders a відрізок або ламана between світ positions. `poin
 }
 ```
 
-`"type": "blockFace"` і `"type": "block_face"` є accepted aliases.
+`"type": "blockFace"` and `"type": "block_face"` are accepted aliases.
 
-| поле | Тип | Типове | опис |
+| Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `pos` | число[3] або рядок | `[0, 0, 0]` | блок координата as `[x, y, z]` або `"x y z"`. |
-| `x`, `y`, `z` | число | `0` | Alternative блок координата поля. значення є floored. |
-| `blockX/Y/Z` | ціле число | `0` | Legacy-style блок координата поля. |
-| `color` | рядок | `"0x80FFFFFF"` | ARGB overlay колір. |
-| `alwaysOnTop` | логічне значення | `false` | відтворювати through блоки. |
+| `pos` | number[3] or string | `[0, 0, 0]` | Block coordinate as `[x, y, z]` or `"x y z"`. |
+| `x`, `y`, `z` | number | `0` | Alternative block coordinate fields. Values are floored. |
+| `blockX/Y/Z` | integer | `0` | Legacy-style block coordinate fields. |
+| `color` | string | `"0x80FFFFFF"` | ARGB overlay color. |
+| `alwaysOnTop` | boolean | `false` | Render through blocks. |
 
 ---
 
 ### `text`
 
-Renders speech-бульбашка мітка anchored до a світ позиція.  box appears над  якір by
-Типове і is connected до it з short vertical рядок. текст вміст is keyframe-driven: використовувати
-інший `text` анотація записи on інший keyframes до змінити  displayed текст over час.
+Renders a speech-bubble label anchored to a world position. The box appears above the anchor by
+default and is connected to it with a short vertical line. Text content is keyframe-driven: use
+different `text` annotation entries on different keyframes to change the displayed text over time.
 
 ```json
 {
@@ -644,9 +642,9 @@ Renders speech-бульбашка мітка anchored до a світ позиц
 }
 ```
 
-для a фіксований простір екрана позиція який не project з світ координати, використовувати
-**independent режим**.  бульбашка is centered horizontally in  сцена і розміщений at
-`yOffset` пікселі below  сцена's vertical centre.
+For a fixed screen-space position that does not project from world coordinates, use
+**independent mode**. The bubble is centered horizontally in the scene and placed at
+`yOffset` pixels below the scene's vertical centre.
 
 ```json
 {
@@ -659,45 +657,45 @@ Renders speech-бульбашка мітка anchored до a світ позиц
 }
 ```
 
-| поле | Тип | Типове | опис |
+| Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `x`, `y`, `z` | число з плаваючою комою | `0.0` | простір світу якір позиція (ignored in independent режим). |
-| `text` | рядок | — | Резервний текст для бульбашки. |
-| `textKey` | рядок | — | Ключ перекладу тексту бульбашки; після успішного розв’язання замінює `text`. |
-| `color` | рядок | `"0xFFAAAAAA"` | ARGB колір of  бульбашка межа. |
-| `backgroundAlpha` | ціле число | `204` | тло opacity з `0` (прозорий) до `255` (opaque).  RGB колір remains  Типове dark navy. |
-| `maxWidth` | ціле число | `0` | Якщо &gt; 0, wraps текст at Цей ширина in пікселі. Omit або Установіть до `0` для a один-рядок мітка. |
-| `independent` | логічне значення | `false` | Якщо `true`, позиція is відносний до  сцена centre rather ніж a світ точка. |
-| `yOffset` | ціле число | `0` | піксель offset з  сцена's vertical centre (positive = downward). використовується з `independent: true`. |
-| `connectorSide` | рядок | `"bottom"` | `bottom`, `top`, `left`, `right`, або `none`. Ignored in independent режим. |
-| `connectorOffset` | ціле число | `0` | піксель offset уздовж  вибраний бульбашка край; positive moves праворуч для угорі/унизу і down для ліворуч/праворуч. |
-| `connectorLength` | ціле число | `6` | піксель length of  з’єднувач рядок. `0` hides  рядок поки keeping бік-based placement. |
-| `hlMinX/Y/Z` | число з плаваючою комою | `0.0` | Minimum corner of an необов’язковий виділяти box drawn alongside  текст бульбашка. |
-| `hlMaxX/Y/Z` | число з плаваючою комою | `1.0` | Maximum corner of  необов’язковий виділяти box. |
-| `highlightColor` | рядок | `"0x8000FFAA"` | ARGB колір of  виділяти box. |
+| `x`, `y`, `z` | float | `0.0` | World-space anchor position (ignored in independent mode). |
+| `text` | string | — | Fallback text to display inside the bubble. |
+| `textKey` | string | — | Translation key for the bubble text; when resolved it overrides `text`. |
+| `color` | string | `"0xFFAAAAAA"` | ARGB color of the bubble border. |
+| `backgroundAlpha` | integer | `204` | Background opacity from `0` (transparent) to `255` (opaque). The RGB color remains the default dark navy. |
+| `maxWidth` | integer | `0` | If &gt; 0, wraps text at this width in pixels. Omit or set to `0` for a single-line label. |
+| `independent` | boolean | `false` | If `true`, position is relative to the scene centre rather than a world point. |
+| `yOffset` | integer | `0` | Pixel offset from the scene's vertical centre (positive = downward). Used with `independent: true`. |
+| `connectorSide` | string | `"bottom"` | `bottom`, `top`, `left`, `right`, or `none`. Ignored in independent mode. |
+| `connectorOffset` | integer | `0` | Pixel offset along the selected bubble edge; positive moves right for top/bottom and down for left/right. |
+| `connectorLength` | integer | `6` | Pixel length of the connector line. `0` hides the line while keeping side-based placement. |
+| `hlMinX/Y/Z` | float | `0.0` | Minimum corner of an optional highlight box drawn alongside the text bubble. |
+| `hlMaxX/Y/Z` | float | `1.0` | Maximum corner of the optional highlight box. |
+| `highlightColor` | string | `"0x8000FFAA"` | ARGB color of the highlight box. |
 
-коли `hlMinX` (або any `hlMin/Max` координата) is present, an `InWorldBoxAnnotation` is також
-створений at  specified межі з `highlightColor`. Цей is useful для pointing at певний
-блок regions поки explaining їх.
+When `hlMinX` (or any `hlMin/Max` coordinate) is present, an `InWorldBoxAnnotation` is also
+created at the specified bounds with `highlightColor`. This is useful for pointing at specific
+block regions while explaining them.
 
- тло is dark navy бульбашка by Типове (`#CC0E0E20`), і `backgroundAlpha` controls його
-opacity. In світ-anchored режим з’єднувач рядок links  box до  якір. текст підтримує 
-full GuideNH inline розширений-текст синтаксис: Markdown formatting і MDX inline теги. It is відтворений з
+The background is a dark navy bubble by default (`#CC0E0E20`), and `backgroundAlpha` controls its
+opacity. In world-anchored mode a connector line links the box to the anchor. Text supports the
+full GuideNH inline rich-text syntax: markdown formatting and MDX inline tags. It is rendered with
 drop-shadow.
 
-> **розширений текст:**  `text` поле підтримує  той самий inline markup використовується in GuideNH посібник сторінки:
+> **Rich text:** The `text` field supports the same inline markup used in GuideNH guide pages:
 > `**bold**`, `*italic*`, `~~strikethrough~~`, `<Color id="RED">colored</Color>`,
-> `<ItemLink id="minecraft:iron_ingot" />`, і усі other inline MDX теги.
-> Plain Minecraft `§` format codes є **не** Підтримувані; використовувати MDX синтаксис замість цього.
+> `<ItemLink id="minecraft:iron_ingot" />`, and all other inline MDX tags.
+> Plain Minecraft `§` format codes are **not** supported; use MDX syntax instead.
 
-> A `text` анотація без a `text` поле (або empty рядок) is silently ignored.
+> A `text` annotation without a `text` field (or an empty string) is silently ignored.
 
 ---
 
 ### `input`
 
-Renders mouse-ввід icon (ліворуч button, праворуч button, або прокручування wheel) anchored до a світ
-позиція. Цей is використовується до hint який  гравець слід perform певний interaction.
+Renders a mouse-input icon (left button, right button, or scroll wheel) anchored to a world
+position. This is used to hint that the player should perform a specific interaction.
 
 ```json
 {
@@ -709,7 +707,7 @@ Renders mouse-ввід icon (ліворуч button, праворуч button, а�
 }
 ```
 
-з an необов’язковий modifier ключ prefix і an предмет icon:
+With an optional modifier key prefix and an item icon:
 
 ```json
 {
@@ -723,82 +721,82 @@ Renders mouse-ввід icon (ліворуч button, праворуч button, а�
 }
 ```
 
-| поле | Тип | Типове | опис |
+| Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `x`, `y`, `z` | число з плаваючою комою | `0.0` | простір світу якір позиція. |
-| `inputType` | рядок | `"lmb"` | один of `"lmb"`, `"rmb"`, або `"scroll"`. Case-insensitive. |
-| `modifier` | рядок | `null` | необов’язковий modifier ключ: `"sneak"` або `"ctrl"`. Shows prefix текст над  icon. |
-| `item` | рядок | `null` | необов’язковий предмет registry ID (e.g. `"minecraft:iron_ingot"`). Renders  предмет icon до  ліворуч of  mouse icon. підтримує `"modid:item:meta"` format для meta значення. |
+| `x`, `y`, `z` | float | `0.0` | World-space anchor position. |
+| `inputType` | string | `"lmb"` | One of `"lmb"`, `"rmb"`, or `"scroll"`. Case-insensitive. |
+| `modifier` | string | `null` | Optional modifier key: `"sneak"` or `"ctrl"`. Shows prefix text above the icon. |
+| `item` | string | `null` | Optional item registry ID (e.g. `"minecraft:iron_ingot"`). Renders the item icon to the left of the mouse icon. Supports `"modid:item:meta"` format for meta values. |
 
- icon is 16x16 sprite drawn з `ponder_widgets.png`.  box тло is semi-прозорий
-dark (`#CC0E0E20`) з light-blue межа (`#80AAAADD`). коли an `item` is specified  box
-expands до accommodate both  предмет icon і  mouse icon бік by бік.
+The icon is a 16x16 sprite drawn from `ponder_widgets.png`. The box background is semi-transparent
+dark (`#CC0E0E20`) with a light-blue border (`#80AAAADD`). When an `item` is specified the box
+expands to accommodate both the item icon and the mouse icon side by side.
 
 ---
 
-## Формат кольору
+## Color Format
 
-Colors є ARGB hexadecimal strings. Both `"0xFFFFFF00"` (з `0x` prefix) і
-`"FFFF00"` (без prefix) є accepted.
+Colors are ARGB hexadecimal strings. Both `"0xFFFFFF00"` (with `0x` prefix) and
+`"FFFF00"` (without prefix) are accepted.
 
 - `FF` alpha = fully opaque
-- `80` alpha = 50% прозорий
+- `80` alpha = 50% transparent
 - `00` alpha = invisible
-- `"0xFF00E000"` - fully opaque green (Типове diamond колір)
-- `"0x8022CCFF"` - semi-прозорий blue
-- `"0xFFAAAAAA"` - light grey (Типове текст бульбашка межа)
+- `"0xFF00E000"` - fully opaque green (default diamond color)
+- `"0x8022CCFF"` - semi-transparent blue
+- `"0xFFAAAAAA"` - light grey (default text bubble border)
 
-## Поведінка відтворення
+## Playback Behavior
 
 ### Controls
 
 | Control | Action |
 |---------|--------|
-| **Prev keyframe** | Jump до  початок of  попередній видимий keyframe segment. прихований keyframes є skipped. |
-| **Play/Pause** | Toggle playback; restarts з  beginning Якщо вже finished. |
-| **Restart** | повертати до tick 0, reset стан, і begin playing. |
-| Progress bar | натискання або перетягування до seek до any позиція. Seeking завжди pauses playback. |
-| Keyframe nodes | Small tick marks on  bar для видимий keyframes; наведення до Дивіться  мітка і direction стрілка. |
+| **Prev keyframe** | Jump to the start of the previous visible keyframe segment. Hidden keyframes are skipped. |
+| **Play/Pause** | Toggle playback; restarts from the beginning if already finished. |
+| **Restart** | Return to tick 0, reset state, and begin playing. |
+| Progress bar | Click or drag to seek to any position. Seeking always pauses playback. |
+| Keyframe nodes | Small tick marks on the bar for visible keyframes; hover to see the label and direction arrow. |
 
-### Початковий стан
+### Initial state
 
-коли a сторінка containing `<ImportPonder>` is перший opened,  сцена starts **paused at tick 0**.
-Press Play до begin.
+When a page containing `<ImportPonder>` is first opened, the scene starts **paused at tick 0**.
+Press Play to begin.
 
-### камера lock
+### Camera lock
 
-поки playback is **active** (не paused):
--  камера follows  interpolated шлях defined by keyframes.
-- Mouse перетягування і прокручування масштаб є **вимкнено**.
--  layer slider і StructureLib sliders є **прихований**.
+While playback is **active** (not paused):
+- The camera follows the interpolated path defined by keyframes.
+- Mouse drag and scroll zoom are **disabled**.
+- The layer slider and StructureLib sliders are **hidden**.
 
-поки playback is **paused** або **finished**:
-- Full інтерактивний камера перетягування, масштаб, і layer/StructureLib control є restored.
+While playback is **paused** or **finished**:
+- Full interactive camera drag, zoom, and layer/StructureLib control are restored.
 
 ### Keyframe node labels
 
-коли you наведення over keyframe node on  progress bar:
--  node grows slightly до indicate it is hovered.
-- Якщо  keyframe має a `label`, it is displayed beside  node.
-- прихований keyframes do не створити hoverable nodes, but Вони досі apply їхні timeline стан коли playback або seeking reaches їх.
+When you hover over a keyframe node on the progress bar:
+- The node grows slightly to indicate it is hovered.
+- If the keyframe has a `label`, it is displayed beside the node.
+- Hidden keyframes do not create hoverable nodes, but they still apply their timeline state when playback or seeking reaches them.
 
 ### Layer control during playback
 
- `layer` поле of  active keyframe overrides  видимий-layer фільтр during playback:
-- `null` (або пропущений) -> показувати усі layers.
-- `1`, `2`, `3`, ... -> restrict до який 1-based layer index.
+The `layer` field of the active keyframe overrides the visible-layer filter during playback:
+- `null` (or omitted) -> show all layers.
+- `1`, `2`, `3`, ... -> restrict to that 1-based layer index.
 
-## Повний приклад
+## Complete Example
 
- following Приклад demonstrates кожен анотація Тип across four-keyframe сцена.
+The following example demonstrates every annotation type across a four-keyframe scene.
 
-### Структура каталогів
+### Directory layout
 
 ```
 assets/mymod/guidebooks/
-  pages/machines/grinder.mdx
-  pages/machines/grinder.snbt
-  pages/machines/grinder.json
+  _en_us/machines/grinder.md
+  _en_us/machines/grinder.snbt
+  _en_us/machines/grinder.json
 ```
 
 ### `grinder.json`
@@ -908,10 +906,9 @@ assets/mymod/guidebooks/
 
 ### `grinder.snbt`
 
-стандартний NBT структура файл (створений з  `/structure save` command або tool наприклад
-Litematica). Дивіться [Getting Started](Guide-Page-Format) для  full SNBT format reference.
+Use an SNBT/NBT structure accepted by `<ImportStructure>`. See [GameScene](GameScene#importstructure) for supported formats.
 
-### `grinder.mdx`
+### `grinder.md`
 
 ```mdx
 # Grinder
@@ -921,34 +918,34 @@ Litematica). Дивіться [Getting Started](Guide-Page-Format) для  full 
   <ImportPonder src="grinder.json" />
 </GameScene>
 
-Дробарка перетворює руди на подвійну кількість пилу. Натисніть **Відтворити**, щоб переглянути анімований посібник.
+The Grinder turns ores into doubled dust. Press **Play** to see the animated walkthrough.
 ```
 
-## Примітки
+## Notes
 
--  Анімація Ponder progress bar is drawn над  layer/StructureLib sliders. During playback 
-  structural sliders є прихований до Збережіть  UI clean; Вони reappear коли paused.
-- камера interpolation is завжди smooth (ease-in/out) even Якщо some keyframes лише змінити a
-  subset of камера осі. використовувати `cameraEaseTicks` on keyframe до snap  камера instantly (`0`)
-  або ease over a фіксований число of ticks до holding  ціль позиція.
-- Анотації belong до a один keyframe - Вони appear лише поки який keyframe is active
-  (i.e., з його `time` tick until  наступний keyframe's `time` tick). Overlay текст Анотації
-  fade out smoothly коли  keyframe зміни during playback.
-- Анімація Ponder `line` Анотації використовувати  той самий виконання renderer as regular `LineAnnotation`, including
-  ламана bends і початок/кінець arrows. точка marker cubes remain MDX-лише feature.
-- Анімація Ponder `text` Анотації використовувати  той самий виконання renderer as regular `TextAnnotation`, including
-  з’єднувач бік, offset, і length. Dynamic текст is keyframe-based rather ніж interpolated per tick.
-- лише один `<ImportPonder>` тег is effective per `<GameScene>`. second тег overwrites  перший.
-- A `text` анотація з empty або absent `text` поле is silently skipped.
--  `inputType` поле типові до `"lmb"` Якщо пропущений або unrecognised.
-- `blockChanges` є applied in порядок з  перший до  поточний keyframe кожен час 
-  active keyframe зміни, so changing  той самий позиція in кілька keyframes works correctly.
-- блок/сутність NBT operations використовувати  той самий replay model as `blockChanges`; Вони є safe до seek
-  forwards або backwards.
-- `text` Анотації з a `maxWidth` &gt; 0 є word-wrapped використовуючи  vanilla font renderer;
-   бульбашка box висота adjusts автоматично для multi-рядок текст.
-- `nbt` strings in `blockChanges` має використовувати **unquoted** SNBT ключі (стандартний MC 1.7.10 format).
-  Quoted ключі буде be rejected by  аналізатор. рядок значення досі require quotes:
+- The Ponder progress bar is drawn above the layer/StructureLib sliders. During playback the
+  structural sliders are hidden to keep the UI clean; they reappear when paused.
+- Camera interpolation is always smooth (ease-in/out) even if some keyframes only change a
+  subset of camera axes. Use `cameraEaseTicks` on a keyframe to snap the camera instantly (`0`)
+  or ease over a fixed number of ticks before holding the target position.
+- Annotations belong to a single keyframe - they appear only while that keyframe is active
+  (i.e., from its `time` tick until the next keyframe's `time` tick). Overlay text annotations
+  fade out smoothly when the keyframe changes during playback.
+- Ponder `line` annotations use the same runtime renderer as regular `LineAnnotation`, including
+  polyline bends and start/end arrows. Point marker cubes remain an MDX-only feature.
+- Ponder `text` annotations use the same runtime renderer as regular `TextAnnotation`, including
+  connector side, offset, and length. Dynamic text is keyframe-based rather than interpolated per tick.
+- Only one `<ImportPonder>` tag is effective per `<GameScene>`. A second tag overwrites the first.
+- A `text` annotation with an empty or absent `text` field is silently skipped.
+- The `inputType` field defaults to `"lmb"` if omitted or unrecognised.
+- `blockChanges` are applied in order from the first to the current keyframe every time the
+  active keyframe changes, so changing the same position in multiple keyframes works correctly.
+- Tile/entity NBT operations use the same replay model as `blockChanges`; they are safe to seek
+  forwards or backwards.
+- `text` annotations with a `maxWidth` &gt; 0 are word-wrapped using the vanilla font renderer;
+  the bubble box height adjusts automatically for multi-line text.
+- `nbt` strings in `blockChanges` must use **unquoted** SNBT keys (standard MC 1.7.10 format).
+  Quoted keys will be rejected by the parser. String values still require quotes:
   `{id:"minecraft:iron_ingot",Count:8b}`.
-- `modifyTileNBT` і `modifyEntityNBT` значення є SNBT значення, не JSON значення. для a рядок
-  значення, escape  SNBT quotes усередині JSON: `"value": "\"hello\""`.
+- `modifyTileNBT` and `modifyEntityNBT` values are SNBT values, not JSON values. For a string
+  value, escape the SNBT quotes inside JSON: `"value": "\"hello\""`.

@@ -2,19 +2,38 @@
 
 # 示例
 
-GuideNH 已经在 `wiki/resourcepack/` 中内置了一份运行时示例指南。本页将重要示例文件与它们所展示的功能对应起来。
+GuideNH 在 `wiki/resourcepack/` 中内置了一份运行时示例指南。本页将重要示例文件与它们所展示的功能对应起来。
 
 ## 核心示例页面
 
-| 运行时文件 | 展示内容 |
+下表文件位于 `wiki/resourcepack/assets/guidenh/guidenh/_zh_cn/`。
+
+| 文件 | 用途 |
 | --- | --- |
-| `.../_zh_cn/index.md` | frontmatter、item ids、配方、物品/方块图片、命令链接、tooltip、场景、注解、`ImportStructureLib`、`RemoveBlocks`、`BlockAnnotationTemplate`、首页推荐示例 |
-| `.../_zh_cn/markdown.md` | 普通 Markdown 功能、表格，以及 `recommend: 0` 示例 |
-| `.../_en_us/rendering.md` | 块级渲染和布局行为 |
-| `.../_en_us/structure.md` | `<Structure>` 用法与坐标格式 |
-| `.../_en_us/japanese.md` | 导航子页面示例 |
-| `.../_zh_cn/navigation-guide.md` | 导航、链接和高优先级推荐示例 |
-| `wiki/resourcepack/assets/gregtech/guidenh/_zh_cn/index.md` | 第二个命名空间示例，用于展示跨指南链接和同名页面隔离 |
+| `index.md` | 分类入口 |
+| `markdown.md` | Markdown 语法 |
+| `markdown-table.md` | 表格与合并单元格 |
+| `rendering.md` | 块级布局 |
+| `images.md` | 图片与纹理裁剪 |
+| `tooltips.md` | 悬停说明 |
+| `recipes.md` | 物品/流体配方及筛选 |
+| `charts.md` | 图表、参考线及流体图标 |
+| `function-graph.md` | 函数绘图 |
+| `content-embed.md` | 内容嵌入与文字环绕 |
+| `ponder.md` | 动画时间线 |
+| `scene-blocks.md` | 方块与材料清单 |
+| `scene-import.md` | 结构导入与方块编辑 |
+| `scene-entities.md` | 实体预览 |
+| `scene-camera.md` | 相机控制 |
+| `scene-annotations.md` | 场景注解 |
+| `scene-particles.md` | 粒子与天气 |
+| `navigation-guide.md` | 导航、索引绑定与图标 |
+| `page-lang-key.md` | 整页翻译 |
+| `templates-demo.md` | 模板与包含控制 |
+| `debug.md` | 布局与交互检查 |
+| `japanese.md` | 语言与导航示例 |
+
+模板定义在 `templates/` 子目录。`wiki/resourcepack/assets/gregtech/guidenh/` 演示另一个命名空间的页面与跨指南链接。
 
 ## 资源示例
 
@@ -103,16 +122,28 @@ navigation:
 ### 场景注解 Tooltip
 
 ````md
-<DiamondAnnotation pos="0.5 2.2 0.5" color="#FFD24C">
-  ### Activated Beacon
-  <RecipeFor id="minecraft:furnace" />
-</DiamondAnnotation>
+<GameScene>
+  <DiamondAnnotation pos="0.5 2.2 0.5" color="#FFD24C">
+    ### Activated Beacon
+    <RecipeFor id="minecraft:furnace" />
+  </DiamondAnnotation>
+</GameScene>
 ````
 
 ### 配方过滤
 
 ````md
 <RecipesFor id="minecraft:redstone_torch" input="minecraft:stick&minecraft:redstone" limit="1" />
+````
+
+### 数量格式化
+
+使用 `<Amount>` 表示数量。`unit` 可省略，默认只显示数字；`fluid` 遵循 GTNHLib 的 `mB`/`L` 偏好。
+
+````md
+<Amount value="250" />
+<Amount value="250" unit="fluid" />/s
+<Amount value="1200000" format="compact" /> 个物品
 ````
 
 ## 什么时候该用哪个示例

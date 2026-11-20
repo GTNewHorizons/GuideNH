@@ -43,7 +43,13 @@ public class RoundedRectShape implements ShapeRenderer {
 
     @Override
     public LytRect contentBounds(LytRect nodeRect, int cw, int ch, int padX, int padY) {
-        return nodeRect.shrink(padX, padY, padX, padY);
+        return ShapeUtils.centeredContent(
+            nodeRect.x() + padX,
+            nodeRect.y() + padY,
+            nodeRect.width() - 2 * padX,
+            nodeRect.height() - 2 * padY,
+            cw,
+            ch);
     }
 
     @Override

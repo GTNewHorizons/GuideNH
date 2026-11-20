@@ -25,8 +25,11 @@
   "navigation": {
     "open": "Gezinme",
     "close": "Gezinmeyi kapat",
-    "holdToOpenGuide": "Rehberi açmak için G tuşunu basılı tutun"
+    "holdToOpenGuide": "Rehberi açmak için G tuşunu basılı tutun",
+    "chooseGuide": "Bir rehber sayfası seçin",
+    "closeChooser": "Sayfa seçimini kapat"
   },
+  "binding.nativeSite": "Oyun içeriğini görmek için bu kılavuzu GuideNH içinde açın.",
   "sceneLoading": {
     "error": "3D sahne yüklenemedi.",
     "retry": "Yeniden dene",

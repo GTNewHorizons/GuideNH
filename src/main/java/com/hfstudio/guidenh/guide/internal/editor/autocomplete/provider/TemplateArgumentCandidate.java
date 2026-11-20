@@ -23,14 +23,14 @@ public class TemplateArgumentCandidate implements AutocompleteCandidate {
     private static final int TYPE_COLOR = ColorUtils.TEXT_DISABLED.getColor();
     private static final String LABEL_GAP = "  ";
 
-    private final AttributeSyntax attribute;
-    private final String templateName;
+    private final String display;
+    private final String label;
     private final String template;
     private final int caretOffset;
 
     public TemplateArgumentCandidate(AttributeSyntax attribute, String templateName) {
-        this.attribute = attribute;
-        this.templateName = templateName;
+        this.display = CompletionPreview.summarize(attribute.name());
+        this.label = CompletionPreview.summarize("arg · " + templateName.toLowerCase(Locale.ROOT));
         this.template = attribute.name() + "=\"\"";
         this.caretOffset = this.template.length() - 1;
     }
@@ -54,7 +54,7 @@ public class TemplateArgumentCandidate implements AutocompleteCandidate {
 
     @Override
     public String displayText() {
-        return attribute.name();
+        return display;
     }
 
     @Override
@@ -74,17 +74,13 @@ public class TemplateArgumentCandidate implements AutocompleteCandidate {
 
     @Override
     public int renderWidth(FontRenderer fontRenderer) {
-        return fontRenderer.getStringWidth(attribute.name()) + fontRenderer.getStringWidth(LABEL_GAP)
-            + fontRenderer.getStringWidth(label());
+        return fontRenderer.getStringWidth(display) + fontRenderer.getStringWidth(LABEL_GAP)
+            + fontRenderer.getStringWidth(label);
     }
 
     @Override
     public void render(FontRenderer fontRenderer, int x, int y, int width, boolean hovered) {
-        int labelWidth = fontRenderer.drawString(attribute.name(), x, y + 2, LABEL_COLOR);
-        fontRenderer.drawString(label(), x + labelWidth + fontRenderer.getStringWidth(LABEL_GAP), y + 2, TYPE_COLOR);
-    }
-
-    private String label() {
-        return "arg · " + templateName.toLowerCase(Locale.ROOT);
+        int labelWidth = fontRenderer.drawString(display, x, y + 2, LABEL_COLOR);
+        fontRenderer.drawString(label, x + labelWidth + fontRenderer.getStringWidth(LABEL_GAP), y + 2, TYPE_COLOR);
     }
 }

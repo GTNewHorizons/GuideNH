@@ -1,15 +1,13 @@
-# Structuurexport
+# Structuren exporteren
 
-Deze documentatie beschrijft de GuideNH-syntaxis en runtimefuncties. Code, tags, paden, ID's en attribuutwaarden blijven ongewijzigd.
+De uitgebreide naslag op deze pagina is beschikbaar in het Engels. Namen van tags, attributen, ID’s en paden worden zonder vertaling gebruikt.
 
 
-## English
+`/exportStructure` exports PNG screenshots from either StructureLib previews or loaded GuideNH GameScene blocks. The command is client-side. The `structureLib` subcommand is available only when StructureLib is loaded.
 
-`/exportStructure` exports PNG screenshots van either StructureLib previews of loaded GuideNH GameScene blokken. De command is client-side. De `structureLib` subcommand is available alleen wanneer StructureLib is loaded.
+The exporter uses orthographic rendering. Output size may change with the structure or scene size, while the configured block scale stays stable. The default scale is 128 pixels per block.
 
-De exporter uses orthographic rendering. Output grootte kan wijzigen met De structure of scène grootte, terwijl De configured blok scale stays stable. De Standaard scale is 128 pixels per blok.
-
-### Command Forms
+## Command Forms
 
 ```text
 /exportStructure structureLib [controller] [options...]
@@ -21,53 +19,53 @@ De exporter uses orthographic rendering. Output grootte kan wijzigen met De stru
 /exportStructure gameScene --config file.json
 ```
 
-voor `structureLib`, `controller` uses `modid:name` of `modid:name:meta`. wanneer omitted, De exporter attempts naar discover alle StructureLib controllers.
+For `structureLib`, `controller` uses `modid:name` or `modid:name:meta`. When omitted, the exporter attempts to discover all StructureLib controllers.
 
-voor `gameScene`, no positional selector is gebruikt. It exports iedere GameScene compiled van De currently loaded gidsen.
+For `gameScene`, no positional selector is used. It exports every GameScene compiled from the currently loaded guides.
 
-### Shared parameters
+## Shared Parameters
 
-| parameter | Description |
+| Parameter | Description |
 | --- | --- |
-| `--out <dir>` | Output directory. Defaults naar `screenshots/structurelib/<timestamp>/` of `screenshots/gameScene/<timestamp>/`. |
-| `--pixelsPerBlock <int>` | Pixel density per wereld blok. Standaard: `128`. |
+| `--out <dir>` | Output directory. Defaults to `screenshots/structurelib/<timestamp>/` or `screenshots/gameScene/<timestamp>/`. |
+| `--pixelsPerBlock <int>` | Pixel density per world block. Default: `128`. |
 | `--scale <float>` | Multiplies `pixelsPerBlock`. |
-| `--layers <expr\|each\|all>` | Layer zichtbaarheid. Standaard: `all`. |
-| `--view <preset>` | camera preset. StructureLib Standaard: `isometric-south-east`. GameScene Standaard: De scène's own camera. |
-| `--yaw <deg>` / `--pitch <deg>` / `--roll <deg>` | Fine camera override. In GameScene modus, any explicit view/rotatie optie switches van De scène camera naar fitted export camera. |
-| `--rotateX <deg>` / `--rotateY <deg>` / `--rotateZ <deg>` | Compatibility aliases voor camera override. |
-| `--background transparent\|dark\|#RRGGBB\|#AARRGGBB` | PNG achtergrond. Standaard: `transparent`. |
-| `--maxPixels <long>` | Maximum pixel count voor one afbeelding. Standaard: `655360000`. gebruiken `-1` voor no limit. |
-| `--batchSize <int>` | Flushes `manifest.json` na Deze many completed results. Standaard: `16`. |
-| `--force` | staat toe more than 256 generated screenshots. |
-| `--dry-run` | Builds De plan en manifest zonder writing PNG files. |
-| `--config <file>` / `@file.json` | laadt JSON configuration. |
+| `--layers <expr\|each\|all>` | Layer visibility. Default: `all`. |
+| `--view <preset>` | Camera preset. StructureLib default: `isometric-south-east`. GameScene default: the scene's own camera. |
+| `--yaw <deg>` / `--pitch <deg>` / `--roll <deg>` | Fine camera override. In GameScene mode, any explicit view/rotation option switches from the scene camera to fitted export camera. |
+| `--rotateX <deg>` / `--rotateY <deg>` / `--rotateZ <deg>` | Compatibility aliases for camera override. |
+| `--background transparent\|dark\|#RRGGBB\|#AARRGGBB` | PNG background. Default: `transparent`. |
+| `--maxPixels <long>` | Maximum pixel count for one image. Default: `655360000`. Use `-1` for no limit. |
+| `--batchSize <int>` | Flushes `manifest.json` after this many completed results. Default: `16`. |
+| `--force` | Allows more than 256 generated screenshots. |
+| `--dry-run` | Builds the plan and manifest without writing PNG files. |
+| `--config <file>` / `@file.json` | Loads JSON configuration. |
 
-### StructureLib parameters
+## StructureLib Parameters
 
-| parameter | Description |
+| Parameter | Description |
 | --- | --- |
-| `--tier <expr>` | Master tier waarden. |
-| `--channel <name=expr>` | Named StructureLib channel waarden. kan be repeated. |
-| `--facing <list>` | Facing waarden voor bulk orientation export. |
-| `--rotation <list>` | rotatie waarden voor bulk orientation export. |
-| `--flip <list>` | Flip waarden voor bulk orientation export. |
+| `--tier <expr>` | Master tier values. |
+| `--channel <name=expr>` | Named StructureLib channel values. Can be repeated. |
+| `--facing <list>` | Facing values for bulk orientation export. |
+| `--rotation <list>` | Rotation values for bulk orientation export. |
+| `--flip <list>` | Flip values for bulk orientation export. |
 | `--orientation <facing:rotation:flip,...>` | Explicit orientation combinations. |
-| `--gt-active-controller` | GregTech alleen. Renders De controller met its active machine texture wanneer possible. |
-| `--gt-place-hatches` | GregTech alleen. Enables normal GT Hatch channel placement voor Hatch-alleen voorbeeldweergave positions; fallback casing remains De Standaard wanneer omitted. |
+| `--gt-active-controller` | GregTech only. Renders the controller with its active machine texture when possible. |
+| `--gt-place-hatches` | GregTech only. Enables normal GT Hatch channel placement for Hatch-only preview positions; fallback casing remains the default when omitted. |
 
-### GameScene parameters
+## GameScene Parameters
 
-| parameter | Description |
+| Parameter | Description |
 | --- | --- |
-| `--show-annotations` | Renders scène Annotaties, including in-wereld en overlay Annotaties. Standaard: `false`. |
-| `--show-grid` | Renders De scène floor grid. Standaard: `false`. |
+| `--show-annotations` | Renders scene annotations, including in-world and overlay annotations. Default: `false`. |
+| `--show-grid` | Renders the scene floor grid. Default: `false`. |
 
-GameScene modus respects elke scène's own configured camera by Standaard. gebruiken `--view`, `--yaw`, `--pitch`, `--roll`, `--rotateX`, `--rotateY`, of `--rotateZ` wanneer you want Een fitted export view instead.
+GameScene mode respects each scene's own configured camera by default. Use `--view`, `--yaw`, `--pitch`, `--roll`, `--rotateX`, `--rotateY`, or `--rotateZ` when you want a fitted export view instead.
 
-### Numeric Filters
+## Numeric Filters
 
-Numeric filters are gebruikt by `--tier`, `--channel`, en `--layers`.
+Numeric filters are used by `--tier`, `--channel`, and `--layers`.
 
 ```text
 0
@@ -76,55 +74,55 @@ Numeric filters are gebruikt by `--tier`, `--channel`, en `--layers`.
 !0,1
 ```
 
-`0` matches one waarde. `0-12` matches Een inclusive range. `!` excludes waarden. Commas combine tokens.
+`0` matches one value. `0-12` matches an inclusive range. `!` excludes values. Commas combine tokens.
 
-### Layers
+## Layers
 
-`--layers all` exports De full structure of scène in one afbeelding.
+`--layers all` exports the full structure or scene in one image.
 
-`--layers 0-12,!5` exports one afbeelding where alleen matching layers are zichtbaar.
+`--layers 0-12,!5` exports one image where only matching layers are visible.
 
-`--layers each` exports one afbeelding voor iedere actual Y layer.
+`--layers each` exports one image for every actual Y layer.
 
-Layer-filtered rendering forces exposed blok faces naar renderen so verborgen neighboring layers do niet leave missing faces.
+Layer-filtered rendering forces exposed block faces to render so hidden neighboring layers do not leave missing faces.
 
-### StructureLib Tiers en Channels
+## StructureLib Tiers And Channels
 
-wanneer `--tier` en `--channel` are omitted, De exporter inspects De controller en exports one screenshot Voor elke available unified tier. De zelfde tier waarde is applied naar De master tier en iedere discovered StructureLib channel. Automatic unified tier export is capped at 100 screenshots per controller/orientation.
+When `--tier` and `--channel` are omitted, the exporter inspects the controller and exports one screenshot for each available unified tier. The same tier value is applied to the master tier and every discovered StructureLib channel. Automatic unified tier export is capped at 100 screenshots per controller/orientation.
 
-wanneer `--tier` is provided en `--channel` wordt weggelaten, elke requested tier ook drives iedere discovered channel met De zelfde waarde, clamped naar elke channel's supported range.
+When `--tier` is provided and `--channel` is omitted, each requested tier also drives every discovered channel with the same value, clamped to each channel's supported range.
 
-wanneer one of more `--channel` opties are provided, those explicit channel waarden are gebruikt. meerdere explicit tier en channel waarden are combined as Een Cartesian product.
+When one or more `--channel` options are provided, those explicit channel values are used. Multiple explicit tier and channel values are combined as a Cartesian product.
 
 ```text
 /exportStructure structureLib gregtech:gt.blockmachines:1234 --tier 1,2 --channel coil=1-4 --channel casing=1,2
 ```
 
-### GregTech opties
+## GregTech Options
 
-GregTech integration keeps optioneel Hatch-capable positions as their normal fallback casing by Standaard. Forced Hatch elements, such as Een Muffler positie, still renderen as De requested Hatch.
+GregTech integration keeps optional Hatch-capable positions as their normal fallback casing by default. Forced Hatch elements, such as a Muffler position, still render as the requested Hatch.
 
-gebruiken `--gt-place-hatches` wanneer you want GT's normal StructureLib Hatch channel logic naar place Vereist Hatches voor voorbeeldweergave-alleen screenshots. voor example, Een element declared met `atLeast(InputHatch, OutputHatch, InputBus, OutputBus, Maintenance, Energy).buildAndChain(casing)` kan place De Vereist Hatch previews en bijwerken their textures instead of showing alleen De fallback casing.
+Use `--gt-place-hatches` when you want GT's normal StructureLib Hatch channel logic to place required Hatches for preview-only screenshots. For example, an element declared with `atLeast(InputHatch, OutputHatch, InputBus, OutputBus, Maintenance, Energy).buildAndChain(casing)` can place the required Hatch previews and update their textures instead of showing only the fallback casing.
 
-gebruiken `--gt-active-controller` wanneer Een controller zou moeten renderen met its active texture. De exporter still performs voorbeeldweergave status synchronization zonder treating Een failed machine check as Een export failure.
+Use `--gt-active-controller` when a controller should render with its active texture. The exporter still performs preview state synchronization without treating a failed machine check as an export failure.
 
-### Orientation
+## Orientation
 
-Bulk syntaxis:
+Bulk syntax:
 
 ```text
 --facing north,south --rotation normal,clockwise --flip none
 ```
 
-Explicit syntaxis:
+Explicit syntax:
 
 ```text
 --orientation north:normal:none,south:clockwise:none
 ```
 
-Both forms kan be gebruikt together. Invalid combinations are skipped wanneer StructureLib alignment limits reject them. Als no orientation is specified, De controller Standaard is gebruikt.
+Both forms can be used together. Invalid combinations are skipped when StructureLib alignment limits reject them. If no orientation is specified, the controller default is used.
 
-### Views
+## Views
 
 Supported presets include:
 
@@ -135,13 +133,13 @@ isometric-north-west
 top
 ```
 
-You kan refine any preset:
+You can refine any preset:
 
 ```text
 --view isometric-south-east --yaw 315 --pitch 30 --roll 0
 ```
 
-### JSON Config
+## JSON Config
 
 StructureLib example:
 
@@ -187,29 +185,29 @@ GameScene example:
 }
 ```
 
-Run configs met:
+Run configs with:
 
 ```text
 /exportStructure structureLib @my_structurelib_export.json
 /exportStructure gameScene @my_gamescene_export.json
 ```
 
-Relative config paths are searched van De huidige working directory en `config/guidenh/structure_exports/`.
+Relative config paths are searched from the current working directory and `config/guidenh/structure_exports/`.
 
-### Uitvoer en manifest
+## Output And Manifest
 
-elke export directory bevat PNG files en `manifest.json`.
+Each export directory contains PNG files and `manifest.json`.
 
-StructureLib afbeelding names begin met De controller item weergeven naam. Variant suffixes include tier, channels, layers, orientation, en view.
+StructureLib image names start with the controller item display name. Variant suffixes include tier, channels, layers, orientation, and view.
 
-GameScene afbeelding names include gids ID, pagina-ID, scène index, layers, camera modus, en optioneel annotatie/grid suffixes.
+GameScene image names include guide ID, page ID, scene index, layers, camera mode, and optional annotation/grid suffixes.
 
-Names are sanitized voor Windows filename Regels. De manifest records output pad, afbeelding grootte, geselecteerd variants, warnings, en errors.
+Names are sanitized for Windows filename rules. The manifest records output path, image size, selected variants, warnings, and errors.
 
-### Prestaties
+## Performance
 
-De command refuses plans over 256 screenshots unless `--force` is present.
+The command refuses plans over 256 screenshots unless `--force` is present.
 
-By Standaard, one afbeelding kan niet exceed `655360000` pixels. Deze Standaard is sized van Een 200x100x200 class machine using Een 128 pixels-per-projected-blok budget. Als Een giant structure still needs more room, lower `--pixelsPerBlock` of `--scale`, crop met `--layers`, raise `--maxPixels`, of gebruiken `--maxPixels -1` naar disable De pixel limit.
+By default, one image cannot exceed `655360000` pixels. If a giant structure still needs more room, lower `--pixelsPerBlock` or `--scale`, crop with `--layers`, raise `--maxPixels`, or use `--maxPixels -1` to disable the pixel limit.
 
-Large afbeeldingen gebruiken tiled framebuffer rendering wanneer they exceed De GPU texture grootte.
+Large images use tiled framebuffer rendering when they exceed the GPU texture size.

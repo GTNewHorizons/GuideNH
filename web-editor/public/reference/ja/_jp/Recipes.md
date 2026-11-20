@@ -1,210 +1,99 @@
 # レシピ
 
-GuideNH は、ガイドページ内にクラフトレシピと NEI が提供するレシピを直接描画できます。
+アイテムや流体の生産方法と用途を表示します。機械レシピには対応する連携 Mod が必要です。バニラのクラフトレシピは NEI なしでも使用できます。
 
-## 対応タグ
+## タグの選択
 
-- `<Recipe>`
-- `<Usage>`
-- `<RecipeFor>`
-- `<RecipeUsage>`
-- `<RecipesFor>`
-- `<RecipesUsage>`
-
-これらのタグはすべて同じコンパイラーと属性セットを共有します。
-
-## タグの意味
-
-| タグ | 動作 |
-| --- | --- |
-| `<Recipe>` | 対象アイテムの単一レシピを描画します |
-| `<Usage>` | 対象アイテムを材料として使う単一レシピを描画します |
-| `<RecipeFor>` | 単一レシピ形式。記述しやすい名前です |
-| `<RecipeUsage>` | 単一レシピ形式。記述しやすい名前です |
-| `<RecipesFor>` | 条件に一致する複数のレシピを描画します |
-| `<RecipesUsage>` | 条件に一致する複数の使用レシピを描画します |
-
-複数のレシピが存在する場合、単一レシピ形式では、フィルターでさらに絞らない限り 1 件だけ描画されます。
-
-## 共通属性
-
-| 属性 | 必須 | 意味 |
+| タグ | 検索対象 | 既定の件数 |
 | --- | --- | --- |
-| `id` | はい | 対象アイテムの参照 |
-| `fallbackText` | いいえ | 利用できるレシピがない場合に表示するテキスト |
-| `handlerName` | いいえ | ハンドラー名に対する大文字小文字を区別しない部分一致フィルター |
-| `handlerId` | いいえ | オーバーレイまたはハンドラー ID の完全一致フィルター（大文字小文字を区別しない） |
-| `handlerBlacklist` | いいえ | 結果から除外するハンドラーのカンマ区切りリスト |
-| `handlerWhitelist` | いいえ | ブラックリストに入っていても残すハンドラーのカンマ区切りリスト |
-| `handlerOrder` | いいえ | ハンドラーをフィルターした後の 0 始まりの位置 |
-| `input` | いいえ | 材料フィルター式 |
-| `output` | いいえ | 結果フィルター式 |
-| `limit` | いいえ | 描画するレシピ数の正の整数上限 |
+| `<Recipe>` / `<RecipeFor>` | 対象を生産するレシピ | 1 件 |
+| `<Usage>` / `<RecipeUsage>` | 対象を消費するレシピ | 1 件 |
+| `<RecipesFor>` | 対象を生産するレシピ | 全件 |
+| `<RecipesUsage>` | 対象を消費するレシピ | 全件 |
 
-## アイテム ID の構文
+6 つのタグは同じ属性を使用します。件数は `limit`、特定のレシピは `recipeIndex` で指定します。
 
-`id`、`input`、`output` 属性はすべて GuideNH 拡張アイテム参照形式を使います。
+## 属性
 
-```text
-modid:name
-modid:name:meta
-modid:name:meta:{snbt}
-```
+対象には `id`（アイテム）または `fluid`（流体）のどちらか一方だけを指定します。流体には `water`、`steam` など、大文字小文字を区別する完全な Forge 登録名を使用します。一時的な表示アイテムの数値 ID は使用しません。
 
-メタ値のワイルドカード:
+| 属性 | 意味 |
+| --- | --- |
+| `id` | 対象アイテムの参照。`fluid` と併用不可 |
+| `fluid` | 対象流体の登録名。`id` と併用不可 |
+| `fallbackText` | 利用できるレシピがない場合の表示テキスト |
+| `handlerName` | ハンドラー表示名の部分一致。大文字小文字を区別しない |
+| `handlerId` | overlay/handler ID の完全一致、またはハンドラーの単純クラス名の部分一致。大文字小文字を区別しない |
+| `handlerBlacklist` | 除外するハンドラーのカンマ区切りリスト |
+| `handlerWhitelist` | ブラックリストから除外するハンドラー。単独では検索範囲を絞らない |
+| `handlerOrder` | 絞り込み後のハンドラー位置。0 始まりの非負整数 |
+| `recipeIndex` | レシピ位置。0 始まりの非負整数 |
+| `input` / `output` | 入力/出力アイテムのフィルター式 |
+| `inputFluid` / `outputFluid` | 入力/出力流体のフィルター式 |
+| `limit` | 表示件数の上限。正の整数 |
 
-- `*`
-- `32767`
-- `ANY` などの大文字トークン
+連携が利用できない場合は `fallbackText`、未指定なら編集エラーを表示します。流体入り容器はアイテム材料として扱われます。
 
-## フィルター式の構文
+## 参照とフィルター
 
-`input` と `output` のフィルターでは次を使えます。
+アイテム参照は `modid:name`、`modid:name:meta`、`modid:name:meta:{snbt}` を使用します。メタデータのワイルドカードには `*`、`32767`、`ANY` などの大文字トークンを使用できます。
 
-- `,` は OR
-- `&` は と
-- `!` は しない
+アイテムと流体のフィルターは `,`（OR）、`&`（AND）、`!`（NOT）を使用します。指定した入力/出力フィルターをすべて満たす必要があります。アイテムの SNBT 複合タグやリスト内の区切り文字は参照を分割しません。流体は登録名を照合し、補助出力スロットも確認します。数量や NBT は照合しません。不正な式は編集エラーになります。
 
-例:
+## ハンドラーの選択
 
-```text
-minecraft:planks:*
-minecraft:stick&minecraft:redstone
-!minecraft:planks:0
-minecraft:planks:*,minecraft:log:*
-```
+既知のハンドラーには `handlerId`、表示名には `handlerName`、絞り込み後の位置には `handlerOrder` を使用します。`recipeIndex` は検索内のレシピを選択します。
 
-NBT は 3 つのアイテム参照属性すべてと組み合わせられます。SNBT の複合体やリスト内にあるカンマとアンパサンドは参照の一部として保持され、トップレベルの区切り文字だけがフィルターを分割します。
+ブラックリストとホワイトリストは handler ID、overlay ID、クラス名を大文字小文字を区別せず部分一致で照合します。ページのブラックリストは `config/guidenh/guidenh.cfg` の `recipeHandlerBlacklist` に追加されます。`handlerId` または `handlerWhitelist` を明示すると、除外されたハンドラーを残せます。
 
-```md
-<RecipeFor id='minecraft:written_book:0:{title:TestBook,author:GuideNH}' />
-<RecipesFor
-  id='minecraft:stone:3:{display:{Name:"Special Stone"}}'
-  input='minecraft:chest:0:{Items:[{id:"minecraft:diamond",Count:1b}]}'
-  output='minecraft:diamond:0:{display:{Name:"Reward"}}'
-/>
-```
-
-## 描画順序
-
-GuideNH は次の順でレシピを試します。
-
-1. NEI ネイティブハンドラーの描画
-2. NEI スロットデータのフォールバック
-3. 内蔵バニラクラフトのフォールバック
-
-一致するものがない場合:
-
-- `fallbackText` があれば、それを使用します。
-- それ以外では、記述エラーをインライン表示します。
-
-## 例
-
-### 単一レシピ
-
-````md
-<RecipeFor id="minecraft:crafting_table" />
-````
-
-### 複数レシピ
-
-````md
-<RecipesFor id="minecraft:torch" />
-````
-
-### ハンドラーのフィルター
-
-````md
-<RecipesFor id="minecraft:iron_pickaxe" handlerId="repair" />
-<RecipesFor id="minecraft:fire_charge" handlerName="shapeless" />
-````
-
-### ハンドラーのブラックリストとホワイトリスト
-
-`handlerBlacklist` は結果からハンドラーを除外し、`handlerWhitelist` は除外されたハンドラーを戻します。どちらも **カンマ区切りリスト**を受け取り、ハンドラー ID、オーバーレイ ID、クラス名のいずれかに対して大文字小文字を区別しない部分一致を行います。
-
-ブラックリストに名前があるハンドラーは除外されます。ただし、タグが明示的に要求した場合は除外されません。`handlerId`、`handlerWhitelist`、小文字化したクラス名の一致はいずれもハンドラーを残します。
-
-木材はクラフト材料と燃料の両方なので、不要なハンドラーを列挙できます。
-
-````md
-<RecipesFor id="minecraft:planks" handlerBlacklist="fuel,repair" />
-````
-
-クラス名にも部分文字列が使われるため、Mod ID を 1 つ指定すると、その Mod が登録したすべてのハンドラーを対象にできます。
-
-````md
-<RecipesFor id="minecraft:chest" handlerBlacklist="gregtech,ic2,railcraft" limit="6" />
-````
-
-ページ単位のホワイトリストでブラックリストを戻すこともできます。
-
-````md
-<Recipe id="minecraft:chest" handlerWhitelist="GTNEIMultiblockHandler,StructureCompatNEIHandler" fallbackText="Multiblock preview unavailable." />
-````
-
-ホワイトリスト単独では結果を絞りません。ブラックリストで除外されるハンドラーを救済するだけなので、1 件に絞る場合は `handlerId`、`handlerName`、`handlerOrder` を使い、描画数の上限には `limit` を使います。
-
-設定ファイル `config/guidenh/guidenh.cfg` の `recipeHandlerBlacklist` はすべてのページに適用され、既定では次を含みます。
+構造全体を表示する次のハンドラーは既定で除外されます。ホワイトリストでページごとに有効にできます。
 
 - `blockrenderer6343.integration.gregtech.GTNEIMultiblockHandler`
 - `blockrenderer6343.integration.structurelib.StructureCompatNEIHandler`
 
-ページ側のリストは設定済みリストに追加されます。そのため、ページでさらに隠すことはできますが、既定の除外を減らすことはできません。
-
-### 入力・出力フィルター
-
-````md
-<RecipesFor id="minecraft:stick" input="minecraft:planks:*" limit="3" />
-<RecipesFor id="minecraft:stick" output="minecraft:torch" limit="2" />
-<RecipesFor id="minecraft:redstone_torch" input="minecraft:stick&minecraft:redstone" limit="1" />
-````
-
-### フォールバックテキスト
-
-````md
-<Recipe id="missingrecipe" fallbackText="This recipe is disabled." />
-````
-
-## 推奨事項
-
-- オプション Mod の連携には `fallbackText` を指定します。
-- 使用したい NEI ハンドラーが正確に分かっている場合は `handlerId` を使います。
-- 1 つのブロックが多くのハンドラーから生成される場合は `handlerBlacklist` で表示対象を限定します。
-- 次の 2 つのハンドラーは `config/guidenh/guidenh.cfg` で既定非表示です。表示するには `handlerId` または `handlerWhitelist` で指定します。
-  - `blockrenderer6343.integration.gregtech.GTNEIMultiblockHandler`
-  - `blockrenderer6343.integration.structurelib.StructureCompatNEIHandler`
-- タグが多くのレシピに展開される可能性がある場合は `limit` を使います。
-- 複雑なフィルター式は、保守しやすいようにタグの近くのコメントへ残します。
-
-## 実行時の例
-
-ハンドラーフィルター、ワイルドカード、NBT 付きアイテム ID の詳しいレシピ例は `wiki/resourcepack/assets/guidenh/guidenh/_en_us/index.md` を参照してください。
-
-## 文章内の NEI レシピリンク
-
-カスタムアクションリンクで、レシピカードを描画せずに文章から NEI を開けます。既存の `&[文字](sound:...)` と同じ形式です。
+## 例
 
 ```md
-&[コークス炉の全レシピを確認](nei:handler?handlerId=gt.recipe.cokeoven)
-&[レシピを確認](nei:recipes?id=minecraft:iron_ingot)
-&[用途を確認](nei:usage?id=gregtech:gt.blockmachines:236&handlerId=gt.recipe.cokeoven)
-
-<NeiRecipeLink handlerId="gt.recipe.cokeoven">NEI を開く</NeiRecipeLink>
-<NeiRecipeLink id="minecraft:iron_ingot">**レシピ**を確認</NeiRecipeLink>
-<NeiRecipeLink mode="usage" id="gregtech:gt.blockmachines:236" handlerId="gt.recipe.cokeoven" title="NEI">用途を確認</NeiRecipeLink>
-
-&[SNBT 付きの本のレシピ](nei:recipes?id=minecraft:written_book:0:%7Btitle:%22Guide%2BNEI%22%2Cauthor:GuideNH%7D)
+<RecipeFor id="minecraft:crafting_table" />
+<RecipesFor id="minecraft:torch" recipeIndex="0" />
+<RecipeFor fluid="steam" fallbackText="蒸気のレシピがありません。" />
+<RecipesUsage fluid="water" inputFluid="water&!lava" limit="3" />
+<RecipesFor id="minecraft:iron_ingot" outputFluid="steam,water" limit="3" />
+<RecipeFor id='minecraft:written_book:0:{title:TestBook,author:GuideNH}' />
+<RecipesFor id="minecraft:stick" input="minecraft:planks:*" limit="3" />
+<RecipesFor id="minecraft:redstone_torch" input="minecraft:stick&minecraft:redstone" limit="1" />
+<RecipesFor id="minecraft:iron_pickaxe" handlerId="repair" />
+<RecipesFor id="minecraft:fire_charge" handlerName="shapeless" limit="3" />
+<RecipesFor id="minecraft:planks" handlerBlacklist="fuel,repair" limit="6" />
+<RecipeFor id="minecraft:chest" handlerWhitelist="GTNEIMultiblockHandler,StructureCompatNEIHandler" fallbackText="マルチブロックを表示できません。" />
 ```
 
-`handler` は `handlerId` が必須で `id` は指定できず、全レシピを開きます。`recipes` は `id` を使って生成レシピを、`usage` は Ctrl 状態に関係なく触媒を含む用途を開きます。後者の2つは `handlerId` による絞り込みが可能です。
+広い検索には `limit` を指定してください。[タグリファレンス](Tags-Reference)、[Mod 互換性](Mod-Compatibility)、[例](Examples)も参照してください。
 
-`<NeiRecipeLink>` の属性は `id`、`handlerId`、`mode`、ツールチップ `title` のみです。`mode` を省略すると、`id` がある場合は `recipes`、なければ `handler` です。見える子要素が必要です。アクションのラベルはプレーンテキストで、タグは装飾に対応します。
+## Inline NEI recipe links
 
-overlay identifier または handler ID と、大文字小文字を区別せず完全一致で照合します。既存カードのクラス名部分一致は使いません。通常・直列ハンドラーを含み、同じ Java クラスの異なるカテゴリを統合しません。
+Use `&[label](nei:...)` or `<NeiRecipeLink>` to open NEI from inline text.
 
-名前空間省略時は現在のページのものを使用します。登録名の大文字小文字、メタデータ、SNBT を保持し、ワイルドカードは既存の具体的スタック規則に従います。URI は厳密な UTF-8 で1回だけ復号し、`+` はそのままです。SNBT と `&`、`#`、`%`、`?`、`)` はパーセント符号化してください。
+```md
+&[Check all Coke Oven recipes](nei:handler?handlerId=gt.recipe.cokeoven)
+&[Check recipes](nei:recipes?id=minecraft:iron_ingot)
+&[Check usages](nei:usage?id=gregtech:gt.blockmachines:236&handlerId=gt.recipe.cokeoven)
 
-重複・未知の引数、不正なエスケープ、フラグメント、不明なモード、矛盾する属性、対象不足は記述エラーになります。入口は `&` アクションと `<NeiRecipeLink>` のみで、通常・参照リンク、HTML アンカー、`nei://` は別名として使えません。
+<NeiRecipeLink handlerId="gt.recipe.cokeoven">Check NEI</NeiRecipeLink>
+<NeiRecipeLink id="minecraft:iron_ingot">Check **recipes**</NeiRecipeLink>
+<NeiRecipeLink mode="usage" id="gregtech:gt.blockmachines:236" handlerId="gt.recipe.cokeoven" title="NEI">Check usages</NeiRecipeLink>
 
-アイテム解決と NEI 検索はクリック時のみ行います。NEI がない場合や結果が空の場合はガイドを維持して翻訳済みメッセージを表示します。ブラウザーと IDE のプレビューは無効な文字を表示し、GuideNH で開くよう案内します。
+&[Book recipes with SNBT](nei:recipes?id=minecraft:written_book:0:%7Btitle:%22Guide%2BNEI%22%2Cauthor:GuideNH%7D)
+```
+
+`handler` requires `handlerId` and forbids `id`; it opens every recipe in the selected handler. `recipes` requires `id` and opens recipes producing that item. `usage` requires `id` and opens usages including catalyst behavior, regardless of Ctrl. The latter two modes accept an optional `handlerId` filter.
+
+`<NeiRecipeLink>` accepts only `id`, `handlerId`, `mode`, and optional tooltip `title`. Without `mode`, an `id` selects `recipes`; otherwise it selects `handler`. Visible inline children are required. Use the tag for rich formatting; custom action labels are plain text.
+
+`handlerId` matches the exact NEI overlay identifier or handler ID, ignoring case. It does not accept a Java class name or partial identifier.
+
+Item IDs use the current page namespace when omitted and retain registry-name casing, metadata and SNBT. Wildcard metadata uses the existing concrete-stack rules; it does not request every metadata variant. URI values are decoded once as strict UTF-8; literal `+` stays `+`. Percent-encode SNBT and reserved characters such as `&`, `#`, `%`, `?`, and `)`.
+
+Duplicate or unknown query parameters, invalid escapes, fragments, unsupported modes, conflicting attributes, and missing targets produce authoring errors. Only ampersand actions and `<NeiRecipeLink>` are NEI entry points; ordinary, reference, and HTML-anchor links are not aliases, and `nei://` is unsupported.
+
+If NEI is unavailable or no recipes match, the guide remains open and displays a message. Browser and IDE previews display the link as inactive text; open the page in GuideNH to use it.

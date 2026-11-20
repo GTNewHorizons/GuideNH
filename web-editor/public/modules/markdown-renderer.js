@@ -2,16 +2,29 @@ import { attr, booleanAttr, colorValue, cssLength, DUPLICATE_ATTRIBUTES, escapeH
 import { renderChart, renderFunctionGraph, renderMermaidDiagram } from "./visual-renderers.js";
 import { translatedString } from "./language.js";
 import { createActionLinkError, expandActionLink, formatActionLinkError, readActionLink, resolveNeiAttributes } from "./action-links.js";
+import { fluidDescription, fluidScale, renderFluidIcon, fluidTooltipVisible, fluidIconSourceConflict, renderFluidLabel } from "./fluid-presentation.js";
+import { BINDING_TAGS, renderBinding } from "./binding-presentation.js";
+import { advanceCodeFence, stripMdxComments } from "./markdown-source.js";
 
 function copy(context, key) { return escapeHtml(translatedString(context?.locale || "en_us", key)); }
 
 const INLINE_TAGS = new Set(["a", "abbr", "b", "br", "wbr", "code", "del", "em", "i", "img", "kbd", "mark", "small", "span", "strong", "sub", "sup", "u", "Color", "Spoiler", "Tooltip", "SoundLink", "NeiRecipeLink", "PlayerName", "KeyBind", "ItemImage", "ItemIcon", "ItemLink", "CommandLink", "Latex", "Amount", "QuestLink", "FloatingImage"]);
-const BLOCK_TAGS = new Set(["address", "article", "aside", "blockquote", "caption", "col", "colgroup", "details", "div", "dl", "dt", "dd", "fieldset", "figcaption", "figure", "footer", "h1", "h2", "h3", "h4", "h5", "h6", "header", "hr", "main", "nav", "ol", "p", "pre", "section", "table", "tbody", "td", "tfoot", "th", "thead", "tr", "ul", "video", "audio", "Latex", "Tooltip", "Spoiler", "ContentTabs", "Tab", "FileTree", "Row", "Column", "FootnoteList", "ItemGrid", "ItemImage", "ItemIcon", "ItemLink", "Block", "BlockImage", "FloatingImage", "GameScene", "Scene", "Structure", "Mermaid", "CsvTable", "ColumnChart", "BarChart", "LineChart", "PieChart", "ScatterChart", "FunctionGraph", "Function", "Recipe", "RecipeFor", "RecipesFor", "ImportPonder", "Ponder", "QuestCard", "SubPages", "Category", "Special", "ImageAnnotation", "BlockStats", "BlockStat", "ImportStructure", "ImportStructureLib", "IsometricCamera", "PlaySound", "RemoveBlocks", "RemoveEntity", "ReplaceBlock", "PlaceBlock", "BlockAnnotationTemplate", "Entity", "BoxAnnotation", "LineAnnotation", "DiamondAnnotation", "OutlineAnnotation", "TextAnnotation", "InputAnnotation", "SoundArea", "NodeContent", "Series", "LineSeries", "Slice", "PieInset", "Plot", "Point", "Tier", "Channel", "Facing", "Rotation", "Flip", "Orientation", "GregTechActiveController", "GregTechPlaceHatches", "Comment"]);
+const BLOCK_TAGS = new Set(["address", "article", "aside", "blockquote", "caption", "col", "colgroup", "details", "div", "dl", "dt", "dd", "fieldset", "figcaption", "figure", "footer", "h1", "h2", "h3", "h4", "h5", "h6", "header", "hr", "main", "nav", "ol", "p", "pre", "section", "table", "tbody", "td", "tfoot", "th", "thead", "tr", "ul", "video", "audio", "Latex", "Tooltip", "Spoiler", "ContentTabs", "Tab", "FileTree", "Row", "Column", "FootnoteList", "ItemGrid", "ItemImage", "ItemIcon", "ItemLink", "Block", "BlockImage", "FloatingImage", "GameScene", "Scene", "Structure", "Mermaid", "CsvTable", "ColumnChart", "BarChart", "LineChart", "PieChart", "ScatterChart", "FunctionGraph", "Function", "Recipe", "RecipeFor", "RecipesFor", "ImportPonder", "Ponder", "QuestCard", "SubPages", "Category", "Special", "ImageAnnotation", "BlockStats", "BlockStat", "ImportStructure", "ImportStructureLib", "IsometricCamera", "PlaySound", "RemoveBlocks", "RemoveEntity", "ReplaceBlock", "PlaceBlock", "BlockAnnotationTemplate", "Entity", "BoxAnnotation", "LineAnnotation", "DiamondAnnotation", "OutlineAnnotation", "TextAnnotation", "InputAnnotation", "SoundArea", "NodeContent", "Series", "ReferenceLine", "LineSeries", "Slice", "PieInset", "Plot", "Point", "Tier", "Channel", "Facing", "Rotation", "Flip", "Orientation", "GregTechActiveController", "GregTechPlaceHatches", "Comment"]);
 const SAFE_HTML_ATTRIBUTES = new Set(["class", "className", "id", "role", "title", "lang", "dir", "aria-label", "aria-description", "colspan", "rowspan", "align", "valign", "width", "height", "scope", "span", "abbr", "headers", "axis", "char", "charoff", "summary", "border", "cellpadding", "cellspacing", "frame", "rules", "bordercolor", "bgcolor", "style", "target", "rel", "href", "src", "alt", "poster", "controls", "autoplay", "loop", "muted", "playsinline"]);
 const HTML_CONTAINER_TAGS = new Set(["address", "article", "aside", "blockquote", "caption", "colgroup", "details", "div", "dl", "fieldset", "figure", "footer", "header", "main", "nav", "ol", "section", "table", "tbody", "td", "tfoot", "th", "thead", "tr", "ul"]);
-const RUNTIME_TAGS = new Set(["Block", "BlockImage", "BlockId", "ItemId", "GameScene", "Scene", "Structure", "Recipe", "RecipeFor", "RecipesFor", "ImportPonder", "Ponder", "QuestCard", "QuestLink", "BlockStats", "BlockStat", "ImportStructure", "ImportStructureLib", "IsometricCamera", "PlaySound", "RemoveBlocks", "RemoveEntity", "ReplaceBlock", "PlaceBlock", "BlockAnnotationTemplate", "Entity", "BoxAnnotation", "LineAnnotation", "DiamondAnnotation", "OutlineAnnotation", "TextAnnotation", "InputAnnotation", "SoundArea", "Series", "LineSeries", "Slice", "PieInset", "Plot", "Point", "Tier", "Channel", "Facing", "Rotation", "Flip", "Orientation", "GregTechActiveController", "GregTechPlaceHatches"]);
+const RUNTIME_TAGS = new Set(["Block", "BlockImage", "BlockId", "ItemId", "GameScene", "Scene", "Structure", "Recipe", "RecipeFor", "RecipesFor", "ImportPonder", "Ponder", "QuestCard", "QuestLink", "BlockStats", "BlockStat", "ImportStructure", "ImportStructureLib", "IsometricCamera", "PlaySound", "RemoveBlocks", "RemoveEntity", "ReplaceBlock", "PlaceBlock", "BlockAnnotationTemplate", "Entity", "BoxAnnotation", "LineAnnotation", "DiamondAnnotation", "OutlineAnnotation", "TextAnnotation", "InputAnnotation", "SoundArea", "Series", "ReferenceLine", "LineSeries", "Slice", "PieInset", "Plot", "Point", "Tier", "Channel", "Facing", "Rotation", "Flip", "Orientation", "GregTechActiveController", "GregTechPlaceHatches"]);
 const ITEM_PLACEHOLDER_TAGS = new Set(["ItemLink", "ItemImage", "ItemIcon", "Block", "BlockId", "ItemId"]);
 const VOID_TAGS = new Set(["area", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr"]);
+for (const name of BINDING_TAGS) { INLINE_TAGS.add(name); BLOCK_TAGS.add(name); }
+const FLUID_TAGS = new Set(["FluidImage", "FluidLink", "FluidIcon"]);
+for (const name of FLUID_TAGS) {
+  INLINE_TAGS.add(name);
+  BLOCK_TAGS.add(name);
+}
+for (const name of ["Usage", "RecipeUsage", "RecipesUsage"]) {
+  BLOCK_TAGS.add(name);
+  RUNTIME_TAGS.add(name);
+}
 
 export function parseFrontmatter(source) {
   const normalized = String(source ?? "").replaceAll("\r\n", "\n");
@@ -32,12 +45,20 @@ function parseSimpleYaml(source) {
     const indent = line.match(/^\s*/)?.[0].length || 0;
     const list = line.match(/^\s*-\s+(.+)$/);
     if (list) {
+      while (stack.length > 1 && stack.at(-1).indent >= indent) stack.pop();
       if (pending && pending.indent < indent) {
         pending.parent[pending.key] = [];
         stack.at(-1).value = pending.parent[pending.key];
         pending = null;
       }
-      if (Array.isArray(stack.at(-1).value)) stack.at(-1).value.push(stripYamlValue(list[1]));
+      if (Array.isArray(stack.at(-1).value)) {
+        const pair = list[1].match(/^([\w-]+):\s*(.*)$/);
+        if (pair) {
+          const value = { [pair[1]]: stripYamlValue(pair[2]) };
+          stack.at(-1).value.push(value);
+          stack.push({ indent, value });
+        } else stack.at(-1).value.push(stripYamlValue(list[1]));
+      }
       continue;
     }
     const entry = line.match(/^\s*([\w-]+):\s*(.*)$/);
@@ -56,12 +77,39 @@ function parseSimpleYaml(source) {
   return attributes;
 }
 
+function splitYamlFlow(source, separator) {
+  const result = [];
+  let quote = "", depth = 0, start = 0;
+  for (let index = 0; index < source.length; index++) {
+    const character = source[index];
+    if (quote) {
+      if (quote === '"' && character === "\\") index++;
+      else if (character === quote) {
+        if (quote === "'" && source[index + 1] === "'") index++;
+        else quote = "";
+      }
+    } else if (character === '"' || character === "'") quote = character;
+    else if (character === "[" || character === "{") depth++;
+    else if (character === "]" || character === "}") depth--;
+    else if (depth === 0 && character === separator) { result.push(source.slice(start, index)); start = index + 1; }
+    else if (depth === 0 && character === "#" && (index === 0 || /\s/.test(source[index - 1]))) return [...result, source.slice(start, index)];
+  }
+  return [...result, source.slice(start)];
+}
+
 function stripYamlValue(value) {
-  const text = String(value).trim();
+  const text = splitYamlFlow(String(value), "\u0000")[0].trim();
   if (text === "true") return true;
   if (text === "false") return false;
   if (/^-?\d+(?:\.\d+)?$/.test(text)) return Number(text);
-  return text.replace(/^['"]|['"]$/g, "");
+  if (text.startsWith("[") && text.endsWith("]")) return splitYamlFlow(text.slice(1, -1), ",").filter(value => value.trim()).map(stripYamlValue);
+  if (text.startsWith("{") && text.endsWith("}")) return Object.fromEntries(splitYamlFlow(text.slice(1, -1), ",").flatMap(value => {
+    const parts = splitYamlFlow(value, ":");
+    return parts.length >= 2 ? [[String(stripYamlValue(parts[0])), stripYamlValue(parts.slice(1).join(":"))]] : [];
+  }));
+  if (text.startsWith('"') && text.endsWith('"')) { try { return JSON.parse(text); } catch (_) {} }
+  if (text.startsWith("'") && text.endsWith("'")) return text.slice(1, -1).replaceAll("''", "'");
+  return text;
 }
 
 function extractReferences(source) {
@@ -69,7 +117,11 @@ function extractReferences(source) {
   const footnotes = new Map();
   const kept = [];
   const lines = String(source ?? "").split("\n");
+  let fence = null;
   for (let index = 0; index < lines.length; index += 1) {
+    const previousFence = fence;
+    fence = advanceCodeFence(lines[index], fence);
+    if (previousFence || fence || /^(?: {4}|\t)/.test(lines[index])) { kept.push(lines[index]); continue; }
     const footnote = lines[index].match(/^\[\^([^\]]+)\]:\s*(.*)$/);
     if (footnote) {
       const body = [footnote[2]];
@@ -94,7 +146,7 @@ function normalizeNestedMarkdown(source) {
 }
 
 export function renderMarkdown(source, context = {}) {
-  const withoutComments = String(source ?? "").replace(/\{\/\*[\s\S]*?\*\/\}/g, "");
+  const withoutComments = stripMdxComments(source);
   const parsed = parseFrontmatter(withoutComments);
   const ctx = { ...context, ...parsed, footnoteOrder: [], depth: context.depth || 0 };
   let html = renderBlocks(parsed.body, ctx);
@@ -154,7 +206,7 @@ function renderBlocks(source, context) {
       const heading = line.match(/^\s*(#{1,6})\s+(.+?)\s*#*\s*$/);
       const text = heading?.[2] || "";
       const level = heading?.[1].length || 1;
-      const id = slugify(stripMarkdown(text));
+      const id = markdownHeadingId(text);
       output.push(`<h${level} id="${escapeHtml(id)}">${renderInline(text, context)}</h${level}>`);
       index += 1;
       continue;
@@ -194,7 +246,7 @@ function renderParagraph(source, context) {
   if (standaloneTag && standaloneTag.nextIndex === trimmed.length && (standaloneTag.name === "Latex" || BLOCK_TAGS.has(standaloneTag.name) || BLOCK_TAGS.has(standaloneTag.name.toLowerCase()))) {
     return renderTag(standaloneTag.name, standaloneTag.attributes, standaloneTag.body, standaloneTag.selfClosing, context, false);
   }
-  const blockNames = [...BLOCK_TAGS].filter((name) => !["ItemImage", "ItemIcon", "ItemLink", "Block", "FloatingImage"].includes(name));
+  const blockNames = [...BLOCK_TAGS].filter((name) => !["ItemImage", "ItemIcon", "ItemLink", "Block", "FloatingImage"].includes(name) && !FLUID_TAGS.has(name));
   if (new RegExp(`<\\/?(?:${blockNames.join("|")})\\b`, "i").test(source)) return renderInline(source, context);
   return `<p>${renderInline(source, context)}</p>`;
 }
@@ -518,8 +570,8 @@ function renderQuote(source, context) {
     const accent = colorValue(attr(attributes, "color", "accent"), "var(--preview-quote-default)");
     const title = String(attr(attributes, "title", "label") || "").trim();
     const iconValue = attr(attributes, "icon");
-    const iconItem = attr(attributes, "iconItem", "icon_item");
-    const iconPng = attr(attributes, "iconPng", "icon_png");
+    const iconItem = attr(attributes, "iconItem");
+    const iconPng = attr(attributes, "iconPng");
     const icon = iconItem ? renderItemPlaceholder("ItemIcon", { id: iconItem, showId: false }, context, true) : iconPng ? `<img class="guide-quote-icon-image" src="${escapeHtml(resolveAsset(iconPng, context) || iconPng)}" alt="">` : iconValue ? `<span class="guide-quote-icon">${escapeHtml(iconValue)}</span>` : "";
     return `<blockquote class="guide-quote" style="--guide-quote-accent:${accent}">${title || icon ? `<div class="guide-quote-title">${icon}${title ? `<span>${escapeHtml(title)}</span>` : ""}</div>` : ""}<div class="guide-quote-body">${renderBlocks(normalizeNestedMarkdown(body), { ...context, suppressFootnotes: true })}</div></blockquote>`;
   }
@@ -669,6 +721,7 @@ function renderRichTooltip(attributes, body, context) {
 
 function renderTag(name, attributes, body, selfClosing, context, inline) {
   if (name === "Comment") return "";
+  if (BINDING_TAGS.has(name)) return renderBinding(name, attributes, context);
   const lowerName = name.toLowerCase();
   if (lowerName === "img") {
     const source = attr(attributes, "src") || "";
@@ -677,6 +730,7 @@ function renderTag(name, attributes, body, selfClosing, context, inline) {
     return `<img class="guide-inline-image" src="${escapeHtml(resolved)}" alt="${escapeHtml(attr(attributes, "alt", "title") || "")}">`;
   }
   if (lowerName === "video" || lowerName === "audio") return renderMedia(lowerName, attributes, body, context);
+  if (FLUID_TAGS.has(name)) return renderFluidPlaceholder(name, attributes, context, inline, body);
   if (ITEM_PLACEHOLDER_TAGS.has(name)) {
     const wrap = String(attr(attributes, "wrap") || "inline").toLowerCase();
     return wrap !== "inline" ? applyWrap(renderItemPlaceholder(name, attributes, context, false, body), attributes) : renderItemPlaceholder(name, attributes, context, inline, body);
@@ -769,11 +823,13 @@ function preferredFluidUnit() {
 
 function renderBlockTag(name, attributes, body, context) {
   if (name === "Comment") return "";
+  if (BINDING_TAGS.has(name)) return renderBinding(name, attributes, context);
   if (name === "GameScene" || name === "Scene") return applyWrap(renderScenePlaceholder(name, attributes, context), attributes);
   if (name === "Tooltip") return renderRichTooltip(attributes, body, context);
   if (name === "Spoiler") return `<span class="guide-spoiler" tabindex="0"><span class="guide-spoiler-content">${renderInline(body, context)}</span></span>`;
   if (name === "Latex") return renderLatex(String(attr(attributes, "formula") || body || ""), attributes, false, body && body.trim() ? renderMarkdown(normalizeNestedMarkdown(body), { ...context, suppressFootnotes: true }) : "", true, context);
   if (name === "Amount") return renderAmount(attributes, context);
+  if (FLUID_TAGS.has(name)) return applyWrap(renderFluidPlaceholder(name, attributes, context, false, body), attributes);
   if (ITEM_PLACEHOLDER_TAGS.has(name)) return applyWrap(renderItemPlaceholder(name, attributes, context, false, body), attributes);
   if (RUNTIME_TAGS.has(name)) return applyWrap(renderRuntimePlaceholder(name, attributes, false, context, body), attributes);
   if (name === "Row" || name === "Column") {
@@ -822,7 +878,7 @@ function renderBlockTag(name, attributes, body, context) {
   if (["ColumnChart", "BarChart", "LineChart", "PieChart", "ScatterChart"].includes(name)) return renderChart(name, attributesToText(attributes), body);
   if (name === "FunctionGraph") return renderFunctionGraph(attributesToText(attributes), body);
   if (name === "Function") return renderFunctionGraph(attributesToText(attributes), body, attr(attributes, "expr"));
-  if (name === "ItemGrid") return applyWrap(`<div class="guide-item-grid">${renderInline(body, context)}</div>`, attributes);
+  if (name === "ItemGrid") return applyWrap(`<div class="guide-item-grid">${renderInline(body, { ...context, iconGrid: true })}</div>`, attributes);
   if (name === "SubPages" || name === "Category" || name === "Special") return `<div class="guide-runtime-panel"><strong>${escapeHtml(name)}</strong><span>${copy(context, "navigationRuntime")}</span></div>`;
   if (name === "ImageAnnotation") return renderStandaloneImageAnnotation(attributes, body, context);
   if (name[0] === name[0]?.toLowerCase()) return renderSafeHtmlTag(name.toLowerCase(), attributes, body, context);
@@ -975,7 +1031,7 @@ function renderTooltipParts(name, attributes, body, context, fallbackDetails = "
 
 function renderItemPlaceholder(name, attributes, context, inline, body = "") {
   const id = String(attr(attributes, "id", "ore") || "minecraft:unknown");
-  const showIcon = booleanAttr(attributes, "showIcon", "show_icon") !== false;
+  const showIcon = booleanAttr(attributes, "showIcon", "showIcon") !== false;
   const showId = booleanAttr(attributes, "showId", "show_id") !== false;
   const labelOption = String(attr(attributes, "label") || "").trim();
   const labelSide = ["left", "right"].includes(labelOption.toLowerCase()) ? labelOption.toLowerCase() : "";
@@ -991,8 +1047,50 @@ function renderItemPlaceholder(name, attributes, context, inline, body = "") {
   return inline ? element : `<div class="guide-item-placeholder-block">${element}</div>`;
 }
 
+function renderFluidPlaceholder(name, attributes, context, inline, body = "") {
+  try {
+    if (name === "FluidIcon" && !context.iconGrid) throw new Error("FluidIcon requires ItemGrid");
+    const spec = fluidDescription(attributes);
+    const scale = fluidScale(attributes);
+    const preview = context.resolveFluidPreview?.(spec) || context.fluidPreviews?.[spec.id];
+    const displayName = String(preview?.displayName || spec.id);
+    const labelOption = String(attr(attributes, "label") ?? "").trim().toLowerCase();
+    const labelSide = ["left", "right"].includes(labelOption) ? labelOption : ["true", "1"].includes(labelOption) ? "right" : "";
+    const link = name === "FluidLink";
+    const iconOption = String(attr(attributes, "showIcon") ?? (link ? "false" : "true")).toLowerCase();
+    const showIcon = !["false", "0", "no"].includes(iconOption);
+    const icon = showIcon ? renderFluidIcon(attributes, context) : "";
+    const format = attr(attributes, "format");
+    const labelContent = renderFluidLabel(displayName, format);
+    const labelOffset = attr(attributes, "labelYOffset");
+    const imageOffset = attr(attributes, "yOffset");
+    for (const [key, value] of [["labelYOffset", labelOffset], ["yOffset", imageOffset]]) {
+      if (value !== undefined && (!/^[+-]?\d+$/.test(String(value)) || Number(value) < -2147483648 || Number(value) > 2147483647)) throw new Error(`${key} must be an integer`);
+    }
+    const labelStyle = labelOffset === undefined ? "" : ` style="position:relative;top:${Number(labelOffset) * scale}px"`;
+    const label = link ? (body.trim() ? renderInline(body, context) : booleanAttr(attributes, "showText") === false ? "" : escapeHtml(displayName))
+      : labelSide ? `<span class="guide-item-placeholder-label"${labelStyle}>${labelContent}</span>` : "";
+    const tooltipLines = Array.isArray(preview?.tooltipLines) && preview.tooltipLines.length
+      ? preview.tooltipLines.filter(line => typeof line === "string")
+      : spec.amount === undefined ? [displayName] : [displayName, String(spec.amount)];
+    const tooltip = fluidTooltipVisible(attributes) ? {
+      attributes: ` data-guide-tooltip-rich="true" data-guide-tooltip-kind="${name.toLowerCase()}" tabindex="0"`,
+      template: `<template data-guide-tooltip-content><div class="guide-fluid-tooltip">${tooltipLines.map(line => `<div>${escapeHtml(line.replace(/§[0-9a-fk-or]/gi, ""))}</div>`).join("")}</div></template>`,
+    }
+      : { attributes: "", template: "" };
+    let content = labelSide === "left" || link && iconOption === "right" ? label + icon : icon + label;
+    const target = attr(attributes, "linksTo") ?? context.resolveFluidHref?.(spec.id);
+    if (link && target && isSafeHtmlUrl(target, "href")) content = `<a class="guide-fluid-link" href="${escapeHtml(target)}">${content}</a>`;
+    const imageStyle = imageOffset === undefined ? "" : ` style="position:relative;top:${Number(imageOffset) * scale}px"`;
+    const source = `<span class="guide-item-placeholder guide-fluid-placeholder ${inline ? "inline" : "block"}" data-fluid-id="${escapeHtml(spec.id)}"${imageStyle}${tooltip.attributes}>${content}${tooltip.template}</span>`;
+    return inline ? source : `<div class="guide-item-placeholder-block">${source}</div>`;
+  } catch (error) {
+    return `<span class="guide-tag-card unknown">${escapeHtml(error.message)}</span>`;
+  }
+}
+
 function renderRuntimePlaceholder(name, attributes, inline, context = {}, body = "") {
-  const id = attr(attributes, "id", "controller", "name");
+  const id = attr(attributes, "fluid", "id", "controller", "name");
   const details = id ? `<span class="runtime-id">${escapeHtml(id)}</span>` : "";
   const icon = name === "BlockImage" ? "▣" : "◇";
   const tooltip = renderTooltipParts(name, attributes, body || attr(attributes, "tooltip"), context, id ? String(id) : "");
@@ -1023,7 +1121,7 @@ function renderContentTabs(attributes, body, context) {
   const defaultIndex = Math.max(0, Math.min(tabs.length - 1, requestedIndex !== undefined && Number.isFinite(Number(requestedIndex)) ? Number(requestedIndex) : (fallbackIndex >= 0 ? fallbackIndex : 0)));
   const accent = colorValue(attr(attributes, "color"), "var(--accent)");
   const background = colorValue(attr(attributes, "background"), "var(--preview-quote-bg)");
-  const icon = attr(attributes, "icon", "iconPng", "icon_png", "iconItem", "icon_item");
+  const icon = attr(attributes, "icon", "iconPng", "iconItem");
   const heading = attr(attributes, "title") ? `<strong>${icon ? `<span class="guide-tabs-icon">${escapeHtml(icon)}</span>` : ""}${escapeHtml(attr(attributes, "title"))}</strong>` : "";
   return `<section class="guide-tabs" data-guide-tabs style="--guide-tabs-accent:${accent};--guide-tabs-background:${background}"><div class="guide-tabs-heading">${heading}<div class="guide-tabs-buttons">${tabs.map((tab, index) => `<button type="button" data-guide-tab="${index}" class="${index === defaultIndex ? "active" : ""}">${escapeHtml(tab.title)}</button>`).join("")}</div></div>${tabs.map((tab, index) => `<div class="guide-tab-panel" data-guide-panel="${index}"${index === defaultIndex ? "" : " hidden"}>${renderBlocks(normalizeNestedMarkdown(tab.body), { ...context, suppressFootnotes: true })}</div>`).join("")}</section>`;
 }
@@ -1128,29 +1226,28 @@ function renderFileTree(body, attributes, context = {}) {
   const indent = numberAttr(attributes, 14, "indent");
   const gap = numberAttr(attributes, 0, "gap");
   const sourceLines = String(body || "").replaceAll("\r\n", "\n").split("\n").filter((line) => line.trim());
+  let maxDepth = 1;
   const rows = sourceLines.map((line) => {
     const iconImage = line.match(/\{:\s*iconPng\s*=\s*["']?([^}\"']+)["']?\s*\}/i);
     const iconText = line.match(/\{:\s*icon\s*=\s*["']?([^}\"']+)["']?\s*\}/i);
     const iconItem = line.match(/\{:\s*iconItem\s*=\s*["']?([^}\"']+)["']?\s*\}/i);
     const withoutDirectives = line.replace(/\{:\s*(?:iconPng|iconItem|icon)\s*=\s*[^}]+\}/gi, "");
-    const prefixMatch = withoutDirectives.match(/^[│| ├└─+\\\-]*/);
+    const prefixMatch = withoutDirectives.match(/^(?:(?:[│|]   | {4}))*(?:[├+|][─-]{2} |[└\\][─-]{2} )?/);
     const prefix = prefixMatch?.[0] || "";
     const label = withoutDirectives.slice(prefix.length).trim();
     const depth = Math.max(0, Math.floor(prefix.replace(/[│|]/g, " ").length / 4));
-    const connector = [...prefix].map((character) => {
-      if (character === "│" || character === "|") return `<span class="guide-filetree-vertical">│</span>`;
-      if (["├", "+"].includes(character)) return `<span class="guide-filetree-branch">├</span>`;
-      if (["└", "\\"].includes(character)) return `<span class="guide-filetree-branch">└</span>`;
-      if (["─", "-"].includes(character)) return `<span class="guide-filetree-horizontal">─</span>`;
-      return " ";
+    maxDepth = Math.max(maxDepth, depth);
+    const connector = (prefix.match(/.{4}/g) || []).map((slot) => {
+      const kind = /^[└\\]/.test(slot) ? "last-branch" : /^[├+|][─-]/.test(slot) ? "branch" : /^[│|]/.test(slot) ? "vertical" : "empty";
+      return `<span class="guide-filetree-slot guide-filetree-slot-${kind}"></span>`;
     }).join("");
     const iconSource = iconImage ? iconImage[1].trim() : "";
     const iconAsset = iconSource ? resolveAsset(iconSource, context) : "";
     const icon = iconItem ? renderItemPlaceholder("ItemIcon", { id: iconItem[1].trim(), showId: false }, context, true) : iconAsset ? `<img class="guide-filetree-image" src="${escapeHtml(iconAsset)}" alt="">` : iconImage ? "▧" : iconText ? escapeHtml(iconText[1].trim()) : (/[\/]$/.test(label) ? "▰" : "▱");
     const type = /[\/]$/.test(label) ? "directory" : "file";
-    return `<div class="guide-filetree-row guide-filetree-${type}" data-tree-depth="${depth}"><span class="guide-filetree-prefix">${connector}</span><span class="guide-filetree-icon">${icon}</span><span class="guide-filetree-label">${renderInline(label, context)}</span></div>`;
+    return `<div class="guide-filetree-row guide-filetree-${type}" data-tree-depth="${depth}"><span class="guide-filetree-prefix" aria-hidden="true">${connector}</span><span class="guide-filetree-icon">${icon}</span><span class="guide-filetree-label">${renderInline(label, context)}</span></div>`;
   }).join("");
-  return `<div class="guide-filetree" style="--tree-indent:${indent}px;--tree-gap:${gap}px">${rows}</div>`;
+  return `<div class="guide-filetree" style="--tree-indent:${indent}px;--tree-gap:${gap}px;--tree-max-depth:${maxDepth}">${rows}</div>`;
 }
 
 function renderCsvTable(source, attributes, context) {
@@ -1298,6 +1395,11 @@ function renderImage(alt, source, title, context) {
 
 function stripMarkdown(value) {
   return String(value ?? "").replace(/<[^>]+>/g, "").replace(/[\*_`~]/g, "");
+}
+
+export function markdownHeadingId(value) {
+  const literalCode = String(value ?? "").replace(/(`+)(.*?)\1/g, (_, marker, text) => text.replace(/[<>]/g, ""));
+  return slugify(stripMarkdown(literalCode).replace(/\[([^\]]+)\]\([^)]*\)/g, "$1"));
 }
 
 function slugify(value) {

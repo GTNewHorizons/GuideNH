@@ -13,10 +13,10 @@ import com.hfstudio.guidenh.integration.betterquesting.QuestIdParser;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 
 /**
- * Compiles {@code <QuestCard id="<uuid>" [show_desc="false"] [show_tooltip="false"]/>} into a
+ * Compiles {@code <QuestCard id="<uuid>" [showDesc="false"] [showTooltip="false"]/>} into a
  * block-level summary card for a BetterQuesting quest. Renders the quest title with state-aware
  * styling, keeps the title clickable for non-hidden quests, and renders the quest description as
- * a body paragraph when {@code show_desc} is not disabled.
+ * a body paragraph when {@code showDesc} is not disabled.
  * <p/>
  * For hidden or missing quests, the card collapses to a single placeholder line.
  */
@@ -39,10 +39,11 @@ public class QuestCardCompiler extends BlockTagCompiler {
             parent.appendError(compiler, "QuestCard id is not a valid BetterQuesting quest id: " + idAttr, el);
             return;
         }
-        boolean showDesc = MdxAttrs.getBoolean(compiler, parent, el, "show_desc", true);
+        boolean showDesc = MdxAttrs.getBoolean(compiler, parent, el, "showDesc", true);
         boolean showTooltip = QuestTagSupport.resolveShowTooltip(compiler, parent, el);
 
         QuestCardPlaceholder ph = new QuestCardPlaceholder(questId, showDesc, showTooltip);
+        ph.title = MdxAttrs.getString(compiler, parent, el, "title", null);
         ph.setStyleClass("QuestCard");
         ph.setStyle(LytParagraph.LOADING_STYLE);
         ph.appendText("Loading quest...");
@@ -55,7 +56,9 @@ public class QuestCardCompiler extends BlockTagCompiler {
         public final boolean showDesc;
         public final boolean showTooltip;
 
-        QuestCardPlaceholder(UUID questId, boolean showDesc, boolean showTooltip) {
+        public String title;
+
+        public QuestCardPlaceholder(UUID questId, boolean showDesc, boolean showTooltip) {
             this.questId = questId;
             this.showDesc = showDesc;
             this.showTooltip = showTooltip;

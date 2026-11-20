@@ -10,7 +10,7 @@ categories:
 
 # Rendering Demo
 
-This page tests every block-level element supported by the Markdown rendering pipeline.
+This page demonstrates block-level Markdown elements and layout.
 
 ## Lists
 

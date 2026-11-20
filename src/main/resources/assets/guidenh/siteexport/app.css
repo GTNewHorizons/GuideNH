@@ -1,3 +1,8 @@
+.guide-binding-targets { display: inline-block; position: relative; cursor: pointer; }
+.guide-binding-target-list { display: none; position: absolute; z-index: 100; left: 0; top: 100%; min-width: 12em; max-width: 24em; padding: .35em; border: 1px solid var(--border-color, #777); background: var(--background-color, #202020); box-shadow: 0 3px 12px #0005; }
+.guide-binding-target-list > a { display: block; padding: .25em .4em; white-space: normal; }
+.guide-binding-targets:hover > .guide-binding-target-list, .guide-binding-targets:focus-within > .guide-binding-target-list { display: block; }
+
 @font-face {
     font-family: 'Pixeloid Mono';
     src: url('fonts/PixeloidMono.woff2') format('woff2'),
@@ -56,6 +61,7 @@
     --header-height: calc(20px * var(--gui-scale));
 
     --minecraft-font: 'Pixeloid Sans', sans-serif;
+    --quantity-font: 'Pixeloid Mono', monospace;
 
     color: var(--color-body-text);
     background-image: url('textures/sky_stone_block.png');
@@ -1250,6 +1256,87 @@ p {
 }
 
 .guide-inline-item,
+.item-icon-stack,
+.fluid-icon-stack {
+  position: relative;
+  display: inline-flex;
+  vertical-align: middle;
+}
+
+.item-amount,
+.fluid-amount {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  color: #fff;
+  font-family: var(--quantity-font);
+  font-weight: 400;
+  font-synthesis: none;
+  font-size: 0.7em;
+  line-height: 1;
+  text-shadow: 1px 1px #000, -1px -1px #000;
+  pointer-events: none;
+}
+
+.scene-input-annotation-amount,
+.guide-scene-block-stat-count,
+.guide-structure-legend-count {
+  font-family: var(--quantity-font);
+  font-weight: 400;
+  font-synthesis: none;
+}
+
+.guide-fluid-cycle {
+  display: inline-flex;
+  align-items: center;
+}
+
+.guide-resource-chooser {
+  position: fixed;
+  width: min(32rem, 90vw);
+  max-height: 80vh;
+  overflow: auto;
+  padding: 1.5rem;
+  color: var(--text-color, #eee);
+  background: var(--panel-bg, #202020);
+  border: 1px solid #777;
+  border-radius: 0.4rem;
+}
+
+.guide-resource-chooser::backdrop {
+  background: #0009;
+}
+
+.guide-resource-chooser h2 {
+  margin: 0 2rem 1rem 0;
+  font-size: 1.2rem;
+}
+
+.guide-resource-chooser > a {
+  display: block;
+  padding: 0.65rem;
+  overflow-wrap: anywhere;
+}
+
+.guide-resource-chooser-close {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.8rem;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  font-size: 1.8rem;
+  cursor: pointer;
+}
+
+button.guide-fluid-link {
+  border: 0;
+  background: transparent;
+  font: inherit;
+  padding: 0;
+  cursor: pointer;
+}
+
 .guide-item-link {
     display: inline-flex;
     align-items: center;
@@ -1839,7 +1926,7 @@ p {
 
 .guide-scene-block-stat-count {
     color: rgba(210, 210, 210, 0.75);
-    font-family: 'Pixeloid Mono', monospace;
+    font-family: var(--quantity-font);
 }
 
 .recipe-grid {
@@ -2143,6 +2230,9 @@ p {
 }
 
 .guide-file-tree {
+    container-type: inline-size;
+    --tree-indent: 14px;
+    --tree-gap: 0px;
     display: flow-root;
     background: rgb(27, 31, 35);
     border: 1px solid rgb(58, 64, 71);
@@ -2155,21 +2245,65 @@ p {
 }
 
 .guide-file-tree-row {
-    white-space: nowrap;
+    display: flex;
+    align-items: flex-start;
+    margin-bottom: var(--tree-gap);
 }
 
+.guide-file-tree-row:last-child { margin-bottom: 0; }
+
 .guide-file-tree-prefix {
+    display: flex;
+    align-self: stretch;
+    flex: 0 0 auto;
     color: rgb(90, 100, 108);
 }
 
+.guide-file-tree-slot {
+    position: relative;
+    width: min(var(--tree-indent), calc(45cqw / var(--tree-max-depth)));
+}
+
+.guide-file-tree-slot:not(.guide-file-tree-slot-empty)::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 0;
+    bottom: calc(0px - var(--tree-gap));
+    border-left: 1px solid;
+}
+
+.guide-file-tree-slot-last-branch::before { height: .8em; }
+.guide-file-tree-row:last-child .guide-file-tree-slot::before { bottom: 0; }
+.guide-file-tree-slot-branch::after, .guide-file-tree-slot-last-branch::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    right: 0;
+    top: .8em;
+    border-top: 1px solid;
+}
+
 .guide-file-tree-icon {
+    flex: 0 0 auto;
     color: rgb(210, 210, 210);
     margin-right: 2px;
 }
 
 .guide-file-tree-name {
+    flex: 1;
+    min-width: 0;
+    white-space: normal;
+    overflow-wrap: anywhere;
     color: rgb(210, 210, 210);
 }
+
+.guide-file-tree-name code, .guide-file-tree-name a {
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+.guide-file-tree-name > p { margin: 0; }
 
 .guide-details {
     display: block;

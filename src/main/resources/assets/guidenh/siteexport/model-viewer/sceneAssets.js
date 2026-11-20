@@ -15,7 +15,9 @@ export function prepareSceneTexture(texture) {
   return texture;
 }
 
-/** Return the scale three.js uses when an image exceeds maxTextureSize. */
+/**
+ * Return the scale three.js uses when an image exceeds maxTextureSize.
+ */
 export function getSceneTextureScale(width, height, maxTextureSize) {
   const imageWidth = Number(width);
   const imageHeight = Number(height);
@@ -27,7 +29,9 @@ export function getSceneTextureScale(width, height, maxTextureSize) {
   return Math.min(1, limit / Math.max(imageWidth, imageHeight));
 }
 
-/** Match three.js' integer dimensions for resized texture regions. */
+/**
+ * Match three.js' integer dimensions for resized texture regions.
+ */
 export function scaleSceneTextureCoordinate(value, scale) {
   return Math.floor(Number(value) * Number(scale));
 }

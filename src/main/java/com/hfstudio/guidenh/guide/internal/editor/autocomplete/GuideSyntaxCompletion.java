@@ -103,7 +103,7 @@ public class GuideSyntaxCompletion {
             if (results.size() >= limit) {
                 break;
             }
-            results.add(new TagCandidate(tagName, model.isContainerTag(tagName), model.insertTemplate(tagName)));
+            results.add(new TagCandidate(tagName, model.isContainerTag(tagName)));
         }
         return results;
     }
@@ -174,7 +174,10 @@ public class GuideSyntaxCompletion {
             return List.of();
         }
         return suggestionCandidates(
-            model.values(SyntaxValueRequest.frontmatter(kind, context.getPartialText(), context.getKey()), limit),
+            model.values(
+                SyntaxValueRequest.frontmatter(kind, context.getPartialText(), context.getKey())
+                    .withContextValues(context.getContextValues()),
+                limit),
             kind,
             limit);
     }
@@ -188,7 +191,8 @@ public class GuideSyntaxCompletion {
         SyntaxValueKind kind = attribute.kind();
         return suggestionCandidates(
             model.values(
-                SyntaxValueRequest.of(kind, context.getPartialText(), context.getTagName(), context.getAttrName()),
+                SyntaxValueRequest.of(kind, context.getPartialText(), context.getTagName(), context.getAttrName())
+                    .withContextValues(context.getContextValues()),
                 limit),
             kind,
             limit);
@@ -242,7 +246,9 @@ public class GuideSyntaxCompletion {
         return results;
     }
 
-    /** Ranks the closest matches first, since the popup pre-selects the head of the list. */
+    /**
+     * Ranks the closest matches first, since the popup pre-selects the head of the list.
+     */
     private static Comparator<AutocompleteCandidate> relevanceOrder(@Nullable String partialText) {
         if (partialText == null || partialText.isEmpty()) {
             return (left, right) -> 0;

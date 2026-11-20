@@ -9,7 +9,9 @@ import java.util.WeakHashMap;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.item.ItemStack;
 
-/** Keeps the currently rendered NEI permutation in sync with the embedded recipe view. */
+/**
+ * Keeps the currently rendered NEI permutation in sync with the embedded recipe view.
+ */
 public class NeiRecipePermutationController {
 
     private static final Object LOCK = new Object();

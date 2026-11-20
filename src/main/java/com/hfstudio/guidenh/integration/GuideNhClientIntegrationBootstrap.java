@@ -1,5 +1,8 @@
 package com.hfstudio.guidenh.integration;
 
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.resources.IReloadableResourceManager;
+
 import com.hfstudio.guidenh.guide.scene.snapshot.GuideStructureSnapshotRegistration;
 import com.hfstudio.guidenh.integration.ae2.Ae2BlockStatsProvider;
 import com.hfstudio.guidenh.integration.ae2.Ae2FakeWorldIntegration;
@@ -21,10 +24,13 @@ import com.hfstudio.guidenh.integration.forgemultipart.ForgeMultipartPreviewBloc
 import com.hfstudio.guidenh.integration.forgemultipart.ForgeMultipartPreviewTileEntityFinalizer;
 import com.hfstudio.guidenh.integration.forgemultipart.ForgeMultipartPreviewTileEntityProvider;
 import com.hfstudio.guidenh.integration.gregtech.GregTechFakeWorldIntegration;
+import com.hfstudio.guidenh.integration.gregtech.GregTechFluidTooltipProvider;
 import com.hfstudio.guidenh.integration.gregtech.GregTechPreviewPrepareContributor;
 import com.hfstudio.guidenh.integration.gregtech.GregTechStructureLibControllerIntegration;
 import com.hfstudio.guidenh.integration.logisticspipes.LogisticsPipesBlockDisplayProvider;
 import com.hfstudio.guidenh.integration.logisticspipes.LogisticsPipesPreviewPrepareContributor;
+import com.hfstudio.guidenh.integration.nei.NeiFluidDisplayAdapter;
+import com.hfstudio.guidenh.integration.nei.NeiFluidStackExtractor;
 import com.hfstudio.guidenh.integration.nei.NeiRawRecipeHandlerProvider;
 import com.hfstudio.guidenh.integration.nei.NeiRecipeAnimationUpdateProvider;
 import com.hfstudio.guidenh.integration.nei.NeiRecipeDrawableRenderProvider;
@@ -34,14 +40,28 @@ import com.hfstudio.guidenh.integration.nei.NeiRecipeHandlerRenderProvider;
 import com.hfstudio.guidenh.integration.nei.NeiRecipeHandlerSlotProvider;
 import com.hfstudio.guidenh.integration.nei.NeiRecipeItemTooltipProvider;
 import com.hfstudio.guidenh.integration.railcraft.RailcraftPreviewPrepareContributor;
+import com.hfstudio.guidenh.integration.serverutilities.ServerUtilitiesSidebarButton;
 import com.hfstudio.guidenh.integration.simpleskinbackport.SimpleSkinBackportPreviewPlayerModelProvider;
 import com.hfstudio.guidenh.integration.simpleskinbackport.SimpleSkinBackportSlimArmProvider;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibControllerIntegrationRegistry;
+import com.hfstudio.guidenh.integration.thaumcraft.AriResearchHoverProvider;
+import com.hfstudio.guidenh.integration.thaumcraft.ThaumcraftBindingProvider;
+import com.hfstudio.guidenh.integration.thaumcraft.ThaumcraftResearchHoverProvider;
 import com.hfstudio.guidenh.integration.tinkerconstruct.TinkersConstructPreviewPrepareContributor;
 
 public class GuideNhClientIntegrationBootstrap {
 
     public static void preInitClient() {
+        if (Mods.GregTech.isModLoaded()) {
+            GuideNhClientIntegrationRegistry.global()
+                .registerFluidTooltipProvider(new GregTechFluidTooltipProvider());
+        }
+        if (Mods.NotEnoughItems.isModLoaded()) {
+            GuideNhClientIntegrationRegistry.global()
+                .registerFluidStackExtractor(new NeiFluidStackExtractor());
+            GuideNhClientIntegrationRegistry.global()
+                .registerFluidDisplayAdapter(new NeiFluidDisplayAdapter());
+        }
         registerBlockDisplayProviders();
         registerPreviewTileEntityProviders();
         registerFakeWorldIntegrations();
@@ -73,8 +93,28 @@ public class GuideNhClientIntegrationBootstrap {
                 .registerPreviewBlockRenderProvider(new ForgeMultipartPreviewBlockRenderProvider());
         }
 
+        if (Mods.Thaumcraft.isModLoaded() && Mods.AspectRecipeIndex.isModLoaded()
+            && Mods.NotEnoughItems.isModLoaded()) {
+            GuideNhClientIntegrationRegistry.global()
+                .registerBindingHoverProvider(new AriResearchHoverProvider());
+        }
+
+        if (Mods.Thaumcraft.isModLoaded()) {
+            var provider = new ThaumcraftBindingProvider();
+            GuideNhIntegrationRegistry.global()
+                .registerBindingProvider(provider);
+            ((IReloadableResourceManager) Minecraft.getMinecraft()
+                .getResourceManager()).registerReloadListener(provider);
+            GuideNhClientIntegrationRegistry.global()
+                .registerBindingHoverProvider(new ThaumcraftResearchHoverProvider());
+        }
+
         if (Mods.BetterQuesting.isModLoaded()) {
             BqCompat.registerBetterQuestCompact();
+        }
+
+        if (Mods.ServerUtilities.isModLoaded()) {
+            ServerUtilitiesSidebarButton.registerClickEvent();
         }
     }
 

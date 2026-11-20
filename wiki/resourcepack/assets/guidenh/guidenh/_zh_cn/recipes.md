@@ -7,13 +7,19 @@ categories:
   - widgets
 ---
 
-# 配方（页面左上角标题）
+# 配方
 
-`<Recipe>`、`<RecipeFor>` 和 `<RecipesFor>` 组件测试。
+展示物品与流体的配方、用途及筛选方式。
 
 > 配方框由 NEI 原生渲染器驱动——合成台、熔炉、酿造台等都会呈现各自的背景纹理与动画。若未安装 NEI，则自动回退到内置的 3x3 合成展示。
 
-左上角小图标显示了该配方所属的"配方池"（由 NEI 的 `GuiRecipeTab.handlerMap` 提供）。
+左上角小图标显示了该配方所属的"配方池"。
+
+## 原生流体配方
+
+<RecipeFor fluid="steam" fallbackText="没有可用的流体配方。" />
+
+<RecipesUsage fluid="water" inputFluid="water&amp;!lava" limit="3" fallbackText="没有可用的流体用途配方。" />
 
 ## 基础示例
 
@@ -57,7 +63,7 @@ categories:
 - 省略 `meta` 时默认视为 `0`。
 - `meta` 填 `32767`、`*`、或任意大写字母（如 `W`、`ANY`）均视为通配符。
 - 可在末尾追加 SNBT（以 `{` 开始）来携带 NBT 数据。
-- 新增 `handlerName`（包含匹配）/ `handlerId`（精确匹配）/ `handlerOrder`（按序取一条）过滤属性。
+- 使用 `handlerName`（包含匹配）/ `handlerId`（精确匹配）/ `handlerOrder`（按序取一条）过滤属性。
 - `handlerBlacklist` 将这些处理器从结果中剔除；`handlerWhitelist` 将其保留。两者都接受英文逗号分隔的列表，条目可以是处理器 id、overlay id 或类名，匹配不区分大小写且按包含处理，所以一条就能指名单个处理器或整个包。
 - 被 `handlerId` 指名的处理器即便出现在黑名单里也会保留，`handlerWhitelist` 同理。配置中默认隐藏的处理器就是靠这个方式显式取回的。
 
@@ -158,7 +164,7 @@ categories:
 
 **矿辞 `ore` 属性测试：**
 
-- 第一个匹配到的物品：<ItemImage ore="ingotIron" /> 铁锭
+- 第一个匹配到的物品：<ItemImage id="minecraft:iron_ingot" ore="ingotIron" /> 铁锭
 - 第一个匹配到的文本链接：<ItemLink ore="stickWood" />
 - 方块预览：<BlockImage ore="logWood" scale="3" />
 - `ore` 优先于 `id`：<ItemImage id="minecraft:apple" ore="gemDiamond" />
@@ -170,31 +176,7 @@ categories:
 
 ## 行内 NEI 配方链接
 
-使用自定义动作链接，可以在正文中打开 NEI，而不渲染配方卡片。语法沿用已有的 `&[文字](sound:...)`。
-
-```md
-&[查看焦炉全部配方](nei:handler?handlerId=gt.recipe.cokeoven)
-&[查看合成配方](nei:recipes?id=minecraft:iron_ingot)
-&[查看物品用途](nei:usage?id=gregtech:gt.blockmachines:236&handlerId=gt.recipe.cokeoven)
-
-<NeiRecipeLink handlerId="gt.recipe.cokeoven">查看 NEI</NeiRecipeLink>
-<NeiRecipeLink id="minecraft:iron_ingot">查看**合成配方**</NeiRecipeLink>
-<NeiRecipeLink mode="usage" id="gregtech:gt.blockmachines:236" handlerId="gt.recipe.cokeoven" title="NEI">查看物品用途</NeiRecipeLink>
-
-&[查看带 SNBT 的书籍配方](nei:recipes?id=minecraft:written_book:0:%7Btitle:%22Guide%2BNEI%22%2Cauthor:GuideNH%7D)
-```
-
-`handler` 必须填写 `handlerId` 且禁止 `id`，打开该处理器的全部配方；`recipes` 必须填写 `id`，查找产出该物品的配方；`usage` 必须填写 `id`，查找用途并包含催化剂行为，不受 Ctrl 状态影响。后两种模式均可通过 `handlerId` 限定处理器。
-
-`<NeiRecipeLink>` 仅接受 `id`、`handlerId`、`mode` 和可选提示 `title`。省略 `mode` 时，有 `id` 则使用 `recipes`，否则使用 `handler`。必须提供可见的行内子内容。富文本使用标签形式；自定义动作的文字按纯文本处理。
-
-处理器按 overlay identifier 或 handler ID 忽略大小写精确匹配。与现有配方卡片的 `handlerId` 筛选不同，此链接不使用类名子串回退。查询包含普通和串行处理器，共享 Java 类的不同配方类别不会被合并。
-
-省略命名空间时使用当前页面命名空间，保留注册名大小写、元数据和 SNBT。通配元数据沿用现有具体物品栈规则，不表示查询所有元数据变体。URI 参数仅按严格 UTF-8 解码一次，字面量 `+` 保持为 `+`。SNBT 及 `&`、`#`、`%`、`?`、`)` 等保留字符应进行百分号编码。
-
-重复或未知参数、错误转义、片段、不支持的模式、冲突属性及缺少目标会产生编写错误。仅带 `&` 的动作及 `<NeiRecipeLink>` 是 NEI 入口；普通链接、引用链接和 HTML 锚点不作为别名，也不支持 `nei://`。
-
-仅在点击时解析物品并查询 NEI。NEI 缺失或没有结果时保留指南并给出本地化提示。Web Editor、导出站点和 IDE 预览显示不可点击文字，提示在 GuideNH 中打开指南。
+动作链接可打开处理器全部配方、指定物品的合成配方或用途。富文本使用 `<NeiRecipeLink>`；`handlerId` 填写 NEI 的精确标识。
 
 &[查看焦炉全部配方](nei:handler?handlerId=gt.recipe.cokeoven)
 
@@ -204,6 +186,8 @@ categories:
 
 <NeiRecipeLink id="minecraft:iron_ingot" title="NEI">查看**合成配方**</NeiRecipeLink>
 
-物品图标也可以单独作为可点击内容：
+<NeiRecipeLink mode="usage" id="gregtech:gt.blockmachines:236" handlerId="gt.recipe.cokeoven">查看用途</NeiRecipeLink>
 
-<NeiRecipeLink id="minecraft:iron_ingot"><ItemImage id="minecraft:iron_ingot" /></NeiRecipeLink>
+URI 中的 SNBT 和保留字符使用百分号编码，字面量 `+` 保持不变：
+
+&[查看带 SNBT 的书籍配方](nei:recipes?id=minecraft:written_book:0:%7Btitle:%22Guide%2BNEI%22%2Cauthor:GuideNH%7D)

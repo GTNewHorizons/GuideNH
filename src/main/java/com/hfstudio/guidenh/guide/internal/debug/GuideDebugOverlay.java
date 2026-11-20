@@ -12,6 +12,7 @@ import org.lwjgl.opengl.GL11;
 
 import com.hfstudio.guidenh.config.ModConfig;
 import com.hfstudio.guidenh.guide.color.ColorUtils;
+import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.block.LytDocument;
 
 import lombok.Getter;
@@ -27,19 +28,11 @@ public class GuideDebugOverlay {
     public static final float ATTACHED_LABEL_Z = 10.0F;
     public static final float INFO_PANEL_Z = 20.0F;
 
-    /**
-     * -- GETTER --
-     * Get the performance monitor for external use.
-     */
     @Getter
     private final PerformanceMonitor performanceMonitor;
     private final DashedBorderRenderer borderRenderer;
     private final DebugInfoPanel infoPanel;
     private final DebugControlPanel controlPanel;
-    /**
-     * -- GETTER --
-     * Get the hover detector for external use (e.g., custom element detection).
-     */
     @Getter
     private final ElementHoverDetector hoverDetector;
     private LytDocument currentDocument;
@@ -106,6 +99,30 @@ public class GuideDebugOverlay {
         if (!ModConfig.debug.guiDebugMode) {
             return;
         }
+        render(
+            screenWidth,
+            screenHeight,
+            mouseX,
+            mouseY,
+            contentX,
+            contentY,
+            scrollY,
+            zoom,
+            document,
+            screenComponents,
+            new LytRect(contentX, contentY, contentW, contentH),
+            fontRenderer);
+    }
+
+    /**
+     * Uses a screen-space clipping viewport independently of the document's drawing origin and zoom.
+     */
+    public void render(int screenWidth, int screenHeight, int mouseX, int mouseY, int contentX, int contentY,
+        int scrollY, float zoom, @Nullable LytDocument document, List<DebugComponent.ComponentEntry> screenComponents,
+        LytRect documentViewport, FontRenderer fontRenderer) {
+        if (!ModConfig.debug.guiDebugMode) {
+            return;
+        }
 
         this.currentDocument = document;
 
@@ -122,17 +139,19 @@ public class GuideDebugOverlay {
             ColorUtils.applyGlColor(ColorUtils.WHITE.getColor());
             GL11.glTranslatef(0.0F, 0.0F, OVERLAY_Z);
 
+            ScreenComponentHit screenComponentHit = detectScreenComponent(screenComponents, mouseX, mouseY);
             HoveredElementInfo documentHoveredInfo = null;
-            if (document != null) {
+            if (document != null && (screenComponentHit == null || screenComponentHit.priority() <= 0)
+                && documentViewport.contains(mouseX, mouseY)) {
                 int docX = Math.round((mouseX - contentX) / zoom);
                 int docY = Math.round((mouseY - contentY) / zoom) + scrollY;
                 documentHoveredInfo = hoverDetector.detectHoveredElement(document, docX, docY);
 
                 if (documentHoveredInfo != null) {
                     adjustCoordinatesForRendering(documentHoveredInfo, contentX, contentY, scrollY, zoom);
+                    clipToViewport(documentHoveredInfo, documentViewport);
                 }
             }
-            ScreenComponentHit screenComponentHit = detectScreenComponent(screenComponents, mouseX, mouseY);
             HoveredElementInfo hoveredInfo = screenComponentHit != null
                 && (documentHoveredInfo == null || screenComponentHit.priority() > 0) ? screenComponentHit.info()
                     : documentHoveredInfo;
@@ -154,6 +173,7 @@ public class GuideDebugOverlay {
         int mouseY) {
         DebugComponent.ComponentEntry bestComponent = null;
         int bestPriority = Integer.MIN_VALUE;
+        int bestDepth = -1;
         long bestArea = Long.MAX_VALUE;
         for (DebugComponent.ComponentEntry component : components) {
             if (!component.containsPoint(mouseX, mouseY)) {
@@ -161,32 +181,54 @@ public class GuideDebugOverlay {
             }
             var bounds = component.getBounds();
             long area = (long) bounds.width() * bounds.height();
-            if (component.getPriority() > bestPriority || component.getPriority() == bestPriority && area < bestArea) {
+            int depth = 0;
+            for (var parent = component.getParent(); parent != null; parent = parent.getParent()) {
+                depth++;
+            }
+            if (component.getPriority() > bestPriority || component.getPriority() == bestPriority
+                && (depth > bestDepth || depth == bestDepth && area <= bestArea)) {
                 bestComponent = component;
                 bestPriority = component.getPriority();
+                bestDepth = depth;
                 bestArea = area;
             }
         }
         if (bestComponent == null) {
             return null;
         }
-        var bounds = bestComponent.getBounds();
+        return new ScreenComponentHit(createScreenComponentInfo(bestComponent), bestPriority);
+    }
+
+    private HoveredElementInfo createScreenComponentInfo(DebugComponent.ComponentEntry component) {
+        var bounds = component.getBounds();
+        var parent = component.getParent();
         HoveredElementInfo info = new HoveredElementInfo(
-            "ScreenComponent$" + bestComponent.getName(),
+            "ScreenComponent$" + component.getName(),
             bounds.x(),
             bounds.y(),
             bounds.width(),
             bounds.height(),
-            null);
+            parent != null ? createScreenComponentInfo(parent) : null);
         info.setScreenCoordinates(bounds.x(), bounds.y(), bounds.width(), bounds.height());
-        info.addExtraInfo("Component: " + bestComponent.getName());
-        if (bestComponent.getExtraInfo() != null) {
-            info.addExtraInfo(bestComponent.getExtraInfo());
+        info.addExtraInfo("Component: " + component.getName());
+        if (component.getExtraInfo() != null) {
+            info.addExtraInfo(component.getExtraInfo());
         }
-        return new ScreenComponentHit(info, bestPriority);
+        return info;
     }
 
     private record ScreenComponentHit(HoveredElementInfo info, int priority) {}
+
+    private void clipToViewport(HoveredElementInfo info, LytRect viewport) {
+        int left = Math.max(info.getScreenX(), viewport.x());
+        int top = Math.max(info.getScreenY(), viewport.y());
+        int right = Math.min(info.getScreenX() + info.getScreenWidth(), viewport.right());
+        int bottom = Math.min(info.getScreenY() + info.getScreenHeight(), viewport.bottom());
+        info.setScreenCoordinates(left, top, Math.max(0, right - left), Math.max(0, bottom - top));
+        if (info.getParent() != null) {
+            clipToViewport(info.getParent(), viewport);
+        }
+    }
 
     /**
      * Adjust element coordinates from document space to screen space.

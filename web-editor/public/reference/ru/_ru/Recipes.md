@@ -1,221 +1,99 @@
 # Рецепты
 
-GuideNH может отображать рецепты крафта и рецепты, поддерживаемые NEI, непосредственно на страницах руководства.
+Теги рецептов показывают производство и использование предметов или жидкостей. Машинные рецепты зависят от установленных интеграций. Обычный крафт доступен без NEI.
 
-## Поддерживаемые теги
+## Выбор тега
 
-- `<Recipe>`
-- `<Usage>`
-- `<RecipeFor>`
-- `<RecipeUsage>`
-- `<RecipesFor>`
-- `<RecipesUsage>`
+| Тег | Направление поиска | Количество по умолчанию |
+| --- | --- | --- |
+| `<Recipe>` / `<RecipeFor>` | Производство цели | Один |
+| `<Usage>` / `<RecipeUsage>` | Потребление цели | Один |
+| `<RecipesFor>` | Производство цели | Все совпадения |
+| `<RecipesUsage>` | Потребление цели | Все совпадения |
 
-Все эти теги используют один и тот же компилятор и набор атрибутов.
+Все шесть тегов принимают одинаковые атрибуты. `limit` ограничивает количество результатов, а `recipeIndex` выбирает конкретный рецепт.
 
-## Семантика тегов
+## Атрибуты
 
-| Тег              | Поведение                                               |
-|------------------|--------------------------------------------------------|
-| `<Recipe>`       | визуализировать один рецепт для целевого предмета.             |
-| `<Usage>`        | визуализировать один рецепт с использованием целевого элемента.           |
-| `<RecipeFor>`    | такое же поведение с одним рецептом, более удобное для автора имя. |
-| `<RecipeUsage>`  | такое же поведение с одним рецептом, более удобное для автора имя. |
-| `<RecipesFor>`   | отображать несколько совпадающих рецептов                       |
-| `<RecipesUsage>` | отображать несколько совпадающих рецептов.                       |
+Укажите ровно одну цель: `id` для предмета или `fluid` для жидкости. Используйте полное имя жидкости в реестре Forge, например `water` или `steam`, с учётом регистра. Временные числовые ID предметов отображения не подходят.
 
-Если существует несколько рецептов и вы используете формы с одним рецептом, GuideNH отображает только один результат, если фильтры не сузят его еще больше.
+| Атрибут | Значение |
+| --- | --- |
+| `id` | Целевой предмет; несовместим с `fluid` |
+| `fluid` | Имя целевой жидкости в реестре; несовместим с `id` |
+| `fallbackText` | Текст, если подходящий рецепт недоступен |
+| `handlerName` | Подстрока отображаемого имени обработчика без учёта регистра |
+| `handlerId` | Точное совпадение overlay/handler ID или подстрока простого имени класса обработчика, без учёта регистра |
+| `handlerBlacklist` | Исключаемые обработчики через запятую |
+| `handlerWhitelist` | Обработчики, сохраняемые вопреки чёрному списку; сам по себе не сужает поиск |
+| `handlerOrder` | Неотрицательный индекс в отфильтрованном списке обработчиков, начиная с нуля |
+| `recipeIndex` | Неотрицательный индекс рецепта, начиная с нуля |
+| `input` / `output` | Фильтры входных/выходных предметов |
+| `inputFluid` / `outputFluid` | Фильтры входных/выходных жидкостей |
+| `limit` | Положительное целое число: максимум результатов |
 
-## Общие атрибуты
+Без нужной интеграции выводится `fallbackText`, а если он не задан — ошибка оформления. Заполненные ёмкости остаются предметными ингредиентами.
 
-| Атрибут      | Обязательно. | Значение                                           |
-|----------------|----------|---------------------------------------------------|
-| `id`           | да      | ссылка на целевой элемент                             |
-| `fallbackText` | нет       | текст, отображаемый, когда не найден подходящий рецепт.         |
-| `handlerName`  | нет       | фильтр подстроки без учета регистра в имени обработчика. |
-| `handlerId`    | нет       | точный фильтр идентификатора наложения/обработчика, без учета регистра. |
-| `handlerBlacklist` | нет   | разделенные запятыми обработчики для удаления из результатов. |
-| `handlerWhitelist` | нет   | обработчики, разделенные запятыми, которые следует сохранить, даже если они внесены в черный список. |
-| `handlerOrder` | нет       | индекс, отсчитываемый от 0, после фильтрации обработчика.             |
-| `input`        | нет       | выражение фильтра ингредиентов                      |
-| `output`       | нет       | выражение фильтра результата                          |
-| `limit`        | нет       | максимальное положительное число отображаемых рецептов.   |
+## Ссылки и фильтры
 
-## Синтаксис идентификатора элемента
+Предметы задаются как `modid:name`, `modid:name:meta` или `modid:name:meta:{snbt}`. Для любых метаданных используйте `*`, `32767` или токен в верхнем регистре, например `ANY`.
 
-атрибуты `id`, `input` и `output` используют расширенный формат ссылки на элемент GuideNH:
+Предметные и жидкостные фильтры поддерживают `,` (ИЛИ), `&` (И) и `!` (НЕ). Все заданные входные и выходные фильтры должны выполняться. Разделители внутри составного SNBT-тега или списка не разбивают ссылку на предмет. Жидкостные фильтры сопоставляют имена реестра, включая дополнительные выходные слоты, без количества и NBT. Неверное выражение вызывает ошибку оформления.
 
-```text
-modid:name
-modid:name:meta
-modid:name:meta:{snbt}
-```
+## Выбор обработчика
 
-Мета-значения подстановочных знаков:
+Используйте `handlerId` для известного обработчика, `handlerName` для отображаемого имени и `handlerOrder` для позиции после фильтрации. `recipeIndex` выбирает рецепт в запросе.
 
-- `*`
-- `32767`
-- токены в верхнем регистре, например `ANY`.
+Чёрный и белый списки сравнивают handler ID, overlay ID и имена классов как подстроки без учёта регистра. Список страницы добавляется к `recipeHandlerBlacklist` в `config/guidenh/guidenh.cfg`. Явные `handlerId` и `handlerWhitelist` сохраняют обработчики, попавшие в чёрный список.
 
-## Синтаксис выражения фильтра
-
-Фильтры `input` и `output` поддерживают:
-
-- `,` для ИЛИ
-- `&` для И
-- `!` для НЕ
-
-Примеры:
-
-```text
-minecraft:planks:*
-minecraft:stick&minecraft:redstone
-!minecraft:planks:0
-minecraft:planks:*,minecraft:log:*
-```
-
-NBT можно комбинировать со всеми тремя атрибутами ссылки на элемент. Запятые и амперсанды внутри
-соединения/список SNBT хранятся внутри ссылки; только разделители верхнего уровня разделяют фильтр:
-
-```md
-<RecipeFor id='minecraft:written_book:0:{title:TestBook,author:GuideNH}' />
-<RecipesFor
-  id='minecraft:stone:3:{display:{Name:"Special Stone"}}'
-  input='minecraft:chest:0:{Items:[{id:"minecraft:diamond",Count:1b}]}'
-  output='minecraft:diamond:0:{display:{Name:"Reward"}}'
-/>
-```
-
-## Порядок рендеринга
-
-GuideNH пробует рецепты в следующем порядке:
-
-1. Отрисовка собственного обработчика NEI
-2. Резервный вариант данных слота NEI
-3. встроенный запасной вариант ванильного крафта.
-
-Если ничего не совпадает:
-
-- `fallbackText` используется, если он присутствует.
-- в противном случае отображается встроенная ошибка авторинга.
-
-## Примеры
-
-### Один рецепт
-
-````md
-<RecipeFor id="minecraft:crafting_table" />
-````
-
-### Несколько рецептов
-
-````md
-<RecipesFor id="minecraft:torch" />
-````
-
-### Фильтрация обработчиков
-
-````md
-<RecipesFor id="minecraft:iron_pickaxe" handlerId="repair" />
-<RecipesFor id="minecraft:fire_charge" handlerName="shapeless" />
-````
-
-### Чёрный и белый списки обработчиков
-
-`handlerBlacklist` удаляет обработчики из результатов, `handlerWhitelist` возвращает их. Оба принимают
-**список, разделенный запятыми**, и запись соответствует идентификатору обработчика, идентификатору его наложения или имени класса,
-без учета регистра и в виде подстроки — поэтому одна запись может называть один обработчик или весь пакет.
-
-Обработчик удаляется, когда он занесён в чёрный список, **если** тег явно не запрашивает его: `handlerId`,
-`handlerWhitelist` и совпадение имени класса в нижнем регистре сохраняют его.
-
-**Указывайте список, поскольку один идентификатор обработчика редко встречается один.** Доски — это одновременно материал для крафта и топливо, поэтому
-перечислите идентификаторы обработчиков, которые вам не нужны:
-
-````md
-<RecipesFor id="minecraft:planks" handlerBlacklist="fuel,repair" />
-````
-
-**Пакет в одной записи.** Запись также является подстрокой имени класса, поэтому идентификатор мода охватывает каждый обработчик,
-этот мод регистрируется — удобно, когда все обработчики одного мода являются шумом для этого элемента:
-
-````md
-<RecipesFor id="minecraft:chest" handlerBlacklist="gregtech,ic2,railcraft" limit="6" />
-````
-
-**Белый список для отмены черного списка для одной страницы.** Конфигурация скрывает два обработчика мультиблока на каждой странице.
-Белый список, присваивающий имена, возвращает их на этой странице:
-
-````md
-<Recipe id="minecraft:chest" handlerWhitelist="GTNEIMultiblockHandler,StructureCompatNEIHandler" fallbackText="Multiblock preview unavailable." />
-````
-
-**Белый список не фильтрует сам по себе.** Он сохраняет только обработчики, которые мог бы удалить чёрный список; используйте
-`handlerId` / `handlerName` / `handlerOrder`, чтобы сузить результат до одного обработчика, и `limit`, чтобы ограничить способ
-и ограничить число отображаемых результатов.
-
-Файл конфигурации `config/guidenh/guidenh.cfg` содержит `recipeHandlerBlacklist`, который применяется ко всем
-страницам и по умолчанию содержит:
+Эти обработчики исключены по умолчанию, поскольку показывают целую структуру. Добавьте их в белый список на нужной странице:
 
 - `blockrenderer6343.integration.gregtech.GTNEIMultiblockHandler`
 - `blockrenderer6343.integration.structurelib.StructureCompatNEIHandler`
 
-Собственный список страницы **добавляется** к настроенному, поэтому страница может скрывать больше, но не меньше. Редактирование
-изменение конфигурации влияет на каждую страницу, а имя обработчика в теге меняет только текущую страницу.
-
-### Фильтрация ввода и вывода
-
-````md
-<RecipesFor id="minecraft:stick" input="minecraft:planks:*" limit="3" />
-<RecipesFor id="minecraft:stick" output="minecraft:torch" limit="2" />
-<RecipesFor id="minecraft:redstone_torch" input="minecraft:stick&minecraft:redstone" limit="1" />
-````
-
-### Резервный текст
-
-````md
-<Recipe id="missingrecipe" fallbackText="Этот рецепт отключён." />
-````
-
-## Лучшие практики
-
-- используйте `fallbackText` для интеграции дополнительных модов.
-- используйте `handlerId`, если вы знаете, какой именно обработчик NEI вам нужен.
-- используйте `handlerBlacklist`, когда один блок создается множеством обработчиков и только некоторые из них достойны отображения.
-- два обработчика ниже по умолчанию скрыты в `config/guidenh/guidenh.cfg`, поскольку они отображают целый мультиблок; назовите его с помощью `handlerId` или `handlerWhitelist`, чтобы отобразить его.
-  - `blockrenderer6343.integration.gregtech.GTNEIMultiblockHandler`
-  - `blockrenderer6343.integration.structurelib.StructureCompatNEIHandler`
-- используйте `limit`, если тег может расширяться на множество рецептов.
-- сохраняйте сложную логику фильтра в комментариях рядом с тегом для удобства обслуживания.
-
-## Пример живого выполнения
-
-См. `wiki/resourcepack/assets/guidenh/guidenh/_en_us/index.md` для подробных примеров рецептов, включая фильтры обработчиков и идентификаторы элементов с подстановочными знаками/NBT.
-
-## Ссылки NEI в тексте
-
-Пользовательская ссылка действия открывает NEI из текста без отображения карточки рецепта. Используется существующий формат `&[текст](sound:...)`.
+## Примеры
 
 ```md
-&[Все рецепты коксовой печи](nei:handler?handlerId=gt.recipe.cokeoven)
-&[Посмотреть рецепты](nei:recipes?id=minecraft:iron_ingot)
-&[Посмотреть применения](nei:usage?id=gregtech:gt.blockmachines:236&handlerId=gt.recipe.cokeoven)
-
-<NeiRecipeLink handlerId="gt.recipe.cokeoven">Открыть NEI</NeiRecipeLink>
-<NeiRecipeLink id="minecraft:iron_ingot">Посмотреть **рецепты**</NeiRecipeLink>
-<NeiRecipeLink mode="usage" id="gregtech:gt.blockmachines:236" handlerId="gt.recipe.cokeoven" title="NEI">Посмотреть применения</NeiRecipeLink>
-
-&[Рецепты книг с SNBT](nei:recipes?id=minecraft:written_book:0:%7Btitle:%22Guide%2BNEI%22%2Cauthor:GuideNH%7D)
+<RecipeFor id="minecraft:crafting_table" />
+<RecipesFor id="minecraft:torch" recipeIndex="0" />
+<RecipeFor fluid="steam" fallbackText="Рецепт пара недоступен." />
+<RecipesUsage fluid="water" inputFluid="water&!lava" limit="3" />
+<RecipesFor id="minecraft:iron_ingot" outputFluid="steam,water" limit="3" />
+<RecipeFor id='minecraft:written_book:0:{title:TestBook,author:GuideNH}' />
+<RecipesFor id="minecraft:stick" input="minecraft:planks:*" limit="3" />
+<RecipesFor id="minecraft:redstone_torch" input="minecraft:stick&minecraft:redstone" limit="1" />
+<RecipesFor id="minecraft:iron_pickaxe" handlerId="repair" />
+<RecipesFor id="minecraft:fire_charge" handlerName="shapeless" limit="3" />
+<RecipesFor id="minecraft:planks" handlerBlacklist="fuel,repair" limit="6" />
+<RecipeFor id="minecraft:chest" handlerWhitelist="GTNEIMultiblockHandler,StructureCompatNEIHandler" fallbackText="Предпросмотр мультиблока недоступен." />
 ```
 
-`handler` требует `handlerId`, запрещает `id` и открывает все рецепты обработчика. `recipes` требует `id` для рецептов получения; `usage` требует `id` для применений, включая катализаторы, независимо от Ctrl. Последние два режима допускают фильтр `handlerId`.
+Для широких запросов задавайте `limit`. См. также [Справочник тегов](Tags-Reference), [Совместимость с модами](Mod-Compatibility) и [Примеры](Examples).
 
-`<NeiRecipeLink>` принимает только `id`, `handlerId`, `mode` и подсказку `title`. Без `mode` наличие `id` выбирает `recipes`, иначе `handler`. Видимое содержимое обязательно. Подписи действий — обычный текст; тег поддерживает форматирование.
+## Inline NEI recipe links
 
-Идентификатор наложения или обработчика сравнивается точно, без учёта регистра. Частичное сопоставление имени класса из карточек не используется. Включены обычные и последовательные обработчики; категории одного Java-класса не объединяются.
+Use `&[label](nei:...)` or `<NeiRecipeLink>` to open NEI from inline text.
 
-Без пространства имён используется пространство страницы. Регистр, метаданные и SNBT сохраняются; маски следуют существующим правилам конкретных стеков. URI строго декодируется как UTF-8 один раз; `+` остаётся `+`. Кодируйте SNBT и `&`, `#`, `%`, `?`, `)` через проценты.
+```md
+&[Check all Coke Oven recipes](nei:handler?handlerId=gt.recipe.cokeoven)
+&[Check recipes](nei:recipes?id=minecraft:iron_ingot)
+&[Check usages](nei:usage?id=gregtech:gt.blockmachines:236&handlerId=gt.recipe.cokeoven)
 
-Повторяющиеся или неизвестные параметры, неверные escape-последовательности, фрагменты, режимы, конфликтующие атрибуты и отсутствие цели вызывают ошибки автора. Работают только действия `&` и `<NeiRecipeLink>`; обычные ссылки, ссылки-сноски, HTML-якоря и `nei://` не являются алиасами.
+<NeiRecipeLink handlerId="gt.recipe.cokeoven">Check NEI</NeiRecipeLink>
+<NeiRecipeLink id="minecraft:iron_ingot">Check **recipes**</NeiRecipeLink>
+<NeiRecipeLink mode="usage" id="gregtech:gt.blockmachines:236" handlerId="gt.recipe.cokeoven" title="NEI">Check usages</NeiRecipeLink>
 
-Предметы и рецепты загружаются лишь при нажатии. Без NEI или результатов руководство остаётся открытым с локализованным сообщением. Браузер и IDE показывают неактивный текст с предложением открыть руководство в GuideNH.
+&[Book recipes with SNBT](nei:recipes?id=minecraft:written_book:0:%7Btitle:%22Guide%2BNEI%22%2Cauthor:GuideNH%7D)
+```
+
+`handler` requires `handlerId` and forbids `id`; it opens every recipe in the selected handler. `recipes` requires `id` and opens recipes producing that item. `usage` requires `id` and opens usages including catalyst behavior, regardless of Ctrl. The latter two modes accept an optional `handlerId` filter.
+
+`<NeiRecipeLink>` accepts only `id`, `handlerId`, `mode`, and optional tooltip `title`. Without `mode`, an `id` selects `recipes`; otherwise it selects `handler`. Visible inline children are required. Use the tag for rich formatting; custom action labels are plain text.
+
+`handlerId` matches the exact NEI overlay identifier or handler ID, ignoring case. It does not accept a Java class name or partial identifier.
+
+Item IDs use the current page namespace when omitted and retain registry-name casing, metadata and SNBT. Wildcard metadata uses the existing concrete-stack rules; it does not request every metadata variant. URI values are decoded once as strict UTF-8; literal `+` stays `+`. Percent-encode SNBT and reserved characters such as `&`, `#`, `%`, `?`, and `)`.
+
+Duplicate or unknown query parameters, invalid escapes, fragments, unsupported modes, conflicting attributes, and missing targets produce authoring errors. Only ampersand actions and `<NeiRecipeLink>` are NEI entry points; ordinary, reference, and HTML-anchor links are not aliases, and `nei://` is unsupported.
+
+If NEI is unavailable or no recipes match, the guide remains open and displays a message. Browser and IDE previews display the link as inactive text; open the page in GuideNH to use it.

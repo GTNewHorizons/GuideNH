@@ -2,10 +2,7 @@
 
 GuideNH builds its navigation tree from page frontmatter.
 
-In the in-game sidebar, expanded ancestor pages stay pinned at the top while their still-visible
-descendants scroll underneath. Multiple expanded ancestor levels can stack at once, and each sticky
-row is pushed away only when its entire visible subtree scrolls out, similar to the VSCode file
-explorer.
+Expanded ancestors stay pinned while their child pages scroll beneath them. Multiple levels can remain visible until their descendants leave the visible area.
 
 ## Navigation Frontmatter
 
@@ -34,6 +31,8 @@ navigation:
 | `icons` | Optional cycling item icons list; entries may be plain item ids with optional inline `:{snbt}` or `{id, meta?, nbt?}` maps |
 | `icon_texture` | Optional texture icon resolved from guide assets |
 | `icon_textures` | Optional cycling texture icon list |
+| `icon_fluid` | Optional single fluid registry name; excludes `icon_fluids` and item/texture sources |
+| `icon_fluids` | Optional nonempty fluid registry-name list cycling once per second; excludes `icon_fluid` and item/texture sources |
 | `required_mod` | Optional single mod id; page is hidden when this mod is not loaded |
 | `required_mods` | Optional list of mod ids; page is hidden unless all listed mods are loaded |
 | `excluded_mod` | Optional single mod id; page is hidden when this mod is loaded |
@@ -73,7 +72,7 @@ navigation:
 - `0` is valid.
 - Larger values appear earlier.
 - If two pages have the same value, they are sorted by title alphabetically.
-- The panel works at the `GuidePage` level, so each recommended page entry jumps directly to that page.
+- Each recommendation opens its page directly.
 
 ```yaml
 navigation:
@@ -133,7 +132,7 @@ navigation:
 Rules:
 
 - missing `priority` is `0`
-- values are signed Java integers up to `2147483647`
+- values are integers
 - higher priority wins
 - if priorities are equal, the later processed resource pack entry wins, matching Minecraft resource-pack override order
 - priority only decides between candidates for the same page path and language/fallback layer
@@ -143,7 +142,9 @@ resource-pack ordering.
 
 ## Icon Sources
 
-GuideNH chooses navigation/search icons in this order:
+Choose `icon_fluid` or `icon_fluids` for fluid icons. The two fields are mutually exclusive and cannot accompany item or texture sources. Icons do not create fluid navigation bindings; add page-level `fluid_id` / `fluid_ids` separately.
+
+When no fluid icon is configured, GuideNH chooses item and texture icons in this order:
 
 1. `icon_textures` if at least one texture entry is configured
 2. `icon_texture` if the texture file loads successfully
@@ -212,6 +213,37 @@ Lookup behavior:
 2. wildcard-meta fallback if present
 3. matching item expression
 
+## Fluid-indexed pages
+
+Use `fluid_id` for one fluid or `fluid_ids` for a list; both fields may coexist. Bindings match exact registry names independently of amount and NBT. Append `#anchor` to open a section:
+
+```yaml
+fluid_id: water
+fluid_ids:
+  - steam#uses
+navigation:
+  title: Fluid handling
+  icon_fluid: water
+```
+
+Bindings serve `<FluidLink>` and the hover-and-hold `G` shortcut. Recognized NEI fluid displays and filled containers are supported; empty containers retain item navigation. Multiple targets open a chooser with fluid pages before container-item pages.
+
+## External content pages
+
+Use `bindings` to index this page by a BetterQuesting quest, Thaumcraft research or another registered content type:
+
+```yaml
+bindings:
+  - {type: "thaumcraft", id: "INFUSION", anchor: "apparatus"}
+  - {type: "betterquesting", id: "01234567-89ab-cdef-0123-456789abcdef", anchor: "quest"}
+```
+
+When several pages or sections reference the same content, GuideNH opens the destination selector used for items. Identical page/anchor pairs merge; different anchors remain selectable. An omitted `anchor` means the top of the page. Full field and quoting rules are in [Frontmatter](Guide-Page-Format#external-content-bindings).
+
+`QuestLink` and `QuestCard` titles open BetterQuesting on left click. Right click opens bound guide destinations and falls back to BetterQuesting when none exist. Research and generic links/cards default to opening bound guides first; their `target` attribute selects the left-click action. See [Tags Reference](Tags-Reference#research-and-custom-content).
+
+Hold the open-guide key (default `G`) while hovering a supported quest button, research entry or content icon to select its bound guides. With no binding, that hotkey does nothing. Mod-specific hover areas and return navigation are described in [Mod Compatibility](Mod-Compatibility).
+
 ## Heading Anchor Links
 
 GuideNH supports heading anchor navigation in Markdown links and `<a>` tags.
@@ -240,7 +272,7 @@ Anchors are derived from heading text by lowercasing and replacing spaces with h
 
 The `namespace:path` format resolves to the guide page whose id matches `namespace:path`.
 This is identical to what relative paths resolve to, but avoids `../` navigation.
-The page must exist in the same guide as the link source.
+The target page must be loaded.
 
 **Named inline anchors** can also be placed with `<a name="...">` in MDX:
 
@@ -302,8 +334,12 @@ The same category also has an auto-generated hidden searchable page at `Category
 
 | Attribute | Type | Default | Meaning |
 | --- | --- | --- | --- |
-| `name` | string | none | Supported values: `AllPages`, `Categories` |
+| `name` | string | none | Special page name; use `SpecialPages` for the catalog, including `AllPages`, `Categories` and `Templates` |
 | `rows` | positive integer | `3` | Number of display columns in the MediaWiki-style layout |
+| `page` | page id | none | Page target for special lists that require one |
+| `prefix` | string | none | Title/page-ID prefix for `AllPagesWithPrefix` |
+| `language` | string | none | Language filter for translation lists |
+| `query` | string | none | List search text |
 
 ````md
 <Special name="AllPages" rows="4" />

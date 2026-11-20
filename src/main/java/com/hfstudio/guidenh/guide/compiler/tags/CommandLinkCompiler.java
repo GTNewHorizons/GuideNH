@@ -35,7 +35,6 @@ public class CommandLinkCompiler extends FlowTagCompiler {
         var link = new LytFlowLink();
         link.setTooltip(buildTooltip(title, command));
 
-        // Pure placeholder: mark for the script to materialize at mount time
         link.setStyleClass("CommandLink");
         link.setData("command", command);
         link.setData("close", closeGuide);

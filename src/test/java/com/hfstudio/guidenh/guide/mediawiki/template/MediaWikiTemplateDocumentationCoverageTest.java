@@ -26,7 +26,9 @@ class MediaWikiTemplateDocumentationCoverageTest {
     private static final Path TEMPLATES_DOC_ZH = WIKI.resolve("Templates-zh-CN.md");
     private static final Path PACK_ROOT = Paths.get("wiki", "resourcepack", "assets", "guidenh", "guidenh");
 
-    /** Every tag the template layer understands, which is what the documentation has to cover. */
+    /**
+     * Every tag the template layer understands, which is what the documentation has to cover.
+     */
     private static final Set<String> TAGS = new TreeSet<>(
         List.of(
             "Template",
@@ -55,7 +57,9 @@ class MediaWikiTemplateDocumentationCoverageTest {
             "IncludeOnly",
             "OnlyInclude"));
 
-    /** Attributes a call or a tag accepts. */
+    /**
+     * Attributes a call or a tag accepts.
+     */
     private static final Set<String> ATTRIBUTES = new TreeSet<>(
         List.of(
             "name",

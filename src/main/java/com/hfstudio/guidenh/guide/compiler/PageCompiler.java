@@ -120,10 +120,6 @@ public class PageCompiler {
     private final String sourcePack;
     @Getter
     private final String language;
-    /**
-     * -- GETTER --
-     * Get the current page id.
-     */
     @Getter
     private final ResourceLocation pageId;
     private final String pageContent;
@@ -141,7 +137,9 @@ public class PageCompiler {
     // One per page compile, so the documented per-page inclusion budget is a real page-wide limit.
     private MediaWikiTemplateContext templateContext;
 
-    /** The template state for this page, created on first use. */
+    /**
+     * The template state for this page, created on first use.
+     */
     public MediaWikiTemplateContext templateContext() {
         if (templateContext == null) {
             templateContext = new MediaWikiTemplateContext(sourcePack, language, pageId);
@@ -170,7 +168,6 @@ public class PageCompiler {
         this.pageContent = pageContent;
         this.actionLinkResolvers = MarkdownActionLink.indexResolvers(extensions);
 
-        // Index available tag-compilers
         for (var tagCompiler : extensions.get(TagCompiler.EXTENSION_POINT)) {
             for (String tagName : publishedTagNames(tagCompiler)) {
                 tagCompilers.put(tagName, tagCompiler);
@@ -179,8 +176,8 @@ public class PageCompiler {
     }
 
     /**
-     * The tags a compiler publishes. A compiler of another mod that cannot answer is reported and skipped,
-     * because one broken plugin must not keep every page from compiling.
+     * Reads contributed tag names. A failing contributor is reported and skipped without aborting page
+     * compilation.
      */
     private static Collection<String> publishedTagNames(TagCompiler compiler) {
         Collection<String> tagNames;
@@ -285,14 +282,8 @@ public class PageCompiler {
     }
 
     /**
-     * Lightweight parse that extracts only YAML frontmatter from the raw source,
-     * deferring the full Micromark → mdast pipeline to first call of
-     * {@link ParsedGuidePage#getAstRoot()}.
-     *
-     * <p>
-     * F3+T reload uses this path so that index/navigation rebuilds —
-     * which only need frontmatter — complete without paying Micromark cost.
-     * </p>
+     * Parses frontmatter for index and navigation rebuilds. The body is parsed lazily by {@link
+     * ParsedGuidePage#getAstRoot()}.
      */
     public static ParsedGuidePage parseFrontmatterOnly(String sourcePack, String language, ResourceLocation id,
         String pageContent) {
@@ -300,16 +291,7 @@ public class PageCompiler {
         pageContent = normalizeLineEndings(pageContent);
         var sourceFrontmatter = parseFrontmatterFromSource(id, pageContent);
 
-        return new ParsedGuidePage(
-            sourcePack,
-            id,
-            pageContent,
-            null, // astRoot — triggers lazy parse on first getAstRoot()
-            sourceFrontmatter,
-            language,
-            null,
-            null,
-            null);
+        return new ParsedGuidePage(sourcePack, id, pageContent, null, sourceFrontmatter, language, null, null, null);
     }
 
     public static String normalizeLineEndings(String pageContent) {
@@ -381,7 +363,6 @@ public class PageCompiler {
 
     private static GuidePage compile(PageCollection pages, ExtensionCollection extensions, ParsedGuidePage parsedPage,
         boolean templateEditorPreview) {
-        // Translate page tree over to layout pages
         var compiler = new PageCompiler(
             pages,
             extensions,
@@ -454,8 +435,7 @@ public class PageCompiler {
     }
 
     /**
-     * Warns once per page that still writes the old brace syntax. Braces are ordinary text now, so a
-     * leftover call renders literally rather than failing, and this is the only signal an author would get.
+     * Warns once per page about legacy brace syntax, which now renders as literal text.
      */
     private void warnAboutLegacyTemplateSyntax() {
         List<String> samples = MediaWikiTemplateDiagnostics.findLegacySyntax(pageContent, 3);
@@ -598,7 +578,7 @@ public class PageCompiler {
         }
         ParsedGuidePage parsed = inlineMarkdownParseCache.get(source);
         if (parsed == null) {
-            parsed = parse(sourcePack, "en_us", pageId, source);
+            parsed = parse(sourcePack, language, pageId, source);
             inlineMarkdownParseCache.put(source, parsed);
         }
         compileInlineFragment(
@@ -716,7 +696,10 @@ public class PageCompiler {
                         layoutChild = createErrorBlock("Unhandled MDX element in block context: " + el.name(), child);
                     } else {
                         layoutChild = null;
-                        compiler.compileBlockContext(this, layoutParent, el);
+                        compiler.compileBlockContext(this, block -> {
+                            if (block.getSourceNode() == null) block.setSourceNode(el);
+                            layoutParent.append(block);
+                        }, el);
                     }
                 }
             } else if (child instanceof MdxJsxTextElement el) {
@@ -834,7 +817,6 @@ public class PageCompiler {
                         .setPreferredWidth(widthHints.get(i));
                 }
                 var cell = row.appendCell();
-                // Apply alignment
                 if (astTable.align != null && i < astTable.align.size()) {
                     switch (astTable.align.get(i)) {
                         case CENTER -> cell.modifyStyle(style -> style.alignment(TextAlignment.CENTER));
@@ -1155,7 +1137,6 @@ public class PageCompiler {
             style -> style.color(ColorUtils.ERROR_TEXT)
                 .whiteSpace(WhiteSpaceMode.PRE));
 
-        // Find the position in the source
         var position = child.position();
         if (position != null) {
             var pos = position.start();

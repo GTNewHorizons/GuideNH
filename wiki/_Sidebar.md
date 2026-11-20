@@ -22,6 +22,8 @@
 - [Examples](Examples)
 - [Mod Compatibility](Mod-Compatibility)
 - [Server Integration](Server-Integration)
+- [Debug Mode](Debug-Mode)
+- [Developer Integration](Developer-Integration)
 - [FAQ](FAQ)
 
 ### 中文
@@ -46,4 +48,6 @@
 - [示例](Examples-zh-CN)
 - [模组兼容](Mod-Compatibility-zh-CN)
 - [服务器集成](Server-Integration-zh-CN)
+- [调试模式](Debug-Mode-zh-CN)
+- [开发者集成](Developer-Integration-zh-CN)
 - [常见问题](FAQ-zh-CN)

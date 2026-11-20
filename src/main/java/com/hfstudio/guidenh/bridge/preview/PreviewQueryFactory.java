@@ -35,9 +35,27 @@ public class PreviewQueryFactory {
         String capability = PreviewRequestSupport.requireString(payload, "capability");
         String id = PreviewRequestSupport.requireString(payload, "id");
         int count = PreviewRequestSupport.readBoundedInt(payload, "count", 1, 1, 999999);
+        Integer amount = payload.has("amount") ? readFluidAmount(payload) : null;
         String nbt = PreviewRequestSupport.readOptionalString(payload, "nbt", "");
         String renderVariant = PreviewRequestSupport.readOptionalString(payload, "renderVariant", "default");
         Map<String, String> filters = PreviewRequestSupport.readStringMap(payload, "filters");
-        return new PreviewResolveQuery(capability, id, count, nbt, renderVariant, filters);
+        return new PreviewResolveQuery(capability, id, count, amount, nbt, renderVariant, filters);
+    }
+
+    private static int readFluidAmount(JsonObject payload) {
+        var raw = payload.get("amount");
+        if (raw == null || !raw.isJsonPrimitive()
+            || !raw.getAsJsonPrimitive()
+                .isNumber()) {
+            throw new IllegalArgumentException("amount must be a nonnegative integer");
+        }
+        try {
+            int amount = raw.getAsBigDecimal()
+                .intValueExact();
+            if (amount < 0) throw new IllegalArgumentException("amount must be nonnegative");
+            return amount;
+        } catch (ArithmeticException | UnsupportedOperationException | NumberFormatException exception) {
+            throw new IllegalArgumentException("amount must be a nonnegative integer", exception);
+        }
     }
 }

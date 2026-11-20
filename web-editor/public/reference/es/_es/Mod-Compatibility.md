@@ -1,158 +1,131 @@
-# Mod Compatibility
+# Compatibilidad con mods
 
+La referencia detallada de esta página está disponible en inglés. Los nombres de etiquetas, atributos, identificadores y rutas se utilizan sin traducir.
 
-Esta documentación describe la sintaxis y las funciones de ejecución de GuideNH. El código, las etiquetas, las rutas, los identificadores y los valores de atributos se conservan sin cambios.
-
-GuideNH ships con conditional integrations para seleccionado mods. cada integration es solo activated cuando su destino mod es cargado; cuando El destino es absent, El related etiquetas, indices y clave bindings permanecer inert y El rest of El guíUn mantiene working.
+GuideNH ships with conditional integrations for selected mods. Each integration is only activated when its target mod is loaded; runtime providers and native hover integration activate only when the target mod is present. Pure content-binding identities and page indices remain available without the target mod.
 
 ## StructureLib
 
-cuando StructureLib es cargado, GuideNH puede import multiblock previews en `<GameScene>` con `<ImportStructureLib>`. El client command `/exportStructure structureLib` puede también export those previews as PNG documentation screenshots. Consulta [Structure Export](Structure-Export) para El completo command reference, StructureLib-específico opciones, y El related `gameScene` export modo.
+When StructureLib is loaded, GuideNH can import multiblock previews into `<GameScene>` with `<ImportStructureLib>`. The client command `/exportStructure structureLib` can also export those previews as PNG documentation screenshots. See [Structure Export](Structure-Export) for the full command reference, StructureLib-specific options, and the related `gameScene` export mode.
 
 ## BetterQuesting
 
-cuando [BetterQuesting](https://github.com/GTNewHorizons/BetterQuesting) es cargado, GuideNH unlocks tres features:
+When [BetterQuesting](https://github.com/GTNewHorizons/BetterQuesting) is loaded, GuideNH unlocks three features:
 
-1. El `quest_ids` página-frontmatter clave starts indexing páginas by BetterQuesting quest id.
-2. dos nuevo etiquetas become disponible: `<QuestLink>` (inline) y `<QuestCard>` (bloque).
-3. El estándar "open guía" hotkey works mientras al pasar el cursor Un quest en El BetterQuesting GUI: holding El clave looks up El hovered quest id y navigates Un El coincidente guíUn página.
+1. Page bindings with `type: "betterquesting"` associate a guide with a quest. Identity indexing does not require BetterQuesting; native quest navigation does.
+2. Two new tags become available: `<QuestLink>` (inline) and `<QuestCard>` (block).
+3. The standard "open guide" hotkey works while hovering a quest in the BetterQuesting GUI: holding the key looks up the hovered quest id and navigates to the matching guide page.
 
-### Indexing páginas by quest id
+### Indexing pages by quest id
 
-Añada a `quest_ids` lista Un El frontmatter of cualquier guíUn página you want associated con uno o más quests:
+Add a `bindings` list to the frontmatter of any guide page you want associated with one or more quests:
 
 ```yaml
 ---
 navigation:
   title: Stage 2 — Steam Age
-quest_ids:
-  - 01234567-89ab-cdef-0123-456789abcdef
-  - AAAAAAAAAAAAAAAAAAAMug==
+bindings:
+  - {type: "betterquesting", id: "01234567-89ab-cdef-0123-456789abcdef"}
+  - {type: "betterquesting", id: "AAAAAAAAAAAAAAAAAAAMug=="}
 ---
 ```
 
-El valores puede ser canonical UUID strings o BetterQuesting compact Base64 quest ids. Malformed o vacío entradas son skipped con Un advertencia en El log.
+Each entry uses `type: "betterquesting"`; its `id` may be a canonical UUID or a compact BetterQuesting Base64 ID. Add `anchor` to target a section of the current guide page. Malformed or empty entries are skipped with a warning in the log.
 
-Compact ids son decoded primero, entonces GuideNH falls atrás Un canonical UUID parsing. esto coincide BetterQuesting's compact quest-id format como `AAAAAAAAAAAAAAAAAAAMug==`.
+Compact ids are decoded first, then GuideNH falls back to canonical UUID parsing. This matches BetterQuesting's compact quest-id format such as `AAAAAAAAAAAAAAAAAAAMug==`.
 
-Do no lista ambos encodings para El mismo quest en uno página's `quest_ids`; Estas normalize Un El mismo interno UUID y would ser treated as duplicates.
+Do not list both encodings for the same quest in one page's `bindings`; they normalize to the same internal UUID and would be treated as duplicates.
 
-cuando Un quest id es indexed by Un página, ambos `<QuestLink>` y `<QuestCard>` será route El clic Un que guíUn página en su lugar of opening El BetterQuesting quest GUI directly.
+### Linking from BetterQuesting descriptions to GuideNH pages
 
-### Linking de BetterQuesting descriptions Un GuideNH páginas
+BetterQuesting quest descriptions can link back into GuideNH with a `[guide]` tag. The tag is parsed by GuideNH only when BetterQuesting is loaded, and then rendered through BetterQuesting's native hyperlink-aware text box, so BQ word wrapping, scrolling and click hit boxes stay compatible.
 
-BetterQuesting quest descriptions puede enlace atrás en GuideNH con a `[guide]` etiqueta. El etiqueta es analizado by GuideNH solo cuando BetterQuesting es cargado, y entonces renderizado a través de BetterQuesting's native hyperlink-aware texto box, so BQ word wrapping, al desplazar y clic hit boxes permanecer compatible.
-
-usar El página id as El destino:
+Use the page id as the target:
 
 ```text
 [guide]guidenh:navigation-guide[/guide]
 ```
 
-Si El destino página exists, El visible enlace texto es reemplazado con que guíUn página's título. El `.md` suffix es opcional, so `guidenh:navigation-guide` y `guidenh:navigation-guide.md` punto Un El mismo página cuando El markdown página exists.
+If the target page exists, the visible link text is replaced with that guide page's title. The `.md` suffix is optional, so `guidenh:navigation-guide` and `guidenh:navigation-guide.md` point to the same page when the markdown page exists.
 
-usar `page=` cuando you want personalizado visible texto:
+Use `page=` when you want custom visible text:
 
 ```text
 [guide page=guidenh:navigation-guide]Open the navigation guide[/guide]
 ```
 
-El enlace es mostrado en BetterQuesting's normal hyperlink color con underline styling, muestra Un GuideNH tooltip on pasar el cursor, y opens El destino GuideNH página cuando clicked. página anchors son también Compatible:
+The link is shown in BetterQuesting's normal hyperlink color with underline styling, shows a GuideNH tooltip on hover, and opens the target GuideNH page when clicked. Page anchors are also supported:
 
 ```text
 [guide page=guidenh:navigation-guide#navigation-fields]Navigation fields[/guide]
 ```
 
-### `<QuestLink>` y `<QuestCard>`
+### `<QuestLink>` and `<QuestCard>`
 
-ambos etiquetas aceptan Un BetterQuesting quest id via `id` y decide sus appearance de El jugador's progress at compilar tiempo:
+Both tags accept a BetterQuesting quest id via `id` and decide their appearance from the player's progress when the page mounts:
 
-| estado | origen | renderizado |
+| State | Source | Rendering |
 | --- | --- | --- |
-| visible | quest es unlocked but no completed | clickable enlace, predeterminado style |
-| Completed | `quest.isComplete(player)` devuelve true | clickable enlace, green color, trailing `✓` |
-| Locked | quest exists but es no unlocked, visibilidad ≠ ocultas/SECRET | italic gray placeholder, no clickable |
-| ocultas | locked plus visibilidad es ocultas o SECRET | italic dark-gray placeholder, no quest details leaked |
-| faltante | quest id hace no resolver Un cualquier quest en El database | italic red placeholder |
+| Visible | quest is unlocked but not completed | clickable link, default style |
+| Completed | quest is completed | clickable link, green color |
+| Locked | quest exists but is not unlocked, visibility ≠ HIDDEN/SECRET | clickable quest link or card title |
+| Hidden | locked plus visibility is HIDDEN or SECRET | italic dark-gray placeholder, no quest details leaked |
+| Missing | quest id does not resolve to any quest in the database | italic red placeholder |
 
-Locked but non-ocultas quests son también clickable. Estas usar El mismo navigation destino Reglas as visible y completed quests.
+Locked but non-hidden quests are also clickable. They use the same navigation target rules as visible and completed quests.
 
-para visible / completed / locked quests, El clic destino es:
+Left click opens the quest in BetterQuesting. Right click opens its bound guide pages; when no guide is bound, right click also opens BetterQuesting. Multiple pages open the same destination selector used for items, and distinct page anchors remain separate destinations.
 
-- El indexed guíUn página Si El quest id es present en some página's `quest_ids`
-- otherwise BetterQuesting's quest-book quest pantalla, usando BetterQuesting's native padre-pantalla flow
+See [Tags Reference](Tags-Reference#questlink) for attribute tables and inline examples.
 
-Consulta [Tags Reference](Tags-Reference#questlink) para atributo tablas y inline Ejemplos.
+### Hidden-quest handling
 
-### ocultas-quest handling
+GuideNH never renders the title or description of a quest whose visibility is `HIDDEN` or `SECRET` while the quest is still locked for the player. The placeholder text is taken from a translation key so packs can localize the wording:
 
-GuideNH nunca renderiza El título o descripción of Un quest whose visibilidad es `HIDDEN` o `SECRET` mientras El quest es todavía locked para El jugador. El placeholder texto es taken de Un traducción clave so packs puede localize El wording:
-
-| traducción clave | predeterminado (en_US) |
+| Translation key | Default (en_US) |
 | --- | --- |
-| `guidenh.compat.bq.locked` | `Locked Quest` |
-| `guidenh.compat.bq.hidden` | `Hidden Quest` |
-| `guidenh.compat.bq.missing` | `Unknown Quest` |
+| `guidenh.binding.state.hidden` | `Hidden content` |
+| `guidenh.binding.state.missing` | `Content not found` |
 | `guidenh.compat.bq.open_in_guide` | `Open in Guide` |
 
-Locked quests puede todavía mostrar sus descripción as Un pasar el cursor tooltip on `<QuestLink>` y on El clickable título dentro de `<QuestCard>`, because BetterQuesting itself reveals El descripción on locked quest tooltips. Establezca `show_tooltip="false"` (o `showTooltip={false}`) Un suppress que tooltip. ocultas quests do no expose cualquier tooltip.
+Locked quests can still show their description as a hover tooltip on `<QuestLink>` and on the clickable title inside `<QuestCard>`, because BetterQuesting itself reveals the description on locked quest tooltips. Set `showTooltip={false}` to suppress that tooltip. Hidden quests do not expose any tooltip.
 
-> [!Nota]
-> Quest estado es resuelto at página-compilar tiempo usando El local jugador's progress. El compilado página es cached per guía; reopening El guíUn después de completing o unlocking Un quest re-evaluates El estado.
+> [!NOTE]
+> Reopen the guide after completing or unlocking a quest to refresh its displayed state.
 
-### Open-guíUn hotkey integration
+### Open-guide hotkey integration
 
-El predeterminado open-guíUn hotkey (`G`, configurable under `key.guidenh.open_guide`) gains Un second activation ruta cuando BetterQuesting es cargado. mientras El BetterQuesting quest-línea GUI es open:
+The default open-guide hotkey (`G`, configurable under `key.guidenh.open_guide`) gains a second activation path when BetterQuesting is loaded. While the BetterQuesting quest-line GUI is open:
 
-1. pasar el cursor sobre cualquier quest button en El BQ panel
-2. Hold El open-guíUn hotkey
+1. Hover over any quest button in the BQ panel
+2. Hold the open-guide hotkey
 
-Si cualquier registrado guíUn indexes que quest id a través de `quest_ids`, GuideNH será navigate Un El coincidente página (o open El guíUn Si it's no ya open). Si no página indexes El hovered id, El hotkey hace nothing — it hace no fall atrás Un opening El BetterQuesting quest GUI, since BQ ya muestra que information.
+If any registered guide indexes that quest id through `bindings`, GuideNH will navigate to the matching page (or open the guide if it's not already open). If no page indexes the hovered id, the hotkey does nothing — it does not fall back to opening the BetterQuesting quest GUI, since BQ already shows that information.
 
-esto ruta es independent of El inventory elemento-tooltip ruta, so al pasar el cursor elementos en su inventory todavía routes a través de El existing elemento / ore index lookups.
+This path is independent of the inventory item-tooltip path, so hovering items in your inventory still routes through the existing item / ore index lookups.
 
-### comportamiento cuando BetterQuesting es absent
+### Behavior when BetterQuesting is absent
 
-- `<QuestLink>` y `<QuestCard>` son no registrado, so páginas que usar ellos fall atrás Un El estándar "desconocido etiqueta" error renderizado until you eliminar El etiqueta.
-- `quest_ids` frontmatter entradas son todavía analizado y stored under `additionalProperties`, but nothing reads ellos.
-- El hotkey's quest-pasar el cursor branch se convierte en Un no-op.
-- BetterQuesting `[guide]...[/guide]` descripción enlaces son nunca analizado because El BetterQuesting texto box y related mixins son no cargado.
+- `<QuestLink>` and `<QuestCard>` are not registered, so pages that use them fall back to the standard "unknown tag" error rendering until you remove the tag.
+- `bindings` remain indexed without BetterQuesting. Native quest navigation and BQ hover targets are unavailable.
+- BetterQuesting description links require BetterQuesting.
 
-## Exporting su etiquetas Un El site
+For optional BetterQuesting pages, set `navigation.required_mod: betterquesting` to avoid unknown-tag errors when the mod is absent. Mod developers can find tag and site-export extensions in [Developer Integration](Developer-Integration).
 
-El exported site renderiza El etiquetas que ship con GuideNH. Un mod whose etiquetas son compilado by su propio
-`TagCompiler` registers Un renderer so su etiquetas son exported as well, en su lugar of showing up en El book y
-disappearing de El site:
+## Thaumcraft and AspectRecipeIndex
 
-```java
-public class MyModSiteTagRenderer implements GuideSiteTagRenderer {
+### Binding research pages
 
-    @Override
-    public Set<String> getTagNames() {
-        return Set.of("MyMachine");
-    }
+Thaumcraft research binding is optional. GuideNH supplies research tags, completion-aware presentation and native navigation. Holding the open-guide key (`G` by default) on a research tree node, entry title, or ARI NEI research icon opens every matching guide destination. Without a binding, the key does nothing. Item slots retain their normal item actions.
 
-    @Override
-    public String render(GuideSiteTagRenderContext context, MdxJsxElementFields element) {
-        String id = element.getAttributeString("id", "");
-        return "<div class=\"mymod-machine\">" + GuideSiteGraphRenderer.esc(id) + "</div>";
-    }
-}
-```
+### Finding and copying research IDs
 
-```java
-GuideNhIntegrationRegistry.global().registerSiteTagRenderer(new MyModSiteTagRenderer());
-Guide.builder(id).extension(GuideSiteTagRenderer.EXTENSION_POINT, new MyModSiteTagRenderer()).build();
-```
+Research ID display, discovery and copying belong to AspectRecipeIndex. `ARIConfig.showResearchId` defaults to `false` and controls only ID labels and shortcut hints. Copying works with this setting disabled. Hover a visible research tree entry, a research-page title, or an ARI NEI research widget and use NEI's configured **Copy identifier** shortcut (`copy.identifier`) with its control modifier. The clipboard receives the original ID. `showResearchKey` independently controls whether NEI shows its research widgets. Copying from a research page is limited to its title area, preserving item-copy actions in the body.
 
-registrado renderers son asked antes de El built-en ones, y El primero uno que devuelve markup wins, so a
-renderer solo tiene Un handle El etiquetas it declares. Returning `null` leaves El element Un El siguiente renderer
-o Un El built-en export. Un renderer que throws es reported en El log y skipped, so uno broken plugin
-no puede fail El export of Un página it hace no propio.
+### Exporting research IDs
 
-El context carries El página being exported y El shared export services: `defaultNamespace`,
-`currentPageId`, `templates`, `sceneResolver` y `compiler`, El mismo valores El built-en renderers funcionan
-con. Markup you escribir es inserted en El página as it es, so escape texto con
-`GuideSiteGraphRenderer.esc(...)`.
+In NEI Options → Tools → Data Dumps, select **Thaumcraft research IDs**, choose CSV or JSON and press Dump. The complete registry is written to `dumps/thaumcraftresearch.csv` or `dumps/thaumcraftresearch.json` below the game directory. The UTF-8 catalogue includes ID, category ID/name, title, description, normal/hidden parents, siblings, flags and item/texture icons. It includes research with no NEI recipe and excludes player progress. Export remains available with `showResearchId` disabled.
 
-esto significa Un guíUn que targets BetterQuesting puede ser authored once y silently degrade en environments where BetterQuesting es no installed.
+### Progress and return navigation
+
+Research binding IDs preserve case. Reopen a guide to refresh progress; resource/world changes invalidate the research catalog. Native research browsing never unlocks or purchases research. Return from the research entry to its tree, then use Escape to return to the retained guide.

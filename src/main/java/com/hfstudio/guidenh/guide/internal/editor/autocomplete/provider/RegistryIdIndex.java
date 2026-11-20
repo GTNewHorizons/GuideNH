@@ -11,7 +11,11 @@ import java.util.Set;
 import net.minecraft.block.Block;
 import net.minecraft.item.Item;
 
-/** Read-only views of the game registries shaped for completion queries: identifiers sorted, their lowercase. */
+import com.hfstudio.guidenh.guide.internal.fluid.FluidCatalog;
+
+/**
+ * Read-only views of the game registries shaped for completion queries: identifiers sorted, their lowercase.
+ */
 public class RegistryIdIndex {
 
     public record Entry(String id, String lower) {}
@@ -75,6 +79,8 @@ public class RegistryIdIndex {
 
     private static Snapshot itemSnapshot = build(Collections.emptySet());
     private static Snapshot blockSnapshot = build(Collections.emptySet());
+    private static Snapshot fluidSnapshot = build(Collections.emptySet());
+    private static List<FluidCatalog.Entry> cachedFluidEntries = List.of();
     private static int cachedItemKeyCount = -1;
     private static int cachedBlockKeyCount = -1;
     private static Set<String> cachedItemKeys = Set.of();
@@ -110,6 +116,17 @@ public class RegistryIdIndex {
             nextBlockRebuildAtMillis = now + REBUILD_INTERVAL_MILLIS;
         }
         return blockSnapshot;
+    }
+
+    public static Snapshot fluids() {
+        var entries = FluidCatalog.INSTANCE.entries();
+        if (entries != cachedFluidEntries) {
+            Set<String> keys = new HashSet<>();
+            for (var entry : entries) keys.add(entry.id());
+            fluidSnapshot = build(keys);
+            cachedFluidEntries = entries;
+        }
+        return fluidSnapshot;
     }
 
     private static boolean sameKeys(Set<?> keysView, Set<String> previous) {

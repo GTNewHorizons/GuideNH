@@ -67,6 +67,7 @@ class ScriptContextImpl implements ScriptContext {
         // discussion of why Flow and Block trees are separate and how this bridge works.
         //
         if (node instanceof LytFlowInlineBlock wrapper && newNode instanceof LytBlock newBlock) {
+            inheritUid(wrapper.getBlock(), newBlock);
             wrapper.setBlock(newBlock);
             recordResult(newBlock);
             return;
@@ -191,12 +192,13 @@ class ScriptContextImpl implements ScriptContext {
     }
 
     /**
-     * When a node is replaced, the new node must carry the old node's UID so
-     * that the node-level result cache ({@link LytHost#recordNodeResult}) can
-     * find it on remount. Without this, the replacement gets a fresh UID on the
-     * next {@code allocateNodeUids} pass and all prior cache entries are orphaned.
+     * Preserves source positions and the UID used to restore materialized content on remount.
      */
     private static void inheritUid(Object oldNode, Object newNode) {
+        if (oldNode instanceof LytNode original && newNode instanceof LytNode replacement
+            && replacement.getSourceNode() == null) {
+            replacement.setSourceNode(original.getSourceNode());
+        }
         String uid = null;
         if (oldNode instanceof LytNode ln) uid = ln.getNodeUid();
         else if (oldNode instanceof LytFlowContent fc) uid = fc.getNodeUid();

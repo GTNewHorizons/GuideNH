@@ -48,7 +48,13 @@ public class SubprocessShape implements ShapeRenderer {
     public LytRect contentBounds(LytRect nodeRect, int cw, int ch, int padX, int padY) {
         int innerX = nodeRect.x() + FRAME_WIDTH;
         int innerW = nodeRect.width() - FRAME_WIDTH * 2;
-        return new LytRect(innerX + padX, nodeRect.y() + padY, innerW - 2 * padX, nodeRect.height() - 2 * padY);
+        return ShapeUtils.centeredContent(
+            innerX + padX,
+            nodeRect.y() + padY,
+            innerW - 2 * padX,
+            nodeRect.height() - 2 * padY,
+            cw,
+            ch);
     }
 
     @Override

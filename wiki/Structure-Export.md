@@ -1,12 +1,11 @@
 # Structure Export
 
-## English
 
 `/exportStructure` exports PNG screenshots from either StructureLib previews or loaded GuideNH GameScene blocks. The command is client-side. The `structureLib` subcommand is available only when StructureLib is loaded.
 
 The exporter uses orthographic rendering. Output size may change with the structure or scene size, while the configured block scale stays stable. The default scale is 128 pixels per block.
 
-### Command Forms
+## Command Forms
 
 ```text
 /exportStructure structureLib [controller] [options...]
@@ -22,7 +21,7 @@ For `structureLib`, `controller` uses `modid:name` or `modid:name:meta`. When om
 
 For `gameScene`, no positional selector is used. It exports every GameScene compiled from the currently loaded guides.
 
-### Shared Parameters
+## Shared Parameters
 
 | Parameter | Description |
 | --- | --- |
@@ -40,7 +39,7 @@ For `gameScene`, no positional selector is used. It exports every GameScene comp
 | `--dry-run` | Builds the plan and manifest without writing PNG files. |
 | `--config <file>` / `@file.json` | Loads JSON configuration. |
 
-### StructureLib Parameters
+## StructureLib Parameters
 
 | Parameter | Description |
 | --- | --- |
@@ -53,7 +52,7 @@ For `gameScene`, no positional selector is used. It exports every GameScene comp
 | `--gt-active-controller` | GregTech only. Renders the controller with its active machine texture when possible. |
 | `--gt-place-hatches` | GregTech only. Enables normal GT Hatch channel placement for Hatch-only preview positions; fallback casing remains the default when omitted. |
 
-### GameScene Parameters
+## GameScene Parameters
 
 | Parameter | Description |
 | --- | --- |
@@ -62,7 +61,7 @@ For `gameScene`, no positional selector is used. It exports every GameScene comp
 
 GameScene mode respects each scene's own configured camera by default. Use `--view`, `--yaw`, `--pitch`, `--roll`, `--rotateX`, `--rotateY`, or `--rotateZ` when you want a fitted export view instead.
 
-### Numeric Filters
+## Numeric Filters
 
 Numeric filters are used by `--tier`, `--channel`, and `--layers`.
 
@@ -75,7 +74,7 @@ Numeric filters are used by `--tier`, `--channel`, and `--layers`.
 
 `0` matches one value. `0-12` matches an inclusive range. `!` excludes values. Commas combine tokens.
 
-### Layers
+## Layers
 
 `--layers all` exports the full structure or scene in one image.
 
@@ -85,7 +84,7 @@ Numeric filters are used by `--tier`, `--channel`, and `--layers`.
 
 Layer-filtered rendering forces exposed block faces to render so hidden neighboring layers do not leave missing faces.
 
-### StructureLib Tiers And Channels
+## StructureLib Tiers And Channels
 
 When `--tier` and `--channel` are omitted, the exporter inspects the controller and exports one screenshot for each available unified tier. The same tier value is applied to the master tier and every discovered StructureLib channel. Automatic unified tier export is capped at 100 screenshots per controller/orientation.
 
@@ -97,7 +96,7 @@ When one or more `--channel` options are provided, those explicit channel values
 /exportStructure structureLib gregtech:gt.blockmachines:1234 --tier 1,2 --channel coil=1-4 --channel casing=1,2
 ```
 
-### GregTech Options
+## GregTech Options
 
 GregTech integration keeps optional Hatch-capable positions as their normal fallback casing by default. Forced Hatch elements, such as a Muffler position, still render as the requested Hatch.
 
@@ -105,7 +104,7 @@ Use `--gt-place-hatches` when you want GT's normal StructureLib Hatch channel lo
 
 Use `--gt-active-controller` when a controller should render with its active texture. The exporter still performs preview state synchronization without treating a failed machine check as an export failure.
 
-### Orientation
+## Orientation
 
 Bulk syntax:
 
@@ -121,7 +120,7 @@ Explicit syntax:
 
 Both forms can be used together. Invalid combinations are skipped when StructureLib alignment limits reject them. If no orientation is specified, the controller default is used.
 
-### Views
+## Views
 
 Supported presets include:
 
@@ -138,7 +137,7 @@ You can refine any preset:
 --view isometric-south-east --yaw 315 --pitch 30 --roll 0
 ```
 
-### JSON Config
+## JSON Config
 
 StructureLib example:
 
@@ -193,7 +192,7 @@ Run configs with:
 
 Relative config paths are searched from the current working directory and `config/guidenh/structure_exports/`.
 
-### Output And Manifest
+## Output And Manifest
 
 Each export directory contains PNG files and `manifest.json`.
 
@@ -203,10 +202,10 @@ GameScene image names include guide ID, page ID, scene index, layers, camera mod
 
 Names are sanitized for Windows filename rules. The manifest records output path, image size, selected variants, warnings, and errors.
 
-### Performance
+## Performance
 
 The command refuses plans over 256 screenshots unless `--force` is present.
 
-By default, one image cannot exceed `655360000` pixels. This default is sized from a 200x100x200 class machine using a 128 pixels-per-projected-block budget. If a giant structure still needs more room, lower `--pixelsPerBlock` or `--scale`, crop with `--layers`, raise `--maxPixels`, or use `--maxPixels -1` to disable the pixel limit.
+By default, one image cannot exceed `655360000` pixels. If a giant structure still needs more room, lower `--pixelsPerBlock` or `--scale`, crop with `--layers`, raise `--maxPixels`, or use `--maxPixels -1` to disable the pixel limit.
 
 Large images use tiled framebuffer rendering when they exceed the GPU texture size.

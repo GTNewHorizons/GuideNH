@@ -7,8 +7,7 @@ import java.util.List;
 import com.hfstudio.guidenh.guide.document.block.LytNode;
 
 /**
- * Registry for debug info extractors.
- * Allows modular registration of extractors for different element types.
+ * Ordered registry of debug information extractors.
  */
 public class DebugInfoExtractorRegistry {
 

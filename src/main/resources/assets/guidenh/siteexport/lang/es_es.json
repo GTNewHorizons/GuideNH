@@ -25,8 +25,11 @@
   "navigation": {
     "open": "Navegación",
     "close": "Cerrar navegación",
-    "holdToOpenGuide": "Mantén G para abrir la guía"
+    "holdToOpenGuide": "Mantén G para abrir la guía",
+    "chooseGuide": "Elegir una página de la guía",
+    "closeChooser": "Cerrar el selector de páginas"
   },
+  "binding.nativeSite": "Abre esta guía en GuideNH para ver el contenido dentro del juego.",
   "sceneLoading": {
     "error": "No se pudo cargar la escena 3D.",
     "retry": "Reintentar",

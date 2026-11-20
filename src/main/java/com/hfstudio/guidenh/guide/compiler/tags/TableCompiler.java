@@ -30,6 +30,7 @@ public class TableCompiler extends BlockTagCompiler {
     @Override
     protected void compile(PageCompiler compiler, LytBlockContainer parent, MdxJsxElementFields el) {
         LytTable table = new LytTable();
+        if (el instanceof MdxJsxFlowElement source) table.setSourceNode(source);
         table.setMarginBottom(PageCompiler.DEFAULT_ELEMENT_SPACING);
 
         String alignStr = el.getAttributeString("align", "");
@@ -82,6 +83,7 @@ public class TableCompiler extends BlockTagCompiler {
                     table.setMarginBottom(0);
                 }
                 LytParagraph title = new LytParagraph();
+                title.setSourceNode(caption);
                 String captionAlign = caption.getAttributeString("align", "center")
                     .trim();
                 title.modifyStyle(
@@ -141,6 +143,7 @@ public class TableCompiler extends BlockTagCompiler {
     private static boolean compileRow(PageCompiler compiler, LytTable table, MdxJsxFlowElement rowElement,
         String alignStr, boolean firstRow, int cellPadding, boolean hasCellPadding, boolean headerSection) {
         LytTableRow row = table.appendRow();
+        row.setSourceNode(rowElement);
         if (firstRow && !headerSection
             && rowElement.children()
                 .stream()
@@ -157,6 +160,7 @@ public class TableCompiler extends BlockTagCompiler {
                 int columnSpan = parseSpan(cellElement.getAttributeString("colspan", "1"));
                 int rowSpan = parseSpan(cellElement.getAttributeString("rowspan", "1"));
                 LytTableCell cell = row.appendCell(columnSpan, rowSpan);
+                cell.setSourceNode(cellElement);
                 if (hasCellPadding) {
                     cell.setPadding(cellPadding);
                 }

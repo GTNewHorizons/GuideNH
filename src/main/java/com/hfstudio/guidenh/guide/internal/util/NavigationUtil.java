@@ -28,6 +28,16 @@ public class NavigationUtil {
         if (navigation == null) {
             return null;
         }
+        if (!navigation.iconFluids()
+            .isEmpty()) {
+            try {
+                return GuidePageIcon.cycleFluids(navigation.iconFluids());
+            } catch (IllegalArgumentException exception) {
+                GuideDebugLog
+                    .warn("[GuideNH] Invalid fluid navigation icon on {}: {}", page.getId(), exception.getMessage());
+                return null;
+            }
+        }
 
         var iconTextureEntries = navigation.iconTextureEntries();
         if (iconTextureEntries != null && !iconTextureEntries.isEmpty()) {

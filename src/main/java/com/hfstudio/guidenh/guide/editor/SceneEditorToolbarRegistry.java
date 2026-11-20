@@ -22,7 +22,9 @@ public class SceneEditorToolbarRegistry {
     private static final Map<String, SceneEditorToolbarButton> BUTTONS = new ConcurrentHashMap<>();
     private static final AtomicInteger BUTTON_IDS = new AtomicInteger(-1000);
 
-    /** Registers a button and returns a handle that removes that exact contribution when closed. */
+    /**
+     * Registers a button and returns a handle that removes that exact contribution when closed.
+     */
     public static SceneEditorRegistration register(SceneEditorToolbarButton button) {
         if (button == null) throw new NullPointerException("button");
         String id = SceneEditorToolbarButton.requireId(button.id());
@@ -34,7 +36,9 @@ public class SceneEditorToolbarRegistry {
         return () -> BUTTONS.remove(id, button);
     }
 
-    /** Returns visible buttons sorted by order and then id. */
+    /**
+     * Returns visible buttons sorted by order and then id.
+     */
     public static List<SceneEditorToolbarButton> snapshot() {
         synchronized (LOCK) {
             List<SceneEditorToolbarButton> result = new ArrayList<>(BUTTONS.values());
@@ -46,7 +50,9 @@ public class SceneEditorToolbarRegistry {
         }
     }
 
-    /** Returns a negative id suitable for editor-owned transient button widgets. */
+    /**
+     * Returns a negative id suitable for editor-owned transient button widgets.
+     */
     public static int nextButtonId() {
         return BUTTON_IDS.getAndDecrement();
     }

@@ -16,7 +16,9 @@ public interface AutocompleteCandidate {
         return 14;
     }
 
-    /** Width hint for popup sizing. Default 0 means use displayText width. */
+    /**
+     * Width hint for popup sizing. Default 0 means use displayText width.
+     */
     default int renderWidth(FontRenderer fontRenderer) {
         return 0;
     }

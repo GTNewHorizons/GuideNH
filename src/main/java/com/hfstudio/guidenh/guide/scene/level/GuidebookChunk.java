@@ -19,6 +19,10 @@ public class GuidebookChunk {
      */
     private final Int2ObjectOpenHashMap<Section> sections = new Int2ObjectOpenHashMap<>();
 
+    private int cachedSectionY;
+    private Section cachedSection;
+    private boolean cachedSectionValid;
+
     @Getter
     private int filledCount = 0;
 
@@ -32,25 +36,26 @@ public class GuidebookChunk {
     }
 
     public Block getBlock(int x, int y, int z) {
-        Section section = sections.get(y >> 4);
+        Section section = getSection(y >> 4);
         return section != null ? section.blocks[index(x, y, z)] : null;
     }
 
     public int getMeta(int x, int y, int z) {
-        Section section = sections.get(y >> 4);
+        Section section = getSection(y >> 4);
         return section != null ? section.metas[index(x, y, z)] : 0;
     }
 
     public boolean setBlock(int x, int y, int z, Block block, int meta) {
         int idx = index(x, y, z);
         int sectionY = y >> 4;
-        Section section = sections.get(sectionY);
+        Section section = getSection(sectionY);
         if (section == null) {
             if (block == null || block == Blocks.air) {
                 return false;
             }
             section = new Section();
             sections.put(sectionY, section);
+            cachedSection = section;
         }
         Block prev = section.blocks[idx];
         boolean prevFilled = prev != null && prev != Blocks.air;
@@ -61,6 +66,7 @@ public class GuidebookChunk {
             filledCount--;
             if (--section.filledCount == 0) {
                 sections.remove(sectionY);
+                cachedSection = null;
             }
             return true;
         } else if (!prevFilled && nextFilled) {
@@ -73,6 +79,15 @@ public class GuidebookChunk {
 
     public boolean isEmpty() {
         return filledCount == 0;
+    }
+
+    private Section getSection(int sectionY) {
+        if (!cachedSectionValid || cachedSectionY != sectionY) {
+            cachedSectionY = sectionY;
+            cachedSection = sections.get(sectionY);
+            cachedSectionValid = true;
+        }
+        return cachedSection;
     }
 
     public void forEachBlock(BlockIterator it) {

@@ -27,6 +27,8 @@ import com.hfstudio.guidenh.guide.compiler.tags.DivTagCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.EmphasisCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.FileTreeTagCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.FloatingImageCompiler;
+import com.hfstudio.guidenh.guide.compiler.tags.FluidImageCompiler;
+import com.hfstudio.guidenh.guide.compiler.tags.FluidLinkCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.FootnoteListCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.HeadingCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.HrCompiler;
@@ -68,6 +70,8 @@ import com.hfstudio.guidenh.guide.compiler.tags.mediawiki.TemplateCompiler;
 import com.hfstudio.guidenh.guide.extensions.Extension;
 import com.hfstudio.guidenh.guide.extensions.ExtensionCollection;
 import com.hfstudio.guidenh.guide.extensions.ExtensionPoint;
+import com.hfstudio.guidenh.guide.internal.binding.BindingBlockCompiler;
+import com.hfstudio.guidenh.guide.internal.binding.BindingLinkCompiler;
 import com.hfstudio.guidenh.guide.internal.syntax.BuiltinSyntaxContributor;
 import com.hfstudio.guidenh.guide.nei.NeiActionLinkResolver;
 import com.hfstudio.guidenh.guide.scene.SceneTagCompiler;
@@ -146,6 +150,8 @@ public class DefaultExtensions {
                 new SuperscriptTagCompiler(),
                 new ColorTagCompiler(),
                 new ItemLinkCompiler(),
+                new BindingLinkCompiler(),
+                new BindingBlockCompiler(),
                 new FloatingImageCompiler(),
                 new BreakCompiler(),
                 new WordBreakCompiler(),
@@ -154,6 +160,8 @@ public class DefaultExtensions {
                 new FileTreeTagCompiler(),
                 new RecipeCompiler(),
                 new ItemGridCompiler(),
+                new FluidImageCompiler(),
+                new FluidLinkCompiler(),
                 new CategoryCompiler(),
                 new SpecialCompiler(),
                 new TemplateCompiler(),
@@ -183,7 +191,6 @@ public class DefaultExtensions {
                 new FunctionGraphTagCompiler(),
                 new FunctionTagCompiler(),
                 new LatexTagCompiler(),
-                // Phase 2A: block-level compilers
                 new ParagraphCompiler(),
                 new HeadingCompiler(),
                 new ListCompiler(),
@@ -192,7 +199,6 @@ public class DefaultExtensions {
                 new BlockquoteCompiler(),
                 new TableCompiler(),
                 new HrCompiler(),
-                // Phase 2A: inline compilers
                 new StrongCompiler(),
                 new EmphasisCompiler(),
                 new DelUWaveMarkCompiler(),

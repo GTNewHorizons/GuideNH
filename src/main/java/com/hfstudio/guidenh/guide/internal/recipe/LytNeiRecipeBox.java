@@ -17,10 +17,12 @@ import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.block.LytBlock;
 import com.hfstudio.guidenh.guide.document.interaction.DocumentDragTarget;
+import com.hfstudio.guidenh.guide.document.interaction.FluidContent;
 import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;
 import com.hfstudio.guidenh.guide.document.interaction.TextTooltip;
 import com.hfstudio.guidenh.guide.internal.GuidebookText;
+import com.hfstudio.guidenh.guide.internal.fluid.FluidStackSpec;
 import com.hfstudio.guidenh.guide.internal.item.GuideDisplayItemStacks;
 import com.hfstudio.guidenh.guide.internal.screen.GuideIconButton;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
@@ -56,7 +58,7 @@ import lombok.Getter;
  * "recipe pool" category; hovering a slot yields an {@link NeiItemTooltip} carrying the extra
  * tooltip lines that NEI's tab normally contributes. The icon itself has no tooltip.
  */
-public class LytNeiRecipeBox extends LytBlock implements InteractiveElement, DocumentDragTarget {
+public class LytNeiRecipeBox extends LytBlock implements InteractiveElement, DocumentDragTarget, FluidContent {
 
     public static final int FRAME_BORDER = 4;
     public static final int ICON_SIZE = 8;
@@ -81,7 +83,9 @@ public class LytNeiRecipeBox extends LytBlock implements InteractiveElement, Doc
     private final int recipeIndex;
     private final String handlerName;
     private final @Nullable ItemStack iconStack;
-    /** Raw {@code codechicken.nei.drawable.DrawableResource} (kept opaque via Object). */
+    /**
+     * Raw {@code codechicken.nei.drawable.DrawableResource} (kept opaque via Object).
+     */
     private final @Nullable Object iconImage;
     private final int iconImageW;
     private final int iconImageH;
@@ -133,10 +137,7 @@ public class LytNeiRecipeBox extends LytBlock implements InteractiveElement, Doc
 
         this.bodyWidth = handlerW + BODY_HORIZONTAL_BLEED * 2;
         this.bodyYShift = Math.max(0, registry.lookupRecipeHandlerYShift(handler));
-        this.bodyTopInset = resolveBodyTopInset(
-            handler.getClass()
-                .getName(),
-            bodyYShift);
+        this.bodyTopInset = resolveBodyTopInset(handler, bodyYShift);
         this.bodyHeight = NeiRecipeLayoutMetrics.resolveBodyHeight(handlerH, recipeH, DEFAULT_BODY_HEIGHT);
 
         int fh = Minecraft.getMinecraft().fontRenderer.FONT_HEIGHT;
@@ -368,7 +369,7 @@ public class LytNeiRecipeBox extends LytBlock implements InteractiveElement, Doc
             try {
                 GL11.glTranslatef(x, y, 0f);
                 GL11.glScalef(scale, scale, 1f);
-                context.renderItem(stack, 0, 0);
+                NeiHandlerRenderer.drawItemIcon(stack, 0, 0);
             } finally {
                 GL11.glPopMatrix();
             }
@@ -426,6 +427,13 @@ public class LytNeiRecipeBox extends LytBlock implements InteractiveElement, Doc
         }
 
         RecipeSlots slots = recipeSlots(registry);
+        RecipeSlot fluidHit = fluidSlotAt(slots, bodyX, bodyY, px, py);
+        if (fluidHit != null) {
+            var positionedHit = NeiRecipeLookup.findPositionedStackHit(handler, recipeIndex, px - bodyX, py - bodyY);
+            List<String> extra = positionedHit == null ? List.of()
+                : NeiRecipeLookup.positionedTooltip(handler, positionedHit.positionedStack, positionedHit.ingredient);
+            return Optional.ofNullable(FluidRecipeRenderer.tooltip(fluidHit, handler, recipeIndex, extra));
+        }
         ItemStack hit = findSlotHit(slots.ingredients, bodyX, bodyY, px, py);
         if (hit == null) {
             hit = findSlotHit(slots.others, bodyX, bodyY, px, py);
@@ -492,19 +500,36 @@ public class LytNeiRecipeBox extends LytBlock implements InteractiveElement, Doc
         return null;
     }
 
-    public static @Nullable ItemStack pickVisibleStack(RecipeSlot s) {
-        if (s != null && s.currentStack() != null && s.currentStack().stackSize > 0) {
-            return s.currentStack();
-        }
-        if (s == null || s.stacks()
-            .isEmpty()) return null;
-        for (int i = 0, n = s.stacks()
-            .size(); i < n; i++) {
-            ItemStack st = s.stacks()
-                .get(i);
-            if (st != null && st.stackSize > 0) return st;
-        }
+    @Override
+    public @Nullable FluidStackSpec getFluidSpec() {
         return null;
+    }
+
+    @Override
+    public @Nullable FluidStackSpec getFluidSpecAt(int x, int y) {
+        int bodyX = bounds.x() + FRAME_BORDER + BODY_HORIZONTAL_BLEED;
+        int bodyY = bounds.y() + FRAME_BORDER + titleHeight + BODY_MARGIN + bodyTopInset + bodyYShift;
+        var hit = fluidSlotAt(recipeSlots(GuideNhIntegrationRegistry.global()), bodyX, bodyY, x, y);
+        return hit == null ? null : hit.currentFluid();
+    }
+
+    private static @Nullable RecipeSlot fluidSlotAt(RecipeSlots slots, int originX, int originY, int x, int y) {
+        for (var slot : slots.ingredients) {
+            if (isFluidHit(slot, originX, originY, x, y)) return slot;
+        }
+        for (var slot : slots.others) {
+            if (isFluidHit(slot, originX, originY, x, y)) return slot;
+        }
+        return isFluidHit(slots.result, originX, originY, x, y) ? slots.result : null;
+    }
+
+    private static boolean isFluidHit(@Nullable RecipeSlot slot, int originX, int originY, int x, int y) {
+        return slot != null && slot.currentFluid() != null
+            && isOver(originX + slot.x(), originY + slot.y(), SLOT_SIZE, SLOT_SIZE, x, y);
+    }
+
+    public static @Nullable ItemStack pickVisibleStack(RecipeSlot s) {
+        return NeiHandlerRenderer.pickVisibleStack(s);
     }
 
     public static boolean isOver(int x, int y, int w, int h, int px, int py) {
@@ -536,8 +561,8 @@ public class LytNeiRecipeBox extends LytBlock implements InteractiveElement, Doc
         return stack != null ? stack.copy() : null;
     }
 
-    private static int resolveBodyTopInset(String handlerClassName, int bodyYShift) {
-        if (!GREGTECH_DEFAULT_NEI_HANDLER.equals(handlerClassName)) return 0;
+    private static int resolveBodyTopInset(Object handler, int bodyYShift) {
+        if (!NeiRecipeLookup.isHandlerType(handler, GREGTECH_DEFAULT_NEI_HANDLER)) return 0;
         return Math.max(0, GREGTECH_WINDOW_TOP_BLEED - Math.max(bodyYShift, 0));
     }
 }

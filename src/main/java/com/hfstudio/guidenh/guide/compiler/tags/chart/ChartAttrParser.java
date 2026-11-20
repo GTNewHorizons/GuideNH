@@ -18,7 +18,9 @@ import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
  */
 public class ChartAttrParser {
 
-    /** Default 16-color cyclic palette (opaque). */
+    /**
+     * Default 16-color cyclic palette (opaque).
+     */
     protected ChartAttrParser() {}
 
     public static int paletteColor(int index) {
@@ -120,8 +122,10 @@ public class ChartAttrParser {
                 double y = Double.parseDouble(
                     p.substring(colon + 1)
                         .trim());
-                xs.add(x);
-                ys.add(y);
+                if (Double.isFinite(x) && Double.isFinite(y)) {
+                    xs.add(x);
+                    ys.add(y);
+                }
             } catch (NumberFormatException ex) {
                 // Skip
             }
@@ -158,6 +162,7 @@ public class ChartAttrParser {
         if (t.isEmpty()) {
             return def;
         }
+        if ("transparent".equalsIgnoreCase(t)) return 0;
         if (t.charAt(0) == '#') {
             t = t.substring(1);
         } else if (t.startsWith("0x") || t.startsWith("0X")) {
