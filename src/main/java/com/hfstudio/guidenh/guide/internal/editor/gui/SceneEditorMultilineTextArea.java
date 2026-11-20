@@ -18,6 +18,8 @@ import org.lwjgl.opengl.GL11;
 import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.compiler.GuideMarkdownOptions;
 import com.hfstudio.guidenh.guide.document.LytRect;
+import com.hfstudio.guidenh.guide.internal.debug.DebugComponent;
+import com.hfstudio.guidenh.guide.internal.debug.ScreenDebugComponents;
 import com.hfstudio.guidenh.guide.internal.markdown.MdAstToMdxConverter;
 import com.hfstudio.guidenh.guide.internal.util.DisplayScale;
 import com.hfstudio.guidenh.guide.internal.util.SmoothFloatState;
@@ -33,7 +35,7 @@ import com.hfstudio.guidenh.libs.unist.UnistPosition;
 
 import lombok.Getter;
 
-public class SceneEditorMultilineTextArea {
+public class SceneEditorMultilineTextArea implements DebugComponent {
 
     public static final int PADDING = 4;
     public static final int SCROLLBAR_SIZE = 5;
@@ -54,6 +56,7 @@ public class SceneEditorMultilineTextArea {
     private final SceneEditorMultilineTextLayoutCache layoutCache = new SceneEditorMultilineTextLayoutCache();
     private final ClipboardAccess clipboardAccess;
     private final GuiTextField imeFocusProxy;
+    private final ScreenDebugComponents debugComponents = new ScreenDebugComponents();
 
     private int x;
     private int y;
@@ -129,6 +132,11 @@ public class SceneEditorMultilineTextArea {
 
     public LytRect getBounds() {
         return new LytRect(x, y, width, height);
+    }
+
+    @Override
+    public List<ComponentEntry> getDebugComponents() {
+        return debugComponents.getDebugComponents();
     }
 
     public SceneEditorMultilineTextArea(FontRenderer fontRenderer, ClipboardAccess clipboardAccess) {
@@ -388,9 +396,41 @@ public class SceneEditorMultilineTextArea {
     public void setVerticalScrollFraction(float fraction) {
         int maxOffset = Math.max(0, scrollState.getContentPixels() - scrollState.getViewportPixels());
         int offset = Math.round(Math.clamp(fraction, 0f, 1f) * maxOffset);
+        setVerticalScrollPixels(offset);
+    }
+
+    public int getVerticalScrollPixels() {
+        return scrollState.getOffsetPixels();
+    }
+
+    public int getMaxVerticalScrollPixels() {
+        return scrollState.getMaxOffsetPixels();
+    }
+
+    public void setVerticalScrollPixels(int offset) {
         scrollState.setOffsetPixels(offset);
         snapVisualOffsetsToTarget();
         syncImeFocusProxy();
+    }
+
+    public long getTextLayoutRevision() {
+        return layoutCache.getRevision();
+    }
+
+    public double getContentYForOffset(int offset) {
+        var lines = layoutCache.getVisualLines();
+        int low = 0;
+        int high = lines.size();
+        while (low + 1 < high) {
+            int middle = (low + high) >>> 1;
+            if (lines.get(middle)
+                .startIndex() <= offset) low = middle;
+            else high = middle;
+        }
+        var line = lines.get(low);
+        double fraction = Math
+            .clamp((offset - line.startIndex()) / (double) Math.max(1, line.endIndex() - line.startIndex()), 0, 1);
+        return (low + fraction) * getLineHeight();
     }
 
     public void setWrapEnabled(boolean wrapEnabled) {
@@ -1050,6 +1090,7 @@ public class SceneEditorMultilineTextArea {
     }
 
     public void draw(boolean validationError) {
+        debugComponents.beginFrame();
         updateVisualOffsets();
         int renderedVerticalOffset = visualVerticalOffsetPixels.rounded();
         int renderedHorizontalOffset = visualHorizontalOffsetPixels.rounded();
@@ -1059,6 +1100,17 @@ public class SceneEditorMultilineTextArea {
 
         int clipWidth = Math.max(0, getContentClipWidth());
         int clipHeight = Math.max(0, getContentClipHeight());
+        ComponentEntry textViewport = null;
+        if (debugComponents.isEnabled()) {
+            ComponentEntry editor = debugComponents.add(
+                "TextArea",
+                getBounds(),
+                "Focused: " + focused + " | Validation error: " + validationError + " | Wrap: " + wrapEnabled,
+                0,
+                null);
+            textViewport = debugComponents
+                .add("TextViewport", new LytRect(x, y, clipWidth, clipHeight), null, 0, editor);
+        }
         int scaleFactor = DisplayScale.scaleFactor();
         GL11.glEnable(GL11.GL_SCISSOR_TEST);
         GL11.glScissor(
@@ -1080,6 +1132,19 @@ public class SceneEditorMultilineTextArea {
                     drawY,
                     ColorUtils.ARGB_F0F0F0.getColor());
                 drawSyntaxWarningForLine(line, drawY, renderedHorizontalOffset);
+                if (debugComponents.isEnabled()) {
+                    debugComponents.addClipped(
+                        "TextLine",
+                        new LytRect(
+                            x + PADDING - renderedHorizontalOffset,
+                            drawY,
+                            Math.max(1, fontRenderer.getStringWidth(line.text())),
+                            lineHeight),
+                        new LytRect(x, y, clipWidth, clipHeight),
+                        "Offsets: " + line.startIndex() + ".." + line.endIndex(),
+                        0,
+                        textViewport);
+                }
             }
             drawY += lineHeight;
         }
@@ -1279,9 +1344,23 @@ public class SceneEditorMultilineTextArea {
         }
         int barLeft = x + width - SCROLLBAR_SIZE;
         int barBottom = y + getVerticalScrollbarTrackLength();
+        ComponentEntry track = debugComponents.isEnabled() ? debugComponents.add(
+            "VerticalScrollbar",
+            new LytRect(barLeft, y, SCROLLBAR_SIZE, barBottom - y),
+            null,
+            1,
+            debugComponents.getRoot()) : null;
         Gui.drawRect(barLeft, y, x + width, barBottom, SCROLLBAR_TRACK_COLOR);
         SceneEditorVerticalScrollbar.Thumb thumb = getVerticalScrollbarThumb();
         if (thumb != null) {
+            if (debugComponents.isEnabled()) {
+                debugComponents.add(
+                    "VerticalScrollbarThumb",
+                    new LytRect(barLeft, thumb.start(), SCROLLBAR_SIZE, thumb.end() - thumb.start()),
+                    null,
+                    1,
+                    track);
+            }
             Gui.drawRect(barLeft, thumb.start(), x + width, thumb.end(), SCROLLBAR_THUMB_COLOR);
         }
     }
@@ -1292,9 +1371,23 @@ public class SceneEditorMultilineTextArea {
         }
         int barTop = y + height - SCROLLBAR_SIZE;
         int barRight = x + getHorizontalScrollbarTrackLength();
+        ComponentEntry track = debugComponents.isEnabled() ? debugComponents.add(
+            "HorizontalScrollbar",
+            new LytRect(x, barTop, barRight - x, SCROLLBAR_SIZE),
+            null,
+            1,
+            debugComponents.getRoot()) : null;
         Gui.drawRect(x, barTop, barRight, y + height, SCROLLBAR_TRACK_COLOR);
         SceneEditorHorizontalScrollbar.Thumb thumb = getHorizontalScrollbarThumb();
         if (thumb != null) {
+            if (debugComponents.isEnabled()) {
+                debugComponents.add(
+                    "HorizontalScrollbarThumb",
+                    new LytRect(thumb.start(), barTop, thumb.end() - thumb.start(), SCROLLBAR_SIZE),
+                    null,
+                    1,
+                    track);
+            }
             Gui.drawRect(thumb.start(), barTop, thumb.end(), y + height, SCROLLBAR_THUMB_COLOR);
         }
     }

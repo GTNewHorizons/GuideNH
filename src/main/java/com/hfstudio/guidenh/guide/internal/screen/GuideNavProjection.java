@@ -164,6 +164,18 @@ public class GuideNavProjection {
     public ProjectionResult project(@Nullable NavigationTree tree, GuideBookmarkState bookmarkState,
         Set<NavigationNode.Key> expandedTreeNodeKeys, boolean bookmarkGroupExpanded,
         @Nullable Predicate<String> titleFilter) {
+        return project(
+            tree,
+            bookmarkState,
+            expandedTreeNodeKeys,
+            bookmarkGroupExpanded,
+            titleFilter,
+            titleFilter == null ? null : node -> titleFilter.test(node.title()));
+    }
+
+    public ProjectionResult project(@Nullable NavigationTree tree, GuideBookmarkState bookmarkState,
+        Set<NavigationNode.Key> expandedTreeNodeKeys, boolean bookmarkGroupExpanded,
+        @Nullable Predicate<String> titleFilter, @Nullable Predicate<NavigationNode> nodeFilter) {
         if (tree == null) {
             return new ProjectionResult(List.of());
         }
@@ -197,10 +209,10 @@ public class GuideNavProjection {
         }
 
         Set<NavigationNode> matchingNodes = null;
-        if (titleFilter != null) {
+        if (nodeFilter != null) {
             matchingNodes = Collections.newSetFromMap(new IdentityHashMap<>());
             for (var root : tree.getRootNodes()) {
-                collectMatchingNodes(root, titleFilter, matchingNodes);
+                collectMatchingNodes(root, nodeFilter, matchingNodes);
             }
         }
         for (var root : tree.getRootNodes()) {
@@ -342,11 +354,11 @@ public class GuideNavProjection {
         row.setSubtreeEndRowIndexExclusive(rows.size());
     }
 
-    private boolean collectMatchingNodes(NavigationNode node, Predicate<String> titleFilter,
+    private boolean collectMatchingNodes(NavigationNode node, Predicate<NavigationNode> nodeFilter,
         Set<NavigationNode> matchingNodes) {
-        boolean matches = titleFilter.test(node.title());
+        boolean matches = nodeFilter.test(node);
         for (NavigationNode child : node.children()) {
-            matches |= collectMatchingNodes(child, titleFilter, matchingNodes);
+            matches |= collectMatchingNodes(child, nodeFilter, matchingNodes);
         }
         if (matches) {
             matchingNodes.add(node);

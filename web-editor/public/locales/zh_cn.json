@@ -62,6 +62,7 @@
     "previewPending": "正在准备预览适配器",
     "navigationRuntime": "导航数据在运行时可用。",
     "tooltipRuntime": "预览数据在运行时可用。",
+    "binding.nativeSite": "请在 GuideNH 中打开此指南以查看原生内容。",
     "runtimeData": "运行时数据",
     "runtimePreview": "运行时预览",
     "sceneRuntime": "3D 场景在运行时可用",

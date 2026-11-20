@@ -2,7 +2,9 @@ package com.hfstudio.guidenh.guide.internal.debug;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -69,6 +71,78 @@ public class ScreenDebugComponents implements DebugComponent {
     public void include(DebugComponent component) {
         if (enabled) {
             entries.addAll(component.getDebugComponents());
+        }
+    }
+
+    public void include(DebugComponent component, LytRect clip, int priority, @Nullable ComponentEntry parent) {
+        if (!enabled) {
+            return;
+        }
+        Map<ComponentEntry, ComponentEntry> included = new IdentityHashMap<>();
+        for (ComponentEntry entry : component.getDebugComponents()) {
+            ComponentEntry embedded = embed(entry, clip, priority, parent, included);
+            if (!embedded.getBounds()
+                .isEmpty()) {
+                entries.add(embedded);
+            }
+        }
+    }
+
+    private ComponentEntry embed(ComponentEntry entry, LytRect clip, int priority, @Nullable ComponentEntry parent,
+        Map<ComponentEntry, ComponentEntry> included) {
+        ComponentEntry existing = included.get(entry);
+        if (existing != null) {
+            return existing;
+        }
+        ComponentEntry owner = entry.getParent() == null ? parent
+            : embed(entry.getParent(), clip, priority, parent, included);
+        LytRect bounds = entry.getBounds();
+        int left = Math.max(bounds.x(), clip.x());
+        int top = Math.max(bounds.y(), clip.y());
+        int right = Math.min(bounds.right(), clip.right());
+        int bottom = Math.min(bounds.bottom(), clip.bottom());
+        ComponentEntry embedded = new EmbeddedEntry(
+            entry,
+            new LytRect(left, top, Math.max(0, right - left), Math.max(0, bottom - top)),
+            priority + entry.getPriority(),
+            owner);
+        included.put(entry, embedded);
+        return embedded;
+    }
+
+    private record EmbeddedEntry(ComponentEntry source, LytRect bounds, int priority, @Nullable ComponentEntry parent)
+        implements ComponentEntry {
+
+        @Override
+        public String getName() {
+            return source.getName();
+        }
+
+        @Override
+        public LytRect getBounds() {
+            return bounds;
+        }
+
+        @Override
+        @Nullable
+        public String getExtraInfo() {
+            return source.getExtraInfo();
+        }
+
+        @Override
+        public int getPriority() {
+            return priority;
+        }
+
+        @Override
+        @Nullable
+        public ComponentEntry getParent() {
+            return parent;
+        }
+
+        @Override
+        public boolean containsPoint(int x, int y) {
+            return bounds.contains(x, y) && source.containsPoint(x, y);
         }
     }
 

@@ -43,8 +43,8 @@ export function fluidTooltipVisible(attributes) {
 }
 
 export function fluidIconSourceConflict(attributes) {
-  return attr(attributes, "iconFluid", "icon_fluid") !== undefined
-    && attr(attributes, "iconItem", "icon_item", "iconPng", "icon_png", "icon") !== undefined;
+  return attr(attributes, "iconFluid") !== undefined
+    && attr(attributes, "iconItem", "iconPng", "icon") !== undefined;
 }
 
 export function renderFluidLabel(name, format) {

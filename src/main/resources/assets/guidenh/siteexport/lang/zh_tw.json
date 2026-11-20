@@ -26,6 +26,7 @@
     "chooseGuide": "選擇指南頁面",
     "closeChooser": "關閉頁面選擇"
   },
+  "binding.nativeSite": "請在 GuideNH 中開啟此指南以查看原生內容。",
   "sceneLoading": {
     "error": "3D 場景載入失敗。",
     "retry": "重試",

@@ -26,6 +26,7 @@
     "chooseGuide": "Bir rehber sayfası seçin",
     "closeChooser": "Sayfa seçimini kapat"
   },
+  "binding.nativeSite": "Oyun içeriğini görmek için bu kılavuzu GuideNH içinde açın.",
   "sceneLoading": {
     "error": "3D sahne yüklenemedi.",
     "retry": "Yeniden dene",

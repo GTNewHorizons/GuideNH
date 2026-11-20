@@ -2,38 +2,66 @@
 
 O editor de guias no jogo sugere tags, atributos e valores enquanto você escreve uma página.
 
-## Usar a lista de candidatos
+The in-game guide editor suggests tags, attributes and values while you write a page.
 
-| Ação | Resultado |
+## Referência de escrita
+
+A lâmpada abre a referência de escrita. Pesquise tópicos, atributos, campos YAML ou exemplos à esquerda; Ctrl+F foca a pesquisa e o botão direito limpa o campo. Selecionar um tópico salta para o título no documento completo. Os dois painéis rolam suavemente.
+
+Voltar e Avançar restauram tópicos e posições. Passe o cursor sobre as marcas da barra direita para ver os títulos e clique para saltar. Copie exemplos pelo bloco de código ou o tópico em Markdown pela barra. A lâmpada permanece azul enquanto a referência está aberta; clique novamente para voltar ao guia preservando rascunho, seleção e histórico. Fechar ou Esc fecha a janela do guia. Traduções ausentes usam inglês.
+
+## Using the candidate list
+
+| Action | Result |
 | --- | --- |
-| ↑ / ↓ | Selecionar o candidato anterior ou seguinte |
-| Tab / Enter | Inserir o candidato selecionado |
-| Clique no candidato | Inserir o candidato selecionado |
-| Esc | Fechar a lista |
-| Roda do mouse | Rolar pelos candidatos |
-| Barra de rolagem | Arrastar a barra para rolar |
+| ↑ / ↓ | Select the previous or next candidate |
+| Tab / Enter | Insert the selected candidate |
+| Click | Insert the selected candidate |
+| Esc | Close the list |
+| Mouse wheel | Scroll through candidates |
+| Scrollbar | Drag the scrollbar to scroll |
 
-## Conclusão disponível
+## Supported completion
 
-| Local de edição | Sugestões |
+| While editing | Suggestions |
 | --- | --- |
-| `<...` | Nomes de tags válidos no contêiner atual |
-| `<Tag ...` | Nomes de atributos e delimitadores de seus valores |
-| `id="..."`, `fluid="..."` | Nomes de registro de itens e fluidos, receitas, páginas, recursos e outros valores compatíveis |
-| Markdown | Títulos, listas, tabelas, avisos e outras estruturas Markdown |
-| Bloco de código | Linguagens de código e nomes de blocos GuideNH compatíveis |
-| Frontmatter | Chaves YAML e valores compatíveis |
+| `<...` | Tag names valid in the enclosing container |
+| `<Tag ...` | Attribute names and their value delimiters |
+| `id="..."`, `fluid="..."` | Item and fluid registry names, recipes, pages, assets and other supported values |
+| Markdown | Headings, lists, tables, alerts and other Markdown constructs |
+| Code fence | Supported code languages and GuideNH fence names |
+| Frontmatter | YAML keys and supported values |
 
-A conclusão insere uma tag vazia ou um par de tags com o cursor dentro. Depois acrescente os atributos e o conteúdo necessários. Os valores de itens e fluidos mostram ícones; fluidos usam nomes de registro como `water` ou `steam`, e não IDs numéricos.
+Tag-name completion inserts an empty tag or a matching pair with the cursor inside. Add the attributes and content you need afterward. Item and fluid value candidates show icons; fluid values use registry names such as `water` or `steam`, rather than numeric IDs.
 
-## Texto multilinha e modelos
+### Quest and research IDs
 
-Os candidatos mostram prévias curtas. Os marcadores visíveis `\n` e `\t` representam quebras de linha e tabulações; a confirmação insere o texto real. A inserção multilinha segue a indentação atual e posiciona o cursor onde você deve continuar escrevendo.
+ID suggestions follow the content being edited:
 
-Para inserir um exemplo completo, abra o menu do editor com o botão direito e escolha um modelo. Há modelos de cenas e gráficos nesse menu. A conclusão normal de nomes mantém a tag vazia.
+| Editing | ID source |
+| --- | --- |
+| `ResearchLink`, `ResearchCard`, `ResearchIcon` | Thaumcraft research |
+| `QuestLink`, `QuestCard` | BetterQuesting quests |
+| `id` in a `bindings` entry | The system named by that entry's `type` |
+| `BindingLink`, `BindingCard`, `BindingIcon` | The system named by the tag's `type` |
 
-## Referências relacionadas
+For a binding entry, fill in `type` before choosing an `id`:
 
-- [Formato de página](Guide-Page-Format)
-- [Tags e atributos](Tags-Reference)
-- [Receitas](Recipes)
+```yaml
+bindings:
+  - {type: "thaumcraft", id: "INFUSION", anchor: "infusion"}
+```
+
+The game editor reads IDs from the loaded mod. Both IDE plugins also suggest IDs already used in workspace pages; connecting to the running game adds its registered IDs. Research IDs retain their original case. To find or copy an ID, see [Thaumcraft compatibility](Mod-Compatibility#finding-and-copying-research-ids).
+
+## Multiline text and templates
+
+Candidate rows use short previews. The visible `\n` and `\t` markers stand for line breaks and tabs; accepting a candidate inserts the actual text. Multiline insertion follows the current indentation and places the cursor where typing should continue.
+
+For a complete example, open the editor's right-click menu and choose a template. Scene and chart templates are available there. Normal tag-name completion keeps the tag empty.
+
+## Related references
+
+- [Page format](Guide-Page-Format)
+- [Tags and attributes](Tags-Reference)
+- [Recipes](Recipes)

@@ -211,6 +211,8 @@ public class GuideIconButton extends GuiButton {
         GUIDE_EDITOR_LAYOUT_EDITOR_ONLY(GuidebookText.GuideEditorLayoutEditorOnly, 0, 0),
         GUIDE_EDITOR_LAYOUT_PREVIEW_ONLY(GuidebookText.GuideEditorLayoutPreviewOnly, 0, 0),
         GUIDE_EDITOR_ADVANCED_TOGGLE(GuidebookText.GuideEditorAdvancedToggle, 0, 0),
+        GUIDE_EDITOR_REFERENCE(GuidebookText.GuideEditorReference, 4, 3),
+        GUIDE_EDITOR_REFERENCE_COPY(GuidebookText.GuideEditorReferenceCopy, 4, 1),
         GUIDE_EDITOR_HEADING_1(GuidebookText.GuideEditorHeading1, 10, 2),
         GUIDE_EDITOR_HEADING_2(GuidebookText.GuideEditorHeading2, 11, 2),
         GUIDE_EDITOR_HEADING_3(GuidebookText.GuideEditorHeading3, 12, 2),

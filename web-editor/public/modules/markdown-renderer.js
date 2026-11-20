@@ -2,6 +2,7 @@ import { attr, booleanAttr, colorValue, cssLength, escapeHtml, numberAttr, parse
 import { renderChart, renderFunctionGraph, renderMermaidDiagram } from "./visual-renderers.js";
 import { translatedString } from "./language.js";
 import { fluidDescription, fluidScale, renderFluidIcon, fluidTooltipVisible, fluidIconSourceConflict, renderFluidLabel } from "./fluid-presentation.js";
+import { BINDING_TAGS, renderBinding } from "./binding-presentation.js";
 import { advanceCodeFence, stripMdxComments } from "./markdown-source.js";
 
 function copy(context, key) { return escapeHtml(translatedString(context?.locale || "en_us", key)); }
@@ -13,6 +14,7 @@ const HTML_CONTAINER_TAGS = new Set(["address", "article", "aside", "blockquote"
 const RUNTIME_TAGS = new Set(["Block", "BlockImage", "BlockId", "ItemId", "GameScene", "Scene", "Structure", "Recipe", "RecipeFor", "RecipesFor", "ImportPonder", "Ponder", "QuestCard", "QuestLink", "BlockStats", "BlockStat", "ImportStructure", "ImportStructureLib", "IsometricCamera", "PlaySound", "RemoveBlocks", "RemoveEntity", "ReplaceBlock", "PlaceBlock", "BlockAnnotationTemplate", "Entity", "BoxAnnotation", "LineAnnotation", "DiamondAnnotation", "OutlineAnnotation", "TextAnnotation", "InputAnnotation", "SoundArea", "Series", "ReferenceLine", "LineSeries", "Slice", "PieInset", "Plot", "Point", "Tier", "Channel", "Facing", "Rotation", "Flip", "Orientation", "GregTechActiveController", "GregTechPlaceHatches"]);
 const ITEM_PLACEHOLDER_TAGS = new Set(["ItemLink", "ItemImage", "ItemIcon", "Block", "BlockId", "ItemId"]);
 const VOID_TAGS = new Set(["area", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr"]);
+for (const name of BINDING_TAGS) { INLINE_TAGS.add(name); BLOCK_TAGS.add(name); }
 const FLUID_TAGS = new Set(["FluidImage", "FluidLink", "FluidIcon"]);
 for (const name of FLUID_TAGS) {
   INLINE_TAGS.add(name);
@@ -42,12 +44,20 @@ function parseSimpleYaml(source) {
     const indent = line.match(/^\s*/)?.[0].length || 0;
     const list = line.match(/^\s*-\s+(.+)$/);
     if (list) {
+      while (stack.length > 1 && stack.at(-1).indent >= indent) stack.pop();
       if (pending && pending.indent < indent) {
         pending.parent[pending.key] = [];
         stack.at(-1).value = pending.parent[pending.key];
         pending = null;
       }
-      if (Array.isArray(stack.at(-1).value)) stack.at(-1).value.push(stripYamlValue(list[1]));
+      if (Array.isArray(stack.at(-1).value)) {
+        const pair = list[1].match(/^([\w-]+):\s*(.*)$/);
+        if (pair) {
+          const value = { [pair[1]]: stripYamlValue(pair[2]) };
+          stack.at(-1).value.push(value);
+          stack.push({ indent, value });
+        } else stack.at(-1).value.push(stripYamlValue(list[1]));
+      }
       continue;
     }
     const entry = line.match(/^\s*([\w-]+):\s*(.*)$/);
@@ -66,12 +76,39 @@ function parseSimpleYaml(source) {
   return attributes;
 }
 
+function splitYamlFlow(source, separator) {
+  const result = [];
+  let quote = "", depth = 0, start = 0;
+  for (let index = 0; index < source.length; index++) {
+    const character = source[index];
+    if (quote) {
+      if (quote === '"' && character === "\\") index++;
+      else if (character === quote) {
+        if (quote === "'" && source[index + 1] === "'") index++;
+        else quote = "";
+      }
+    } else if (character === '"' || character === "'") quote = character;
+    else if (character === "[" || character === "{") depth++;
+    else if (character === "]" || character === "}") depth--;
+    else if (depth === 0 && character === separator) { result.push(source.slice(start, index)); start = index + 1; }
+    else if (depth === 0 && character === "#" && (index === 0 || /\s/.test(source[index - 1]))) return [...result, source.slice(start, index)];
+  }
+  return [...result, source.slice(start)];
+}
+
 function stripYamlValue(value) {
-  const text = String(value).trim();
+  const text = splitYamlFlow(String(value), "\u0000")[0].trim();
   if (text === "true") return true;
   if (text === "false") return false;
   if (/^-?\d+(?:\.\d+)?$/.test(text)) return Number(text);
-  return text.replace(/^['"]|['"]$/g, "");
+  if (text.startsWith("[") && text.endsWith("]")) return splitYamlFlow(text.slice(1, -1), ",").filter(value => value.trim()).map(stripYamlValue);
+  if (text.startsWith("{") && text.endsWith("}")) return Object.fromEntries(splitYamlFlow(text.slice(1, -1), ",").flatMap(value => {
+    const parts = splitYamlFlow(value, ":");
+    return parts.length >= 2 ? [[String(stripYamlValue(parts[0])), stripYamlValue(parts.slice(1).join(":"))]] : [];
+  }));
+  if (text.startsWith('"') && text.endsWith('"')) { try { return JSON.parse(text); } catch (_) {} }
+  if (text.startsWith("'") && text.endsWith("'")) return text.slice(1, -1).replaceAll("''", "'");
+  return text;
 }
 
 function extractReferences(source) {
@@ -532,8 +569,8 @@ function renderQuote(source, context) {
     const accent = colorValue(attr(attributes, "color", "accent"), "var(--preview-quote-default)");
     const title = String(attr(attributes, "title", "label") || "").trim();
     const iconValue = attr(attributes, "icon");
-    const iconItem = attr(attributes, "iconItem", "icon_item");
-    const iconPng = attr(attributes, "iconPng", "icon_png");
+    const iconItem = attr(attributes, "iconItem");
+    const iconPng = attr(attributes, "iconPng");
     const icon = iconItem ? renderItemPlaceholder("ItemIcon", { id: iconItem, showId: false }, context, true) : iconPng ? `<img class="guide-quote-icon-image" src="${escapeHtml(resolveAsset(iconPng, context) || iconPng)}" alt="">` : iconValue ? `<span class="guide-quote-icon">${escapeHtml(iconValue)}</span>` : "";
     return `<blockquote class="guide-quote" style="--guide-quote-accent:${accent}">${title || icon ? `<div class="guide-quote-title">${icon}${title ? `<span>${escapeHtml(title)}</span>` : ""}</div>` : ""}<div class="guide-quote-body">${renderBlocks(normalizeNestedMarkdown(body), { ...context, suppressFootnotes: true })}</div></blockquote>`;
   }
@@ -667,6 +704,7 @@ function renderRichTooltip(attributes, body, context) {
 
 function renderTag(name, attributes, body, selfClosing, context, inline) {
   if (name === "Comment") return "";
+  if (BINDING_TAGS.has(name)) return renderBinding(name, attributes, context);
   const lowerName = name.toLowerCase();
   if (lowerName === "img") {
     const source = attr(attributes, "src") || "";
@@ -745,6 +783,7 @@ function preferredFluidUnit() {
 
 function renderBlockTag(name, attributes, body, context) {
   if (name === "Comment") return "";
+  if (BINDING_TAGS.has(name)) return renderBinding(name, attributes, context);
   if (name === "GameScene" || name === "Scene") return applyWrap(renderScenePlaceholder(name, attributes, context), attributes);
   if (name === "Tooltip") return renderRichTooltip(attributes, body, context);
   if (name === "Spoiler") return `<span class="guide-spoiler" tabindex="0"><span class="guide-spoiler-content">${renderInline(body, context)}</span></span>`;
@@ -952,7 +991,7 @@ function renderTooltipParts(name, attributes, body, context, fallbackDetails = "
 
 function renderItemPlaceholder(name, attributes, context, inline, body = "") {
   const id = String(attr(attributes, "id", "ore") || "minecraft:unknown");
-  const showIcon = booleanAttr(attributes, "showIcon", "show_icon") !== false;
+  const showIcon = booleanAttr(attributes, "showIcon", "showIcon") !== false;
   const showId = booleanAttr(attributes, "showId", "show_id") !== false;
   const labelOption = String(attr(attributes, "label") || "").trim();
   const labelSide = ["left", "right"].includes(labelOption.toLowerCase()) ? labelOption.toLowerCase() : "";
@@ -1042,7 +1081,7 @@ function renderContentTabs(attributes, body, context) {
   const defaultIndex = Math.max(0, Math.min(tabs.length - 1, requestedIndex !== undefined && Number.isFinite(Number(requestedIndex)) ? Number(requestedIndex) : (fallbackIndex >= 0 ? fallbackIndex : 0)));
   const accent = colorValue(attr(attributes, "color"), "var(--accent)");
   const background = colorValue(attr(attributes, "background"), "var(--preview-quote-bg)");
-  const icon = attr(attributes, "icon", "iconPng", "icon_png", "iconItem", "icon_item");
+  const icon = attr(attributes, "icon", "iconPng", "iconItem");
   const heading = attr(attributes, "title") ? `<strong>${icon ? `<span class="guide-tabs-icon">${escapeHtml(icon)}</span>` : ""}${escapeHtml(attr(attributes, "title"))}</strong>` : "";
   return `<section class="guide-tabs" data-guide-tabs style="--guide-tabs-accent:${accent};--guide-tabs-background:${background}"><div class="guide-tabs-heading">${heading}<div class="guide-tabs-buttons">${tabs.map((tab, index) => `<button type="button" data-guide-tab="${index}" class="${index === defaultIndex ? "active" : ""}">${escapeHtml(tab.title)}</button>`).join("")}</div></div>${tabs.map((tab, index) => `<div class="guide-tab-panel" data-guide-panel="${index}"${index === defaultIndex ? "" : " hidden"}>${renderBlocks(normalizeNestedMarkdown(tab.body), { ...context, suppressFootnotes: true })}</div>`).join("")}</section>`;
 }

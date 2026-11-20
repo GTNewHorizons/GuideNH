@@ -6,6 +6,7 @@ This page describes the built-in tags available to guide authors.
 
 - Tags can appear either in block context or inline context depending on the compiler.
 - MDX comments using `{/* ... */}` are supported in page content and are ignored by the runtime parser.
+- MDX attribute names use camelCase, such as `showTooltip`, `showDesc` and `fromNbt`.
 - Invalid tags or invalid attributes render guide errors inline instead of silently failing.
 - Large feature tags such as recipes and 3D scenes are documented in their own pages:
   - [Recipes](Recipes)
@@ -33,9 +34,11 @@ This page describes the built-in tags available to guide authors.
 | `<ItemImage>` | inline item icon | `id`, `ore`, `nbt`, `scale`, `noTooltip`, `showTooltip`, `showIcon`, `label`, `format`, `yOffset`, `labelYOffset` |
 | `<ItemLink>` | item tooltip + optional navigation link | `id` or `ore`, `linksTo`, `showTooltip`, `noTooltip`, `showIcon` |
 | `<FluidImage>` / `<FluidLink>` | native fluid icon and page navigation | `id`, `amount`, `nbt`, `scale`, `showTooltip`, `noTooltip`, `showIcon`, `label`, `linksTo` |
+| `<ResearchLink>` / `<BindingLink>` | Research or custom content links | `id`, `type` (generic tags), `text`, `target`, `showTooltip` |
+| `<ResearchIcon>` / `<BindingIcon>` | Research or custom content icons; also usable in block context | `id`, `type` (generic tags), `scale`, `showTooltip` |
 | `<CommandLink>` | clickable chat command link | `command`, `title`, `close` |
 | `<Latex>` | LaTeX math formula; inline in flow context, centered display block in block context | `formula`, `color`, `scale`, `sourceScale`, `tooltip`, `showTooltip` |
-| `<QuestLink>` | BetterQuesting quest link with state-aware styling (compat tag, only registered when BetterQuesting is loaded) | `id`, `text`, `show_tooltip` |
+| `<QuestLink>` | BetterQuesting quest link with state-aware styling (compat tag, only registered when BetterQuesting is loaded) | `id`, `text`, `showTooltip` |
 
 Inline markdown also supports action links for sound playback:
 
@@ -49,7 +52,7 @@ Inline markdown also supports action links for sound playback:
 | Tag | Purpose | Key attributes |
 | --- | --- | --- |
 | `<div>` | pass-through block wrapper | none |
-| `<ContentTabs>` | groups alternative rich content under independent tabs | `title`, `color`, `background`, `icon`, `iconPng`, `icon_png`, `iconItem`, `icon_item`, `iconFluid`, `icon_fluid`, `default`, `defaultIndex` |
+| `<ContentTabs>` | groups alternative rich content under independent tabs | `title`, `color`, `background`, `icon`, `iconPng`, `iconItem`, `iconFluid`, `default`, `defaultIndex` |
 | `<Tab>` | one content panel inside `<ContentTabs>` | `title` |
 | `<details>` | collapsible runtime block | `open`, `width`, `height`, `wrap`, `align` |
 | `<FileTree>` | directory-style outline with connector lines | `indent`, `gap` |
@@ -74,7 +77,8 @@ Inline markdown also supports action links for sound playback:
 | `<Function>` | single-curve shorthand for `<FunctionGraph>` | `expr`, plus all `<FunctionGraph>` panel attributes |
 | `<Recipe>`, `<RecipeFor>`, `<RecipesFor>` | recipe renderers | see [Recipes](Recipes) |
 | `<GameScene>`, `<Scene>` | 3D guide scene | see [GameScene](GameScene) |
-| `<QuestCard>` | block-level BetterQuesting quest summary card (compat tag, only registered when BetterQuesting is loaded) | `id`, `show_desc`, `show_tooltip` |
+| `<ResearchCard>` / `<BindingCard>` | Research or custom content summary cards | `id`, `type` (generic tags), `title`, `target`, `showDesc`, `showIcon`, `showParents` |
+| `<QuestCard>` | block-level BetterQuesting quest summary card (compat tag, only registered when BetterQuesting is loaded) | `id`, `title`, `showDesc`, `showTooltip` |
 
 `<ImportStructureLib>` is a `<GameScene>` child tag. It accepts `controller`, `piece`, `facing`,
 `rotation`, `flip`, `tier`, `channel`, `channelName`, `value`, and `locked` attributes, and also supports StructureLib default child tags:
@@ -188,7 +192,7 @@ Groups alternative rich content under independent tabs. Only direct `<Tab>` chil
 - `color` optionally overrides the left accent line and selected-tab highlight with `#RRGGBB` or `#AARRGGBB`
 - `background` optionally overrides the tab container background with `#RRGGBB`, `#AARRGGBB`, or `transparent`; the default keeps the normal gray callout background
 - `title` adds an optional plain-text heading above the tab strip
-- `icon`, `iconPng` / `icon_png`, and `iconItem` / `icon_item` use the same heading icon semantics as markdown quote-style callouts
+- `icon`, `iconPng` / `iconPng`, and `iconItem` / `iconItem` use the same heading icon semantics as markdown quote-style callouts
 - invalid children or invalid defaults render visible author-facing errors
 
 ### `<FileTree>`
@@ -479,6 +483,175 @@ ExportSite displays item counts and fluid amounts as text overlays using its bun
 Bind pages with `fluid_id` / `fluid_ids`. Hold the remappable open-guide key (G by default) over native fluid icons or supported container/display representations. One match opens directly; multiple matches show a chooser with fluid pages before container pages. Amount and NBT affect display, while bindings match the registry name. Empty containers retain ordinary item navigation. Unrecognized fluid GUIs require a registered hover provider.
 
 Use `navigation.icon_fluid` / `icon_fluids` for single/cycling page icons, and `iconFluid` in ContentTabs, FileTree directives, quote directives, chart Series / LineSeries / Slice. Fluid icon sources must not be combined with item, PNG, or text icon sources. Six Recipe/Usage tags accept `fluid`, `inputFluid`, and `outputFluid`; InputAnnotation accepts `fluid`, `amount`, and `nbt`. See Recipes, Guide Page Format, and Annotations for the remaining contracts.
+
+### Quest content (BetterQuesting)
+
+`<QuestLink>` and `<QuestCard>` are only registered when the BetterQuesting mod is loaded. They are documented in detail on the [Mod Compatibility](Mod-Compatibility) page; the summary below covers the most common usage.
+
+#### `<QuestLink>`
+
+Left click opens the quest in BetterQuesting. Right click opens its bound guide pages; when no guide is bound, right click also opens BetterQuesting. Multiple pages open the same destination selector used for items, and distinct page anchors remain separate destinations.
+
+| Attribute | Meaning |
+| --- | --- |
+| `id` | required BetterQuesting quest id; accepts canonical UUID strings and compact Base64 ids |
+| `text` | optional override for the displayed text |
+| `showTooltip` | optional boolean (default `true`); set to `false` to suppress the quest-description tooltip |
+
+Visibility behavior is decided per player when the page mounts:
+
+- visible / completed quests render as a clickable link (completed quests are tinted green and append a `✓` mark)
+- locked but non-hidden quests still render as clickable quest links so they can open the BetterQuesting quest screen or the indexed guide page
+- hidden / secret quests render as a darker italic placeholder using `guidenh.binding.state.hidden`
+- unknown quest ids render as a red placeholder using `guidenh.binding.state.missing`
+
+Example:
+
+````md
+See <QuestLink id="01234567-89ab-cdef-0123-456789abcdef" /> for the next step.
+<QuestLink id="01234567-89ab-cdef-0123-456789abcdef" text="Stage 2 quest" />
+<QuestLink id="01234567-89ab-cdef-0123-456789abcdef" showTooltip="false" />
+See <QuestLink id="AAAAAAAAAAAAAAAAAAAMug==" text="Compact quest id example" /> after that.
+````
+
+#### `<QuestCard>`
+
+Block-level summary card for a BetterQuesting quest. Renders the quest title with the same state-aware styling as `<QuestLink>`, plus the quest description as a body paragraph when the quest is visible to the player.
+
+| Attribute | Meaning |
+| --- | --- |
+| `id` | required BetterQuesting quest id; accepts canonical UUID strings and compact Base64 ids |
+| `title` | optional card-title override |
+| `showDesc` | optional boolean (default `true`); set to `false` to suppress the description body |
+| `showTooltip` | optional boolean (default `true`); set to `false` to suppress the quest-description tooltip on the clickable title |
+
+The accent color of the card border follows the quest state: green for completed, gray for locked / hidden, red for missing, and the standard link color for visible quests. The title remains clickable for visible, completed, and locked-but-non-hidden quests.
+
+Example:
+
+````md
+<QuestCard id="01234567-89ab-cdef-0123-456789abcdef" />
+<QuestCard id="01234567-89ab-cdef-0123-456789abcdef" showDesc="false" />
+<QuestCard id="01234567-89ab-cdef-0123-456789abcdef" showTooltip="false" />
+<QuestCard id="AAAAAAAAAAAAAAAAAAAMug==" />
+````
+
+### Research and custom content
+
+Research tags select Thaumcraft. Generic tags use `type` to select the content system. To bind a guide page, see [Frontmatter](Guide-Page-Format#external-content-bindings).
+
+#### Navigation
+
+These rules apply to ResearchLink/Card and BindingLink/Card links or card title text.
+
+| `target` | Left click | Right click |
+| --- | --- | --- |
+| `auto` | Bound guides first, native UI as fallback | Bound guides, native UI as fallback |
+| `native` | Native UI | Bound guides, native UI as fallback |
+| `guide` | Guides only; report when none exist | Bound guides, native UI as fallback |
+
+Native navigation opens the research tree at the selected icon, whether the research is completed or incomplete. It does not unlock research. Hidden research exposes no title, description or icon. Multiple guide destinations open a selector.
+
+#### `<ResearchLink>`
+
+Inline content link.
+
+| Attribute | Meaning |
+| --- | --- |
+| `id` | Required original content ID; research IDs preserve case |
+| `text` / `title` | Optional link text override |
+| `target` | `auto`, `native` or `guide`; default `auto`, as above |
+| `showTooltip` | Show tooltip; default `true` |
+
+```mdx
+<ResearchLink id="INFUSION" text="Read the research" target="native" />
+```
+
+#### `<ResearchCard>`
+
+Block content summary. Left-click the title to navigate; right-click the title to open bound guides.
+
+| Attribute | Meaning |
+| --- | --- |
+| `id` | Required original content ID; research IDs preserve case |
+| `title` | Optional title override |
+| `showDesc` | Show the content description; default `true` |
+| `showIcon` | Show the icon; default `true` |
+| `showParents` | Show visible prerequisites; default `false` |
+| `target` | `auto`, `native` or `guide`; default `native`, as above |
+| `showTooltip` | Show tooltip; default `true` |
+
+```mdx
+<ResearchCard id="INFUSION" title="Infusion research" showParents={true} />
+```
+
+#### `<ResearchIcon>`
+
+Content icon and tooltip. Hold the open-guide key while hovering to open guides; clicking does not open native content.
+
+| Attribute | Meaning |
+| --- | --- |
+| `id` | Required original content ID; research IDs preserve case |
+| `scale` | Finite positive size multiplier; default `1` |
+| `showTooltip` | Show tooltip; default `true` |
+
+```mdx
+<ResearchIcon id="INFUSION" scale={1.5} />
+```
+
+#### `<BindingLink>`
+
+Inline content link.
+
+| Attribute | Meaning |
+| --- | --- |
+| `type` | Required registered content type, e.g. `thaumcraft` or `betterquesting` |
+| `id` | Required original content ID; research IDs preserve case |
+| `text` / `title` | Optional link text override |
+| `target` | `auto`, `native` or `guide`; default `auto`, as above |
+| `showTooltip` | Show tooltip; default `true` |
+
+```mdx
+<BindingLink type="thaumcraft" id="INFUSION" text="Read the research" target="native" />
+```
+
+#### `<BindingCard>`
+
+Block content summary. Left-click the title to navigate; right-click the title to open bound guides.
+
+| Attribute | Meaning |
+| --- | --- |
+| `type` | Required registered content type, e.g. `thaumcraft` or `betterquesting` |
+| `id` | Required original content ID; research IDs preserve case |
+| `title` | Optional title override |
+| `showDesc` | Show the content description; default `true` |
+| `showIcon` | Show the icon; default `true` |
+| `showParents` | Show visible prerequisites; default `false` |
+| `target` | `auto`, `native` or `guide`; default `native`, as above |
+| `showTooltip` | Show tooltip; default `true` |
+
+```mdx
+<BindingCard type="thaumcraft" id="INFUSION" title="Infusion research" showParents={true} />
+```
+
+#### `<BindingIcon>`
+
+Content icon and tooltip. Hold the open-guide key while hovering to open guides; clicking does not open native content.
+
+| Attribute | Meaning |
+| --- | --- |
+| `type` | Required registered content type, e.g. `thaumcraft` or `betterquesting` |
+| `id` | Required original content ID; research IDs preserve case |
+| `scale` | Finite positive size multiplier; default `1` |
+| `showTooltip` | Show tooltip; default `true` |
+
+```mdx
+<BindingIcon type="thaumcraft" id="INFUSION" scale={1.5} />
+```
+
+#### Export and preview
+
+Website exports and browser previews do not read the exporting player's progress. Bound guides become links or a destination list; native UI actions show an in-game explanation. Missing content mods produce unavailable placeholders for Research and Binding tags. Quest tags are registered only with BetterQuesting loaded.
 
 ### `<CommandLink>`
 
@@ -892,54 +1065,3 @@ Marked points (`<Point>`):
 - Optional `color`, `label`.
 
 Interaction: hover a curve to highlight it; press and hold to scrub a point along the curve. The tooltip starts with `label` when supplied, then the equation and live `(x, y)` value unless their switches are disabled; it stays anchored above the point and flips below when there is no headroom.
-
-## BetterQuesting Compatibility Tags
-
-`<QuestLink>` and `<QuestCard>` are only registered when the BetterQuesting mod is loaded. They are documented in detail on the [Mod Compatibility](Mod-Compatibility) page; the summary below covers the most common usage.
-
-### `<QuestLink>`
-
-Inline link to a BetterQuesting quest. Clicking opens the quest inside the BetterQuesting GUI, unless the quest id is also present in the current guide's `quest_ids` frontmatter — in that case the link navigates to that page instead.
-
-| Attribute | Meaning |
-| --- | --- |
-| `id` | required BetterQuesting quest id; accepts canonical UUID strings and compact Base64 ids |
-| `text` | optional override for the displayed text |
-| `show_tooltip` | optional boolean (default `true`); set to `false` to suppress the quest-description tooltip. `showTooltip` is accepted as an alias |
-
-Visibility behavior is decided per player at compile time:
-
-- visible / completed quests render as a clickable link (completed quests are tinted green and append a `✓` mark)
-- locked but non-hidden quests still render as clickable quest links so they can open the BetterQuesting quest screen or the indexed guide page
-- hidden / secret quests render as a darker italic placeholder using `guidenh.compat.bq.hidden`
-- unknown quest ids render as a red placeholder using `guidenh.compat.bq.missing`
-
-Example:
-
-````md
-See <QuestLink id="01234567-89ab-cdef-0123-456789abcdef" /> for the next step.
-<QuestLink id="01234567-89ab-cdef-0123-456789abcdef" text="Stage 2 quest" />
-<QuestLink id="01234567-89ab-cdef-0123-456789abcdef" show_tooltip="false" />
-See <QuestLink id="AAAAAAAAAAAAAAAAAAAMug==" text="Compact quest id example" /> after that.
-````
-
-### `<QuestCard>`
-
-Block-level summary card for a BetterQuesting quest. Renders the quest title with the same state-aware styling as `<QuestLink>`, plus the quest description as a body paragraph when the quest is visible to the player.
-
-| Attribute | Meaning |
-| --- | --- |
-| `id` | required BetterQuesting quest id; accepts canonical UUID strings and compact Base64 ids |
-| `show_desc` | optional boolean (default `true`); set to `false` to suppress the description body |
-| `show_tooltip` | optional boolean (default `true`); set to `false` to suppress the quest-description tooltip on the clickable title. `showTooltip` is accepted as an alias |
-
-The accent color of the card border follows the quest state: green for completed, gray for locked / hidden, red for missing, and the standard link color for visible quests. The title remains clickable for visible, completed, and locked-but-non-hidden quests.
-
-Example:
-
-````md
-<QuestCard id="01234567-89ab-cdef-0123-456789abcdef" />
-<QuestCard id="01234567-89ab-cdef-0123-456789abcdef" show_desc="false" />
-<QuestCard id="01234567-89ab-cdef-0123-456789abcdef" show_tooltip="false" />
-<QuestCard id="AAAAAAAAAAAAAAAAAAAMug==" />
-````

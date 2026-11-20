@@ -19,6 +19,7 @@ public record SyntaxValueKind(String id, boolean quoted) {
     public static final SyntaxValueKind KEY_BIND = new SyntaxValueKind("KEY_BIND", true);
     public static final SyntaxValueKind PAGE_PATH = new SyntaxValueKind("PAGE_PATH", true);
     public static final SyntaxValueKind FILE_PATH = new SyntaxValueKind("FILE_PATH", true);
+    public static final SyntaxValueKind BINDING_ID = new SyntaxValueKind("BINDING_ID", true);
     public static final SyntaxValueKind QUEST_UUID = new SyntaxValueKind("QUEST_UUID", true);
     public static final SyntaxValueKind COMMAND = new SyntaxValueKind("COMMAND", true);
     public static final SyntaxValueKind EXPRESSION = new SyntaxValueKind("EXPRESSION", true);
@@ -44,6 +45,7 @@ public record SyntaxValueKind(String id, boolean quoted) {
         PAGE_PATH,
         FILE_PATH,
         QUEST_UUID,
+        BINDING_ID,
         COMMAND,
         EXPRESSION,
         VECTOR3,

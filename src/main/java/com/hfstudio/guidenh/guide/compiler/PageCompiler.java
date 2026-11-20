@@ -695,7 +695,10 @@ public class PageCompiler {
                         layoutChild = createErrorBlock("Unhandled MDX element in block context: " + el.name(), child);
                     } else {
                         layoutChild = null;
-                        compiler.compileBlockContext(this, layoutParent, el);
+                        compiler.compileBlockContext(this, block -> {
+                            if (block.getSourceNode() == null) block.setSourceNode(el);
+                            layoutParent.append(block);
+                        }, el);
                     }
                 }
             } else if (child instanceof MdxJsxTextElement el) {

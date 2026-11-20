@@ -22,6 +22,7 @@ import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
 import com.hfstudio.guidenh.guide.internal.GuideLightweightReloadService;
 import com.hfstudio.guidenh.guide.internal.GuidebookText;
 import com.hfstudio.guidenh.guide.internal.MutableGuide;
+import com.hfstudio.guidenh.guide.internal.binding.BindingFrontmatterParser;
 import com.hfstudio.guidenh.guide.internal.util.LangUtil;
 import com.hfstudio.guidenh.guide.internal.util.NavigationUtil;
 import com.hfstudio.guidenh.guide.mediawiki.template.MediaWikiTemplateDefinition;
@@ -1008,10 +1009,10 @@ public class MediaWikiSpecialPageResolver {
         Map<String, Object> properties = page.getFrontmatter()
             .additionalProperties();
         return hasNonEmptyList(properties, "item_ids") || hasNonEmptyList(properties, "ore_ids")
-            || hasNonEmptyList(properties, "quest_ids")
+            || !BindingFrontmatterParser.read(page)
+                .isEmpty()
             || hasNonEmptyList(properties, "item_id")
-            || hasNonEmptyList(properties, "ore_id")
-            || hasNonEmptyList(properties, "quest_id");
+            || hasNonEmptyList(properties, "ore_id");
     }
 
     private boolean hasNonEmptyList(Map<String, Object> properties, String key) {
@@ -1030,10 +1031,15 @@ public class MediaWikiSpecialPageResolver {
         ArrayList<MediaWikiSpecialListEntry> entries = new ArrayList<>();
         appendBindingEntries(entries, page, "item_ids", "item");
         appendBindingEntries(entries, page, "ore_ids", "ore");
-        appendBindingEntries(entries, page, "quest_ids", "quest");
         appendSingleBindingEntry(entries, page, "item_id", "item");
         appendSingleBindingEntry(entries, page, "ore_id", "ore");
-        appendSingleBindingEntry(entries, page, "quest_id", "quest");
+        for (var binding : BindingFrontmatterParser.read(page)) {
+            String id = binding.getLeft()
+                .id();
+            String type = binding.getLeft()
+                .type();
+            entries.add(new MediaWikiSpecialListEntry(id, type, type + " " + id, page.getId(), null, pageIcon(page)));
+        }
         return entries;
     }
 

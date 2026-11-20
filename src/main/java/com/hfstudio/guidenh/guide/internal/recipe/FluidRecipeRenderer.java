@@ -1,8 +1,10 @@
 package com.hfstudio.guidenh.guide.internal.recipe;
 
+import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
 
+import net.minecraft.item.ItemStack;
 import net.minecraftforge.fluids.FluidStack;
 
 import org.jetbrains.annotations.Nullable;
@@ -40,5 +42,17 @@ public class FluidRecipeRenderer {
     public static @Nullable FluidTooltip tooltip(RecipeSlot slot) {
         var fluid = stack(slot);
         return fluid == null ? null : new FluidTooltip(slot.currentFluid(), fluid);
+    }
+
+    public static @Nullable NeiFluidTooltip tooltip(RecipeSlot slot, Object handler, int recipeIndex,
+        @Nullable List<String> positionedTooltip) {
+        var fluid = stack(slot);
+        if (fluid == null) return null;
+        ItemStack shown = slot.currentStack();
+        if (shown == null && !slot.stacks()
+            .isEmpty())
+            shown = slot.stacks()
+                .getFirst();
+        return new NeiFluidTooltip(slot.currentFluid(), fluid, shown, handler, recipeIndex, positionedTooltip);
     }
 }

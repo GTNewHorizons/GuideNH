@@ -137,10 +137,7 @@ public class LytNeiRecipeBox extends LytBlock implements InteractiveElement, Doc
 
         this.bodyWidth = handlerW + BODY_HORIZONTAL_BLEED * 2;
         this.bodyYShift = Math.max(0, registry.lookupRecipeHandlerYShift(handler));
-        this.bodyTopInset = resolveBodyTopInset(
-            handler.getClass()
-                .getName(),
-            bodyYShift);
+        this.bodyTopInset = resolveBodyTopInset(handler, bodyYShift);
         this.bodyHeight = NeiRecipeLayoutMetrics.resolveBodyHeight(handlerH, recipeH, DEFAULT_BODY_HEIGHT);
 
         int fh = Minecraft.getMinecraft().fontRenderer.FONT_HEIGHT;
@@ -431,7 +428,12 @@ public class LytNeiRecipeBox extends LytBlock implements InteractiveElement, Doc
 
         RecipeSlots slots = recipeSlots(registry);
         RecipeSlot fluidHit = fluidSlotAt(slots, bodyX, bodyY, px, py);
-        if (fluidHit != null) return Optional.ofNullable(FluidRecipeRenderer.tooltip(fluidHit));
+        if (fluidHit != null) {
+            var positionedHit = NeiRecipeLookup.findPositionedStackHit(handler, recipeIndex, px - bodyX, py - bodyY);
+            List<String> extra = positionedHit == null ? List.of()
+                : NeiRecipeLookup.positionedTooltip(handler, positionedHit.positionedStack, positionedHit.ingredient);
+            return Optional.ofNullable(FluidRecipeRenderer.tooltip(fluidHit, handler, recipeIndex, extra));
+        }
         ItemStack hit = findSlotHit(slots.ingredients, bodyX, bodyY, px, py);
         if (hit == null) {
             hit = findSlotHit(slots.others, bodyX, bodyY, px, py);
@@ -527,18 +529,7 @@ public class LytNeiRecipeBox extends LytBlock implements InteractiveElement, Doc
     }
 
     public static @Nullable ItemStack pickVisibleStack(RecipeSlot s) {
-        if (s != null && s.currentStack() != null && s.currentStack().stackSize > 0) {
-            return s.currentStack();
-        }
-        if (s == null || s.stacks()
-            .isEmpty()) return null;
-        for (int i = 0, n = s.stacks()
-            .size(); i < n; i++) {
-            ItemStack st = s.stacks()
-                .get(i);
-            if (st != null && st.stackSize > 0) return st;
-        }
-        return null;
+        return NeiHandlerRenderer.pickVisibleStack(s);
     }
 
     public static boolean isOver(int x, int y, int w, int h, int px, int py) {
@@ -570,8 +561,8 @@ public class LytNeiRecipeBox extends LytBlock implements InteractiveElement, Doc
         return stack != null ? stack.copy() : null;
     }
 
-    private static int resolveBodyTopInset(String handlerClassName, int bodyYShift) {
-        if (!GREGTECH_DEFAULT_NEI_HANDLER.equals(handlerClassName)) return 0;
+    private static int resolveBodyTopInset(Object handler, int bodyYShift) {
+        if (!NeiRecipeLookup.isHandlerType(handler, GREGTECH_DEFAULT_NEI_HANDLER)) return 0;
         return Math.max(0, GREGTECH_WINDOW_TOP_BLEED - Math.max(bodyYShift, 0));
     }
 }

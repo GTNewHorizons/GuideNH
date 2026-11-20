@@ -8,7 +8,6 @@ import net.minecraft.util.EnumChatFormatting;
 
 import com.hfstudio.guidenh.guide.document.interaction.ItemTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.ItemTooltipAppender;
-import com.hfstudio.guidenh.integration.api.GuideNhIntegrationRegistry;
 
 import codechicken.nei.NEIClientUtils;
 
@@ -51,11 +50,7 @@ public class NeiItemTooltip extends ItemTooltip implements ItemTooltipAppender {
      */
     public void appendExtraLines(List<String> base) {
         if (base == null) return;
-        GuideNhIntegrationRegistry.global()
-            .appendRecipeItemTooltip(handler, getStack(), base, recipeIndex);
-        for (String line : positionedTooltip) {
-            if (line != null && !line.isEmpty()) base.add(line);
-        }
+        NeiRecipeTooltipLines.append(handler, recipeIndex, getStack(), positionedTooltip, base);
         if (permutations.size() > 1) {
             String label = acceptsLabel == null || acceptsLabel.isEmpty() ? NEIClientUtils.translate("recipe.accepts")
                 : acceptsLabel;

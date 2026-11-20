@@ -198,6 +198,9 @@ public class MdAstToMdxConverter {
             }
 
             if (replacement != null) {
+                if (child instanceof MdAstNode original && replacement instanceof MdAstNode converted) {
+                    converted.position = original.position;
+                }
                 ((List) children).set(i, replacement);
                 if (replacement instanceof MdxJsxTextElement) {
                     convertParent((MdxJsxTextElement) replacement, definitions);
@@ -306,6 +309,9 @@ public class MdAstToMdxConverter {
             }
 
             if (replacement != null) {
+                if (child instanceof MdAstNode original) {
+                    replacement.position = original.position;
+                }
                 children.set(i, replacement);
                 convertParent(replacement, definitions);
             }
