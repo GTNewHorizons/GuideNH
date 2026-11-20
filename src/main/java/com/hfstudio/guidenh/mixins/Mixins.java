@@ -28,7 +28,8 @@ public enum Mixins implements IMixins {
     GREGTECH_HATCH_BUILDER(Side.CLIENT, Phase.LATE, Mods.GregTech, "compat.gregtech.MixinHatchElementBuilderPreview",
         "compat.gregtech.MixinHatchElementPlacementPreview", "compat.gregtech.MixinItemMachinesPreview"),
 
-    ARI_RESEARCH(Side.CLIENT, Phase.LATE, Mods.AspectRecipeIndex, "compat.aspectrecipeindex.MixinAriResearchTooltip"),
+    ARI_RESEARCH(Side.CLIENT, Phase.LATE, Mods.AspectRecipeIndex, "compat.aspectrecipeindex.AccessorCachedThaumRecipe",
+        "compat.aspectrecipeindex.AccessorResearchInfo", "compat.aspectrecipeindex.MixinAriResearchTooltip"),
 
     THAUMCRAFT_RESEARCH(Side.CLIENT, Phase.LATE, Mods.Thaumcraft, "compat.thaumcraft.MixinResearchBrowserHover",
         "compat.thaumcraft.AccessorGuiResearchBrowser", "compat.thaumcraft.AccessorGuiResearchRecipe",

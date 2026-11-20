@@ -16,7 +16,8 @@ public class MixinAriResearchTooltip {
 
     @Inject(method = "onHover", at = @At("TAIL"))
     private void guidenh$guideHint(List<String> lines, CallbackInfo callback) {
-        var id = ((ResearchInfo) (Object) this).getResearchId();
-        if (id != null) OpenGuideHotkey.appendBindingTooltip(new BindingKey("thaumcraft", id), lines);
+        var item = ((AccessorResearchInfo) this).guidenh$getResearchItem();
+        if (item != null && item.key != null)
+            OpenGuideHotkey.appendBindingTooltip(new BindingKey("thaumcraft", item.key), lines);
     }
 }
