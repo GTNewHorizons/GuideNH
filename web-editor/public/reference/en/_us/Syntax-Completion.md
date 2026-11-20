@@ -54,7 +54,7 @@ The game editor reads IDs from the loaded mod. Both IDE plugins also suggest IDs
 
 ### NEI action links
 
-The insert menu provides handler, recipe, and usage action snippets, plus `<NeiRecipeLink>`. The `id` attribute offers item IDs; `mode` offers `handler`, `recipes`, and `usage`. Enter the exact NEI identifier for `handlerId`.
+The insert menu and `&[` completion provide handler, recipe and usage action templates, plus `<NeiRecipeLink>`. Both the game editor and IDE plugins complete `id`, `handlerId`, `mode` and NEI URI parameters. Handler IDs come from registered handlers in the running game; connect the IDE runtime bridge to obtain them. URI completion escapes values, replaces the entire current value and preserves other parameters. Handler mode only offers `handlerId`; parameters already present are not offered again. Ordinary links and code blocks do not trigger NEI completion.
 
 See [Recipes](Recipes.md#inline-nei-recipe-links) for syntax and examples.
 

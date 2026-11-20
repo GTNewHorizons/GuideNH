@@ -54,7 +54,7 @@ bindings:
 
 ### NEI 動作連結
 
-插入選單提供處理器全部配方、物品合成配方、物品用途的動作片段，以及 `<NeiRecipeLink>`。`id` 屬性提供物品 ID 補全，`mode` 提供 `handler`、`recipes` 和 `usage`。`handlerId` 填寫 NEI 的精確識別碼。
+插入選單和 `&[` 補全提供處理器全部配方、物品合成配方、物品用途的動作範本，以及 `<NeiRecipeLink>`。遊戲內編輯器和 IDE 外掛均補全 `id`、`handlerId`、`mode` 和 NEI URI 參數。處理器 ID 來自執行中遊戲已註冊的處理器，IDE 需連接 runtime bridge 取得。URI 補全會跳脫取值，替換目前參數的完整取值並保留其他參數。處理器模式只提供 `handlerId`，已有參數不會重複提供。一般連結和程式碼區塊不會觸發 NEI 補全。
 
 動作語法、物品 ID、跳脫規則和示例見[配方](Recipes.md#行內-nei-配方連結)。
 

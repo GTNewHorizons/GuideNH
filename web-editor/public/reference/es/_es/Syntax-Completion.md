@@ -56,7 +56,7 @@ The game editor reads IDs from the loaded mod. Both IDE plugins also suggest IDs
 
 ### Enlaces de acción de NEI
 
-El menú de inserción ofrece fragmentos para todas las recetas de un manejador, recetas de objetos y usos, además de `<NeiRecipeLink>`. El atributo `id` sugiere ID de objetos; `mode` ofrece `handler`, `recipes` y `usage`. Introduce el identificador exacto de NEI en `handlerId`.
+El menú de inserción y la compleción de `&[` ofrecen plantillas de manejadores, recetas y usos, además de `<NeiRecipeLink>`. El editor del juego y los complementos del IDE completan `id`, `handlerId`, `mode` y los parámetros URI de NEI. Los ID de manejadores proceden de los registrados en el juego en ejecución; conecta el runtime bridge del IDE para obtenerlos. La compleción URI escapa los valores, sustituye todo el valor actual y conserva los demás parámetros. El modo handler solo ofrece `handlerId`; los parámetros existentes no se vuelven a sugerir. Los enlaces normales y los bloques de código no activan la compleción de NEI.
 
 Consulta [Recetas](Recipes.md#enlaces-de-recetas-de-nei-en-línea) para la sintaxis y los ejemplos.
 

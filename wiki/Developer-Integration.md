@@ -109,6 +109,8 @@ The render context provides `defaultNamespace`, `currentPageId`, `templates`, `s
 
 ## Render embedded recipes
 
+To supply registered handler IDs for completion, override `RecipeHandlerMetadataProvider.handlerDescriptors()` and register the provider with `GuideNhIntegrationRegistry.global().registerRecipeHandlerMetadataProvider(provider)`. Return `RecipeHandlerDescriptor(String id, String name)` entries for accepted overlay or handler identifiers. The shared catalog deduplicates identifiers without changing their spelling; the game editor and `neiHandlers` runtime semantic queries consume the same entries. Read registration metadata only, without loading recipe contents. The default method returns an empty list for existing providers.
+
 Implement `RecipeHandlerRenderProvider` and register it during client initialization with `GuideNhIntegrationRegistry.global().registerRecipeHandlerRenderProvider(provider)`. `canRenderRecipeHandler(Object)` identifies the handlers your provider supports.
 
 The guide calls `renderRecipeHandlerBackground(Object, int, boolean)`, draws the recipe slots, then calls `renderRecipeHandlerForeground(Object, int, boolean)`. Draw backgrounds in the first stage and slot badges or other overlays in the second. The coordinates are local to the recipe body. Honor `skipForeground` when the handler's foreground depends on unavailable extra slots.

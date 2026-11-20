@@ -56,7 +56,7 @@ The game editor reads IDs from the loaded mod. Both IDE plugins also suggest IDs
 
 ### NEI アクションリンク
 
-挿入メニューには、ハンドラーの全レシピ、アイテムのレシピ、用途のアクションひな形と `<NeiRecipeLink>` があります。`id` 属性ではアイテム ID を補完でき、`mode` では `handler`、`recipes`、`usage` を選べます。`handlerId` には NEI の正確な識別子を入力してください。
+挿入メニューと `&[` の補完では、ハンドラー、レシピ、用途のアクションテンプレートと `<NeiRecipeLink>` を選べます。ゲーム内エディターと IDE プラグインは `id`、`handlerId`、`mode`、NEI URI パラメーターを補完します。ハンドラー ID は実行中のゲームに登録されたハンドラーから取得します。IDE では runtime bridge に接続してください。URI 補完は値をエスケープし、現在の値全体を置き換えて他のパラメーターを保持します。handler モードでは `handlerId` のみを提示し、既存のパラメーターは重複して提示しません。通常のリンクやコードブロックでは NEI 補完は動作しません。
 
 アクション構文、アイテム ID、エスケープと例については [レシピ](Recipes.md#インライン-nei-レシピリンク)を参照してください。
 

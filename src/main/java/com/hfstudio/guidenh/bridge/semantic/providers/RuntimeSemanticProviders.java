@@ -12,6 +12,7 @@ public class RuntimeSemanticProviders {
         SemanticProvider itemProvider = new ItemSemanticProvider();
         registry.register(itemProvider);
         registry.register(new FluidSemanticProvider());
+        registry.register(new RecipeHandlerSemanticProvider());
         registry.register(new AliasSemanticProvider(SemanticCapability.RECIPES, itemProvider));
         registry.register(new PageSemanticProvider());
         registry.register(new OreSemanticProvider());

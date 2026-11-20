@@ -56,7 +56,7 @@ The game editor reads IDs from the loaded mod. Both IDE plugins also suggest IDs
 
 ### NEI-actielinks
 
-Het invoegmenu biedt actiefragmenten voor alle recepten van een handler, voorwerprecepten en toepassingen, plus `<NeiRecipeLink>`. Het attribuut `id` stelt voorwerp-ID's voor; `mode` biedt `handler`, `recipes` en `usage`. Vul de exacte NEI-ID in bij `handlerId`.
+Het invoegmenu en aanvulling bij `&[` bieden sjablonen voor handlers, recepten en toepassingen, plus `<NeiRecipeLink>`. De speleditor en IDE-plug-ins vullen `id`, `handlerId`, `mode` en NEI-URI-parameters aan. Handler-ID’s komen uit de geregistreerde handlers van het draaiende spel; verbind de runtime bridge van de IDE om ze op te halen. URI-aanvulling codeert waarden, vervangt de volledige huidige waarde en behoudt andere parameters. De handler-modus biedt alleen `handlerId`; bestaande parameters worden niet opnieuw aangeboden. Gewone links en codeblokken activeren geen NEI-aanvulling.
 
 Zie [Recepten](Recipes.md#nei-receptlinks-in-lopende-tekst) voor syntaxis en voorbeelden.
 

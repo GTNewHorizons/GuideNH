@@ -56,7 +56,7 @@ The game editor reads IDs from the loaded mod. Both IDE plugins also suggest IDs
 
 ### NEI-Aktionslinks
 
-Das Einfügen-Menü bietet Aktionsvorlagen für alle Rezepte eines Handlers, Gegenstandsrezepte und Verwendungen sowie `<NeiRecipeLink>`. Für `id` werden Gegenstands-IDs vorgeschlagen; für `mode` stehen `handler`, `recipes` und `usage` bereit. Trage die exakte NEI-Kennung in `handlerId` ein.
+Das Einfügen-Menü und die Vervollständigung bei `&[` bieten Vorlagen für Handler, Rezepte und Verwendungen sowie `<NeiRecipeLink>`. Spiel-Editor und IDE-Plugins vervollständigen `id`, `handlerId`, `mode` und NEI-URI-Parameter. Handler-IDs stammen aus den registrierten Handlern des laufenden Spiels; verbinde dazu die Runtime Bridge der IDE. Die URI-Vervollständigung maskiert Werte, ersetzt den gesamten aktuellen Wert und erhält andere Parameter. Im Handler-Modus wird nur `handlerId` angeboten; vorhandene Parameter werden nicht erneut vorgeschlagen. Gewöhnliche Links und Codeblöcke lösen keine NEI-Vervollständigung aus.
 
 Siehe [Rezepte](Recipes.md#nei-rezeptlinks-im-fließtext) für Syntax und Beispiele.
 

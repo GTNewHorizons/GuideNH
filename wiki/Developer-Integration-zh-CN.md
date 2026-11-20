@@ -109,6 +109,8 @@ Guide.builder(id).extension(GuideSiteTagRenderer.EXTENSION_POINT, renderer).buil
 
 ## 绘制嵌入配方
 
+要为补全提供已注册的处理器 ID，覆盖 `RecipeHandlerMetadataProvider.handlerDescriptors()`，并调用 `GuideNhIntegrationRegistry.global().registerRecipeHandlerMetadataProvider(provider)` 注册提供者。为支持的 overlay 或处理器标识返回 `RecipeHandlerDescriptor(String id, String name)`。共享目录去重时保留原始拼写，游戏内编辑器与 `neiHandlers` runtime 语义查询使用同一份条目。只读取注册元数据，不要加载配方内容；现有提供者的默认方法返回空列表。
+
 实现 `RecipeHandlerRenderProvider`，在客户端初始化时调用 `GuideNhIntegrationRegistry.global().registerRecipeHandlerRenderProvider(provider)` 注册。`canRenderRecipeHandler(Object)` 判断提供者支持哪些处理器。
 
 指南依次调用 `renderRecipeHandlerBackground(Object, int, boolean)`、绘制配方槽位、调用 `renderRecipeHandlerForeground(Object, int, boolean)`。背景放在第一阶段，槽位角标和其他覆盖绘制放在第二阶段；坐标相对于配方内容区域。处理器的前景依赖不可用的附加槽位时，应遵循 `skipForeground`。

@@ -56,7 +56,7 @@ The game editor reads IDs from the loaded mod. Both IDE plugins also suggest IDs
 
 ### Odnośniki akcji NEI
 
-Menu wstawiania udostępnia fragmenty akcji dla wszystkich receptur modułu obsługi, receptur przedmiotów i zastosowań oraz `<NeiRecipeLink>`. Atrybut `id` podpowiada identyfikatory przedmiotów; `mode` oferuje `handler`, `recipes` i `usage`. W `handlerId` wpisz dokładny identyfikator NEI.
+Menu wstawiania i uzupełnianie `&[` oferują szablony obsługi, receptur i zastosowań oraz `<NeiRecipeLink>`. Edytor w grze i wtyczki IDE uzupełniają `id`, `handlerId`, `mode` i parametry URI NEI. Identyfikatory pochodzą z obsługi zarejestrowanej w uruchomionej grze; połącz runtime bridge IDE, aby je pobrać. Uzupełnianie URI koduje wartości, zastępuje całą bieżącą wartość i zachowuje pozostałe parametry. Tryb handler oferuje tylko `handlerId`; istniejące parametry nie są proponowane ponownie. Zwykłe odnośniki i bloki kodu nie uruchamiają uzupełniania NEI.
 
 Zobacz [Receptury](Recipes.md#odnośniki-do-receptur-nei-w-tekście), aby poznać składnię i przykłady.
 

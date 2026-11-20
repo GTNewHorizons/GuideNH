@@ -29,6 +29,7 @@ import com.hfstudio.guidenh.guide.internal.syntax.values.NumericPresetValueSourc
 import com.hfstudio.guidenh.guide.internal.syntax.values.OreDictValueSource;
 import com.hfstudio.guidenh.guide.internal.syntax.values.PagePathValueSource;
 import com.hfstudio.guidenh.guide.internal.syntax.values.QuestIdValueSource;
+import com.hfstudio.guidenh.guide.internal.syntax.values.RecipeHandlerValueSource;
 import com.hfstudio.guidenh.guide.syntax.AttributeSyntax;
 import com.hfstudio.guidenh.guide.syntax.InsertTemplate;
 import com.hfstudio.guidenh.guide.syntax.MarkdownSnippet;
@@ -177,7 +178,7 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
         sink.attributes(
             "NeiRecipeLink",
             AttributeSyntax.of("id", SyntaxValueKind.ITEM_ID),
-            AttributeSyntax.of("handlerId", SyntaxValueKind.STRING),
+            AttributeSyntax.of("handlerId", SyntaxValueKind.RECIPE_HANDLER_ID),
             AttributeSyntax.of("mode", SyntaxValueKind.ENUM, "handler", "recipes", "usage"),
             AttributeSyntax.of("title", SyntaxValueKind.STRING));
         sink.attributes(
@@ -185,7 +186,7 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
             AttributeSyntax.of("id", SyntaxValueKind.ITEM_ID),
             AttributeSyntax.of("fallbackText", SyntaxValueKind.STRING),
             AttributeSyntax.of("handlerName", SyntaxValueKind.STRING),
-            AttributeSyntax.of("handlerId", SyntaxValueKind.STRING),
+            AttributeSyntax.of("handlerId", SyntaxValueKind.RECIPE_HANDLER_ID),
             AttributeSyntax.of("handlerWhitelist", SyntaxValueKind.STRING),
             AttributeSyntax.of("handlerBlacklist", SyntaxValueKind.STRING),
             AttributeSyntax.of("handlerOrder", SyntaxValueKind.INT),
@@ -197,7 +198,7 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
             AttributeSyntax.of("id", SyntaxValueKind.ITEM_ID),
             AttributeSyntax.of("fallbackText", SyntaxValueKind.STRING),
             AttributeSyntax.of("handlerName", SyntaxValueKind.STRING),
-            AttributeSyntax.of("handlerId", SyntaxValueKind.STRING),
+            AttributeSyntax.of("handlerId", SyntaxValueKind.RECIPE_HANDLER_ID),
             AttributeSyntax.of("handlerWhitelist", SyntaxValueKind.STRING),
             AttributeSyntax.of("handlerBlacklist", SyntaxValueKind.STRING),
             AttributeSyntax.of("handlerOrder", SyntaxValueKind.INT),
@@ -209,7 +210,7 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
             AttributeSyntax.of("id", SyntaxValueKind.ITEM_ID),
             AttributeSyntax.of("fallbackText", SyntaxValueKind.STRING),
             AttributeSyntax.of("handlerName", SyntaxValueKind.STRING),
-            AttributeSyntax.of("handlerId", SyntaxValueKind.STRING),
+            AttributeSyntax.of("handlerId", SyntaxValueKind.RECIPE_HANDLER_ID),
             AttributeSyntax.of("handlerWhitelist", SyntaxValueKind.STRING),
             AttributeSyntax.of("handlerBlacklist", SyntaxValueKind.STRING),
             AttributeSyntax.of("handlerOrder", SyntaxValueKind.INT),
@@ -949,7 +950,7 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
             AttributeSyntax.of("id", SyntaxValueKind.ITEM_ID),
             AttributeSyntax.of("fallbackText", SyntaxValueKind.STRING),
             AttributeSyntax.of("handlerName", SyntaxValueKind.STRING),
-            AttributeSyntax.of("handlerId", SyntaxValueKind.STRING),
+            AttributeSyntax.of("handlerId", SyntaxValueKind.RECIPE_HANDLER_ID),
             AttributeSyntax.of("handlerWhitelist", SyntaxValueKind.STRING),
             AttributeSyntax.of("handlerBlacklist", SyntaxValueKind.STRING),
             AttributeSyntax.of("handlerOrder", SyntaxValueKind.INT),
@@ -962,7 +963,7 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
             AttributeSyntax.of("id", SyntaxValueKind.ITEM_ID),
             AttributeSyntax.of("fallbackText", SyntaxValueKind.STRING),
             AttributeSyntax.of("handlerName", SyntaxValueKind.STRING),
-            AttributeSyntax.of("handlerId", SyntaxValueKind.STRING),
+            AttributeSyntax.of("handlerId", SyntaxValueKind.RECIPE_HANDLER_ID),
             AttributeSyntax.of("handlerWhitelist", SyntaxValueKind.STRING),
             AttributeSyntax.of("handlerBlacklist", SyntaxValueKind.STRING),
             AttributeSyntax.of("handlerOrder", SyntaxValueKind.INT),
@@ -975,7 +976,7 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
             AttributeSyntax.of("id", SyntaxValueKind.ITEM_ID),
             AttributeSyntax.of("fallbackText", SyntaxValueKind.STRING),
             AttributeSyntax.of("handlerName", SyntaxValueKind.STRING),
-            AttributeSyntax.of("handlerId", SyntaxValueKind.STRING),
+            AttributeSyntax.of("handlerId", SyntaxValueKind.RECIPE_HANDLER_ID),
             AttributeSyntax.of("handlerWhitelist", SyntaxValueKind.STRING),
             AttributeSyntax.of("handlerBlacklist", SyntaxValueKind.STRING),
             AttributeSyntax.of("handlerOrder", SyntaxValueKind.INT),
@@ -1844,6 +1845,7 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
 
     private static void contributeValueSources(SyntaxSink sink) {
         sink.valueSource(new ItemIdValueSource());
+        sink.valueSource(new RecipeHandlerValueSource());
         sink.valueSource(new FluidIdValueSource());
         sink.valueSource(new BlockIdValueSource());
         sink.valueSource(new ModIdValueSource());
