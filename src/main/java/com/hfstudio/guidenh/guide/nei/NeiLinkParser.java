@@ -102,8 +102,8 @@ public class NeiLinkParser {
                 if (index + 2 >= value.length()) {
                     throw new IllegalArgumentException("Incomplete NEI percent escape.");
                 }
-                int high = Character.digit(value.charAt(index + 1), 16);
-                int low = Character.digit(value.charAt(index + 2), 16);
+                int high = hexDigit(value.charAt(index + 1));
+                int low = hexDigit(value.charAt(index + 2));
                 if (high < 0 || low < 0) {
                     throw new IllegalArgumentException("Invalid NEI percent escape.");
                 }
@@ -121,5 +121,12 @@ public class NeiLinkParser {
             }
         }
         return decoded.toString();
+    }
+
+    private static int hexDigit(char value) {
+        if (value >= '0' && value <= '9') return value - '0';
+        if (value >= 'A' && value <= 'F') return value - 'A' + 10;
+        if (value >= 'a' && value <= 'f') return value - 'a' + 10;
+        return -1;
     }
 }

@@ -6,23 +6,21 @@ import java.util.Set;
 import com.hfstudio.guidenh.guide.compiler.IndexingContext;
 import com.hfstudio.guidenh.guide.compiler.IndexingSink;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
+import com.hfstudio.guidenh.guide.document.flow.LytFlowContent;
+import com.hfstudio.guidenh.guide.document.flow.LytFlowInlineBlock;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowLink;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowParent;
+import com.hfstudio.guidenh.guide.document.flow.LytFlowSpan;
+import com.hfstudio.guidenh.guide.document.flow.LytFlowText;
 import com.hfstudio.guidenh.guide.document.interaction.TextTooltip;
 import com.hfstudio.guidenh.guide.nei.NeiLinkParser;
 import com.hfstudio.guidenh.guide.nei.NeiLinkTarget;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxAttribute;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
-import com.hfstudio.guidenh.libs.mdast.model.MdAstBreak;
-import com.hfstudio.guidenh.libs.mdast.model.MdAstLiteral;
-import com.hfstudio.guidenh.libs.mdast.model.MdAstParent;
-import com.hfstudio.guidenh.libs.unist.UnistNode;
 
 public class NeiRecipeLinkCompiler extends FlowTagCompiler {
 
     private static final Set<String> ATTRIBUTES = Set.of("id", "handlerId", "mode", "title");
-    private static final Set<String> VISUAL_TAGS = Set
-        .of("ItemIcon", "ItemImage", "ItemId", "BlockId", "KeyBind", "PlayerName", "Amount", "img");
 
     @Override
     public Set<String> getTagNames() {
@@ -40,6 +38,11 @@ public class NeiRecipeLinkCompiler extends FlowTagCompiler {
             String title = MdxAttrs.getString(element, "title", null);
             if (title != null && !title.isBlank()) link.setTooltip(new TextTooltip(title));
             compiler.compileInlineFragment(element.children(), link);
+            if (link.getChildren()
+                .stream()
+                .noneMatch(NeiRecipeLinkCompiler::hasVisibleContent)) {
+                throw new IllegalArgumentException("NeiRecipeLink requires visible inline content.");
+            }
             parent.append(link);
         } catch (IllegalArgumentException | MdxAttrs.AttributeException exception) {
             parent.appendError(compiler, exception.getMessage(), element);
@@ -56,11 +59,6 @@ public class NeiRecipeLinkCompiler extends FlowTagCompiler {
                     "NeiRecipeLink accepts unique id, handlerId, mode, and title attributes.");
             }
         }
-        if (element.children()
-            .stream()
-            .noneMatch(NeiRecipeLinkCompiler::hasVisibleContent)) {
-            throw new IllegalArgumentException("NeiRecipeLink requires visible inline content.");
-        }
         return NeiLinkParser.parseAttributes(
             MdxAttrs.getString(element, "mode", null),
             MdxAttrs.getString(element, "id", null),
@@ -68,19 +66,15 @@ public class NeiRecipeLinkCompiler extends FlowTagCompiler {
             defaultNamespace);
     }
 
-    private static boolean hasVisibleContent(UnistNode node) {
-        if (node instanceof MdAstBreak) return false;
-        if (node instanceof MdxJsxElementFields element && VISUAL_TAGS.contains(element.name())) {
-            return true;
-        }
-        if (node instanceof MdAstLiteral literal) return literal.value != null && !literal.value.isBlank();
-        if (node instanceof MdAstParent<?>parent && !parent.children()
-            .isEmpty()) {
-            return parent.children()
+    private static boolean hasVisibleContent(LytFlowContent content) {
+        if (content instanceof LytFlowText text) return !text.getText()
+            .isBlank();
+        if (content instanceof LytFlowSpan span) {
+            return span.getChildren()
                 .stream()
                 .anyMatch(NeiRecipeLinkCompiler::hasVisibleContent);
         }
-        return !(node instanceof MdAstParent<?>);
+        return content instanceof LytFlowInlineBlock;
     }
 
     public static LytFlowLink createLink(NeiLinkTarget target) {
