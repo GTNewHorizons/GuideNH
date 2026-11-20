@@ -54,6 +54,12 @@ bindings:
 
 The game editor reads IDs from the loaded mod. Both IDE plugins also suggest IDs already used in workspace pages; connecting to the running game adds its registered IDs. Research IDs retain their original case. To find or copy an ID, see [Thaumcraft compatibility](Mod-Compatibility#finding-and-copying-research-ids).
 
+### NEI-actielinks
+
+Het invoegmenu en aanvulling bij `&[` bieden sjablonen voor handlers, recepten en toepassingen, plus `<NeiRecipeLink>`. De speleditor en IDE-plug-ins vullen `id`, `handlerId`, `mode` en NEI-URI-parameters aan. Handler-ID’s komen uit de geregistreerde handlers van het draaiende spel; verbind de runtime bridge van de IDE om ze op te halen. URI-aanvulling codeert waarden, vervangt de volledige huidige waarde en behoudt andere parameters. De handler-modus biedt alleen `handlerId`; bestaande parameters worden niet opnieuw aangeboden. Gewone links en codeblokken activeren geen NEI-aanvulling.
+
+Zie [Recepten](Recipes.md#nei-receptlinks-in-lopende-tekst) voor syntaxis en voorbeelden.
+
 ## Multiline text and templates
 
 Candidate rows use short previews. The visible `\n` and `\t` markers stand for line breaks and tabs; accepting a candidate inserts the actual text. Multiline insertion follows the current indentation and places the cursor where typing should continue.

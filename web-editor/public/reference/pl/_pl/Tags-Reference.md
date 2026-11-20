@@ -30,6 +30,7 @@ This page describes the built-in tags available to guide authors.
 | `<Spoiler>` | hidden inline text revealed on hover | none |
 | `<Tooltip>` | rich hover tooltip with markdown/tag children | `label` |
 | `<SoundLink>` | clickable rich-text sound trigger | `sound` or `src`, `volume`, `pitch`, `cooldown` |
+| `<NeiRecipeLink>` | Odnośnik do receptur NEI w tekście | `id`, `handlerId`, `mode`, `title` |
 | `<mark>` | inline highlighted text; equivalent to `==text==` with optional color control | `color` |
 | `<PlayerName>` | inserts current player username | none |
 | `<KeyBind>` | inserts keybinding display name | `id` or `action` |
@@ -320,6 +321,26 @@ Sound attributes:
 - `pitch` defaults to `1.0`
 - `cooldown` is milliseconds between repeated plays, default `250`
 - `radius` and `minVolume` control screen-space attenuation when used in scenes
+
+### `<NeiRecipeLink>`
+
+Użyj `&[tekst](nei:...)` lub `<NeiRecipeLink>`, aby otworzyć NEI z tekstu. Etykiety akcji są zwykłym tekstem; tag obsługuje formatowanie zawartości.
+
+| Atrybut | Wartość domyślna | Znaczenie |
+| --- | --- | --- |
+| `id` | nie ustawiono | Przedmiot docelowy z opcjonalnymi metadanymi i SNBT |
+| `handlerId` | nie ustawiono | Dokładny identyfikator nakładki lub modułu obsługi NEI, bez rozróżniania wielkości liter |
+| `mode` | `recipes` z `id`, w innym przypadku `handler` | `handler`, `recipes`, `usage` |
+| `title` | nie ustawiono | Opcjonalny tekst po najechaniu kursorem |
+
+```md
+<NeiRecipeLink id="minecraft:iron_ingot">Pokaż **receptury**</NeiRecipeLink>
+<NeiRecipeLink handlerId="gt.recipe.cokeoven">Pokaż wszystkie receptury pieca koksowniczego</NeiRecipeLink>
+```
+
+`handler` wymaga `handlerId` i zabrania `id`; `recipes` i `usage` wymagają `id` i pozwalają na opcjonalny `handlerId`. Po pominięciu `mode` obowiązuje wartość domyślna podana powyżej. Widoczna zawartość w tekście jest wymagana. Podgląd w przeglądarce pokazuje nieaktywny odnośnik.
+
+Zobacz [Receptury](Recipes.md#odnośniki-do-receptur-nei-w-tekście), aby poznać składnię akcji, identyfikatory przedmiotów, sekwencje ucieczki i przykłady.
 
 ### `<Amount>`
 

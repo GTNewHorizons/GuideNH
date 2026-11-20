@@ -21,6 +21,7 @@ import com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver.Frontmat
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver.MarkdownSyntaxContext;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver.MdxAttrNameContext;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver.MdxValueContext;
+import com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver.NeiActionContext;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver.TagStartContext;
 import com.hfstudio.guidenh.guide.syntax.AttributeSyntax;
 import com.hfstudio.guidenh.guide.syntax.GuideSyntaxModel;
@@ -75,6 +76,32 @@ public class GuideSyntaxCompletion {
     }
 
     private static List<AutocompleteCandidate> resolve(GuideSyntaxModel model, AutocompleteContext context, int limit) {
+        if (context instanceof NeiActionContext action) {
+            if (action.valueKind() == null) return textCandidates(
+                action.choices()
+                    .stream()
+                    .filter(
+                        choice -> choice.regionMatches(
+                            true,
+                            0,
+                            action.partialText(),
+                            0,
+                            action.partialText()
+                                .length()))
+                    .toList(),
+                limit);
+            return suggestionCandidates(
+                model.values(
+                    SyntaxValueRequest.of(
+                        action.valueKind(),
+                        action.partialText(),
+                        "NeiRecipeLink",
+                        action.valueKind()
+                            .equals(SyntaxValueKind.ITEM_ID) ? "id" : "handlerId"),
+                    limit),
+                action.valueKind(),
+                limit);
+        }
         if (context instanceof TagStartContext tagStart) {
             return tagCandidates(model, tagStart, limit);
         }

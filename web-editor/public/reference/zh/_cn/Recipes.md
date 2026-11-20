@@ -94,6 +94,32 @@ modid:name:meta:{snbt}
 
 可用白名单在某页中启用它们。查询范围较大时应设置 `limit`，避免页面过长。
 
+## 行内 NEI 配方链接
+
+使用 `&[文字](nei:...)` 或 `<NeiRecipeLink>`，从行内文字打开 NEI。
+
+```md
+&[查看焦炉全部配方](nei:handler?handlerId=gt.recipe.cokeoven)
+&[查看合成配方](nei:recipes?id=minecraft:iron_ingot)
+&[查看物品用途](nei:usage?id=gregtech:gt.blockmachines:236&handlerId=gt.recipe.cokeoven)
+
+<NeiRecipeLink handlerId="gt.recipe.cokeoven">查看 NEI</NeiRecipeLink>
+<NeiRecipeLink id="minecraft:iron_ingot">查看**合成配方**</NeiRecipeLink>
+<NeiRecipeLink mode="usage" id="gregtech:gt.blockmachines:236" handlerId="gt.recipe.cokeoven" title="NEI">查看物品用途</NeiRecipeLink>
+
+&[查看带 SNBT 的书籍配方](nei:recipes?id=minecraft:written_book:0:%7Btitle:%22Guide%2BNEI%22%2Cauthor:GuideNH%7D)
+```
+
+`handler` 必须填写 `handlerId` 且禁止 `id`，打开该处理器的全部配方；`recipes` 必须填写 `id`，查找产出该物品的配方；`usage` 必须填写 `id`，查找用途并包含催化剂行为，不受 Ctrl 状态影响。后两种模式均可通过 `handlerId` 限定处理器。
+
+`handlerId` 按 NEI 的 overlay identifier 或 handler ID 忽略大小写精确匹配，不接受 Java 类名或部分标识。
+
+省略命名空间时使用当前页面命名空间，保留注册名大小写、元数据和 SNBT。通配元数据沿用现有具体物品栈规则，不表示查询所有元数据变体。URI 参数仅按严格 UTF-8 解码一次，字面量 `+` 保持为 `+`。SNBT 及 `&`、`#`、`%`、`?`、`)` 等保留字符应进行百分号编码。
+
+重复或未知参数、错误转义、片段、不支持的模式、冲突属性及缺少目标会产生编写错误。仅带 `&` 的动作及 `<NeiRecipeLink>` 是 NEI 入口；普通链接、引用链接和 HTML 锚点不作为别名，也不支持 `nei://`。
+
+NEI 缺失或没有匹配配方时，指南保持打开并显示提示。浏览器和 IDE 预览显示不可点击的文字；在 GuideNH 中打开页面即可使用链接。
+
 ## 相关参考
 
 - [标签参考](Tags-Reference)

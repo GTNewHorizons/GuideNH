@@ -30,6 +30,7 @@ This page describes the built-in tags available to guide authors.
 | `<Spoiler>` | hidden inline text revealed on hover | none |
 | `<Tooltip>` | rich hover tooltip with markdown/tag children | `label` |
 | `<SoundLink>` | clickable rich-text sound trigger | `sound` or `src`, `volume`, `pitch`, `cooldown` |
+| `<NeiRecipeLink>` | NEI-receptlink in lopende tekst | `id`, `handlerId`, `mode`, `title` |
 | `<mark>` | inline highlighted text; equivalent to `==text==` with optional color control | `color` |
 | `<PlayerName>` | inserts current player username | none |
 | `<KeyBind>` | inserts keybinding display name | `id` or `action` |
@@ -320,6 +321,26 @@ Sound attributes:
 - `pitch` defaults to `1.0`
 - `cooldown` is milliseconds between repeated plays, default `250`
 - `radius` and `minVolume` control screen-space attenuation when used in scenes
+
+### `<NeiRecipeLink>`
+
+Gebruik `&[tekst](nei:...)` of `<NeiRecipeLink>` om NEI vanuit de tekst te openen. Actielabels zijn gewone tekst; de tag ondersteunt opgemaakte inhoud.
+
+| Attribuut | Standaard | Functie |
+| --- | --- | --- |
+| `id` | niet ingesteld | Doelvoorwerp met optionele metadata en SNBT |
+| `handlerId` | niet ingesteld | Exacte NEI-overlay-ID of handler-ID, zonder onderscheid tussen hoofdletters en kleine letters |
+| `mode` | `recipes` met `id`, anders `handler` | `handler`, `recipes`, `usage` |
+| `title` | niet ingesteld | Optionele tekst bij aanwijzen |
+
+```md
+<NeiRecipeLink id="minecraft:iron_ingot">**Recepten** bekijken</NeiRecipeLink>
+<NeiRecipeLink handlerId="gt.recipe.cokeoven">Alle cokesovenrecepten bekijken</NeiRecipeLink>
+```
+
+`handler` vereist `handlerId` en staat geen `id` toe; `recipes` en `usage` vereisen `id` en ondersteunen een optionele `handlerId`. Zonder `mode` geldt de hierboven vermelde standaard. Zichtbare inhoud in de lopende tekst is verplicht. Browservoorbeelden tonen een inactieve link.
+
+Zie [Recepten](Recipes.md#nei-receptlinks-in-lopende-tekst) voor actiesyntaxis, voorwerp-ID's, escapes en voorbeelden.
 
 ### `<Amount>`
 

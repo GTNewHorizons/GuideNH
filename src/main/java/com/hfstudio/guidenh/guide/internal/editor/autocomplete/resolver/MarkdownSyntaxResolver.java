@@ -43,7 +43,11 @@ public class MarkdownSyntaxResolver implements SyntaxContextResolver {
             return null;
         }
         String typed = text.substring(contentStart, cursorIndex);
-        if (!MarkdownSnippet.anyMatches(model.markdownSnippets(), typed)) {
+        if (model.markdownSnippets()
+            .stream()
+            .noneMatch(
+                snippet -> snippet.kind()
+                    .lineLead() && snippet.matches(typed))) {
             return null;
         }
         return new TextSyntaxContext(

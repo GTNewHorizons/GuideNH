@@ -30,6 +30,7 @@ This page describes the built-in tags available to guide authors.
 | `<Spoiler>` | hidden inline text revealed on hover | none |
 | `<Tooltip>` | rich hover tooltip with markdown/tag children | `label` |
 | `<SoundLink>` | clickable rich-text sound trigger | `sound` or `src`, `volume`, `pitch`, `cooldown` |
+| `<NeiRecipeLink>` | Link de receitas do NEI no texto | `id`, `handlerId`, `mode`, `title` |
 | `<mark>` | inline highlighted text; equivalent to `==text==` with optional color control | `color` |
 | `<PlayerName>` | inserts current player username | none |
 | `<KeyBind>` | inserts keybinding display name | `id` or `action` |
@@ -320,6 +321,26 @@ Sound attributes:
 - `pitch` defaults to `1.0`
 - `cooldown` is milliseconds between repeated plays, default `250`
 - `radius` and `minVolume` control screen-space attenuation when used in scenes
+
+### `<NeiRecipeLink>`
+
+Use `&[texto](nei:...)` ou `<NeiRecipeLink>` para abrir o NEI a partir do texto. Os rótulos das ações são texto simples; a tag aceita conteúdo formatado.
+
+| Atributo | Padrão | Função |
+| --- | --- | --- |
+| `id` | não definido | Item de destino, com metadados e SNBT opcionais |
+| `handlerId` | não definido | Identificador exato de sobreposição ou de manipulador do NEI, sem diferenciar maiúsculas e minúsculas |
+| `mode` | `recipes` com `id`; caso contrário, `handler` | `handler`, `recipes`, `usage` |
+| `title` | não definido | Texto opcional ao passar o cursor |
+
+```md
+<NeiRecipeLink id="minecraft:iron_ingot">Ver **receitas**</NeiRecipeLink>
+<NeiRecipeLink handlerId="gt.recipe.cokeoven">Ver todas as receitas do forno de coque</NeiRecipeLink>
+```
+
+`handler` exige `handlerId` e não permite `id`; `recipes` e `usage` exigem `id` e aceitam `handlerId` opcional. Sem `mode`, aplica-se o padrão indicado acima. É obrigatório incluir conteúdo visível no texto. As prévias no navegador mostram um link inativo.
+
+Consulte [Receitas](Recipes.md#links-de-receitas-do-nei-no-texto) para a sintaxe de ações, os IDs de itens, os escapes e os exemplos.
 
 ### `<Amount>`
 

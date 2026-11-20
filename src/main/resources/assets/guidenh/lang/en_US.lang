@@ -733,5 +733,9 @@ guidenh.debug.info.class_name=Class: %s
 guidenh.debug.info.size=Size: %s x %s
 guidenh.debug.info.position=Position: %s, %s
 
+# NEI action links
+guidenh.nei.link.unavailable=NEI is not available. The guide remains open.
+guidenh.nei.link.no_recipes=No NEI recipes were found for this link.
+
 # ServerUtilities Sidebar button
 sidebar_button.guidenh.guide=Guides

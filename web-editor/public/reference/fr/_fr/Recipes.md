@@ -96,6 +96,34 @@ The following multiblock handlers are excluded by default because they render a 
 
 Use a whitelist to include them on a page. Use `limit` for broad queries to keep pages readable.
 
+## Liens de recettes NEI dans le texte
+
+Utilisez `&[texte](nei:...)` ou `<NeiRecipeLink>` pour ouvrir NEI depuis le texte. Les libellés des actions sont du texte brut ; la balise accepte du contenu mis en forme.
+
+```md
+&[Voir toutes les recettes du four à coke](nei:handler?handlerId=gt.recipe.cokeoven)
+&[Voir les recettes](nei:recipes?id=minecraft:iron_ingot)
+&[Voir les utilisations](nei:usage?id=gregtech:gt.blockmachines:236&handlerId=gt.recipe.cokeoven)
+
+<NeiRecipeLink handlerId="gt.recipe.cokeoven">Voir toutes les recettes du four à coke</NeiRecipeLink>
+<NeiRecipeLink id="minecraft:iron_ingot">Voir les **recettes**</NeiRecipeLink>
+<NeiRecipeLink mode="usage" id="gregtech:gt.blockmachines:236" handlerId="gt.recipe.cokeoven" title="NEI">Voir les utilisations</NeiRecipeLink>
+
+&[Voir les recettes de livres avec SNBT](nei:recipes?id=minecraft:written_book:0:%7Btitle:%22Guide%2BNEI%22%2Cauthor:GuideNH%7D)
+```
+
+`handler` exige `handlerId`, interdit `id` et ouvre toutes les recettes du gestionnaire choisi. `recipes` exige `id` et ouvre les recettes produisant cet objet. `usage` exige `id` et ouvre les utilisations, y compris les catalyseurs, quel que soit l’état de la touche Ctrl. Ces deux derniers modes acceptent un filtre facultatif avec `handlerId`.
+
+`handlerId` correspond exactement à l’identifiant de superposition ou de gestionnaire NEI, sans tenir compte de la casse. Les noms de classes Java et les identifiants partiels ne sont pas acceptés.
+
+Les identifiants d’objets sans espace de noms utilisent celui de la page actuelle. La casse du nom de registre, les métadonnées et SNBT sont conservés. Les jokers de métadonnées suivent les règles existantes des piles concrètes et ne sélectionnent pas toutes les variantes.
+
+Les valeurs URI sont décodées une seule fois en UTF-8 strict ; un `+` littéral reste `+`. Encodez SNBT et les caractères réservés tels que `&`, `#`, `%`, `?` et `)` avec des échappements pourcentés.
+
+Les paramètres inconnus ou répétés, les échappements invalides, les fragments, les modes non pris en charge, les attributs contradictoires et les cibles manquantes produisent des erreurs de rédaction. Seules les actions avec `&` et `<NeiRecipeLink>` ouvrent NEI ; les liens ordinaires, les liens de référence, les ancres HTML et `nei://` ne sont pas des variantes de cette syntaxe.
+
+Si NEI est absent ou qu’aucune recette ne correspond, le guide reste ouvert et affiche un message. Les aperçus du navigateur et de l’IDE affichent du texte non cliquable. Ouvrez la page dans GuideNH pour utiliser le lien.
+
 ## Related references
 
 - [Tags Reference](Tags-Reference)

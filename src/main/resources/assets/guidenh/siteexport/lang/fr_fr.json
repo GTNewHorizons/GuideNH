@@ -1,4 +1,7 @@
 {
+  "nei": {
+    "inGame": "Ouvrez ce guide dans GuideNH pour consulter les recettes NEI."
+  },
   "scene": {
     "hideAnnotations": "Masquer les annotations",
     "showAnnotations": "Afficher les annotations",

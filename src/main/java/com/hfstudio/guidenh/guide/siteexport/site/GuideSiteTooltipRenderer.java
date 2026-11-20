@@ -109,6 +109,7 @@ import com.hfstudio.guidenh.guide.internal.mermaid.flowchart.FlowchartParser;
 import com.hfstudio.guidenh.guide.internal.mermaid.mindmap.MindmapParser;
 import com.hfstudio.guidenh.guide.internal.structure.GuideTextNbtCodec;
 import com.hfstudio.guidenh.guide.internal.tooltip.GuideItemTooltipLines;
+import com.hfstudio.guidenh.guide.nei.NeiLinkTarget;
 import com.hfstudio.guidenh.guide.scene.LytGuidebookScene;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.guide.siteexport.site.GuideSiteGraphRenderer.PieInsetData;
@@ -825,6 +826,21 @@ public class GuideSiteTooltipRenderer {
     private void appendLink(StringBuilder html, LytFlowLink link, @Nullable ResourceLocation currentPageId,
         @Nullable GuideSitePageAssetExporter assetExporter, GuideSiteItemIconResolver itemIconResolver,
         @Nullable GuideSiteTemplateRegistry templates, boolean allowNestedItemTooltips) {
+        if (link.getData("neiLinkTarget") instanceof NeiLinkTarget) {
+            StringBuilder content = new StringBuilder();
+            appendStyledFlowContainer(
+                content,
+                link,
+                "span",
+                currentPageId,
+                assetExporter,
+                itemIconResolver,
+                templates,
+                allowNestedItemTooltips,
+                null);
+            html.append(GuideSiteNeiLinkRenderer.wrap(content.toString(), ""));
+            return;
+        }
         if (link instanceof LytBindingLink binding) {
             var spec = binding.getBindingSpec();
             html.append(

@@ -1,12 +1,39 @@
 package com.hfstudio.guidenh.integration.nei;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import net.minecraft.item.ItemStack;
 
 import org.jetbrains.annotations.Nullable;
 
+import com.hfstudio.guidenh.integration.api.RecipeHandlerDescriptor;
 import com.hfstudio.guidenh.integration.api.RecipeHandlerMetadataProvider;
 
+import codechicken.nei.recipe.GuiCraftingRecipe;
+import codechicken.nei.recipe.GuiUsageRecipe;
+import codechicken.nei.recipe.IRecipeHandler;
+
 public class NeiRecipeHandlerMetadataProvider implements RecipeHandlerMetadataProvider {
+
+    @Override
+    public List<RecipeHandlerDescriptor> handlerDescriptors() {
+        List<RecipeHandlerDescriptor> entries = new ArrayList<>();
+        addDescriptors(entries, GuiCraftingRecipe.craftinghandlers);
+        addDescriptors(entries, GuiCraftingRecipe.serialCraftingHandlers);
+        addDescriptors(entries, GuiUsageRecipe.usagehandlers);
+        addDescriptors(entries, GuiUsageRecipe.serialUsageHandlers);
+        return entries;
+    }
+
+    private static void addDescriptors(List<RecipeHandlerDescriptor> entries, List<? extends IRecipeHandler> handlers) {
+        for (IRecipeHandler handler : handlers) {
+            String name = handler.getRecipeName();
+            for (String id : new String[] { handler.getOverlayIdentifier(), handler.getHandlerId() }) {
+                if (id != null && !id.isBlank()) entries.add(new RecipeHandlerDescriptor(id, name));
+            }
+        }
+    }
 
     @Override
     public String lookupHandlerName(Object handler) {

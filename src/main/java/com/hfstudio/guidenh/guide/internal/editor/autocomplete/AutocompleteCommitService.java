@@ -1,10 +1,14 @@
 package com.hfstudio.guidenh.guide.internal.editor.autocomplete;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+
 import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider.AutocompleteCandidate;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver.FrontmatterContext;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver.MdxValueContext;
+import com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver.NeiActionContext;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver.TagStartContext;
 import com.hfstudio.guidenh.guide.internal.editor.gui.EditorTextInsertion;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
@@ -32,8 +36,8 @@ public class AutocompleteCommitService {
             replacement.cursorOffset,
             replacement.selectionEndOffset);
         var insertion = context instanceof SlotContext || context instanceof MdxValueContext
-            ? EditorTextInsertion.normalize(rawInsertion)
-            : EditorTextInsertion.prepare(source, swallowedStart, rawInsertion);
+            || context instanceof NeiActionContext ? EditorTextInsertion.normalize(rawInsertion)
+                : EditorTextInsertion.prepare(source, swallowedStart, rawInsertion);
         String inserted = insertion.text();
         if (!(context instanceof SlotContext) && inserted.endsWith("\n")
             && swallowedEnd < source.length()
@@ -69,6 +73,12 @@ public class AutocompleteCommitService {
             return createSlotReplacement(slot, candidate);
         }
         String replacement = candidate.replacementText() != null ? candidate.replacementText() : "";
+        if (context instanceof NeiActionContext action) {
+            return Replacement.cursorAtEnd(
+                action.valueKind() == null ? replacement
+                    : URLEncoder.encode(replacement, StandardCharsets.UTF_8)
+                        .replace("+", "%20"));
+        }
         if (context instanceof TagStartContext tagStart) {
             return createTagReplacement(source, tagStart, candidate);
         }

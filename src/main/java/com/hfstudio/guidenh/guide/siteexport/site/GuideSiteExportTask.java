@@ -306,6 +306,7 @@ public class GuideSiteExportTask {
                         context.mediaWikiContextsByGuideId()
                             .get(guide.getId()));
                     GuideSiteHtmlCompiler compiler = createHtmlCompiler(
+                        guide,
                         latexExporter,
                         assetExporter,
                         new GuideSiteRecipeTagRenderer(itemIconExporter, neiPhase1Exporter),
@@ -913,7 +914,7 @@ public class GuideSiteExportTask {
             assetId -> loadGuideAsset(guide, resourceManager, language, assetId));
     }
 
-    private GuideSiteHtmlCompiler createHtmlCompiler(GuideSiteLatexExporter latexExporter,
+    private GuideSiteHtmlCompiler createHtmlCompiler(MutableGuide guide, GuideSiteLatexExporter latexExporter,
         GuideSitePageAssetExporter assetExporter, GuideSiteHtmlCompiler.RecipeTagRenderer recipeTagRenderer,
         GuideSiteHtmlCompiler.MdxTagRenderer mdxTagRenderer, GuideSiteItemIconResolver itemIconResolver) {
         return new GuideSiteHtmlCompiler(
@@ -922,7 +923,8 @@ public class GuideSiteExportTask {
             mdxTagRenderer,
             latexExporter,
             assetExporter,
-            itemIconResolver);
+            itemIconResolver,
+            guide.getExtensions());
     }
 
     private byte[] loadGuideAsset(MutableGuide guide, IResourceManager resourceManager, String language,

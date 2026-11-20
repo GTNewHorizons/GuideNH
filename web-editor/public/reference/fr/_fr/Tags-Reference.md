@@ -30,6 +30,7 @@ This page describes the built-in tags available to guide authors.
 | `<Spoiler>` | hidden inline text revealed on hover | none |
 | `<Tooltip>` | rich hover tooltip with markdown/tag children | `label` |
 | `<SoundLink>` | clickable rich-text sound trigger | `sound` or `src`, `volume`, `pitch`, `cooldown` |
+| `<NeiRecipeLink>` | Lien de recettes NEI dans le texte | `id`, `handlerId`, `mode`, `title` |
 | `<mark>` | inline highlighted text; equivalent to `==text==` with optional color control | `color` |
 | `<PlayerName>` | inserts current player username | none |
 | `<KeyBind>` | inserts keybinding display name | `id` or `action` |
@@ -320,6 +321,26 @@ Sound attributes:
 - `pitch` defaults to `1.0`
 - `cooldown` is milliseconds between repeated plays, default `250`
 - `radius` and `minVolume` control screen-space attenuation when used in scenes
+
+### `<NeiRecipeLink>`
+
+Utilisez `&[texte](nei:...)` ou `<NeiRecipeLink>` pour ouvrir NEI depuis le texte. Les libellés des actions sont du texte brut ; la balise accepte du contenu mis en forme.
+
+| Attribut | Valeur par défaut | Fonction |
+| --- | --- | --- |
+| `id` | non défini | Objet cible, avec métadonnées et SNBT facultatifs |
+| `handlerId` | non défini | Identifiant exact de superposition ou de gestionnaire NEI, sans tenir compte de la casse |
+| `mode` | `recipes` avec `id`, sinon `handler` | `handler`, `recipes`, `usage` |
+| `title` | non défini | Texte facultatif au survol |
+
+```md
+<NeiRecipeLink id="minecraft:iron_ingot">Voir les **recettes**</NeiRecipeLink>
+<NeiRecipeLink handlerId="gt.recipe.cokeoven">Voir toutes les recettes du four à coke</NeiRecipeLink>
+```
+
+`handler` exige `handlerId` et interdit `id` ; `recipes` et `usage` exigent `id` et acceptent un `handlerId` facultatif. Sans `mode`, la valeur par défaut indiquée ci-dessus s’applique. Un contenu visible dans le texte est obligatoire. Les aperçus du navigateur affichent un lien inactif.
+
+Consultez [Recettes](Recipes.md#liens-de-recettes-nei-dans-le-texte) pour la syntaxe des actions, les identifiants d’objets, les échappements et les exemples.
 
 ### `<Amount>`
 

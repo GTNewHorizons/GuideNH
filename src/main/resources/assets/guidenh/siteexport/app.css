@@ -2931,3 +2931,5 @@ button.guide-fluid-link {
     }
 }
 
+
+.guide-nei-link { color: var(--accent, #8dbaf2); text-decoration: underline dotted; cursor: help; }
