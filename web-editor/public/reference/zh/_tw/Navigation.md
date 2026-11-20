@@ -223,6 +223,22 @@ navigation:
 
 這些繫結供 `<FluidLink>` 和懸停長按 `G` 使用。可識別 NEI 流體展示及裝液容器；空容器繼續使用物品索引。多個目標會顯示選擇列表，流體頁面排在容器物品頁面之前。
 
+## 任務、研究與自定義內容索引
+
+用 `bindings` 將當前頁面關聯到 BetterQuesting 任務、Thaumcraft 研究或其他已註冊型別：
+
+```yaml
+bindings:
+  - {type: "thaumcraft", id: "INFUSION", anchor: "apparatus"}
+  - {type: "betterquesting", id: "01234567-89ab-cdef-0123-456789abcdef", anchor: "quest"}
+```
+
+同一個內容對應多個頁面或章節時，GuideNH 會開啟與物品相同的目標選擇介面。相同頁面和錨點合併，不同錨點仍可單獨選擇；省略 `anchor` 表示頁面頂部。完整欄位和引號寫法見 [Frontmatter](Guide-Page-Format#外部內容繫結)。
+
+`QuestLink` 和 `QuestCard` 標題左鍵開啟 BetterQuesting；右鍵開啟繫結指南，沒有指南時回退 BetterQuesting。研究和通用連結、卡片預設優先開啟指南，左鍵動作可以用 `target` 選擇，見 [標籤參考](Tags-Reference#研究與自定義內容)。
+
+懸停支援的任務按鈕、研究條目或內容圖示，按住開啟指南鍵（預設 `G`）也能選擇繫結指南。沒有繫結時快捷鍵不執行操作。各模組的懸停區域和原生介面返回規則見 [模組相容](Mod-Compatibility)。
+
 ## 標題錨點連結
 
 GuideNH 在 Markdown 連結和 `<a>` 標籤中支援標題錨點跳轉。

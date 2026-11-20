@@ -1,5 +1,14 @@
 package com.hfstudio.guidenh.guide.internal.editor.guide;
 
+import java.io.StringReader;
+
+import org.yaml.snakeyaml.Yaml;
+import org.yaml.snakeyaml.nodes.MappingNode;
+import org.yaml.snakeyaml.nodes.ScalarNode;
+import org.yaml.snakeyaml.nodes.SequenceNode;
+
+import com.hfstudio.guidenh.integration.betterquesting.QuestIdParser;
+
 import lombok.Getter;
 
 public class GuideScreenEditorTextActions {
@@ -560,7 +569,7 @@ public class GuideScreenEditorTextActions {
 
     private static Result applyQuestTag(String source, int start, int end, String tagName) {
         String selected = start < end ? sanitizeAttributeValue(source.substring(start, end)) : "";
-        String questId = isUuidLike(selected) ? selected : "00000000-0000-0000-0000-000000000000";
+        String questId = isQuestId(selected) ? selected : "00000000-0000-0000-0000-000000000000";
         String replacement = "<" + tagName + " id=\"" + questId + "\" />";
         int caretStart = start + replacement.indexOf(questId);
         return new Result(
@@ -572,7 +581,7 @@ public class GuideScreenEditorTextActions {
     private static Result applyQuestIdsFrontmatter(String source, int start, int end) {
         Range range = resolveTargetRange(source, start, end);
         String selected = sanitizeInline(source.substring(range.start, range.end));
-        String questId = isUuidLike(selected) ? selected : "00000000-0000-0000-0000-000000000000";
+        String questId = isQuestId(selected) ? selected : "00000000-0000-0000-0000-000000000000";
         Range removal = resolveQuestIdsRemovalRange(source, start, end, selected);
         int frontmatterEnd = findFrontmatterEnd(source);
         String updatedSource;
@@ -586,7 +595,7 @@ public class GuideScreenEditorTextActions {
             return new Result(updatedSource, caretStart, caretStart + questId.length());
         }
 
-        String frontmatter = "---\nquest_ids:\n  - " + questId + "\n---\n\n";
+        String frontmatter = "---\nbindings:\n  - " + questBinding(questId) + "\n---\n\n";
         String body = removeRange(source, removal, 0);
         updatedSource = frontmatter + body;
         int caretStart = frontmatter.indexOf(questId);
@@ -753,23 +762,52 @@ public class GuideScreenEditorTextActions {
         return -1;
     }
 
-    private static String insertQuestIdIntoFrontmatter(String frontmatter, String questId) {
-        int questIdsLineStart = findLineStartWithPrefix(frontmatter, "quest_ids:");
-        if (questIdsLineStart >= 0) {
-            if (frontmatter.contains(questId)) {
-                return frontmatter;
-            }
-            int questIdsBlockEnd = findYamlListBlockEnd(frontmatter, questIdsLineStart);
-            String insertion = "  - " + questId + "\n";
-            return frontmatter.substring(0, questIdsBlockEnd) + insertion + frontmatter.substring(questIdsBlockEnd);
-        }
+    private static String questBinding(String questId) {
+        return "{type: \"betterquesting\", id: \"" + questId + "\"}";
+    }
 
-        int closingStart = frontmatter.lastIndexOf("\n---");
-        if (closingStart < 0) {
-            closingStart = Math.max(0, frontmatter.length() - 4);
+    private static String insertQuestIdIntoFrontmatter(String frontmatter, String questId) {
+        String source = frontmatter.substring(4, frontmatter.lastIndexOf("\n---") + 1);
+        var root = (MappingNode) new Yaml().compose(new StringReader(source));
+        if (root == null) {
+            return insertLineBeforeFrontmatterClose(frontmatter, "bindings:\n  - " + questBinding(questId) + "\n");
         }
-        String insertion = "quest_ids:\n  - " + questId + "\n";
-        return frontmatter.substring(0, closingStart + 1) + insertion + frontmatter.substring(closingStart + 1);
+        var parsedQuestId = QuestIdParser.parse(questId);
+        for (var pair : root.getValue()) {
+            if (!(pair.getKeyNode() instanceof ScalarNode key) || !"bindings".equals(key.getValue())) continue;
+            if (pair.getValueNode() instanceof SequenceNode list) {
+                for (var node : list.getValue()) {
+                    if (!(node instanceof MappingNode entry)) continue;
+                    String type = null, id = null;
+                    for (var field : entry.getValue()) {
+                        if (!(field.getKeyNode() instanceof ScalarNode name)
+                            || !(field.getValueNode() instanceof ScalarNode value)) continue;
+                        if ("type".equals(name.getValue())) type = value.getValue();
+                        if ("id".equals(name.getValue())) id = value.getValue();
+                    }
+                    if (type != null && "betterquesting".equalsIgnoreCase(type.trim())
+                        && parsedQuestId.equals(QuestIdParser.parse(id))) return frontmatter;
+                }
+                if (list.getFlowStyle()
+                    .getStyleBoolean() == Boolean.TRUE) {
+                    int end = 4 + source.offsetByCodePoints(
+                        0,
+                        list.getEndMark()
+                            .getIndex())
+                        - 1;
+                    String insertion = (list.getValue()
+                        .isEmpty() ? "" : ", ") + questBinding(questId);
+                    return frontmatter.substring(0, end) + insertion + frontmatter.substring(end);
+                }
+            }
+            int start = 4 + source.offsetByCodePoints(
+                0,
+                key.getStartMark()
+                    .getIndex());
+            int end = findYamlListBlockEnd(frontmatter, start);
+            return frontmatter.substring(0, end) + "  - " + questBinding(questId) + "\n" + frontmatter.substring(end);
+        }
+        return insertLineBeforeFrontmatterClose(frontmatter, "bindings:\n  - " + questBinding(questId) + "\n");
     }
 
     private static String insertTopLevelListValueIntoFrontmatter(String frontmatter, String key, String value) {
@@ -1479,26 +1517,8 @@ public class GuideScreenEditorTextActions {
         return source != null && source.contains(marker);
     }
 
-    private static boolean isUuidLike(String text) {
-        if (text == null || text.length() != 36) {
-            return false;
-        }
-        for (int i = 0; i < text.length(); i++) {
-            char c = text.charAt(i);
-            if (i == 8 || i == 13 || i == 18 || i == 23) {
-                if (c != '-') {
-                    return false;
-                }
-                continue;
-            }
-            boolean digit = c >= '0' && c <= '9';
-            boolean lowerHex = c >= 'a' && c <= 'f';
-            boolean upperHex = c >= 'A' && c <= 'F';
-            if (!digit && !lowerHex && !upperHex) {
-                return false;
-            }
-        }
-        return true;
+    private static boolean isQuestId(String text) {
+        return QuestIdParser.parse(text) != null;
     }
 
     private static int clamp(int value, int min, int max) {

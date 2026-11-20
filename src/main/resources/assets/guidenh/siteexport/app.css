@@ -1,3 +1,8 @@
+.guide-binding-targets { display: inline-block; position: relative; cursor: pointer; }
+.guide-binding-target-list { display: none; position: absolute; z-index: 100; left: 0; top: 100%; min-width: 12em; max-width: 24em; padding: .35em; border: 1px solid var(--border-color, #777); background: var(--background-color, #202020); box-shadow: 0 3px 12px #0005; }
+.guide-binding-target-list > a { display: block; padding: .25em .4em; white-space: normal; }
+.guide-binding-targets:hover > .guide-binding-target-list, .guide-binding-targets:focus-within > .guide-binding-target-list { display: block; }
+
 @font-face {
     font-family: 'Pixeloid Mono';
     src: url('fonts/PixeloidMono.woff2') format('woff2'),

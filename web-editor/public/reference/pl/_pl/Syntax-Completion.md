@@ -2,38 +2,66 @@
 
 Edytor przewodnika w grze podpowiada tagi, atrybuty i wartości podczas pisania strony.
 
-## Obsługa listy kandydatów
+The in-game guide editor suggests tags, attributes and values while you write a page.
 
-| Działanie | Wynik |
+## Dokumentacja tworzenia poradników
+
+Kliknij żarówkę na pasku edytora w grze, aby otworzyć dokumentację wspólną z Web Editor. Wyszukiwanie obejmuje tematy, atrybuty tagów, pola YAML i przykłady kodu. Wybierz temat po lewej i czytaj opis po prawej; oba panele przewijają się niezależnie. ↑ / ↓ wybiera tematy, Ctrl+F aktywuje wyszukiwanie, a Page Up / Page Down przewija opis. Prawy przycisk myszy czyści wyszukiwanie.
+
+Linki przechodzą do tematów i nagłówków; przycisk wstecz wraca do poprzedniego tematu. Kopiuj przykłady przyciskiem w bloku kodu lub cały temat jako Markdown przyciskiem u góry. Żarówka pozostaje niebieska, gdy dokumentacja jest otwarta; kliknij ponownie, aby wrócić do przewodnika, zachowując szkic, zaznaczenie i historię cofania. Zamknij lub Esc zamyka okno przewodnika. Dokumentacja używa języka gry, a przy braku tłumaczenia wyświetla angielski.
+
+## Using the candidate list
+
+| Action | Result |
 | --- | --- |
-| ↑ / ↓ | Wybrać poprzedniego lub następnego kandydata |
-| Tab / Enter | Wstawić wybranego kandydata |
-| Kliknięcie kandydata | Wstawić wybranego kandydata |
-| Esc | Zamknąć listę |
-| Kółko myszy | Przewijać kandydatów |
-| Pasek przewijania | Przeciągnąć pasek przewijania |
+| ↑ / ↓ | Select the previous or next candidate |
+| Tab / Enter | Insert the selected candidate |
+| Click | Insert the selected candidate |
+| Esc | Close the list |
+| Mouse wheel | Scroll through candidates |
+| Scrollbar | Drag the scrollbar to scroll |
 
-## Dostępne uzupełnianie
+## Supported completion
 
-| Miejsce edycji | Podpowiedzi |
+| While editing | Suggestions |
 | --- | --- |
-| `<...` | Nazwy tagów dozwolonych w bieżącym kontenerze |
-| `<Tag ...` | Nazwy atrybutów i ograniczniki ich wartości |
-| `id="..."`, `fluid="..."` | Nazwy rejestrowe przedmiotów i płynów, przepisy, strony, zasoby i inne obsługiwane wartości |
-| Markdown | Nagłówki, listy, tabele, ostrzeżenia i inne struktury Markdown |
-| Blok kodu | Obsługiwane języki kodu i nazwy bloków GuideNH |
-| Frontmatter | Klucze YAML i obsługiwane wartości |
+| `<...` | Tag names valid in the enclosing container |
+| `<Tag ...` | Attribute names and their value delimiters |
+| `id="..."`, `fluid="..."` | Item and fluid registry names, recipes, pages, assets and other supported values |
+| Markdown | Headings, lists, tables, alerts and other Markdown constructs |
+| Code fence | Supported code languages and GuideNH fence names |
+| Frontmatter | YAML keys and supported values |
 
-Uzupełnianie nazwy wstawia pusty tag lub parę tagów z kursorem wewnątrz. Potem dodaj potrzebne atrybuty i treść. Wartości przedmiotów i płynów mają ikony; płyny używają nazw rejestrowych, takich jak `water` lub `steam`, zamiast liczbowych identyfikatorów.
+Tag-name completion inserts an empty tag or a matching pair with the cursor inside. Add the attributes and content you need afterward. Item and fluid value candidates show icons; fluid values use registry names such as `water` or `steam`, rather than numeric IDs.
 
-## Tekst wielowierszowy i szablony
+### Quest and research IDs
 
-Kandydaci pokazują krótkie podglądy. Widoczne znaczniki `\n` i `\t` oznaczają nowe linie i tabulatory; zatwierdzenie wstawia rzeczywisty tekst. Wstawianie wielu linii zachowuje bieżące wcięcie i ustawia kursor tam, gdzie należy kontynuować pisanie.
+ID suggestions follow the content being edited:
 
-Aby wstawić pełny przykład, otwórz menu edytora prawym przyciskiem myszy i wybierz szablon. Dostępne są tam szablony scen i wykresów. Zwykłe uzupełnianie nazw pozostawia tag pusty.
+| Editing | ID source |
+| --- | --- |
+| `ResearchLink`, `ResearchCard`, `ResearchIcon` | Thaumcraft research |
+| `QuestLink`, `QuestCard` | BetterQuesting quests |
+| `id` in a `bindings` entry | The system named by that entry's `type` |
+| `BindingLink`, `BindingCard`, `BindingIcon` | The system named by the tag's `type` |
 
-## Powiązane materiały
+For a binding entry, fill in `type` before choosing an `id`:
 
-- [Format strony](Guide-Page-Format)
-- [Tagi i atrybuty](Tags-Reference)
-- [Przepisy](Recipes)
+```yaml
+bindings:
+  - {type: "thaumcraft", id: "INFUSION", anchor: "infusion"}
+```
+
+The game editor reads IDs from the loaded mod. Both IDE plugins also suggest IDs already used in workspace pages; connecting to the running game adds its registered IDs. Research IDs retain their original case. To find or copy an ID, see [Thaumcraft compatibility](Mod-Compatibility#finding-and-copying-research-ids).
+
+## Multiline text and templates
+
+Candidate rows use short previews. The visible `\n` and `\t` markers stand for line breaks and tabs; accepting a candidate inserts the actual text. Multiline insertion follows the current indentation and places the cursor where typing should continue.
+
+For a complete example, open the editor's right-click menu and choose a template. Scene and chart templates are available there. Normal tag-name completion keeps the tag empty.
+
+## Related references
+
+- [Page format](Guide-Page-Format)
+- [Tags and attributes](Tags-Reference)
+- [Recipes](Recipes)

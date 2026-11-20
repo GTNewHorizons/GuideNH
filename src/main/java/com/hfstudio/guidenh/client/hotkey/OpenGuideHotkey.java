@@ -2,11 +2,11 @@ package com.hfstudio.guidenh.client.hotkey;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.UUID;
 import java.util.function.Supplier;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.settings.KeyBinding;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
@@ -19,17 +19,20 @@ import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.Display;
 
+import com.hfstudio.guidenh.guide.GuideAnchor;
 import com.hfstudio.guidenh.guide.PageAnchor;
 import com.hfstudio.guidenh.guide.internal.GuideRegistry;
 import com.hfstudio.guidenh.guide.internal.GuideScreen;
 import com.hfstudio.guidenh.guide.internal.GuidebookText;
 import com.hfstudio.guidenh.guide.internal.MutableGuide;
+import com.hfstudio.guidenh.guide.internal.binding.BindingHoverSession;
+import com.hfstudio.guidenh.guide.internal.binding.BindingNavigationService;
 import com.hfstudio.guidenh.guide.internal.fluid.FluidStackResolver;
 import com.hfstudio.guidenh.guide.internal.fluid.FluidStackSpec;
 import com.hfstudio.guidenh.guide.internal.fluid.GuideHoverSession;
 import com.hfstudio.guidenh.guide.internal.input.GuideKeyBindingSupport;
 import com.hfstudio.guidenh.guide.internal.search.GuideTargetSelection;
-import com.hfstudio.guidenh.guide.ui.GuideUiHost;
+import com.hfstudio.guidenh.integration.api.binding.BindingKey;
 import com.hfstudio.guidenh.integration.api.client.GuideNhClientIntegrationRegistry;
 
 import cpw.mods.fml.client.registry.ClientRegistry;
@@ -57,6 +60,8 @@ public class OpenGuideHotkey {
     public static boolean holding;
     public static boolean newTick = true;
 
+    private static final BindingHoverSession BINDING_SESSION = new BindingHoverSession();
+    private static BindingKey guideHoveredBinding;
     private static final GuideHoverSession HOVER_SESSION = new GuideHoverSession();
     private static GuideTargetSelection resourceSelection = new GuideTargetSelection("", List.of(), List.of());
     private static boolean hoverObserved;
@@ -149,15 +154,8 @@ public class OpenGuideHotkey {
         if (TOOLTIP_HINTS_SUPPRESSED.get() || questId == null || lines == null) {
             return false;
         }
-        List<FoundPage> pages = findQuestPages(questId);
-        if (pages.isEmpty()) {
-            return false;
-        }
-
-        var found = pages.getFirst();
-        var current = GuideScreen.current();
-        if (current != null && found.page.pageId()
-            .equals(current.getCurrentPageId())) {
+        var targets = BindingNavigationService.findTargets(new BindingKey("betterquesting", questId.toString()));
+        if (!canOpenBindingTargets(targets)) {
             return false;
         }
 
@@ -295,62 +293,71 @@ public class OpenGuideHotkey {
         return meta == 0 ? name.toString() : name + ":" + meta;
     }
 
-    private static List<FoundPage> findQuestPages(UUID questId) {
-        var pages = new ArrayList<FoundPage>();
-        if (questId == null) {
-            return pages;
-        }
-        GuideNhClientIntegrationRegistry registry = GuideNhClientIntegrationRegistry.global();
-        for (var guide : GuideRegistry.getAll()) {
-            if (!guide.isAvailableToOpenHotkey()) {
-                continue;
-            }
-            PageAnchor anchor = registry.findQuestHoverPage(guide, questId);
-            if (anchor == null) {
-                continue;
-            }
-            pages.add(new FoundPage(guide, anchor));
-        }
-        return pages;
+    private static boolean canOpenBindingTargets(List<GuideAnchor> targets) {
+        if (targets.isEmpty()) return false;
+        if (targets.size() > 1) return true;
+        var current = GuideScreen.current();
+        var target = targets.getFirst();
+        return current == null || !current.isShowingGuide(target.guideId())
+            || !target.page()
+                .pageId()
+                .equals(current.getCurrentPageId());
     }
 
-    /**
-     * Tick handler for the BetterQuesting quest-hover hotkey path. Reads the currently hovered
-     * quest UUID published by a registered provider and, when held long enough, opens the guide
-     * page indexed against that UUID.
-     */
+    public static void updateBindingHover(BindingKey key) {
+        guideHoveredBinding = key;
+    }
+
+    public static boolean appendBindingTooltip(BindingKey key, List<String> lines) {
+        String hint = bindingHint(key);
+        if (hint == null) return false;
+        lines.add(hint);
+        return true;
+    }
+
+    @Nullable
+    public static String bindingHint(BindingKey key) {
+        if (TOOLTIP_HINTS_SUPPRESSED.get()) return null;
+        var selection = BINDING_SESSION.update(Minecraft.getMinecraft().currentScreen, key);
+        if (!canOpenBindingTargets(selection.targets())) return null;
+        return renderHint(BINDING_SESSION.ticksHeld() / (float) TICKS_TO_OPEN);
+    }
+
     public static void tickQuestHover() {
-        GuideNhClientIntegrationRegistry registry = GuideNhClientIntegrationRegistry.global();
-        UUID hovered = registry.currentHoveredQuestId();
-        if (!Objects.equals(hovered, previousQuestId)) {
-            previousQuestId = hovered;
-            questGuidebookPages.clear();
-            questTicksKeyHeld = 0;
-            if (hovered != null) {
-                questGuidebookPages.addAll(findQuestPages(hovered));
-            }
-        }
-        if (questGuidebookPages.isEmpty()) {
-            questTicksKeyHeld = 0;
+        Minecraft minecraft = Minecraft.getMinecraft();
+        GuiScreen screen = minecraft.currentScreen;
+        boolean held = isKeyHeld();
+        if (!Display.isActive() || screen == null || minecraft.thePlayer == null) {
+            BINDING_SESSION.reset();
+            guideHoveredBinding = null;
             return;
         }
-        boolean held = isKeyHeld();
-        if (held) {
-            if (questTicksKeyHeld < TICKS_TO_OPEN && ++questTicksKeyHeld == TICKS_TO_OPEN) {
-                var found = questGuidebookPages.getFirst();
-                var mc = Minecraft.getMinecraft();
-                if (mc.currentScreen instanceof GuideUiHost) {
-                    ((GuideUiHost) mc.currentScreen).navigateTo(found.guide.getId(), found.page);
-                } else {
-                    GuideScreen.openFromGuideHotkey(found.guide.getId(), found.page);
-                }
-                questTicksKeyHeld = 0;
-            } else if (questTicksKeyHeld > TICKS_TO_OPEN) {
-                questTicksKeyHeld = TICKS_TO_OPEN;
+        int x = Mouse.getX() * screen.width / Math.max(1, minecraft.displayWidth);
+        int y = screen.height - Mouse.getY() * screen.height / Math.max(1, minecraft.displayHeight) - 1;
+        BindingKey key = guideHoveredBinding;
+        guideHoveredBinding = null;
+        var registry = GuideNhClientIntegrationRegistry.global();
+        if (!(screen instanceof GuideScreen)) {
+            var target = registry.findHoveredBinding(screen, x, y);
+            if (target != null) key = target.key();
+            else {
+                UUID quest = registry.currentHoveredQuestId();
+                if (quest != null) key = new BindingKey("betterquesting", quest.toString());
             }
-        } else if (questTicksKeyHeld > 0) {
-            questTicksKeyHeld = Math.max(0, questTicksKeyHeld - 2);
         }
+        var selection = BINDING_SESSION.update(screen, key);
+        var targets = selection.targets();
+        previousQuestId = key != null && "betterquesting".equals(key.type()) ? UUID.fromString(key.id()) : null;
+        questGuidebookPages.clear();
+        if (previousQuestId != null) {
+            for (var target : targets)
+                questGuidebookPages.add(new FoundPage(GuideRegistry.getById(target.guideId()), target.page()));
+        }
+        if (BINDING_SESSION.advance(held && canOpenBindingTargets(targets), TICKS_TO_OPEN)) {
+            if (screen instanceof GuideScreen guide) guide.openResourceTargets(selection);
+            else GuideScreen.openFromGuideHotkey(selection);
+        }
+        questTicksKeyHeld = BINDING_SESSION.ticksHeld();
     }
 
     public static KeyBinding getHotkey() {

@@ -28,19 +28,13 @@ public class MarkdownRuntimeBlocks {
     }
 
     public static @Nullable QuoteIconSpec parseQuoteIconAttributes(MdxJsxElementFields element) {
-        String fluid = firstNonBlank(
-            element.getAttributeString("iconFluid", null),
-            element.getAttributeString("icon_fluid", null));
+        String fluid = firstNonBlank(element.getAttributeString("iconFluid", null));
         if (fluid != null) return new QuoteIconSpec(QuoteIconKind.FLUID, fluid);
-        String item = firstNonBlank(
-            element.getAttributeString("iconItem", null),
-            element.getAttributeString("icon_item", null));
+        String item = firstNonBlank(element.getAttributeString("iconItem", null));
         if (item != null) {
             return new QuoteIconSpec(QuoteIconKind.ITEM, item);
         }
-        String png = firstNonBlank(
-            element.getAttributeString("iconPng", null),
-            element.getAttributeString("icon_png", null));
+        String png = firstNonBlank(element.getAttributeString("iconPng", null));
         if (png != null) {
             return new QuoteIconSpec(QuoteIconKind.PNG, png);
         }

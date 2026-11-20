@@ -3,6 +3,9 @@ package com.hfstudio.guidenh.integration.betterquesting;
 import java.util.Map.Entry;
 import java.util.UUID;
 
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiScreen;
+
 import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.PageAnchor;
@@ -15,10 +18,12 @@ public class BetterQuestingQuestHoverProvider implements QuestHoverProvider, IQu
 
     @Nullable
     private Object currentTarget;
+    @Nullable
+    private GuiScreen sourceScreen;
 
     @Override
     public @Nullable UUID currentHoveredQuestId() {
-        if (!(currentTarget instanceof Entry<?, ?>)) {
+        if (Minecraft.getMinecraft().currentScreen != sourceScreen || !(currentTarget instanceof Entry<?, ?>)) {
             return null;
         }
 
@@ -29,6 +34,7 @@ public class BetterQuestingQuestHoverProvider implements QuestHoverProvider, IQu
     @Override
     public void onQuestHoverChanged(@Nullable Object target) {
         currentTarget = target;
+        sourceScreen = target == null ? null : Minecraft.getMinecraft().currentScreen;
     }
 
     @Override

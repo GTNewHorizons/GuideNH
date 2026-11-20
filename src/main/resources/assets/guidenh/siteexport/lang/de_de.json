@@ -26,6 +26,7 @@
     "chooseGuide": "Eine Handbuchseite auswählen",
     "closeChooser": "Seitenauswahl schließen"
   },
+  "binding.nativeSite": "Öffne diesen Leitfaden in GuideNH, um den Inhalt im Spiel anzuzeigen.",
   "sceneLoading": {
     "error": "3D-Szene konnte nicht geladen werden.",
     "retry": "Erneut versuchen",

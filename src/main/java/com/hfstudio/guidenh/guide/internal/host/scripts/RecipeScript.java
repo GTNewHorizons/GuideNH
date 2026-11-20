@@ -187,7 +187,7 @@ public class RecipeScript implements LytScript {
                             ph.outputFluid))
                         continue;
                     if (!recipeFingerprints.add(NeiRecipeLookup.recipeFingerprint(handler, entry))) continue;
-                    boxes.add(new LytNeiRecipeBox(handler, ri, !usageQuery));
+                    boxes.add(new LytNeiRecipeBox(handler, ri));
                 }
             }
             if (!boxes.isEmpty()) {

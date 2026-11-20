@@ -69,6 +69,7 @@
     "previewPending": "Preview adapter pending",
     "navigationRuntime": "Navigation data is available in runtime.",
     "tooltipRuntime": "Preview data is available at runtime.",
+    "binding.nativeSite": "Open this guide in GuideNH to view the native content.",
     "runtimeData": "runtime data",
     "runtimePreview": "runtime preview",
     "sceneRuntime": "3D scene is available at runtime",

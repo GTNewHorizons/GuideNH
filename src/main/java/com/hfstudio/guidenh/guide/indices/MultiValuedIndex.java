@@ -15,9 +15,6 @@ import com.google.gson.stream.JsonWriter;
 import com.hfstudio.guidenh.guide.GuidePageChange;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
 
-/**
- * A convenient index base-class for indices that map keys to multiple pages.
- */
 public class MultiValuedIndex<K, V> implements PageIndex {
 
     private final Map<K, List<Record<V>>> index = new HashMap<>();
@@ -52,6 +49,10 @@ public class MultiValuedIndex<K, V> implements PageIndex {
         return List.of();
     }
 
+    public List<K> keys() {
+        return List.copyOf(index.keySet());
+    }
+
     @Override
     public boolean supportsUpdate() {
         return true;
@@ -68,7 +69,6 @@ public class MultiValuedIndex<K, V> implements PageIndex {
 
     @Override
     public void update(List<ParsedGuidePage> allPages, List<GuidePageChange> changes) {
-        // Clean up all index entries associated with changed pages
         var idsToRemove = new HashSet<ResourceLocation>(changes.size());
         for (var change : changes) {
             idsToRemove.add(change.pageId());
@@ -83,7 +83,6 @@ public class MultiValuedIndex<K, V> implements PageIndex {
             }
         }
 
-        // Then re-add new or changed pages
         for (var change : changes) {
             var newPage = change.newPage();
             if (newPage != null) {
