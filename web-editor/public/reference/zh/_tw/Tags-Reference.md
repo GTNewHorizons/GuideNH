@@ -28,7 +28,7 @@
 | `<Spoiler>` | 懸停後顯示的行內黑幕文字 | 無 |
 | `<Tooltip>` | 帶 Markdown/標籤子內容的富懸浮提示 | `label` |
 | `<SoundLink>` | 可點選的富文字音效觸發器 | `sound` 或 `src`，`volume`，`pitch`，`cooldown` |
-| `<NeiRecipeLink>` | NEI inline recipe link | `id`, `handlerId`, `mode`, `title` |
+| `<NeiRecipeLink>` | NEI 行內配方連結 | `id`, `handlerId`, `mode`, `title` |
 | `<mark>` | 行內高亮文字；等價於 `==text==`，並可自定義顏色 | `color` |
 | `<PlayerName>` | 插入當前玩家使用者名稱 | 無 |
 | `<KeyBind>` | 插入按鍵繫結顯示名 | `id` 或 `action` |
@@ -293,23 +293,23 @@ world
 
 ### `<NeiRecipeLink>`
 
-`<NeiRecipeLink>` opens NEI from inline text. Use `&[label](nei:...)` for plain labels or the tag for formatted children.
+使用 `&[文字](nei:...)` 或 `<NeiRecipeLink>`，從行內文字開啟 NEI。動作連結的文字按純文字處理，標籤形式支援格式化子內容。
 
-| Attribute | Default | Purpose |
+| 屬性 | 預設值 | 用途 |
 | --- | --- | --- |
-| `id` | omitted | Target item, including optional metadata and SNBT |
-| `handlerId` | omitted | Exact NEI overlay identifier or handler ID, ignoring case |
-| `mode` | `recipes` with `id`, otherwise `handler` | `handler`, `recipes`, or `usage` |
-| `title` | omitted | Optional hover text |
+| `id` | 省略 | 目標物品，可附帶後設資料與 SNBT |
+| `handlerId` | 省略 | NEI 覆蓋層識別碼或處理器 ID，忽略大小寫精確匹配 |
+| `mode` | 有 `id` 時為 `recipes`，否則為 `handler` | `handler`, `recipes`, `usage` |
+| `title` | 省略 | 可選的懸停提示文字 |
 
 ```md
-<NeiRecipeLink id="minecraft:iron_ingot">Check **recipes**</NeiRecipeLink>
-<NeiRecipeLink handlerId="gt.recipe.cokeoven">Check NEI</NeiRecipeLink>
+<NeiRecipeLink id="minecraft:iron_ingot">查看**合成配方**</NeiRecipeLink>
+<NeiRecipeLink handlerId="gt.recipe.cokeoven">查看焦爐全部配方</NeiRecipeLink>
 ```
 
-`handler` requires `handlerId` and forbids `id`; `recipes` and `usage` require `id` and accept an optional `handlerId`. Visible inline children are required. Browser previews display an inactive link.
+`handler` 必須填寫 `handlerId` 且禁止 `id`；`recipes` 與 `usage` 必須填寫 `id`，可選填 `handlerId`。省略 `mode` 時使用上表預設值。必須提供可見的行內子內容；瀏覽器預覽顯示不可點擊的連結。
 
-See [Recipes](Recipes.md#inline-nei-recipe-links) for action syntax, item IDs, escaping, and examples.
+動作語法、物品 ID、跳脫規則和示例見[配方](Recipes.md#行內-nei-配方連結)。
 
 ### `<Amount>`
 

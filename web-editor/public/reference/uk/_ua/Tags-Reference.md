@@ -30,7 +30,7 @@ This page describes the built-in tags available to guide authors.
 | `<Spoiler>` | hidden inline text revealed on hover | none |
 | `<Tooltip>` | rich hover tooltip with markdown/tag children | `label` |
 | `<SoundLink>` | clickable rich-text sound trigger | `sound` or `src`, `volume`, `pitch`, `cooldown` |
-| `<NeiRecipeLink>` | NEI inline recipe link | `id`, `handlerId`, `mode`, `title` |
+| `<NeiRecipeLink>` | Посилання на рецепти NEI в тексті | `id`, `handlerId`, `mode`, `title` |
 | `<mark>` | inline highlighted text; equivalent to `==text==` with optional color control | `color` |
 | `<PlayerName>` | inserts current player username | none |
 | `<KeyBind>` | inserts keybinding display name | `id` or `action` |
@@ -324,23 +324,23 @@ Sound attributes:
 
 ### `<NeiRecipeLink>`
 
-`<NeiRecipeLink>` opens NEI from inline text. Use `&[label](nei:...)` for plain labels or the tag for formatted children.
+Використовуйте `&[текст](nei:...)` або `<NeiRecipeLink>`, щоб відкрити NEI з тексту. Підписи дій є звичайним текстом; тег підтримує форматування вмісту.
 
-| Attribute | Default | Purpose |
+| Атрибут | Типове значення | Призначення |
 | --- | --- | --- |
-| `id` | omitted | Target item, including optional metadata and SNBT |
-| `handlerId` | omitted | Exact NEI overlay identifier or handler ID, ignoring case |
-| `mode` | `recipes` with `id`, otherwise `handler` | `handler`, `recipes`, or `usage` |
-| `title` | omitted | Optional hover text |
+| `id` | не задано | Цільовий предмет із необов’язковими метаданими та SNBT |
+| `handlerId` | не задано | Точний ідентифікатор накладення або обробника NEI без урахування регістру |
+| `mode` | `recipes` за наявності `id`, інакше `handler` | `handler`, `recipes`, `usage` |
+| `title` | не задано | Необов’язковий текст при наведенні |
 
 ```md
-<NeiRecipeLink id="minecraft:iron_ingot">Check **recipes**</NeiRecipeLink>
-<NeiRecipeLink handlerId="gt.recipe.cokeoven">Check NEI</NeiRecipeLink>
+<NeiRecipeLink id="minecraft:iron_ingot">Показати **рецепти**</NeiRecipeLink>
+<NeiRecipeLink handlerId="gt.recipe.cokeoven">Показати всі рецепти коксової печі</NeiRecipeLink>
 ```
 
-`handler` requires `handlerId` and forbids `id`; `recipes` and `usage` require `id` and accept an optional `handlerId`. Visible inline children are required. Browser previews display an inactive link.
+`handler` потребує `handlerId` і забороняє `id`; `recipes` та `usage` потребують `id` і дозволяють необов’язковий `handlerId`. Без `mode` застосовується типове значення з таблиці. Видимий вміст у тексті обов’язковий. Попередній перегляд у браузері показує неактивне посилання.
 
-See [Recipes](Recipes.md#inline-nei-recipe-links) for action syntax, item IDs, escaping, and examples.
+Див. [Рецепти](Recipes.md#посилання-на-рецепти-nei-в-тексті): синтаксис дій, ідентифікатори предметів, екранування та приклади.
 
 ### `<Amount>`
 

@@ -52,6 +52,12 @@ bindings:
 
 遊戲內編輯器讀取已載入模組的 ID。兩種 IDE 外掛離線時也會建議工作區頁面已使用的 ID；連線執行中的遊戲後，可以查詢遊戲註冊的 ID。研究 ID 保留原始大小寫。查詢與複製方法見 [Thaumcraft 相容](Mod-Compatibility#檢視與複製研究-id)。
 
+### NEI 動作連結
+
+插入選單提供處理器全部配方、物品合成配方、物品用途的動作片段，以及 `<NeiRecipeLink>`。`id` 屬性提供物品 ID 補全，`mode` 提供 `handler`、`recipes` 和 `usage`。`handlerId` 填寫 NEI 的精確識別碼。
+
+動作語法、物品 ID、跳脫規則和示例見[配方](Recipes.md#行內-nei-配方連結)。
+
 ## 多行文字與模板
 
 候選行使用簡短預覽。可見的 `\n`、`\t` 表示換行和製表符，確認候選後會插入實際文字。多行插入沿用當前位置的縮排，並將游標放在繼續填寫的位置。
@@ -63,9 +69,3 @@ bindings:
 - [頁面格式](Guide-Page-Format)
 - [標籤與屬性](Tags-Reference)
 - [配方](Recipes)
-
-## NEI action links
-
-The insert menu provides handler, recipe, and usage action snippets, plus `<NeiRecipeLink>`. The `id` attribute offers item IDs; `mode` offers `handler`, `recipes`, and `usage`. Enter the exact NEI identifier for `handlerId`.
-
-See [Recipes](Recipes.md#inline-nei-recipe-links) for syntax and examples.

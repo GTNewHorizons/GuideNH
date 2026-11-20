@@ -30,7 +30,7 @@ This page describes the built-in tags available to guide authors.
 | `<Spoiler>` | hidden inline text revealed on hover | none |
 | `<Tooltip>` | rich hover tooltip with markdown/tag children | `label` |
 | `<SoundLink>` | clickable rich-text sound trigger | `sound` or `src`, `volume`, `pitch`, `cooldown` |
-| `<NeiRecipeLink>` | NEI inline recipe link | `id`, `handlerId`, `mode`, `title` |
+| `<NeiRecipeLink>` | NEI-Rezeptlink im Fließtext | `id`, `handlerId`, `mode`, `title` |
 | `<mark>` | inline highlighted text; equivalent to `==text==` with optional color control | `color` |
 | `<PlayerName>` | inserts current player username | none |
 | `<KeyBind>` | inserts keybinding display name | `id` or `action` |
@@ -324,23 +324,23 @@ Sound attributes:
 
 ### `<NeiRecipeLink>`
 
-`<NeiRecipeLink>` opens NEI from inline text. Use `&[label](nei:...)` for plain labels or the tag for formatted children.
+Mit `&[Text](nei:...)` oder `<NeiRecipeLink>` lässt sich NEI aus dem Fließtext öffnen. Aktionsbeschriftungen sind einfacher Text; das Tag unterstützt formatierte Inhalte.
 
-| Attribute | Default | Purpose |
+| Attribut | Standard | Zweck |
 | --- | --- | --- |
-| `id` | omitted | Target item, including optional metadata and SNBT |
-| `handlerId` | omitted | Exact NEI overlay identifier or handler ID, ignoring case |
-| `mode` | `recipes` with `id`, otherwise `handler` | `handler`, `recipes`, or `usage` |
-| `title` | omitted | Optional hover text |
+| `id` | nicht gesetzt | Zielgegenstand mit optionalen Metadaten und SNBT |
+| `handlerId` | nicht gesetzt | Exakte NEI-Overlay-Kennung oder Handler-ID ohne Beachtung der Groß- und Kleinschreibung |
+| `mode` | `recipes` mit `id`, sonst `handler` | `handler`, `recipes`, `usage` |
+| `title` | nicht gesetzt | Optionaler Hinweis beim Darüberfahren |
 
 ```md
-<NeiRecipeLink id="minecraft:iron_ingot">Check **recipes**</NeiRecipeLink>
-<NeiRecipeLink handlerId="gt.recipe.cokeoven">Check NEI</NeiRecipeLink>
+<NeiRecipeLink id="minecraft:iron_ingot">**Rezepte** anzeigen</NeiRecipeLink>
+<NeiRecipeLink handlerId="gt.recipe.cokeoven">Alle Koksofenrezepte anzeigen</NeiRecipeLink>
 ```
 
-`handler` requires `handlerId` and forbids `id`; `recipes` and `usage` require `id` and accept an optional `handlerId`. Visible inline children are required. Browser previews display an inactive link.
+`handler` benötigt `handlerId` und verbietet `id`; `recipes` und `usage` benötigen `id` und erlauben ein optionales `handlerId`. Ohne `mode` gilt der oben angegebene Standard. Sichtbarer Inhalt im Fließtext ist erforderlich. Browser-Vorschauen zeigen einen inaktiven Link.
 
-See [Recipes](Recipes.md#inline-nei-recipe-links) for action syntax, item IDs, escaping, and examples.
+Siehe [Rezepte](Recipes.md#nei-rezeptlinks-im-fließtext) für Aktionssyntax, Gegenstands-IDs, Kodierung und Beispiele.
 
 ### `<Amount>`
 

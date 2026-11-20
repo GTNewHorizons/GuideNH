@@ -2,7 +2,6 @@ package com.hfstudio.guidenh.guide.nei;
 
 import org.jetbrains.annotations.Nullable;
 
-/** Immutable NEI navigation intent without native handlers or mutable item stacks. */
 public record NeiLinkTarget(String action, @Nullable String itemId, @Nullable String handlerId) {
 
     public NeiLinkTarget {

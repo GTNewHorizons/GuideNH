@@ -405,6 +405,14 @@ Optional break points with `<wbr>`. The columns below are deliberately narrow: t
 [doc]: ./index.md#top
 [img]: test1.png "Machine Diagram"
 
+### NEI action links
+
+For inline action syntax and escaping, see [Recipe examples](./recipes.md).
+
+&[Check recipes](nei:recipes?id=minecraft:iron_ingot)
+
+<NeiRecipeLink id="minecraft:iron_ingot">Check **recipes**</NeiRecipeLink>
+
 ## Details
 
 `<details>` accepts `width`, `height`, `wrap`, and `align`. The summary supports inline tags, and
@@ -769,11 +777,3 @@ Flowchart showcase featuring all shapes, extended properties, icons, and a recip
 Footnote ref[^one]
 
 [^one]: tooltip text for the footnote
-
-## NEI action examples
-
-For inline action syntax and escaping, see [Recipe examples](./recipes.md).
-
-&[Check recipes](nei:recipes?id=minecraft:iron_ingot)
-
-<NeiRecipeLink id="minecraft:iron_ingot">Check **recipes**</NeiRecipeLink>

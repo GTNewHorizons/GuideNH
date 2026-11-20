@@ -404,6 +404,14 @@ HTML 表格可以表示标题、列分组、语义行分组和合并单元格。
 [doc]: ./index.md#top
 [img]: test1.png "Machine Diagram"
 
+### NEI 动作链接
+
+查看行内动作语法和转义规则：[配方示例](./recipes.md)。
+
+&[查看合成配方](nei:recipes?id=minecraft:iron_ingot)
+
+<NeiRecipeLink id="minecraft:iron_ingot">查看**合成配方**</NeiRecipeLink>
+
 ## 折叠详情
 
 `<details>` 支持 `width`、`height`、`wrap`、`align`。`<summary>` 支持行内标签，正文则可以混排普通文本与任意运行时块。设置高度时，标题和外框保持固定，只有正文区域滚动。
@@ -763,11 +771,3 @@ mindmap
 脚注引用[^one]
 
 [^one]: 这里是脚注的提示内容
-
-## NEI 动作示例
-
-查看行内动作语法和转义规则：[配方示例](./recipes.md)。
-
-&[查看合成配方](nei:recipes?id=minecraft:iron_ingot)
-
-<NeiRecipeLink id="minecraft:iron_ingot">查看**合成配方**</NeiRecipeLink>

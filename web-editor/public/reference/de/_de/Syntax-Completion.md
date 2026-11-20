@@ -54,17 +54,17 @@ bindings:
 
 The game editor reads IDs from the loaded mod. Both IDE plugins also suggest IDs already used in workspace pages; connecting to the running game adds its registered IDs. Research IDs retain their original case. To find or copy an ID, see [Thaumcraft compatibility](Mod-Compatibility#finding-and-copying-research-ids).
 
+### NEI-Aktionslinks
+
+Das Einfügen-Menü bietet Aktionsvorlagen für alle Rezepte eines Handlers, Gegenstandsrezepte und Verwendungen sowie `<NeiRecipeLink>`. Für `id` werden Gegenstands-IDs vorgeschlagen; für `mode` stehen `handler`, `recipes` und `usage` bereit. Trage die exakte NEI-Kennung in `handlerId` ein.
+
+Siehe [Rezepte](Recipes.md#nei-rezeptlinks-im-fließtext) für Syntax und Beispiele.
+
 ## Multiline text and templates
 
 Candidate rows use short previews. The visible `\n` and `\t` markers stand for line breaks and tabs; accepting a candidate inserts the actual text. Multiline insertion follows the current indentation and places the cursor where typing should continue.
 
 For a complete example, open the editor's right-click menu and choose a template. Scene and chart templates are available there. Normal tag-name completion keeps the tag empty.
-
-## NEI action links
-
-The insert menu provides handler, recipe, and usage action snippets, plus `<NeiRecipeLink>`. The `id` attribute offers item IDs; `mode` offers `handler`, `recipes`, and `usage`. Enter the exact NEI identifier for `handlerId`.
-
-See [Recipes](Recipes.md#inline-nei-recipe-links) for syntax and examples.
 
 ## Related references
 

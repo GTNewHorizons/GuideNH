@@ -94,36 +94,36 @@ modid:name:meta:{snbt}
 
 可用白名單在某頁中啟用它們。查詢範圍較大時應設定 `limit`，避免頁面過長。
 
+## 行內 NEI 配方連結
+
+使用 `&[文字](nei:...)` 或 `<NeiRecipeLink>`，從行內文字開啟 NEI。動作連結的文字按純文字處理，標籤形式支援格式化子內容。
+
+```md
+&[查看焦爐全部配方](nei:handler?handlerId=gt.recipe.cokeoven)
+&[查看合成配方](nei:recipes?id=minecraft:iron_ingot)
+&[查看物品用途](nei:usage?id=gregtech:gt.blockmachines:236&handlerId=gt.recipe.cokeoven)
+
+<NeiRecipeLink handlerId="gt.recipe.cokeoven">查看焦爐全部配方</NeiRecipeLink>
+<NeiRecipeLink id="minecraft:iron_ingot">查看**合成配方**</NeiRecipeLink>
+<NeiRecipeLink mode="usage" id="gregtech:gt.blockmachines:236" handlerId="gt.recipe.cokeoven" title="NEI">查看物品用途</NeiRecipeLink>
+
+&[查看帶 SNBT 的書籍配方](nei:recipes?id=minecraft:written_book:0:%7Btitle:%22Guide%2BNEI%22%2Cauthor:GuideNH%7D)
+```
+
+`handler` 必須填寫 `handlerId` 且禁止 `id`，開啟該處理器的全部配方；`recipes` 必須填寫 `id`，查找產出該物品的配方；`usage` 必須填寫 `id`，查找用途並包含催化劑行為，不受 Ctrl 狀態影響。後兩種模式均可透過 `handlerId` 限定處理器。
+
+`handlerId` 按 NEI 的覆蓋層識別碼或處理器 ID 忽略大小寫精確匹配，不接受 Java 類別名稱或部分識別碼。
+
+省略命名空間時使用目前頁面的命名空間，保留註冊名稱大小寫、後設資料與 SNBT。通配後設資料沿用既有具體物品堆疊規則，不表示查詢所有後設資料變體。
+
+URI 參數僅按嚴格 UTF-8 解碼一次，字面值 `+` 保持為 `+`。SNBT 及 `&`、`#`、`%`、`?`、`)` 等保留字元應使用百分比編碼。
+
+重複或未知參數、錯誤跳脫、片段、不支援的模式、衝突屬性及缺少目標會產生編寫錯誤。只有帶 `&` 的動作及 `<NeiRecipeLink>` 能開啟 NEI；一般連結、參照式連結和 HTML 錨點不作為替代寫法，也不支援 `nei://`。
+
+NEI 缺失或沒有匹配配方時，指南保持開啟並顯示提示。瀏覽器與 IDE 預覽顯示不可點擊的文字；在 GuideNH 中開啟頁面即可使用連結。
+
 ## 相關參考
 
 - [標籤參考](Tags-Reference)
 - [模組相容](Mod-Compatibility)
 - [示例](Examples)
-
-## Inline NEI recipe links
-
-Use `&[label](nei:...)` or `<NeiRecipeLink>` to open NEI from inline text.
-
-```md
-&[Check all Coke Oven recipes](nei:handler?handlerId=gt.recipe.cokeoven)
-&[Check recipes](nei:recipes?id=minecraft:iron_ingot)
-&[Check usages](nei:usage?id=gregtech:gt.blockmachines:236&handlerId=gt.recipe.cokeoven)
-
-<NeiRecipeLink handlerId="gt.recipe.cokeoven">Check NEI</NeiRecipeLink>
-<NeiRecipeLink id="minecraft:iron_ingot">Check **recipes**</NeiRecipeLink>
-<NeiRecipeLink mode="usage" id="gregtech:gt.blockmachines:236" handlerId="gt.recipe.cokeoven" title="NEI">Check usages</NeiRecipeLink>
-
-&[Book recipes with SNBT](nei:recipes?id=minecraft:written_book:0:%7Btitle:%22Guide%2BNEI%22%2Cauthor:GuideNH%7D)
-```
-
-`handler` requires `handlerId` and forbids `id`; it opens every recipe in the selected handler. `recipes` requires `id` and opens recipes producing that item. `usage` requires `id` and opens usages including catalyst behavior, regardless of Ctrl. The latter two modes accept an optional `handlerId` filter.
-
-`<NeiRecipeLink>` accepts only `id`, `handlerId`, `mode`, and optional tooltip `title`. Without `mode`, an `id` selects `recipes`; otherwise it selects `handler`. Visible inline children are required. Use the tag for rich formatting; custom action labels are plain text.
-
-`handlerId` matches the exact NEI overlay identifier or handler ID, ignoring case. It does not accept a Java class name or partial identifier.
-
-Item IDs use the current page namespace when omitted and retain registry-name casing, metadata and SNBT. Wildcard metadata uses the existing concrete-stack rules; it does not request every metadata variant. URI values are decoded once as strict UTF-8; literal `+` stays `+`. Percent-encode SNBT and reserved characters such as `&`, `#`, `%`, `?`, and `)`.
-
-Duplicate or unknown query parameters, invalid escapes, fragments, unsupported modes, conflicting attributes, and missing targets produce authoring errors. Only ampersand actions and `<NeiRecipeLink>` are NEI entry points; ordinary, reference, and HTML-anchor links are not aliases, and `nei://` is unsupported.
-
-If NEI is unavailable or no recipes match, the guide remains open and displays a message. Browser and IDE previews display the link as inactive text; open the page in GuideNH to use it.

@@ -27,6 +27,24 @@ The small icon in the top-left shows which "recipe pool" the entry belongs to.
 <Recipe id="minecraft:missingrecipe" fallbackText="This recipe is not registered." />
 <RecipeFor id="minecraft:iron_pickaxe" />
 
+## Inline NEI recipe links
+
+Action links open every recipe in a handler, recipes producing an item, or item usages. Use `<NeiRecipeLink>` for formatted labels and enter an exact NEI identifier for `handlerId`.
+
+&[Check all Coke Oven recipes](nei:handler?handlerId=gt.recipe.cokeoven)
+
+&[Check recipes](nei:recipes?id=minecraft:iron_ingot)
+
+&[Check usages](nei:usage?id=gregtech:gt.blockmachines:236&handlerId=gt.recipe.cokeoven)
+
+<NeiRecipeLink id="minecraft:iron_ingot" title="NEI">Check **recipes**</NeiRecipeLink>
+
+<NeiRecipeLink mode="usage" id="gregtech:gt.blockmachines:236" handlerId="gt.recipe.cokeoven">Check usages</NeiRecipeLink>
+
+Percent encode SNBT and reserved characters in URI values; a literal `+` remains unchanged:
+
+&[Book recipes with SNBT](nei:recipes?id=minecraft:written_book:0:%7Btitle:%22Guide%2BNEI%22%2Cauthor:GuideNH%7D)
+
 ## Vanilla Recipe Types
 
 **Vanilla 3x3 crafting:**
@@ -174,21 +192,3 @@ A page's own `handlerBlacklist` is added to the configured one, so a page can hi
   <Block ore="logWood" />
   <Block ore="logWood" x="2" meta="1" />
 </GameScene>
-
-## Inline NEI recipe links
-
-Action links open every recipe in a handler, recipes producing an item, or item usages. Use `<NeiRecipeLink>` for formatted labels and enter an exact NEI identifier for `handlerId`.
-
-&[Check all Coke Oven recipes](nei:handler?handlerId=gt.recipe.cokeoven)
-
-&[Check recipes](nei:recipes?id=minecraft:iron_ingot)
-
-&[Check usages](nei:usage?id=gregtech:gt.blockmachines:236&handlerId=gt.recipe.cokeoven)
-
-<NeiRecipeLink id="minecraft:iron_ingot" title="NEI">Check **recipes**</NeiRecipeLink>
-
-<NeiRecipeLink mode="usage" id="gregtech:gt.blockmachines:236" handlerId="gt.recipe.cokeoven">Check usages</NeiRecipeLink>
-
-Percent encode SNBT and reserved characters in URI values; a literal `+` remains unchanged:
-
-&[Book recipes with SNBT](nei:recipes?id=minecraft:written_book:0:%7Btitle:%22Guide%2BNEI%22%2Cauthor:GuideNH%7D)

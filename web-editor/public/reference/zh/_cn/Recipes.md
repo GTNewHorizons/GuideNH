@@ -112,8 +112,6 @@ modid:name:meta:{snbt}
 
 `handler` 必须填写 `handlerId` 且禁止 `id`，打开该处理器的全部配方；`recipes` 必须填写 `id`，查找产出该物品的配方；`usage` 必须填写 `id`，查找用途并包含催化剂行为，不受 Ctrl 状态影响。后两种模式均可通过 `handlerId` 限定处理器。
 
-`<NeiRecipeLink>` 仅接受 `id`、`handlerId`、`mode` 和可选提示 `title`。省略 `mode` 时，有 `id` 则使用 `recipes`，否则使用 `handler`。必须提供可见的行内子内容。富文本使用标签形式；自定义动作的文字按纯文本处理。
-
 `handlerId` 按 NEI 的 overlay identifier 或 handler ID 忽略大小写精确匹配，不接受 Java 类名或部分标识。
 
 省略命名空间时使用当前页面命名空间，保留注册名大小写、元数据和 SNBT。通配元数据沿用现有具体物品栈规则，不表示查询所有元数据变体。URI 参数仅按严格 UTF-8 解码一次，字面量 `+` 保持为 `+`。SNBT 及 `&`、`#`、`%`、`?`、`)` 等保留字符应进行百分号编码。

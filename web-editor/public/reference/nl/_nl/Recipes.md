@@ -96,33 +96,33 @@ The following multiblock handlers are excluded by default because they render a 
 
 Use a whitelist to include them on a page. Use `limit` for broad queries to keep pages readable.
 
-## Inline NEI recipe links
+## NEI-receptlinks in lopende tekst
 
-Use `&[label](nei:...)` or `<NeiRecipeLink>` to open NEI from inline text.
+Gebruik `&[tekst](nei:...)` of `<NeiRecipeLink>` om NEI vanuit de tekst te openen. Actielabels zijn gewone tekst; de tag ondersteunt opgemaakte inhoud.
 
 ```md
-&[Check all Coke Oven recipes](nei:handler?handlerId=gt.recipe.cokeoven)
-&[Check recipes](nei:recipes?id=minecraft:iron_ingot)
-&[Check usages](nei:usage?id=gregtech:gt.blockmachines:236&handlerId=gt.recipe.cokeoven)
+&[Alle cokesovenrecepten bekijken](nei:handler?handlerId=gt.recipe.cokeoven)
+&[Recepten bekijken](nei:recipes?id=minecraft:iron_ingot)
+&[Toepassingen bekijken](nei:usage?id=gregtech:gt.blockmachines:236&handlerId=gt.recipe.cokeoven)
 
-<NeiRecipeLink handlerId="gt.recipe.cokeoven">Check NEI</NeiRecipeLink>
-<NeiRecipeLink id="minecraft:iron_ingot">Check **recipes**</NeiRecipeLink>
-<NeiRecipeLink mode="usage" id="gregtech:gt.blockmachines:236" handlerId="gt.recipe.cokeoven" title="NEI">Check usages</NeiRecipeLink>
+<NeiRecipeLink handlerId="gt.recipe.cokeoven">Alle cokesovenrecepten bekijken</NeiRecipeLink>
+<NeiRecipeLink id="minecraft:iron_ingot">**Recepten** bekijken</NeiRecipeLink>
+<NeiRecipeLink mode="usage" id="gregtech:gt.blockmachines:236" handlerId="gt.recipe.cokeoven" title="NEI">Toepassingen bekijken</NeiRecipeLink>
 
-&[Book recipes with SNBT](nei:recipes?id=minecraft:written_book:0:%7Btitle:%22Guide%2BNEI%22%2Cauthor:GuideNH%7D)
+&[Boekrecepten met SNBT bekijken](nei:recipes?id=minecraft:written_book:0:%7Btitle:%22Guide%2BNEI%22%2Cauthor:GuideNH%7D)
 ```
 
-`handler` requires `handlerId` and forbids `id`; it opens every recipe in the selected handler. `recipes` requires `id` and opens recipes producing that item. `usage` requires `id` and opens usages including catalyst behavior, regardless of Ctrl. The latter two modes accept an optional `handlerId` filter.
+`handler` vereist `handlerId`, staat geen `id` toe en opent alle recepten van de gekozen handler. `recipes` vereist `id` en opent recepten die dat voorwerp produceren. `usage` vereist `id` en opent toepassingen, inclusief gebruik als katalysator, ongeacht de Ctrl-toets. De laatste twee modi ondersteunen een optioneel filter via `handlerId`.
 
-`<NeiRecipeLink>` accepts only `id`, `handlerId`, `mode`, and optional tooltip `title`. Without `mode`, an `id` selects `recipes`; otherwise it selects `handler`. Visible inline children are required. Use the tag for rich formatting; custom action labels are plain text.
+`handlerId` moet exact overeenkomen met de NEI-overlay-ID of handler-ID, zonder onderscheid tussen hoofdletters en kleine letters. Java-klassenamen en gedeeltelijke ID's worden niet geaccepteerd.
 
-`handlerId` matches the exact NEI overlay identifier or handler ID, ignoring case. It does not accept a Java class name or partial identifier.
+Voorwerp-ID's zonder naamruimte gebruiken de naamruimte van de huidige pagina. De schrijfwijze van de registratienaam, metadata en SNBT blijven behouden. Jokertekens voor metadata volgen de bestaande regels voor concrete voorwerpstapels en selecteren niet alle varianten.
 
-Item IDs use the current page namespace when omitted and retain registry-name casing, metadata and SNBT. Wildcard metadata uses the existing concrete-stack rules; it does not request every metadata variant. URI values are decoded once as strict UTF-8; literal `+` stays `+`. Percent-encode SNBT and reserved characters such as `&`, `#`, `%`, `?`, and `)`.
+URI-waarden worden precies één keer als strikte UTF-8 gedecodeerd; een letterlijk `+` blijft `+`. Gebruik procentcodering voor SNBT en gereserveerde tekens zoals `&`, `#`, `%`, `?` en `)`.
 
-Duplicate or unknown query parameters, invalid escapes, fragments, unsupported modes, conflicting attributes, and missing targets produce authoring errors. Only ampersand actions and `<NeiRecipeLink>` are NEI entry points; ordinary, reference, and HTML-anchor links are not aliases, and `nei://` is unsupported.
+Dubbele of onbekende parameters, ongeldige escapes, fragmenten, niet-ondersteunde modi, tegenstrijdige attributen en ontbrekende doelen veroorzaken schrijffouten. Alleen acties met `&` en `<NeiRecipeLink>` openen NEI; gewone links, referentielinks, HTML-ankers en `nei://` zijn geen alternatieve schrijfwijzen.
 
-If NEI is unavailable or no recipes match, the guide remains open and displays a message. Browser and IDE previews display the link as inactive text; open the page in GuideNH to use it.
+Als NEI ontbreekt of geen recepten overeenkomen, blijft de gids open en verschijnt een melding. Browser- en IDE-voorbeelden tonen niet-aanklikbare tekst. Open de pagina in GuideNH om de link te gebruiken.
 
 ## Related references
 

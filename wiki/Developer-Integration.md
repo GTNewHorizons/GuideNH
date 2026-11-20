@@ -15,6 +15,43 @@ Guide.builder(new ResourceLocation("yourmod", "guidenh")).build();
 
 Place pages in `assets/yourmod/guidenh/` with underscored language folders. See [Localization](Localization) for fallback rules.
 
+## Runtime action resolver registration
+
+Custom `&[label](scheme:payload)` actions use `ActionLinkResolver.EXTENSION_POINT` in the existing per-guide `ExtensionCollection`. `DefaultExtensions` registers `sound`, `sound-src`, and `nei`. The compiler indexes schemes once, case-insensitively, rejects duplicate registrations and expands an action into an AST tag. Unknown schemes remain literal source; invalid recognized actions report an authoring error. The direct site exporter receives the owning guide extensions and shares its snapshot with tooltip compilers.
+
+```java
+import java.util.ArrayList;
+import java.util.Set;
+
+import com.hfstudio.guidenh.guide.Guide;
+import com.hfstudio.guidenh.guide.compiler.ActionLinkResolver;
+import com.hfstudio.guidenh.guide.internal.markdown.MarkdownActionLink;
+import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxTextElement;
+
+public class MyActionResolver implements ActionLinkResolver {
+    @Override
+    public Set<String> getSchemes() {
+        return Set.of("inspect");
+    }
+
+    @Override
+    public MdxJsxTextElement resolve(String label, String destination, String defaultNamespace) {
+        MdxJsxTextElement element = new MdxJsxTextElement("MyActionLink", new ArrayList<>());
+        element.addAttribute("target", destination.substring(destination.indexOf(':') + 1));
+        element.addChild(MarkdownActionLink.plainLabel(label));
+        return element;
+    }
+}
+```
+
+Register the resolver on the guide builder alongside the `MyActionLink` tag compiler:
+
+```java
+Guide.builder(id).extension(ActionLinkResolver.EXTENSION_POINT, new MyActionResolver()).build();
+```
+
+The resolver supplies syntax expansion; its tag compiler supplies layout and deferred behavior. Keep native game lookups out of the resolver. `SyntaxContributor` supplies attributes and insertion snippets. `SyntaxSlot` supplies editor completion, replacement and selection for custom syntax; registering a slot does not register runtime action behavior. These are separate extension points in the existing infrastructure, not independent global registries. Register addon site tag renderers when exported presentation is required. The Web Editor has a small scheme-to-tag resolver map for its supported actions and does not execute Java extensions.
+
 ## Content binding providers
 
 Quests, research and future custom content share these interfaces. Once a provider is registered, authors can use `BindingLink`, `BindingCard`, `BindingIcon` and `bindings` without another tag family.
@@ -93,40 +130,3 @@ DebugInfoExtractorRegistry.register(extractor);
 ```
 
 Register your `extractor` during mod initialization. Keep extraction read-only and inexpensive because it runs while inspecting the page. See [Debug Mode](Debug-Mode) for the author-facing controls.
-
-## Runtime action resolver registration
-
-Custom `&[label](scheme:payload)` actions use `ActionLinkResolver.EXTENSION_POINT` in the existing per-guide `ExtensionCollection`. `DefaultExtensions` registers `sound`, `sound-src`, and `nei`. The compiler indexes schemes once, case-insensitively, rejects duplicate registrations and expands an action into an AST tag. Unknown schemes remain literal source; invalid recognized actions report an authoring error. The direct site exporter receives the owning guide extensions and shares its snapshot with tooltip compilers.
-
-```java
-import java.util.ArrayList;
-import java.util.Set;
-
-import com.hfstudio.guidenh.guide.Guide;
-import com.hfstudio.guidenh.guide.compiler.ActionLinkResolver;
-import com.hfstudio.guidenh.guide.internal.markdown.MarkdownActionLink;
-import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxTextElement;
-
-public class MyActionResolver implements ActionLinkResolver {
-    @Override
-    public Set<String> getSchemes() {
-        return Set.of("inspect");
-    }
-
-    @Override
-    public MdxJsxTextElement resolve(String label, String destination, String defaultNamespace) {
-        MdxJsxTextElement element = new MdxJsxTextElement("MyActionLink", new ArrayList<>());
-        element.addAttribute("target", destination.substring(destination.indexOf(':') + 1));
-        element.addChild(MarkdownActionLink.plainLabel(label));
-        return element;
-    }
-}
-```
-
-Register the resolver on the guide builder alongside the `MyActionLink` tag compiler:
-
-```java
-Guide.builder(id).extension(ActionLinkResolver.EXTENSION_POINT, new MyActionResolver()).build();
-```
-
-The resolver supplies syntax expansion; its tag compiler supplies layout and deferred behavior. Keep native game lookups out of the resolver. `SyntaxContributor` supplies attributes and insertion snippets. `SyntaxSlot` supplies editor completion, replacement and selection for custom syntax; registering a slot does not register runtime action behavior. These are separate extension points in the existing infrastructure, not independent global registries. Register addon site tag renderers when exported presentation is required. The Web Editor has a small scheme-to-tag resolver map for its supported actions and does not execute Java extensions.

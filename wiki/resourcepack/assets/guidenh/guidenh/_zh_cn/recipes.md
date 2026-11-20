@@ -27,6 +27,24 @@ categories:
 <Recipe id="minecraft:missingrecipe" fallbackText="该配方未注册。" />
 <RecipeFor id="minecraft:iron_pickaxe" />
 
+## 行内 NEI 配方链接
+
+动作链接可打开处理器全部配方、指定物品的合成配方或用途。富文本使用 `<NeiRecipeLink>`；`handlerId` 填写 NEI 的精确标识。
+
+&[查看焦炉全部配方](nei:handler?handlerId=gt.recipe.cokeoven)
+
+&[查看合成配方](nei:recipes?id=minecraft:iron_ingot)
+
+&[查看物品用途](nei:usage?id=gregtech:gt.blockmachines:236&handlerId=gt.recipe.cokeoven)
+
+<NeiRecipeLink id="minecraft:iron_ingot" title="NEI">查看**合成配方**</NeiRecipeLink>
+
+<NeiRecipeLink mode="usage" id="gregtech:gt.blockmachines:236" handlerId="gt.recipe.cokeoven">查看用途</NeiRecipeLink>
+
+URI 中的 SNBT 和保留字符使用百分号编码，字面量 `+` 保持不变：
+
+&[查看带 SNBT 的书籍配方](nei:recipes?id=minecraft:written_book:0:%7Btitle:%22Guide%2BNEI%22%2Cauthor:GuideNH%7D)
+
 ## 原版配方类型
 
 **原版 3x3 合成示例：**
@@ -173,21 +191,3 @@ categories:
   <Block ore="logWood" />
   <Block ore="logWood" x="2" meta="1" />
 </GameScene>
-
-## 行内 NEI 配方链接
-
-动作链接可打开处理器全部配方、指定物品的合成配方或用途。富文本使用 `<NeiRecipeLink>`；`handlerId` 填写 NEI 的精确标识。
-
-&[查看焦炉全部配方](nei:handler?handlerId=gt.recipe.cokeoven)
-
-&[查看合成配方](nei:recipes?id=minecraft:iron_ingot)
-
-&[查看物品用途](nei:usage?id=gregtech:gt.blockmachines:236&handlerId=gt.recipe.cokeoven)
-
-<NeiRecipeLink id="minecraft:iron_ingot" title="NEI">查看**合成配方**</NeiRecipeLink>
-
-<NeiRecipeLink mode="usage" id="gregtech:gt.blockmachines:236" handlerId="gt.recipe.cokeoven">查看用途</NeiRecipeLink>
-
-URI 中的 SNBT 和保留字符使用百分号编码，字面量 `+` 保持不变：
-
-&[查看带 SNBT 的书籍配方](nei:recipes?id=minecraft:written_book:0:%7Btitle:%22Guide%2BNEI%22%2Cauthor:GuideNH%7D)
