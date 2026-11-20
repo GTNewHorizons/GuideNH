@@ -349,7 +349,8 @@ GuideNH reads the first YAML frontmatter block and parses these known keys:
 | `item_ids` | list of item filter expressions | List form of `item_id`; any matching expression makes the page discoverable by `<ItemLink>` |
 | `fluid_id` / `fluid_ids` | string / string list | Exact fluid registry-name binding, optionally with #anchor |
 | `ore_ids` | list of ore dictionary names | Makes the page discoverable by ore-dictionary items (e.g. `ingotIron`, `oreCopper`) |
-| `quest_ids` | list of BetterQuesting quest ids | Makes the page discoverable by `<QuestLink>` / `<QuestCard>` and by the open-guide hotkey when a quest is hovered in the BQ GUI. Accepts canonical UUID strings and BetterQuesting's compact Base64 form. Only consumed when BetterQuesting is loaded. See [Mod Compatibility](Mod-Compatibility) |
+| `bindings` | list of mappings | Associates quests, research or custom content with this page; each entry is `{type: "system", id: "ID", anchor: "section"}`, with optional `anchor` |
+| `research_id` / `research_ids` | string / string list | Thaumcraft research shortcuts for the page top; use `bindings` for section targets |
 | `author` | string | Single author name. Displayed in the bottom bar. |
 | `authors` | list of strings or `{name: ...}` maps | Multiple author names. At most two are displayed; additional ones are replaced with `...`. Takes precedence over `author` if both are present. |
 | `date` | string or YYYY-MM-DD date | Content creation date. Displayed in the bottom bar. |
@@ -372,6 +373,42 @@ navigation:
 ```
 
 Choose either `navigation.icon_fluid` for one registry name or `icon_fluids` for a nonempty list cycling once per second. These fields are mutually exclusive and cannot be combined with item or texture icon sources. They select page icons, not page bindings. Validate fluid availability in the running game; offline previews cannot verify registry contents.
+
+### External content bindings
+
+`bindings` associates quests, research or another registered content type with this guide page. Write **one YAML flow mapping per entry**, with braces and commas:
+
+```yaml
+---
+navigation:
+  title: Infusion guide
+  required_mod: Thaumcraft
+bindings:
+  - {type: "thaumcraft", id: "INFUSION", anchor: "infusion"}
+  - {type: "thaumcraft", id: "INFUSION", anchor: "apparatus"}
+  - {type: "betterquesting", id: "01234567-89ab-cdef-0123-456789abcdef"}
+---
+```
+
+| Field | Required | Meaning |
+| --- | --- | --- |
+| `type` | Yes | Content system: `thaumcraft` for research, `betterquesting` for quests, or a type registered by another integration; names are trimmed and lowercased |
+| `id` | Yes | Original content ID. Research uses the registered ID, such as `INFUSION`, rather than a translated name. Quest IDs accept UUID and compact Base64 forms |
+| `anchor` | No | Heading or named anchor **in this guide page**. Omit it to open the page from the top; it is not a Thaumonomicon page number |
+
+Different pages and anchors remain separate destinations. Repeating the same content, page and anchor does not add another choice. The native editor, Web Editor and both IDE plugins support these single-line entries. Navigation and click behavior are described under [External content pages](Navigation#external-content-pages).
+
+All three fields are YAML strings. Double-quoted strings escape a quote as `\"` and a backslash as `\\`; single-quoted strings keep double quotes unchanged and escape an apostrophe by doubling it:
+
+```yaml
+bindings:
+  - {type: "custom \"system\"", id: "chapter: \"one\", part#1", anchor: "reader's notes"}
+  - {type: 'custom "system"', id: 'chapter: "one", part#1', anchor: 'reader''s notes'}
+```
+
+Quotes, commas, colons and `#` inside a quoted value belong to that value. `id` preserves case and prefixes such as `@`; surrounding whitespace is removed. Do not append an anchor to the ID: use the separate `anchor` field.
+
+The research-only shortcuts `research_id` and `research_ids` accept one research ID and a string list respectively. Use `bindings` whenever a heading destination is needed. Quest bindings use `bindings`; the old quest frontmatter field is no longer read.
 
 ### `navigation`
 
@@ -422,13 +459,6 @@ Use `<Category name="examples" rows="3" />` to render a category listing block, 
 The `templates/` folder under a language folder is reserved for template pages. Templates are written
 like any other page but are excluded from listings and the navigation tree. See
 [Templates](Templates).
-
-For BetterQuesting integration, `quest_ids` accepts either of these formats:
-
-- canonical UUID strings such as `01234567-89ab-cdef-0123-456789abcdef`
-- BetterQuesting compact quest ids such as `AAAAAAAAAAAAAAAAAAAMug==`
-
-Do not list both forms for the same quest in one page's `quest_ids`; they normalize to the same internal UUID and would be treated as duplicates.
 
 When any of `author`, `authors`, `date`, or `updated` is present, GuideNH shows a
 bottom bar in the guide screen (matching the top toolbar style) with right-aligned

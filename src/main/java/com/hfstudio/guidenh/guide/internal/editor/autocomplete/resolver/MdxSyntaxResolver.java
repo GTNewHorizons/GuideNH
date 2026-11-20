@@ -3,6 +3,7 @@ package com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver;
 import java.util.ArrayDeque;
 import java.util.Collections;
 import java.util.Deque;
+import java.util.LinkedHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -260,6 +261,22 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
 
     @Nullable
     public TextSyntaxContext resolveFrontmatter(@Nullable MdAstYamlFrontmatter yaml, String text, int cursorIndex) {
+        var field = SyntaxContextValues.bindingField(text, cursorIndex);
+        if (field != null) {
+            var values = new LinkedHashMap<>(field.contextValues());
+            values.put("quote", field.quote());
+            return new TextSyntaxContext(
+                SyntaxElementType.WORD,
+                field.start(),
+                field.end(),
+                new FrontmatterContext(
+                    "bindings." + field.name(),
+                    true,
+                    field.start(),
+                    field.end(),
+                    field.prefix(),
+                    values));
+        }
         String line = getLineAt(text, cursorIndex);
         if (line == null) return resolvePlainTextWord(text, cursorIndex);
 
@@ -272,7 +289,8 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
         // List items inherit context from their parent key, regardless of
         // whether the value contains a colon (e.g. "guidenh:guide_icon").
         String trimmed = line.trim();
-        if (isYamlListMarker(trimmed)) {
+        if (isYamlListMarker(trimmed) && !SyntaxContextValues.bindingEntry(text, cursorIndex)
+            .containsKey("section")) {
             return resolveFrontmatterEmptyLine(text, cursorIndex);
         }
 
@@ -281,8 +299,11 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
             return resolveFrontmatterDraftKey(text, cursorIndex);
         }
 
-        String key = line.substring(0, colonIdx)
+        var contextValues = SyntaxContextValues.bindingEntry(text, cursorIndex);
+        String rawKey = line.substring(0, colonIdx)
             .trim();
+        String key = rawKey;
+        if (contextValues.containsKey("section")) key = "bindings." + key.replaceFirst("^-\\s*", "");
         if (key.isEmpty() || key.startsWith("#")) {
             return resolvePlainTextWord(text, cursorIndex);
         }
@@ -293,6 +314,11 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
 
         int valueAbsStart = lineStart + valueStart;
         int valueAbsEnd = lineStart + line.length();
+        if ((key.startsWith("research_id") || key.equals("bindings.id")) && valueAbsStart < valueAbsEnd
+            && (text.charAt(valueAbsStart) == '\"' || text.charAt(valueAbsStart) == '\'')) {
+            char quote = text.charAt(valueAbsStart++);
+            if (valueAbsEnd > valueAbsStart && text.charAt(valueAbsEnd - 1) == quote) valueAbsEnd--;
+        }
 
         // Cursor is on the value
         if (cursorIndex >= valueAbsStart && cursorIndex <= valueAbsEnd) {
@@ -301,12 +327,12 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
                 SyntaxElementType.WORD,
                 valueAbsStart,
                 valueAbsEnd,
-                new FrontmatterContext(key, true, valueAbsStart, valueAbsEnd, partialText));
+                new FrontmatterContext(key, true, valueAbsStart, valueAbsEnd, partialText, contextValues));
         }
 
         // Cursor is on the key
-        int keyStart = lineStart + line.indexOf(key);
-        int keyEnd = keyStart + key.length();
+        int keyStart = lineStart + line.indexOf(rawKey);
+        int keyEnd = keyStart + rawKey.length();
         if (cursorIndex >= keyStart && cursorIndex <= keyEnd) {
             return new TextSyntaxContext(
                 SyntaxElementType.WORD,
@@ -573,7 +599,8 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
                         bounds.valueStart,
                         bounds.valueEnd,
                         partial,
-                        bounds.missingTerminator));
+                        bounds.missingTerminator,
+                        SyntaxContextValues.attributes(text, cursorIndex)));
             }
             pos = Math.max(rawEnd, pos);
         }
@@ -765,7 +792,8 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
                 bounds.valueStart,
                 bounds.valueEnd,
                 partialText,
-                bounds.missingTerminator));
+                bounds.missingTerminator,
+                SyntaxContextValues.attributes(text, cursorIndex)));
     }
 
     @Nullable

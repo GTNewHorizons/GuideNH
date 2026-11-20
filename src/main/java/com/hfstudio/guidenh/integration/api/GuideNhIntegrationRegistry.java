@@ -29,6 +29,11 @@ import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.guide.siteexport.site.GuideSiteTagRenderer;
 import com.hfstudio.guidenh.guide.syntax.SyntaxContributor;
 import com.hfstudio.guidenh.guide.syntax.SyntaxSlot;
+import com.hfstudio.guidenh.integration.api.binding.BindingKey;
+import com.hfstudio.guidenh.integration.api.binding.BindingType;
+import com.hfstudio.guidenh.integration.api.binding.GuideBindingProvider;
+import com.hfstudio.guidenh.integration.api.binding.GuideBindingType;
+import com.hfstudio.guidenh.integration.betterquesting.BetterQuestingBindingType;
 
 public class GuideNhIntegrationRegistry {
 
@@ -84,6 +89,46 @@ public class GuideNhIntegrationRegistry {
      * guide's extension collection, and a model built before they were registered would not offer them.
      */
     private int syntaxRevision;
+    private volatile Map<String, GuideBindingType> bindingTypes = Map.of(
+        "betterquesting",
+        new BetterQuestingBindingType(),
+        "thaumcraft",
+        new BindingType("thaumcraft", BindingKey::normalizeId));
+    private volatile Map<String, GuideBindingProvider> bindingProviders = Map.of();
+
+    public synchronized void registerBindingType(GuideBindingType type) {
+        String id = BindingKey.normalizeType(type.id());
+        var updated = new LinkedHashMap<>(bindingTypes);
+        if (updated.putIfAbsent(id, type) != null) throw new IllegalArgumentException("Duplicate binding type: " + id);
+        bindingTypes = Map.copyOf(updated);
+        syntaxRevision++;
+    }
+
+    @Nullable
+    public GuideBindingType bindingType(String id) {
+        return bindingTypes.get(id);
+    }
+
+    public Map<String, GuideBindingType> bindingTypes() {
+        return bindingTypes;
+    }
+
+    public synchronized void registerBindingProvider(GuideBindingProvider provider) {
+        String type = BindingKey.normalizeType(provider.type());
+        var updated = new LinkedHashMap<>(bindingProviders);
+        if (updated.putIfAbsent(type, provider) != null)
+            throw new IllegalArgumentException("Duplicate binding provider: " + type);
+        bindingProviders = Map.copyOf(updated);
+    }
+
+    @Nullable
+    public GuideBindingProvider bindingProvider(String type) {
+        return bindingProviders.get(type);
+    }
+
+    public Map<String, GuideBindingProvider> bindingProviders() {
+        return bindingProviders;
+    }
 
     public GuideNhIntegrationRegistry() {}
 
@@ -581,6 +626,22 @@ public class GuideNhIntegrationRegistry {
         for (RecipeHandlerRenderProvider provider : recipeHandlerRenderProviders()) {
             if (provider.canRenderRecipeHandler(handler)) {
                 provider.renderRecipeHandler(handler, recipeIndex, skipForeground);
+            }
+        }
+    }
+
+    public void renderRecipeHandlerBackground(Object handler, int recipeIndex, boolean skipForeground) {
+        for (RecipeHandlerRenderProvider provider : recipeHandlerRenderProviders()) {
+            if (provider.canRenderRecipeHandler(handler)) {
+                provider.renderRecipeHandlerBackground(handler, recipeIndex, skipForeground);
+            }
+        }
+    }
+
+    public void renderRecipeHandlerForeground(Object handler, int recipeIndex, boolean skipForeground) {
+        for (RecipeHandlerRenderProvider provider : recipeHandlerRenderProviders()) {
+            if (provider.canRenderRecipeHandler(handler)) {
+                provider.renderRecipeHandlerForeground(handler, recipeIndex, skipForeground);
             }
         }
     }

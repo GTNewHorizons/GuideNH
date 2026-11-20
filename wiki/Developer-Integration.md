@@ -15,6 +15,42 @@ Guide.builder(new ResourceLocation("yourmod", "guidenh")).build();
 
 Place pages in `assets/yourmod/guidenh/` with underscored language folders. See [Localization](Localization) for fallback rules.
 
+## Content binding providers
+
+Quests, research and future custom content share these interfaces. Once a provider is registered, authors can use `BindingLink`, `BindingCard`, `BindingIcon` and `bindings` without another tag family.
+
+### Registration and responsibilities
+
+| Interface | Registration | Responsibility |
+| --- | --- | --- |
+| `GuideBindingType` | `GuideNhIntegrationRegistry.global().registerBindingType(type)` | Declare the type with `id()` and normalize content IDs with `normalizeId(String)`, without game-registry access |
+| `GuideBindingProvider` | `GuideNhIntegrationRegistry.global().registerBindingProvider(provider)` | Search the content catalogue, produce display snapshots and open native screens |
+| `GuideBindingHoverProvider` | `GuideNhClientIntegrationRegistry.global().registerBindingHoverProvider(provider)` | Return `BindingHoverTarget(key, bounds)` for the supported screen and actual hit area |
+
+The provider methods have separate responsibilities:
+
+| Method | Purpose |
+| --- | --- |
+| `type()` | Identify its registered content type |
+| `describe(BindingKey, BindingViewContext)` | Return the content's display snapshot |
+| `search(String, int, int, BindingViewContext)` | Search by text, offset and limit; a zero limit returns an empty page |
+| `open(BindingKey, GuideUiHost)` | Open the native screen with the originating guide context |
+| `revision()` | Report the catalogue version for cache invalidation |
+
+### Identity, snapshots and threading
+
+`BindingKey(type, id)` is the complete identity. Type names are trimmed and lowercased; each type normalizes its IDs, and research IDs preserve case. `BindingDisplay` carries state, title, description, an optional item/texture icon, tooltip, prerequisite `BindingKey` entries and native-open availability. State IDs are extensible.
+
+Return immutable snapshots and omit hidden details. Honor `BindingViewContext.staticView()` without reading the exporting player's progress. Game-registry queries and native UI operations run on the client thread; pure type normalization and page indexing do not access research registries.
+
+`GuideBindingIndex` retains every page and anchor. Core navigation owns destination selection and key-hold state; hover providers only report the current hit target. The public `QuestIndex` API remains a facade over this shared index, while quest YAML uses `bindings`.
+
+### Export and authoring
+
+Both site export paths use static snapshots. The runtime bridge advertises `bindings`; semantic and preview queries use `filters.type` to select the content system and preserve original ID case. Preview payloads carry `type`, `state` and prerequisite `BindingKey` entries alongside the standard fields.
+
+See [External content bindings](Guide-Page-Format#external-content-bindings) for single-line YAML and escaping, and [Research and custom content](Tags-Reference#research-and-custom-content) for tag behavior.
+
 ## Export custom tags
 
 Implement `GuideSiteTagRenderer` for tags supplied by your mod's compiler. Declare the supported names with `getTagNames()` and return HTML from `render(context, element)`; return `null` to leave a tag to another renderer.
@@ -33,6 +69,14 @@ Guide.builder(id).extension(GuideSiteTagRenderer.EXTENSION_POINT, renderer).buil
 Here `renderer` is your implementation and `id` is the guide ID. Custom renderers run before built-ins; the first non-null result wins. Escape user-controlled text before returning HTML, for example with `GuideSiteGraphRenderer.esc(text)`. A failing renderer is logged and skipped.
 
 The render context provides `defaultNamespace`, `currentPageId`, `templates`, `sceneResolver` and `compiler` for page-relative resources and shared export services.
+
+## Render embedded recipes
+
+Implement `RecipeHandlerRenderProvider` and register it during client initialization with `GuideNhIntegrationRegistry.global().registerRecipeHandlerRenderProvider(provider)`. `canRenderRecipeHandler(Object)` identifies the handlers your provider supports.
+
+The guide calls `renderRecipeHandlerBackground(Object, int, boolean)`, draws the recipe slots, then calls `renderRecipeHandlerForeground(Object, int, boolean)`. Draw backgrounds in the first stage and slot badges or other overlays in the second. The coordinates are local to the recipe body. Honor `skipForeground` when the handler's foreground depends on unavailable extra slots.
+
+Existing providers implementing only `renderRecipeHandler(Object, int, boolean)` run once in the background stage. Override both stage methods to place overlays above the slots. The NEI provider follows NEI's native draw order and lets `drawForeground` invoke `drawExtras`; do not invoke extras a second time.
 
 ## Extend fluid tooltips
 

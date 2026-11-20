@@ -3,6 +3,7 @@ package com.hfstudio.guidenh;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.IReloadableResourceManager;
 import net.minecraftforge.client.ClientCommandHandler;
+import net.minecraftforge.client.event.GuiOpenEvent;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.world.WorldEvent;
 
@@ -27,6 +28,7 @@ import com.hfstudio.guidenh.guide.internal.compile.CompileWorker;
 import com.hfstudio.guidenh.guide.internal.fluid.FluidCatalog;
 import com.hfstudio.guidenh.guide.internal.host.LytHost;
 import com.hfstudio.guidenh.guide.internal.host.LytHostWorkItem;
+import com.hfstudio.guidenh.guide.internal.host.scripts.BindingScript;
 import com.hfstudio.guidenh.guide.internal.host.scripts.BlockImageScript;
 import com.hfstudio.guidenh.guide.internal.host.scripts.CategoryScript;
 import com.hfstudio.guidenh.guide.internal.host.scripts.CommandLinkScript;
@@ -64,7 +66,10 @@ import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.integration.GuideNhClientIntegrationBootstrap;
 import com.hfstudio.guidenh.integration.Mods;
 import com.hfstudio.guidenh.integration.ae2.network.Ae2NetworkRegistration;
+import com.hfstudio.guidenh.integration.api.GuideNhIntegrationRegistry;
 import com.hfstudio.guidenh.integration.nei.GuideScreenNeiBridge;
+import com.hfstudio.guidenh.integration.thaumcraft.ThaumcraftBindingProvider;
+import com.hfstudio.guidenh.integration.thaumcraft.ThaumcraftResearchNavigation;
 import com.hfstudio.guidenh.network.GuideNhClientBridgeHandler;
 import com.hfstudio.guidenh.network.GuideNhClientBridgeMessage;
 import com.hfstudio.guidenh.network.GuideNhNetwork;
@@ -76,6 +81,7 @@ import cpw.mods.fml.common.event.FMLInitializationEvent;
 import cpw.mods.fml.common.event.FMLLoadCompleteEvent;
 import cpw.mods.fml.common.event.FMLPostInitializationEvent;
 import cpw.mods.fml.common.event.FMLPreInitializationEvent;
+import cpw.mods.fml.common.eventhandler.EventPriority;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.network.FMLNetworkEvent;
 import cpw.mods.fml.relauncher.Side;
@@ -168,6 +174,7 @@ public class ClientProxy extends CommonProxy {
         lytHost.registerScript("Mermaid", new MermaidScript());
         lytHost.registerScript("QuestLink", new QuestLinkScript());
         lytHost.registerScript("QuestCard", new QuestCardScript());
+        lytHost.registerScript("Binding", new BindingScript());
         SceneScript sceneScript = new SceneScript();
         lytHost.registerScript("Scene", sceneScript);
         lytHost.registerScript("GameScene", sceneScript);
@@ -230,6 +237,11 @@ public class ClientProxy extends CommonProxy {
             .clear();
     }
 
+    @SubscribeEvent(priority = EventPriority.LOWEST)
+    public void onGuiOpened(GuiOpenEvent event) {
+        if (Mods.Thaumcraft.isModLoaded()) ThaumcraftResearchNavigation.onGuiOpened(event.gui);
+    }
+
     @SubscribeEvent
     public void onClientWorldUnload(WorldEvent.Unload event) {
         if (!event.world.isRemote) {
@@ -246,6 +258,12 @@ public class ClientProxy extends CommonProxy {
         if (!GuideNhClientTaskScheduler.isOnClientThread()) {
             GuideNhClientTaskScheduler.execute(() -> clearClientRuntimeState(reason));
             return;
+        }
+        if (Mods.Thaumcraft.isModLoaded()) {
+            ThaumcraftResearchNavigation.clear();
+            var provider = GuideNhIntegrationRegistry.global()
+                .bindingProvider("thaumcraft");
+            if (provider instanceof ThaumcraftBindingProvider thaumcraft) thaumcraft.invalidate();
         }
         GuidebookLevel.releaseAllRuntimeWorlds();
         GuidebookLevelRenderer.getInstance()

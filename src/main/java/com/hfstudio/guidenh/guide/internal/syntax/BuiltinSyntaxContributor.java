@@ -11,6 +11,7 @@ import com.hfstudio.guidenh.guide.document.block.functiongraph.AutoPointLabelMod
 import com.hfstudio.guidenh.guide.internal.markdown.CodeBlockLanguageRegistry;
 import com.hfstudio.guidenh.guide.internal.syntax.values.AnchorValueSource;
 import com.hfstudio.guidenh.guide.internal.syntax.values.AttributePresetValueSource;
+import com.hfstudio.guidenh.guide.internal.syntax.values.BindingIdValueSource;
 import com.hfstudio.guidenh.guide.internal.syntax.values.BlockIdValueSource;
 import com.hfstudio.guidenh.guide.internal.syntax.values.BooleanValueSource;
 import com.hfstudio.guidenh.guide.internal.syntax.values.ColorValueSource;
@@ -63,8 +64,6 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
     private static final AttributeSyntax SPECIAL_QUERY = AttributeSyntax.of("query", SyntaxValueKind.STRING);
     private static final AttributeSyntax QUEST_SHOW_TOOLTIP = AttributeSyntax
         .of("showTooltip", SyntaxValueKind.BOOLEAN);
-    private static final AttributeSyntax QUEST_SHOW_TOOLTIP_SNAKE = AttributeSyntax
-        .of("show_tooltip", SyntaxValueKind.BOOLEAN);
     private static final AttributeSyntax FLUID_ID = AttributeSyntax.of("id", SyntaxValueKind.FLUID_ID);
     private static final AttributeSyntax FLUID_AMOUNT = AttributeSyntax.of("amount", SyntaxValueKind.INT);
     private static final AttributeSyntax FLUID_NBT = AttributeSyntax.of("nbt", SyntaxValueKind.SNBT);
@@ -91,7 +90,7 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
         sink.attributes(
             "ContentTabs",
             AttributeSyntax.of("iconFluid", SyntaxValueKind.FLUID_ID),
-            AttributeSyntax.of("icon_fluid", SyntaxValueKind.FLUID_ID));
+            AttributeSyntax.of("iconFluid", SyntaxValueKind.FLUID_ID));
         sink.attributes("Series", AttributeSyntax.of("iconFluid", SyntaxValueKind.FLUID_ID));
         sink.attributes("LineSeries", AttributeSyntax.of("iconFluid", SyntaxValueKind.FLUID_ID));
         sink.attributes("Slice", AttributeSyntax.of("iconFluid", SyntaxValueKind.FLUID_ID));
@@ -343,9 +342,7 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
             AttributeSyntax.of("background", SyntaxValueKind.COLOR),
             AttributeSyntax.of("icon", SyntaxValueKind.STRING),
             AttributeSyntax.of("iconPng", SyntaxValueKind.FILE_PATH),
-            AttributeSyntax.of("icon_png", SyntaxValueKind.FILE_PATH),
-            AttributeSyntax.of("iconItem", SyntaxValueKind.ITEM_ID),
-            AttributeSyntax.of("icon_item", SyntaxValueKind.ITEM_ID));
+            AttributeSyntax.of("iconItem", SyntaxValueKind.ITEM_ID));
         sink.attributes("Tab", AttributeSyntax.of("title", SyntaxValueKind.STRING));
         sink.attributes(
             "Row",
@@ -779,8 +776,8 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
             "ReplaceBlock",
             AttributeSyntax.of("from", SyntaxValueKind.BLOCK_ID),
             AttributeSyntax.of("to", SyntaxValueKind.BLOCK_ID),
-            AttributeSyntax.of("from_nbt", SyntaxValueKind.SNBT),
-            AttributeSyntax.of("to_nbt", SyntaxValueKind.SNBT),
+            AttributeSyntax.of("fromNbt", SyntaxValueKind.SNBT),
+            AttributeSyntax.of("toNbt", SyntaxValueKind.SNBT),
             AttributeSyntax.of("x", SyntaxValueKind.INT),
             AttributeSyntax.of("y", SyntaxValueKind.INT),
             AttributeSyntax.of("z", SyntaxValueKind.INT),
@@ -910,7 +907,7 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
         sink.attributes(
             "QuestCard",
             AttributeSyntax.of("id", SyntaxValueKind.STRING),
-            AttributeSyntax.of("show_desc", SyntaxValueKind.STRING));
+            AttributeSyntax.of("showDesc", SyntaxValueKind.STRING));
 
         sink.attributes(
             "BlockStats",
@@ -1323,8 +1320,31 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
     }
 
     private static void registerQuestVisibilityAttributes(SyntaxSink sink) {
-        sink.attributes("QuestLink", QUEST_SHOW_TOOLTIP, QUEST_SHOW_TOOLTIP_SNAKE);
-        sink.attributes("QuestCard", QUEST_SHOW_TOOLTIP, QUEST_SHOW_TOOLTIP_SNAKE);
+        sink.attributes("QuestLink", QUEST_SHOW_TOOLTIP);
+        sink.attributes(
+            "QuestCard",
+            QUEST_SHOW_TOOLTIP,
+            AttributeSyntax.of("title", SyntaxValueKind.STRING),
+            AttributeSyntax.of("showDesc", SyntaxValueKind.BOOLEAN));
+        for (String prefix : List.of("Binding", "Research")) {
+            for (String suffix : List.of("Link", "Card", "Icon")) {
+                String tag = prefix + suffix;
+                sink.attributes(tag, AttributeSyntax.of("id", SyntaxValueKind.BINDING_ID), QUEST_SHOW_TOOLTIP);
+                if (prefix.equals("Binding")) sink.attributes(
+                    tag,
+                    AttributeSyntax.of("type", SyntaxValueKind.STRING, "betterquesting", "thaumcraft"));
+                if (suffix.equals("Link")) sink.attributes(tag, AttributeSyntax.of("text", SyntaxValueKind.STRING));
+                if (!suffix.equals("Icon"))
+                    sink.attributes(tag, AttributeSyntax.of("target", SyntaxValueKind.ENUM, "auto", "native", "guide"));
+                if (suffix.equals("Card")) sink.attributes(
+                    tag,
+                    AttributeSyntax.of("title", SyntaxValueKind.STRING),
+                    AttributeSyntax.of("showDesc", SyntaxValueKind.BOOLEAN),
+                    AttributeSyntax.of("showIcon", SyntaxValueKind.BOOLEAN),
+                    AttributeSyntax.of("showParents", SyntaxValueKind.BOOLEAN));
+                if (suffix.equals("Icon")) sink.attributes(tag, AttributeSyntax.of("scale", SyntaxValueKind.FLOAT));
+            }
+        }
     }
 
     private static void contributeTagShape(SyntaxSink sink) {
@@ -1716,7 +1736,9 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
             "item_id",
             "item_ids",
             "ore_ids",
-            "quest_ids",
+            "bindings",
+            "research_id",
+            "research_ids",
             "categories",
             "authors",
             "author",
@@ -1738,7 +1760,11 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
         sink.frontmatterKind("icon", SyntaxValueKind.ITEM_ID);
         sink.frontmatterKind("icons", SyntaxValueKind.ITEM_ID);
         sink.frontmatterKind("ore_ids", SyntaxValueKind.ORE_DICT);
-        sink.frontmatterKind("quest_ids", SyntaxValueKind.QUEST_UUID);
+        sink.frontmatterKind("research_id", SyntaxValueKind.BINDING_ID);
+        sink.frontmatterKind("research_ids", SyntaxValueKind.BINDING_ID);
+        sink.frontmatterKind("bindings.id", SyntaxValueKind.BINDING_ID);
+        sink.frontmatterKind("bindings.type", SyntaxValueKind.STRING);
+        sink.frontmatterKind("bindings.anchor", SyntaxValueKind.STRING);
         sink.frontmatterKind("parent", SyntaxValueKind.PAGE_PATH);
         sink.frontmatterKind("icon_texture", SyntaxValueKind.FILE_PATH);
         sink.frontmatterKind("icon_textures", SyntaxValueKind.FILE_PATH);
@@ -1817,5 +1843,6 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
         sink.valueSource(new AttributePresetValueSource());
         sink.valueSource(new BooleanValueSource());
         sink.valueSource(new QuestIdValueSource());
+        sink.valueSource(new BindingIdValueSource());
     }
 }

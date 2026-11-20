@@ -1,5 +1,8 @@
 package com.hfstudio.guidenh.integration;
 
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.resources.IReloadableResourceManager;
+
 import com.hfstudio.guidenh.guide.scene.snapshot.GuideStructureSnapshotRegistration;
 import com.hfstudio.guidenh.integration.ae2.Ae2BlockStatsProvider;
 import com.hfstudio.guidenh.integration.ae2.Ae2FakeWorldIntegration;
@@ -41,6 +44,9 @@ import com.hfstudio.guidenh.integration.serverutilities.ServerUtilitiesSidebarBu
 import com.hfstudio.guidenh.integration.simpleskinbackport.SimpleSkinBackportPreviewPlayerModelProvider;
 import com.hfstudio.guidenh.integration.simpleskinbackport.SimpleSkinBackportSlimArmProvider;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibControllerIntegrationRegistry;
+import com.hfstudio.guidenh.integration.thaumcraft.AriResearchHoverProvider;
+import com.hfstudio.guidenh.integration.thaumcraft.ThaumcraftBindingProvider;
+import com.hfstudio.guidenh.integration.thaumcraft.ThaumcraftResearchHoverProvider;
 import com.hfstudio.guidenh.integration.tinkerconstruct.TinkersConstructPreviewPrepareContributor;
 
 public class GuideNhClientIntegrationBootstrap {
@@ -85,6 +91,22 @@ public class GuideNhClientIntegrationBootstrap {
         if (Mods.ForgeMultipart.isModLoaded()) {
             GuideNhClientIntegrationRegistry.global()
                 .registerPreviewBlockRenderProvider(new ForgeMultipartPreviewBlockRenderProvider());
+        }
+
+        if (Mods.Thaumcraft.isModLoaded() && Mods.AspectRecipeIndex.isModLoaded()
+            && Mods.NotEnoughItems.isModLoaded()) {
+            GuideNhClientIntegrationRegistry.global()
+                .registerBindingHoverProvider(new AriResearchHoverProvider());
+        }
+
+        if (Mods.Thaumcraft.isModLoaded()) {
+            var provider = new ThaumcraftBindingProvider();
+            GuideNhIntegrationRegistry.global()
+                .registerBindingProvider(provider);
+            ((IReloadableResourceManager) Minecraft.getMinecraft()
+                .getResourceManager()).registerReloadListener(provider);
+            GuideNhClientIntegrationRegistry.global()
+                .registerBindingHoverProvider(new ThaumcraftResearchHoverProvider());
         }
 
         if (Mods.BetterQuesting.isModLoaded()) {

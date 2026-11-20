@@ -18,6 +18,7 @@ import com.hfstudio.guidenh.guide.extensions.ExtensionCollection;
 import com.hfstudio.guidenh.guide.extensions.ExtensionPoint;
 import com.hfstudio.guidenh.guide.indices.CategoryIndex;
 import com.hfstudio.guidenh.guide.indices.FluidIndex;
+import com.hfstudio.guidenh.guide.indices.GuideBindingIndex;
 import com.hfstudio.guidenh.guide.indices.ItemIndex;
 import com.hfstudio.guidenh.guide.indices.ItemMultiIndex;
 import com.hfstudio.guidenh.guide.indices.OreIndex;
@@ -50,7 +51,7 @@ public class GuideBuilder {
         .newSetFromMap(new IdentityHashMap<>());
     private boolean register = true;
 
-    GuideBuilder(ResourceLocation id) {
+    public GuideBuilder(ResourceLocation id) {
         this.id = Objects.requireNonNull(id, "id");
         this.defaultNamespace = id.getResourceDomain();
         this.folder = "guidenh";
@@ -71,11 +72,16 @@ public class GuideBuilder {
         index(new FluidIndex());
         index(new OreIndex());
         index(new CategoryIndex());
+        index(new GuideBindingIndex());
 
         for (GuideBuilderIntegrationHook hook : GuideNhIntegrationRegistry.global()
             .guideBuilderIntegrationHooks()) {
             hook.apply(this);
         }
+    }
+
+    public <T extends PageIndex> T getIndex(Class<T> type) {
+        return type.cast(indices.get(type));
     }
 
     /**

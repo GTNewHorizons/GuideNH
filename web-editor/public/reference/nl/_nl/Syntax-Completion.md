@@ -2,38 +2,66 @@
 
 De gidseditor in het spel stelt tags, attributen en waarden voor terwijl u een pagina schrijft.
 
-## De kandidatenlijst gebruiken
+The in-game guide editor suggests tags, attributes and values while you write a page.
 
-| Actie | Resultaat |
+## Schrijfreferentie
+
+De lamp opent de schrijfreferentie. Zoek links naar onderwerpen, attributen, YAML-velden of voorbeeldcode; Ctrl+F activeert zoeken en rechtsklikken wist het veld. Een onderwerp springt naar de kop in het volledige document. Beide panelen scrollen vloeiend.
+
+Terug en Vooruit herstellen onderwerpen en scrollposities. Houd de muis boven de markeringen rechts om koppen te lezen en klik om erheen te springen. Kopieer voorbeelden in het codeblok of het onderwerp als Markdown via de werkbalk. De lamp blijft blauw zolang de referentie open is; klik opnieuw om naar de gids terug te keren met behoud van concept, selectie en ongedaanmakingsgeschiedenis. Sluiten of Esc sluit het gidsvenster. Ontbrekende vertalingen gebruiken Engels.
+
+## Using the candidate list
+
+| Action | Result |
 | --- | --- |
-| ↑ / ↓ | De vorige of volgende kandidaat selecteren |
-| Tab / Enter | De geselecteerde kandidaat invoegen |
-| Kandidaat aanklikken | De geselecteerde kandidaat invoegen |
-| Esc | De lijst sluiten |
-| Muiswiel | Door kandidaten scrollen |
-| Schuifbalk | De schuifbalk slepen om te scrollen |
+| ↑ / ↓ | Select the previous or next candidate |
+| Tab / Enter | Insert the selected candidate |
+| Click | Insert the selected candidate |
+| Esc | Close the list |
+| Mouse wheel | Scroll through candidates |
+| Scrollbar | Drag the scrollbar to scroll |
 
-## Ondersteunde aanvulling
+## Supported completion
 
-| Invoerpositie | Suggesties |
+| While editing | Suggestions |
 | --- | --- |
-| `<...` | Tagnamen die geldig zijn in de huidige container |
-| `<Tag ...` | Attribuutnamen en hun waardebegrenzers |
-| `id="..."`, `fluid="..."` | Registratienamen van voorwerpen en vloeistoffen, recepten, pagina’s, bestanden en andere ondersteunde waarden |
-| Markdown | Koppen, lijsten, tabellen, meldingen en andere Markdown-structuren |
-| Codeblok | Ondersteunde codetalen en GuideNH-bloknamen |
-| Frontmatter | YAML-sleutels en ondersteunde waarden |
+| `<...` | Tag names valid in the enclosing container |
+| `<Tag ...` | Attribute names and their value delimiters |
+| `id="..."`, `fluid="..."` | Item and fluid registry names, recipes, pages, assets and other supported values |
+| Markdown | Headings, lists, tables, alerts and other Markdown constructs |
+| Code fence | Supported code languages and GuideNH fence names |
+| Frontmatter | YAML keys and supported values |
 
-Tagaanvulling voegt een lege tag of een tagpaar met de cursor ertussen in. Voeg daarna de benodigde attributen en inhoud toe. Voorwerpen en vloeistoffen hebben pictogrammen bij hun waarden; vloeistoffen gebruiken registratienamen zoals `water` of `steam` in plaats van numerieke ID’s.
+Tag-name completion inserts an empty tag or a matching pair with the cursor inside. Add the attributes and content you need afterward. Item and fluid value candidates show icons; fluid values use registry names such as `water` or `steam`, rather than numeric IDs.
 
-## Meerregelige tekst en sjablonen
+### Quest and research IDs
 
-Kandidaten tonen korte voorbeelden. De zichtbare markeringen `\n` en `\t` staan voor regeleinden en tabs; bevestigen voegt de echte tekst in. Meerregelige invoer neemt de huidige inspringing over en plaatst de cursor waar u verder kunt typen.
+ID suggestions follow the content being edited:
 
-Open voor een volledig voorbeeld het rechtermuisknopmenu van de editor en kies een sjabloon. Daar vindt u scène- en grafieksjablonen. Normale tagaanvulling houdt de tag leeg.
+| Editing | ID source |
+| --- | --- |
+| `ResearchLink`, `ResearchCard`, `ResearchIcon` | Thaumcraft research |
+| `QuestLink`, `QuestCard` | BetterQuesting quests |
+| `id` in a `bindings` entry | The system named by that entry's `type` |
+| `BindingLink`, `BindingCard`, `BindingIcon` | The system named by the tag's `type` |
 
-## Gerelateerde naslag
+For a binding entry, fill in `type` before choosing an `id`:
 
-- [Paginaformaat](Guide-Page-Format)
-- [Tags en attributen](Tags-Reference)
-- [Recepten](Recipes)
+```yaml
+bindings:
+  - {type: "thaumcraft", id: "INFUSION", anchor: "infusion"}
+```
+
+The game editor reads IDs from the loaded mod. Both IDE plugins also suggest IDs already used in workspace pages; connecting to the running game adds its registered IDs. Research IDs retain their original case. To find or copy an ID, see [Thaumcraft compatibility](Mod-Compatibility#finding-and-copying-research-ids).
+
+## Multiline text and templates
+
+Candidate rows use short previews. The visible `\n` and `\t` markers stand for line breaks and tabs; accepting a candidate inserts the actual text. Multiline insertion follows the current indentation and places the cursor where typing should continue.
+
+For a complete example, open the editor's right-click menu and choose a template. Scene and chart templates are available there. Normal tag-name completion keeps the tag empty.
+
+## Related references
+
+- [Page format](Guide-Page-Format)
+- [Tags and attributes](Tags-Reference)
+- [Recipes](Recipes)

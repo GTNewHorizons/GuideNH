@@ -1,3 +1,5 @@
+[English](Navigation)
+
 # 导航
 
 GuideNH 会根据页面 frontmatter 构建导航树。
@@ -222,6 +224,22 @@ navigation:
 ```
 
 这些绑定供 `<FluidLink>` 和悬停长按 `G` 使用。可识别 NEI 流体展示及装液容器；空容器继续使用物品索引。多个目标会显示选择列表，流体页面排在容器物品页面之前。
+
+## 任务、研究与自定义内容索引
+
+用 `bindings` 将当前页面关联到 BetterQuesting 任务、Thaumcraft 研究或其他已注册类型：
+
+```yaml
+bindings:
+  - {type: "thaumcraft", id: "INFUSION", anchor: "apparatus"}
+  - {type: "betterquesting", id: "01234567-89ab-cdef-0123-456789abcdef", anchor: "quest"}
+```
+
+同一个内容对应多个页面或章节时，GuideNH 会打开与物品相同的目标选择界面。相同页面和锚点合并，不同锚点仍可单独选择；省略 `anchor` 表示页面顶部。完整字段和引号写法见 [Frontmatter](Guide-Page-Format-zh-CN#外部内容绑定)。
+
+`QuestLink` 和 `QuestCard` 标题左键打开 BetterQuesting；右键打开绑定指南，没有指南时回退 BetterQuesting。研究和通用链接、卡片默认优先打开指南，左键动作可以用 `target` 选择，见 [标签参考](Tags-Reference-zh-CN#研究与自定义内容)。
+
+悬停支持的任务按钮、研究条目或内容图标，按住打开指南键（默认 `G`）也能选择绑定指南。没有绑定时快捷键不执行操作。各模组的悬停区域和原生界面返回规则见 [模组兼容](Mod-Compatibility-zh-CN)。
 
 ## 标题锚点链接
 

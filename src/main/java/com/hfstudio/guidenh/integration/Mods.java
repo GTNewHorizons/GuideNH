@@ -17,6 +17,8 @@ public enum Mods implements IMod, ITargetMod {
     NotEnoughItems("NotEnoughItems"),
     NeiCustomDiagram("neicustomdiagram"),
     BetterQuesting("betterquesting"),
+    Thaumcraft("Thaumcraft"),
+    AspectRecipeIndex("aspectrecipeindex"),
     StructureLib("structurelib"),
     AE2("appliedenergistics2"),
     GregTech("gregtech"),

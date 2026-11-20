@@ -93,6 +93,7 @@ import com.hfstudio.guidenh.guide.internal.GuideCommand;
 import com.hfstudio.guidenh.guide.internal.GuideRegistry;
 import com.hfstudio.guidenh.guide.internal.MutableGuide;
 import com.hfstudio.guidenh.guide.scene.element.GuidebookSceneEntityLoader;
+import com.hfstudio.guidenh.integration.betterquesting.QuestIndex;
 import com.hfstudio.structurelibexport.StructureExportCommand;
 
 import cpw.mods.fml.common.Loader;
@@ -302,11 +303,13 @@ public class RuntimeSemanticSupport {
             String pageTitle = resolvePageTitle(page);
             String pagePath = page.getId()
                 .getResourcePath();
-            for (String questId : readStringList(page, "quest_ids")) {
-                if (!isUuidLike(questId)) {
-                    continue;
-                }
-                entries.add(createEntry(questId, pageTitle, pagePath));
+            for (var binding : QuestIndex.getQuestAnchors(page)) {
+                entries.add(
+                    createEntry(
+                        binding.getLeft()
+                            .toString(),
+                        pageTitle,
+                        pagePath));
             }
         }
     }

@@ -339,7 +339,6 @@ public class MediaWikiSpecialDataIndexer {
             }
             appendBindings(bindings, page, "item:", readStringValues(page, "item_ids", "item_id"));
             appendBindings(bindings, page, "ore:", readStringValues(page, "ore_ids", "ore_id"));
-            appendBindings(bindings, page, "quest:", readStringValues(page, "quest_ids", "quest_id"));
             appendQuestBindings(bindings, page);
         }
 

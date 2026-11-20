@@ -138,8 +138,8 @@ are provided:
   <ReplaceBlock from="minecraft:cobblestone" to="minecraft:brick_block" x="1" y="0" z="1" dx="3" dy="1" dz="3" />
 </GameScene>
 
-Add `from_nbt` to narrow the match to blocks whose TileEntity NBT contains specific keys, and
-`to_nbt` to supply tile entity data for the replacement block. If the replacement result includes a
+Add `fromNbt` to narrow the match to blocks whose TileEntity NBT contains specific keys, and
+`toNbt` to supply tile entity data for the replacement block. If the replacement result includes a
 controller, `formed={false}` keeps that controller unformed.
 
 ## PlaceBlock

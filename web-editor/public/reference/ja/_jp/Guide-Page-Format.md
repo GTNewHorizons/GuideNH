@@ -2,19 +2,59 @@
 
 GuideNH の実行時ページは Markdown ファイルです。標準 Markdown のブロック/インライン構文、YAML frontmatter、GFM 表、取り消し線、`==text==` のマーク強調、`++text++`/`^^text^^`/`::text::` の下線拡張、MDX コメント（`{/* ... */}`）、MDX 形式のカスタムタグを解析します。
 
-## 対応する Markdown
+GuideNH runtime pages are markdown files parsed with:
 
-見出し、段落、太字/斜体/取り消し線/コード、リンク、画像、URL とメールの自動リンク、参照リンク、順序付き/順序なしリスト、GFM タスクリスト、引用、GitHub アラート、水平線、フェンス/インデントコードブロック、GFM 表、脚注、小文字 HTML タグ、MDX コメントを使用できます。
+- standard markdown block and inline syntax
+- YAML frontmatter
+- GFM tables
+- strikethrough
+- mark highlight with `==text==`
+- GuideNH inline underline extensions: `++text++` (straight underline), `^^text^^` (wavy underline), `::text::` (emphasis dots / dotted underline)
+- MDX comments using `{/* ... */}`
+- MDX-style custom tags
 
-実際の例は `wiki/resourcepack/assets/guidenh/guidenh/_en_us/markdown.md` を参照してください。
+## Supported Markdown
 
-## マーク強調
+GuideNH pages support the common markdown features used in the example guide:
 
-インライン強調には `==text==` を使います。色を指定する場合は `<mark color="#8A6A00">text</mark>` を使います。既定の背景は白い文字が読みやすい暗い金色です。
+- headings
+- paragraphs
+- inline emphasis, bold, strike, and code
+- inline mark highlight (`==text==`)
+- inline underline (`++text++`), wavy underline (`^^text^^`), and emphasis dots (`::text::`)
+- links and images
+- literal autolinks for direct URLs, `www.` hosts, and email addresses
+- reference links and reference images
+- unordered and ordered lists
+- GFM task lists
+- blockquotes
+- GitHub-style alert blockquotes such as `[!NOTE]`
+- horizontal rules
+- fenced code blocks
+- indented code blocks
+- GFM tables
+- HTML tables with captions, column groups, row groups, and merged cells
+- footnotes
+- lowercase HTML fragments such as `<a>`, `<br>`, `<kbd>`, `<sub>`, `<sup>`, and `<details>`
+- MDX comments in page text
 
-## コードブロック
+See `wiki/resourcepack/assets/guidenh/guidenh/_en_us/markdown.md` for a live sample page.
 
-`java`、`lua`、`scala`、`csv`、`mermaid` などの明示的フェンス、言語省略時の自動推測、言語ラベル、ゲーム内ビューアーのコピー、軽量シンタックスハイライトに対応します。
+## Highlight
+
+Use `==text==` for inline highlighted text. Use `<mark color="#8A6A00">text</mark>` when a custom highlight color is needed. The default mark background is a dark golden yellow chosen to keep white text readable.
+
+## Code Blocks
+
+Runtime code blocks currently support:
+
+- explicit fence languages such as `java`, `lua`, `scala`, `csv`, and `mermaid`
+- automatic language inference when the fence language is omitted
+- a language label shown above the block
+- a top-right copy button in the in-game viewer
+- lightweight runtime syntax highlighting for the detected language
+
+Example:
 
 ````md
 ```lua
@@ -29,57 +69,68 @@ object Demo extends App {
 ```
 ````
 
-
-インデントコードブロックも使用できます。
+Indented code blocks are also supported:
 
 ````md
     print("indented code")
 ````
 
+When a fenced block resolves to `mermaid` and the source is a supported `mindmap`, GuideNH renders it as an interactive runtime mindmap instead of a plain code block.
 
-フェンスが `mermaid` の mindmap なら通常のコードではなくインタラクティブなマインドマップになります。`csv` のフェンスは実行時表として描画されます。言語を省略した CSV 風テキストはコードブロックのままです。
+When a fenced block is explicitly marked as `csv`, GuideNH renders it as a runtime table instead of a plain code block. If the fence language is omitted, CSV-shaped text still stays a code block and only uses CSV language detection for labeling/highlighting.
+
+Explicit CSV tables can also provide column width hints:
 
 ````md
 ```csv widths=120,80
-名前,値
+name,value
 iron,42
 gold,17
 ```
 ````
 
-
-ヘッダー指定と幅リストも使えます。
+Fence metadata also supports `header=false` and quoted width lists:
 
 ````md
 ```csv widths="120,80" header=false
-名前,値
+name,value
 iron,42
 gold,17
 ```
 ````
 
-
-通常の段落では GFM 形式の URL、`www.` ホスト、メールアドレスの自動リンクも使えます。
+Direct GFM-style literal autolinks are also supported in normal paragraph text:
 
 ````md
 Visit https://example.com/docs, www.example.org, or guide@example.com
 ````
 
+## Mermaid Mindmaps
 
-## Mermaid マインドマップ
+GuideNH runtime Mermaid support is currently focused on `mindmap` diagrams:
 
-実行時 Mermaid 対応の中心は `mindmap` です。`mermaid` フェンス、自動判定、`<Mermaid>`、外部 `src`、リッチ Markdown ラベル、`<NodeContent>`、ドラッグ移動、`layout: tidy-tree`、標準ノード形状、`::icon(...)` と `:::class` メタデータを使用できます。
-外部図は `<Mermaid src="./diagram.mmd" />` の形式で読み込めます。
+- fenced ```` ```mermaid ```` blocks
+- auto-detected mermaid code fences whose content starts with `mindmap`
+- explicit `<Mermaid>...</Mermaid>` tags
+- explicit `<Mermaid src="./diagram.mmd" />` imports
+- rich inline markdown labels inside Mermaid node text
+- optional `<NodeContent id="...">...</NodeContent>` children for arbitrary runtime blocks inside matching nodes
+- whole-diagram drag-to-pan interaction in the in-game viewer
+- `layout: tidy-tree` frontmatter inside Mermaid source
+- common mindmap node shapes such as square, rounded, circle, bang, cloud, and hexagon
+- parsed `::icon(...)` and `:::class` metadata
+
+Example:
 
 ````md
 ```mermaid
 mindmap
-  ルート((GuideNH))
-    実行時
+  root((GuideNH))
+    Runtime
       Markdown
       CSV
     Mindmap::icon(fa fa-sitemap)
-      ドラッグ へ pan
+      Drag to pan
 ```
 
 <Mermaid src="./markdown-mindmap.mmd" />
@@ -91,7 +142,7 @@ mindmap
     export["Site export"]
 
 <NodeContent id="runtime">
-ランタイムノードではテキスト、リンク、ブロックを組み合わせられます。
+Runtime nodes can mix text, links, and blocks.
 
 <ItemImage id="minecraft:diamond" />
 </NodeContent>
@@ -102,41 +153,39 @@ mindmap
 </Mermaid>
 ````
 
+Mermaid diagrams that are not supported at runtime yet still fall back to regular Mermaid-labeled code blocks.
 
-まだ対応していない Mermaid 図は通常の Mermaid ラベル付きコードブロックへフォールバックします。
+## CSV Table Import
 
-## CSV 表のインポート
-
-明示タグで CSV ファイルを読み込めます。
+GuideNH also supports runtime CSV file imports through an explicit tag:
 
 ````md
 <CsvTable src="./markdown-table.csv" />
 ````
 
+The `src` path resolves relative to the current page, the same way runtime asset links and scene `src` imports do.
 
-`src` は現在のページから、実行時アセットやシーンの `src` と同じ規則で解決されます。幅ヒントも指定できます。
+Imported CSV tables can also provide width hints:
 
 ````md
 <CsvTable src="./markdown-table.csv" widths="120,80" />
 ````
 
-
-フェンス内に CSV を直接記述することもできます。
+You can also write a CSV table inline with an explicit fence:
 
 ````md
 ```csv
-名前,値
+name,value
 iron,42
 gold,17
 ```
 ````
 
+## Markdown Tables
 
-## Markdown テーブル
+### Column Widths
 
-### 列幅
-
-表の直後に実行時属性行を置くと、GFM 表に表示列幅を指定できます。
+Ordinary GFM markdown tables can also provide runtime column width hints by adding a runtime attribute line immediately before the table:
 
 ````md
 {: widths="120,80" }
@@ -146,17 +195,16 @@ gold,17
 | Gold | 17 |
 ````
 
+This keeps the table itself standard markdown while letting GuideNH apply runtime-only preferred column widths.
 
-表自体は標準 Markdown のまま、GuideNH が実行時だけ列幅を適用します。
+### Merged Cells and Cell Attributes
 
-### セルの結合と属性
-
-- セルの後ろに `|` を追加すると、その分だけ列を結合します。`||` は 2 列、`|||` は 3 列です。
-- `^^` で始まるセルは上のセルと結合し、内容は改行して追加されます。
-- 両端のコロンで配置を指定します。`: 左寄せ`、`右寄せ :`、`: 中央 :`。
-- 末尾の IAL（`{: ... }`）は `color`、`background` / `bgcolor`、安全な `style`、`align`、`valign`、`id`、`class` を指定します。`{:name: ...}` で再利用できます。危険な CSS と外部 URL は無視されます。
-- 行末の `\` は次の物理行を同じ行に結合します。先頭が区切り行（`|--|--|`）なら見出しなしのテーブルです。
-- セル内ではリンク、画像、強調、LaTeX などの行内 Markdown と MDX が使用できます。HTML では `<thead>`、`<tbody>`、`<tfoot>` も使用できます。
+- An extra `|` after a cell adds one spanned column: `||` spans two columns, `|||` spans three.
+- Start a cell with `^^` to merge it into the cell above; its content is added on a new line.
+- Edge colons set cell alignment: `: left`, `right :`, or `: centered :`.
+- A trailing IAL (`{: ... }`) sets `color`, `background` / `bgcolor`, safe `style`, `align`, `valign`, `id`, or `class`. Define reusable attributes with `{:name: ...}`. Unsafe CSS and external URLs are ignored.
+- End a physical row with `\` to continue it on the next line. A delimiter row first (`|--|--|`) creates a headerless table.
+- Cells accept ordinary inline Markdown and MDX, including links, images, emphasis, and LaTeX. HTML tables also support explicit `<thead>`, `<tbody>`, and `<tfoot>` groups.
 
 ```markdown
 {:warning: style="background: #4b2418; color: #ffd8c2; font-weight: bold"}
@@ -167,9 +215,9 @@ gold,17
 | Total ||| {: style="text-align: right; background: #26364d"}
 ```
 
-### HTML テーブル
+### HTML Tables
 
-HTML tables support captions, column groups, semantic row groups, merged cells, and alignment. `col` accepts pixel `width`; `span` repeats a width. `th` and `td` support `colspan`, `rowspan`, and `align`; `th` supports `scope`:
+Use an HTML table for explicit row groups and multi-row headers. `<caption>` is shown above the table. Use `<colgroup>` and `<col>` to set preferred pixel or percentage column widths; `width` accepts pixels or percentages (with an optional `px` suffix), and `span` repeats one width for several columns. Group rows with `<thead>`, `<tbody>`, and `<tfoot>`. Header and data cells support `colspan`, `rowspan`, `align`, and `valign`; `th` also supports `scope`, `abbr`, and `headers`. Site export preserves common table attributes such as `width`, `border`, `cellpadding`, `cellspacing`, `frame`, `rules`, `summary`, `bgcolor`, and `bordercolor`. A table-level `widths` attribute can also provide comma-separated pixel hints:
 
 ````md
 <table widths="150,70,70,150">
@@ -180,22 +228,45 @@ HTML tables support captions, column groups, semantic row groups, merged cells, 
     <col width="150" />
   </colgroup>
   <thead>
-    <tr><th scope="col" rowspan="2" align="left">Fuel</th><th scope="colgroup" colspan="2" align="center">Rate</th><th scope="col" rowspan="2" align="right">Notes</th></tr>
-    <tr><th scope="col" align="right">Charcoal</th><th scope="col" align="right">Coal</th></tr>
+    <tr>
+      <th scope="col" rowspan="2" align="left">Fuel</th>
+      <th scope="colgroup" colspan="2" align="center">Burn rate</th>
+      <th scope="col" rowspan="2" align="right">Notes</th>
+    </tr>
+    <tr>
+      <th scope="col" align="right">Charcoal</th>
+      <th scope="col" align="right">Coal</th>
+    </tr>
   </thead>
   <tbody>
-    <tr><th scope="row" rowspan="2" align="left">Solid fuel</th><td align="right">42</td><td align="right">17</td><td rowspan="2" align="left">Per tick</td></tr>
-    <tr><td colspan="2" align="right">59 combined</td></tr>
+    <tr>
+      <th scope="row" rowspan="2" align="left">Solid fuel</th>
+      <td align="right">42</td>
+      <td align="right">17</td>
+      <td rowspan="2" align="left">Per tick</td>
+    </tr>
+    <tr>
+      <td colspan="2" align="right">59 combined</td>
+    </tr>
   </tbody>
   <tfoot>
-    <tr><th scope="rowgroup" align="left">Total</th><td colspan="3" align="right">59 units</td></tr>
+    <tr>
+      <th scope="rowgroup" align="left">Total</th>
+      <td colspan="3" align="right">59 units</td>
+    </tr>
   </tfoot>
 </table>
 ````
 
-## タスクリスト、アラート、脚注
+## Task Lists, Alerts, And Footnotes
 
-`- [ ]`/`- [x]`、`[!NOTE]` などの GitHub アラート、脚注の参照と定義に対応します。
+GuideNH runtime also supports several useful GFM-style behaviors:
+
+- task lists using `- [ ]` and `- [x]`
+- GitHub alert blockquotes such as `[!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]`, and `[!CAUTION]`
+- footnote references and definitions
+
+Example:
 
 ````md
 - [x] done item
@@ -209,12 +280,11 @@ Footnote ref[^one]
 [^one]: tooltip text
 ````
 
+Footnote references render as tooltip-style inline markers, and GuideNH appends a compact runtime footnote list near the bottom of the page.
 
-脚注参照はツールチップ風のインラインマーカーになり、ページ下部にコンパクトな脚注一覧が追加されます。
+## List Width Customization
 
-## リスト幅のカスタマイズ
-
-標準 Markdown リストに幅指定はないため、GuideNH のコンテナで制限します。
+Standard markdown lists do not define width controls, but GuideNH runtime containers can constrain them:
 
 ````md
 <Column width="220">
@@ -223,10 +293,11 @@ Footnote ref[^one]
 </Column>
 ````
 
+This is currently the recommended way to customize list line width at runtime.
 
-## 参照リンクと画像
+## Reference Links And Images
 
-CommonMark の参照定義を使用できます。
+GuideNH supports CommonMark reference definitions:
 
 ````md
 [Guide Ref][doc]
@@ -236,10 +307,9 @@ CommonMark の参照定義を使用できます。
 [img]: ./test1.png "Machine Diagram"
 ````
 
+## Lowercase HTML Runtime Tags
 
-## 小文字 HTML の実行時タグ
-
-`<a>`、`<br>`、`<kbd>`、`<sub>`、`<sup>`、`<details>` のサブセットを直接処理します。その他の生 HTML はブラウザー HTML ではなくリテラルテキストとして扱います。
+GuideNH runtime supports a focused subset of lowercase HTML-style tags directly:
 
 ````md
 Press <kbd>Shift</kbd> + <sub>1</sub>
@@ -253,13 +323,14 @@ Body text
 </details>
 ````
 
+Other raw HTML fragments still fall back to literal text-style handling instead of browser-grade HTML rendering.
 
-## MDX コメント
+## MDX Comments
 
-MDX コメントは Markdown コンパイル前に無視されます。
+GuideNH supports the MDX comment form and ignores it before markdown compilation:
 
 ````md
-表示されるテキスト。{/* 非表示のインラインコメント */}
+Visible text. {/* hidden inline comment */}
 
 {/*
 multiline comment
@@ -268,27 +339,30 @@ multiline comment
 More visible text.
 ````
 
+## Frontmatter
 
-## frontmatter
+GuideNH reads the first YAML frontmatter block and parses these known keys:
 
-最初の YAML frontmatter ブロックから既知のキーを読み取ります。
-
-| キー | 型 | 意味 |
+| Key | Type | Meaning |
 | --- | --- | --- |
-| `navigation` | map | ページをナビゲーションツリーへ追加 |
-| `categories` | 文字列リスト | MediaWiki 形式カテゴリへ追加 |
-| `item_id` / `item_ids` | アイテムフィルター式 | `<ItemLink>` から発見可能にする |
-| `fluid_id` / `fluid_ids` | 登録名 / 登録名リスト | 流体からページへ移動。`#anchor` に対応 |
-| `ore_ids` | 鉱石辞書名リスト | 鉱石辞書アイテムから発見可能にする |
-| `quest_ids` | BetterQuesting ID リスト | `<QuestLink>`/`<QuestCard>` とキー操作に対応 |
-| `author` / `authors` | 文字列またはリスト | 下部バーに作者を表示 |
-| `date` / `updated` | 文字列または日付 | 作成日/更新日を表示 |
-| `zoom` | 正の浮動小数点数 | ページごとのコンテンツ倍率 |
-| その他 | YAML 値 | 拡張機能や編集ツールで利用可能 |
+| `navigation` | map | Adds the page to the navigation tree |
+| `categories` | list of strings | Adds the page to MediaWiki-style categories; each entry can optionally use `category|sort key` |
+| `item_id` | item filter expression | A single NEI-style item expression that makes the page discoverable by `<ItemLink>` |
+| `item_ids` | list of item filter expressions | List form of `item_id`; any matching expression makes the page discoverable by `<ItemLink>` |
+| `fluid_id` / `fluid_ids` | string / string list | Exact fluid registry-name binding, optionally with #anchor |
+| `ore_ids` | list of ore dictionary names | Makes the page discoverable by ore-dictionary items (e.g. `ingotIron`, `oreCopper`) |
+| `bindings` | list of mappings | Associates quests, research or custom content with this page; each entry is `{type: "system", id: "ID", anchor: "section"}`, with optional `anchor` |
+| `research_id` / `research_ids` | string / string list | Thaumcraft research shortcuts for the page top; use `bindings` for section targets |
+| `author` | string | Single author name. Displayed in the bottom bar. |
+| `authors` | list of strings or `{name: ...}` maps | Multiple author names. At most two are displayed; additional ones are replaced with `...`. Takes precedence over `author` if both are present. |
+| `date` | string or YYYY-MM-DD date | Content creation date. Displayed in the bottom bar. |
+| `updated` | string or YYYY-MM-DD date | Last updated date. Displayed in the bottom bar. |
+| `zoom` | positive float | Per-page content zoom multiplier (e.g. `1.5` = 150 %). Multiplied with the global `contentZoom` setting in ModConfig. Default `1.0`. |
+| any other key | any YAML value | Available to extensions and authoring tools |
 
-### 流体のバインドとアイコン
+### Native fluid bindings and navigation icons
 
-`fluid_id` は登録名を 1 つ、`fluid_ids` は登録名のリストを受け取ります。両方を併用でき、`#anchor` でページ内の節へ移動できます。数量や NBT は照合しません。
+`fluid_id` accepts one registry-name binding. `fluid_ids` accepts a string list. Both may coexist and are merged without duplicate destinations. Append `#anchor` to target a section; distinct anchors remain distinct. Bindings use exact names and ignore displayed amount and NBT.
 
 ```yaml
 fluid_id: water
@@ -300,11 +374,67 @@ navigation:
   icon_fluid: water
 ```
 
-ページアイコンは `navigation.icon_fluid` または `icon_fluids` で指定します。両方の併用やアイテム/テクスチャーアイコンとの併用は不可です。`icon_fluids` は空でないリストで、1 秒ごとに切り替わります。アイコンの設定はページをバインドしません。流体の存在は実行中のゲームで確認してください。
+Choose either `navigation.icon_fluid` for one registry name or `icon_fluids` for a nonempty list cycling once per second. These fields are mutually exclusive and cannot be combined with item or texture icon sources. They select page icons, not page bindings. Validate fluid availability in the running game; offline previews cannot verify registry contents.
+
+### External content bindings
+
+`bindings` associates quests, research or another registered content type with this guide page. Write **one YAML flow mapping per entry**, with braces and commas:
+
+```yaml
+---
+navigation:
+  title: Infusion guide
+  required_mod: Thaumcraft
+bindings:
+  - {type: "thaumcraft", id: "INFUSION", anchor: "infusion"}
+  - {type: "thaumcraft", id: "INFUSION", anchor: "apparatus"}
+  - {type: "betterquesting", id: "01234567-89ab-cdef-0123-456789abcdef"}
+---
+```
+
+| Field | Required | Meaning |
+| --- | --- | --- |
+| `type` | Yes | Content system: `thaumcraft` for research, `betterquesting` for quests, or a type registered by another integration; names are trimmed and lowercased |
+| `id` | Yes | Original content ID. Research uses the registered ID, such as `INFUSION`, rather than a translated name. Quest IDs accept UUID and compact Base64 forms |
+| `anchor` | No | Heading or named anchor **in this guide page**. Omit it to open the page from the top; it is not a Thaumonomicon page number |
+
+Different pages and anchors remain separate destinations. Repeating the same content, page and anchor does not add another choice. The native editor, Web Editor and both IDE plugins support these single-line entries. Navigation and click behavior are described under [External content pages](Navigation#external-content-pages).
+
+All three fields are YAML strings. Double-quoted strings escape a quote as `\"` and a backslash as `\\`; single-quoted strings keep double quotes unchanged and escape an apostrophe by doubling it:
+
+```yaml
+bindings:
+  - {type: "custom \"system\"", id: "chapter: \"one\", part#1", anchor: "reader's notes"}
+  - {type: 'custom "system"', id: 'chapter: "one", part#1', anchor: 'reader''s notes'}
+```
+
+Quotes, commas, colons and `#` inside a quoted value belong to that value. `id` preserves case and prefixes such as `@`; surrounding whitespace is removed. Do not append an anchor to the ID: use the separate `anchor` field.
+
+The research-only shortcuts `research_id` and `research_ids` accept one research ID and a string list respectively. Use `bindings` whenever a heading destination is needed. Quest bindings use `bindings`; the old quest frontmatter field is no longer read.
 
 ### `navigation`
 
-`title` は必須です。`keyword`、`keywords`、`parent`、`position`、`recommend`、`priority`、`icon`、`icons`、`icon_texture`、`icon_textures`、`icon_fluid`、`icon_fluids`、`required_mod`、`required_mods`、`excluded_mod`、`excluded_mods` を指定できます。
+| Field | Required | Type | Notes |
+| --- | --- | --- | --- |
+| `title` | yes | string | Display name in navigation and search title fallback |
+| `keyword` | no | string | One additional search keyword or alias; supports prefix matching |
+| `keywords` | no | list of strings | Additional search keywords or aliases; values are combined and deduplicated |
+| `parent` | no | page id | Parent page id; omitted means top-level node |
+| `position` | no | integer | Sibling sort order; default `0`, larger values appear earlier |
+| `recommend` | no | integer | Home recommendation priority; only included when set, larger values first |
+| `priority` | no | integer | Load priority for same-path page overrides; default `0`, higher wins, equal priority lets the later resource pack entry win |
+| `icon` | no | item id | Item icon shown in navigation/search. Accepts `modid:name`, `modid:name:meta`, or `modid:name:meta:{snbt}`. The inline SNBT tail is the preferred way to attach NBT such as a custom display name. |
+| `icons` | no | list of item ids | List of item icons for animated cycling (one per second). Each entry uses the same syntax as `icon`, including inline `:{snbt}` tails. When present takes priority over `icon`. |
+| `icon_texture` | no | asset path | Texture icon path resolved like any other asset link |
+| `icon_textures` | no | list of asset paths | List of texture icons for animated cycling (one per second). When present takes priority over `icon_texture`. |
+| `icon_fluid` | no | string | One fluid registry name; excludes `icon_fluids` and item/texture sources |
+| `icon_fluids` | no | string list | Nonempty fluid registry names cycling once per second; excludes `icon_fluid` and item/texture sources |
+| `required_mod` | no | mod id | Hides the page unless this mod is loaded. |
+| `required_mods` | no | list of mod ids | Hides the page unless every listed mod is loaded. |
+| `excluded_mod` | no | mod id | Hides the page when this mod is loaded. |
+| `excluded_mods` | no | list of mod ids | Hides the page when any listed mod is loaded. |
+
+### Example Frontmatter
 
 ```yaml
 item_ids:
@@ -324,26 +454,48 @@ date: 2024-01-15
 updated: 2024-06-01
 ```
 
+`categories` accepts either plain category names or `category|sort key` entries.
+Use `<Category name="examples" rows="3" />` to render a category listing block, and
+`<Special name="SpecialPages" rows="3" />` to embed the generated MediaWiki-style special-page index.
 
-カテゴリは通常名または `category|sort key` として受け付けます。BetterQuesting の ID は正規 UUID または短縮 Base64 形式を受け付け、同じクエストの両方を併記しないでください。作者、日付のいずれかが存在すると画面下部に情報バーが表示されます。
+The `templates/` folder under a language folder is reserved for template pages. Templates are written
+like any other page but are excluded from listings and the navigation tree. See
+[Templates](Templates).
 
+When any of `author`, `authors`, `date`, or `updated` is present, GuideNH shows a
+bottom bar in the guide screen (matching the top toolbar style) with right-aligned
+text like: *Content from MyMod, Author ExampleAuthor, Date 2024-01-15, Updated 2024-06-01*.
+
+Multiple authors example:
 ```yaml
 authors:
   - Alice
   - Bob
-  - Charlie   # only Alice and Bob are shown, "..." appended
+  - Charlie
 ```
-
+Or with structured entries:
 ```yaml
 authors:
   - name: Alice
   - name: Bob
 ```
 
-
 ### `zoom`
 
-`zoom` は単一ページのコンテンツ倍率です。`1.0` は標準、`1.5` は 150%、`0.75` は 75% です。ModConfig のグローバル `contentZoom` と乗算され、幅を再計算して折り返しとブロック形状を維持します。
+The `zoom` key lets you enlarge or shrink the content of a single page without
+affecting any other page. The value is a positive float treated as a multiplier:
+
+| Example value | Effect |
+| --- | --- |
+| `1.0` (default) | Normal size |
+| `1.5` | 150 % — content 50 % larger |
+| `0.75` | 75 % — content 25 % smaller |
+
+The per-page zoom is multiplied with the global **contentZoom** slider in
+ModConfig → GuideNH → UI. This lets server packs set a sensible baseline while
+still allowing individual pages to fine-tune layout for narrow or wide content.
+
+Example: set this page to display at 150 % of the base zoom:
 
 ```yaml
 zoom: 1.5
@@ -351,15 +503,49 @@ navigation:
   title: My Dense Page
 ```
 
-## ナビゲーションと埋め込み
+Page layout is recomputed at the zoom-adjusted width, so text wrapping and all
+block geometry remain correct at any zoom level.
 
-ページ内リンクには `<a>` を使い、ナビゲーション分類には `<Category>` と `<Special>` を使います。
-Mermaid の `<Mermaid>` コンテナは複数の `<NodeContent>` を持てます。アイテム参照には既存の
-`<ItemLink>` 構文を使用します。
+## Link Resolution
 
-## リンクの解決
+GuideNH resolves ids and paths using these rules:
 
-ページリンクは現在の namespace 内で相対解決され、`/` は namespace ルート、`modid:path` は明示 namespace、`#anchor` は見出しアンカーです。アセットリンクも同じ規則で解決されます。
+### Page links
+
+| Input | Meaning |
+| --- | --- |
+| `subpage.md` | relative to the current page, in the current page namespace |
+| `./subpage.md` | relative to the current page, in the current page namespace |
+| `/guide.md` | rooted to the current page namespace, equivalent to `currentmod:guide.md` |
+| `gregtech:guide.md` | explicit namespace; opens `gregtech:guidenh` when the current guide path is `guidenh` |
+| `gregtech:/guide.md` | explicit namespace plus rooted path, normalized to `gregtech:guide.md` |
+| `subpage.md#anchor` | page plus anchor fragment |
+| `guidenh:other.md#anchor` | explicit `modid:path#anchor` |
+| `https://example.com` | external HTTP/HTTPS link |
+
+Page links are isolated by namespace. A link written from `assets/guidenh/guidenh/_en_us/index.md` as
+`[Guide](guide.md)` resolves to `guidenh:guide.md`; the same text in
+`assets/gregtech/guidenh/_en_us/index.md` resolves to `gregtech:guide.md`. If that page is missing in the
+current namespace, GuideNH reports it as a broken link instead of falling back to another mod's page.
+
+Explicit `modid:path` links can cross from one mod's data-driven guide to another. The guide id is derived from
+the target page namespace and the current guide path, so a link from `guidenh:guidenh` to `gregtech:guide.md`
+opens page `gregtech:guide.md` in guide `gregtech:guidenh`.
+
+Anchor fragments scroll the guide to a heading whose text lowercased and spaces replaced with hyphens
+matches the fragment (e.g. `#crafting-recipe` scrolls to `## Crafting Recipe`), or to a `<a name="...">` anchor.
+
+### Asset links
+
+Assets use the same resolution rules as links. For example:
+
+- `test1.png` resolves relative to the current page file.
+- `/assets/example_structure.snbt` resolves to the guide's asset root.
+- `guidenh:textures/gui/example.png` resolves as an explicit resource location.
+
+## Item Reference Syntax
+
+Navigation `icon` and `icons`, along with tags that accept an item id, use ordinary item references:
 
 ```text
 modid:name
@@ -367,12 +553,10 @@ modid:name:meta
 modid:name:meta:{snbt}
 ```
 
+An omitted `meta` defaults to `0`. An SNBT tail starts at the first `{` and is parsed as item NBT. Where wildcard
+metadata is supported, `*` can be combined with the SNBT tail.
 
-namespace が異なる同名ページへは誤ってフォールバックせず、存在しない場合はリンクエラーを表示します。
-
-## アイテム参照構文
-
-`icon`、`icons`、アイテム ID を受け取るタグは次の形式を使います。
+Examples:
 
 ```text
 minecraft:diamond
@@ -381,8 +565,18 @@ minecraft:written_book:0:{title:TestBook,author:GuideNH}
 minecraft:written_book:*:{title:TestBook,author:GuideNH}
 ```
 
+### Item Index Expressions
 
-メタを省略すると `0`、最初の `{` 以降は SNBT として解析されます。ワイルドカードメタと SNBT を組み合わせられます。
+`item_id` accepts one NEI-style expression and `item_ids` accepts a YAML list of the same expressions. Each
+`item_ids` entry is independent; the page is linked when any entry matches. Whitespace combines terms, `|`
+combines alternatives, and `,` combines rules within one term.
+
+- `minecraft:lava` performs a case-insensitive partial registry-id match, so it also matches `minecraft:lava_bucket`.
+- `<minecraft:wool:14>` strictly matches one item and meta value.
+- `ae2:white_paint_ball:*`, `:32767`, and uppercase meta tokens such as `:ANY` are compatible strict all-meta forms.
+- `16384-16462,!16386` matches a metadata range while excluding `16386`.
+- `!minecraft:portal` excludes a matching registry id.
+- `r/^m\\w{6}ft$/` uses a Java regular expression against the registry id.
 
 ```yaml
 item_id: "minecraft:potion 16384-16462,!16386 | ae2:white_paint_ball:*"
@@ -396,18 +590,21 @@ item_ids:
   - minecraft:diamond#Usage
 ```
 
+In this example, whitespace combines conditions, `,` combines rules within one term, `!` excludes a match, and
+`|` separates alternatives. The first expression therefore accepts potion metadata from `16384` through `16462`
+except `16386`, or any metadata of `ae2:white_paint_ball`. The second expression demonstrates a wildcard item
+reference in a comma-separated expression with a reverse (`!`) rule. The last two entries show a metadata union
+with `28` excluded and an item mapping that opens the `Usage` heading anchor.
 
-### アイテムインデックス式
+An optional `#anchor` suffix opens a matching page at a heading anchor. Exact item and explicit-meta mappings use
+the direct index first; expressions are evaluated only when needed.
 
-`item_id` は 1 式、`item_ids` は同じ式の YAML リストです。空白は項、`|` は選択肢、`,` は規則、`!` は除外を表します。完全一致、メタワイルドカード、式の順に検索されます。
+## Error Handling
 
+If a page fails to parse, GuideNH creates an error page instead of crashing the guide. Invalid tags, ids, and attributes are reported inline as guide-rendered error text.
 
-## エラー処理
+## Related Pages
 
-ページを解析できない場合もガイドをクラッシュさせず、エラーページを生成します。不正なタグ、ID、属性はインラインエラーとして表示します。
-
-## 関連ページ
-
-- [ナビゲーション](Navigation)
-- [画像とアセット](Images-And-Assets)
-- [タグリファレンス](Tags-Reference)
+- [Navigation](Navigation)
+- [Images And Assets](Images-And-Assets)
+- [Tags Reference](Tags-Reference)

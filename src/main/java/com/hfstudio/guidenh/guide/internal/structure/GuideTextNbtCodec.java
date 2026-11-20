@@ -75,6 +75,7 @@ public class GuideTextNbtCodec {
     public static String writeStructureSnbt(NBTTagCompound root) {
         NBTTagCompound copy = (NBTTagCompound) root.copy();
         rewriteStructureTileTags(copy, true);
+        rewriteStructureEntityTags(copy, true);
         return copy.toString();
     }
 
@@ -95,6 +96,7 @@ public class GuideTextNbtCodec {
         }
 
         rewriteStructureTileTags(root, false);
+        rewriteStructureEntityTags(root, false);
         return root;
     }
 
@@ -148,6 +150,20 @@ public class GuideTextNbtCodec {
             NBTTagCompound decodedTileTag = decodeCompound(tileTag);
             GtCoverIdNormalizer.rewriteBlockTileTag(blockTag, decodedTileTag, gtCoverCapableStates, false);
             blockTag.setTag("nbt", decodedTileTag);
+        }
+    }
+
+    private static void rewriteStructureEntityTags(NBTTagCompound root, boolean encode) {
+        if (!root.hasKey("entities", 9)) {
+            return;
+        }
+        NBTTagList entities = root.getTagList("entities", 10);
+        for (int index = 0; index < entities.tagCount(); index++) {
+            NBTTagCompound entityTag = entities.getCompoundTagAt(index);
+            if (entityTag.hasKey("nbt", 10)) {
+                NBTTagCompound entityNbt = entityTag.getCompoundTag("nbt");
+                entityTag.setTag("nbt", encode ? encodeCompound(entityNbt) : decodeCompound(entityNbt));
+            }
         }
     }
 

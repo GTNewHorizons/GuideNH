@@ -2,6 +2,12 @@
 
 The in-game guide editor suggests tags, attributes and values while you write a page.
 
+## Authoring reference
+
+Click the lightbulb in the in-game editor toolbar to open the authoring reference. Search topic titles, attributes, YAML fields and example code in the left navigation panel; Ctrl+F focuses search and right-click clears it. Select a topic to jump to its heading in the complete document. Navigation and document scrollbars move smoothly.
+
+Use Back and Forward to revisit topics and restore their scroll positions. Hover over the heading marks on the right scrollbar to see their titles, then click to jump. Copy an example with its code-block button, or copy the selected topic as Markdown with the toolbar copy button. The lightbulb stays blue while the reference is open; click it again to return to the guide with the draft, selection and undo history preserved. Close or Esc closes the guide window. Documents follow the game language, with English fallback.
+
 ## Using the candidate list
 
 | Action | Result |
@@ -25,6 +31,26 @@ The in-game guide editor suggests tags, attributes and values while you write a 
 | Frontmatter | YAML keys and supported values |
 
 Tag-name completion inserts an empty tag or a matching pair with the cursor inside. Add the attributes and content you need afterward. Item and fluid value candidates show icons; fluid values use registry names such as `water` or `steam`, rather than numeric IDs.
+
+### Quest and research IDs
+
+ID suggestions follow the content being edited:
+
+| Editing | ID source |
+| --- | --- |
+| `ResearchLink`, `ResearchCard`, `ResearchIcon` | Thaumcraft research |
+| `QuestLink`, `QuestCard` | BetterQuesting quests |
+| `id` in a `bindings` entry | The system named by that entry's `type` |
+| `BindingLink`, `BindingCard`, `BindingIcon` | The system named by the tag's `type` |
+
+For a binding entry, fill in `type` before choosing an `id`:
+
+```yaml
+bindings:
+  - {type: "thaumcraft", id: "INFUSION", anchor: "infusion"}
+```
+
+The game editor reads IDs from the loaded mod. Both IDE plugins also suggest IDs already used in workspace pages; connecting to the running game adds its registered IDs. Research IDs retain their original case. To find or copy an ID, see [Thaumcraft compatibility](Mod-Compatibility#finding-and-copying-research-ids).
 
 ## Multiline text and templates
 

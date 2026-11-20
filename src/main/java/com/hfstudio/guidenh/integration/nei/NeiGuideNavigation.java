@@ -388,9 +388,7 @@ public class NeiGuideNavigation {
     }
 
     private static boolean isGregTechDefaultHandler(Object handler) {
-        return handler != null && GREGTECH_DEFAULT_NEI_HANDLER.equals(
-            handler.getClass()
-                .getName());
+        return handler != null && NeiRecipeLookup.isHandlerType(handler, GREGTECH_DEFAULT_NEI_HANDLER);
     }
 
     private interface ScreenAction {

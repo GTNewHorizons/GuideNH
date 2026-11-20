@@ -558,9 +558,9 @@ bounding box.
 | Attribute | Required | Meaning |
 | --- | --- | --- |
 | `from` | yes | source block to match, using `modid:block[:meta]` |
-| `from_nbt` | no | partial SNBT compound; a block matches only when its tile entity NBT contains all listed keys |
+| `fromNbt` | no | partial SNBT compound; a block matches only when its tile entity NBT contains all listed keys |
 | `to` | yes | replacement block, using `modid:block[:meta]` |
-| `to_nbt` | no | SNBT TileEntity compound to apply to the replacement |
+| `toNbt` | no | SNBT TileEntity compound to apply to the replacement |
 | `x` | no | bounding box start X; if any of `x/y/z/dx/dy/dz` is present, the box mode is activated |
 | `y` | no | bounding box start Y |
 | `z` | no | bounding box start Z |
@@ -572,7 +572,7 @@ bounding box.
 Notes:
 
 - when none of `x/y/z/dx/dy/dz` are provided, all filled blocks are scanned globally
-- `from_nbt` is a **partial** match: only the keys listed in the pattern must match; extra keys in
+- `fromNbt` is a **partial** match: only the keys listed in the pattern must match; extra keys in
   the actual tile entity are ignored
 - the replacement is performed via the same block placement pipeline as `<Block>`, so GregTech MetaTile
   and BartWorks tile entities are handled correctly
