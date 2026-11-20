@@ -32,6 +32,7 @@ import com.gtnewhorizon.structurelib.structure.IItemSource;
 import com.gtnewhorizon.structurelib.structure.IStructureElement;
 import com.gtnewhorizon.structurelib.structure.ISurvivalBuildEnvironment;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
+import com.hfstudio.guidenh.guide.scene.level.GuidebookPreviewWorld;
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockMatcher;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.integration.Mods;
@@ -317,9 +318,15 @@ public class StructureLibBuildService {
                 int rounds = 0;
                 boolean creativeFallback = false;
                 while (rounds++ < SURVIVAL_MAX_ROUNDS) {
+                    GuidebookPreviewWorld previewWorld = fakePlayer.worldObj instanceof GuidebookPreviewWorld preview
+                        ? preview
+                        : null;
+                    long revision = previewWorld != null ? previewWorld.getPreviewStructureRevision() : 0L;
                     int result = sc.survivalConstruct(trigger, SURVIVAL_BUDGET, env);
-                    if (result == -1) {
-                        return; // success
+                    // Composite constructables may return a completed piece's status while another piece still builds.
+                    boolean progressed = previewWorld != null && previewWorld.getPreviewStructureRevision() != revision;
+                    if ((result == -1 || result < -2) && !progressed) {
+                        return;
                     }
                     if (result == -2) {
                         GuideDebugLog.warn(
@@ -329,13 +336,13 @@ public class StructureLibBuildService {
                         creativeFallback = true;
                         break;
                     }
-                    if (result <= 0) {
+                    if (result <= 0 && !progressed) {
                         GuideDebugLog.warn(
                             "[GuideNH] [StructureLib] Survival preview stopped without progress: controller={}, round={}, result={}",
                             request.controllerId(),
                             rounds,
                             result);
-                        break;
+                        return;
                     }
                     GregTechHelpers.refreshPreviewHatchList(controllerTile, trigger, null);
                 }
@@ -344,6 +351,7 @@ public class StructureLibBuildService {
                         "[GuideNH] [StructureLib] Survival preview exceeded the round limit; creative fallback suppressed to preserve optional hatch positions: controller={}, rounds={}",
                         request.controllerId(),
                         rounds);
+                    return;
                 }
             }
             constructable.construct(trigger.copy(), false);
@@ -356,7 +364,7 @@ public class StructureLibBuildService {
         return PreviewItemSourceHolder.INSTANCE;
     }
 
-    private static final class PreviewItemSourceHolder {
+    private static class PreviewItemSourceHolder {
 
         private static final IItemSource INSTANCE = createPreviewItemSource();
 

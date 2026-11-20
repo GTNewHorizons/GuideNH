@@ -529,9 +529,9 @@ GregTech 結構預覽預設在空倉室位置放置外殼。新增 `<GregTechPla
 | 屬性 | 必需 | 含義 |
 | --- | --- | --- |
 | `from` | 是 | 要匹配的來源方塊，使用 `modid:block[:meta]` 格式 |
-| `from_nbt` | 否 | 部分 SNBT 複合標籤；僅當方塊的 TileEntity NBT 包含所有列出的鍵時才匹配 |
+| `fromNbt` | 否 | 部分 SNBT 複合標籤；僅當方塊的 TileEntity NBT 包含所有列出的鍵時才匹配 |
 | `to` | 是 | 替換目標方塊，使用 `modid:block[:meta]` 格式 |
-| `to_nbt` | 否 | 應用於替換方塊的 SNBT TileEntity 複合標籤 |
+| `toNbt` | 否 | 應用於替換方塊的 SNBT TileEntity 複合標籤 |
 | `x` | 否 | 包圍盒起始 X；只要 `x/y/z/dx/dy/dz` 中任意一個存在，就啟用包圍盒模式 |
 | `y` | 否 | 包圍盒起始 Y |
 | `z` | 否 | 包圍盒起始 Z |
@@ -543,7 +543,7 @@ GregTech 結構預覽預設在空倉室位置放置外殼。新增 `<GregTechPla
 說明：
 
 - 若 `x/y/z/dx/dy/dz` 均未提供，則全域性掃描所有已填充方塊
-- `from_nbt` 為**部分**匹配：僅檢查模式中列出的鍵，TileEntity 中額外的鍵將被忽略
+- `fromNbt` 為**部分**匹配：僅檢查模式中列出的鍵，TileEntity 中額外的鍵將被忽略
 - 替換使用與 `<Block>` 相同的方塊放置流程，支援 GregTech MetaTile 及 BartWorks 方塊
 - 若替換結果放入了控制器，`formed={false}` 可讓該控制器在預覽中保持未成型
 

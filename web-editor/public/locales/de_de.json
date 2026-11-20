@@ -62,6 +62,7 @@
     "previewPending": "Vorschauadapter wird vorbereitet",
     "navigationRuntime": "Navigationsdaten sind zur Laufzeit verfügbar.",
     "tooltipRuntime": "Vorschaudaten sind zur Laufzeit verfügbar.",
+    "binding.nativeSite": "Öffne diesen Leitfaden in GuideNH, um den Inhalt im Spiel anzuzeigen.",
     "runtimeData": "Laufzeitdaten",
     "runtimePreview": "Laufzeitvorschau",
     "sceneRuntime": "3D-Szene ist zur Laufzeit verfügbar",

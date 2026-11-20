@@ -1,5 +1,7 @@
 package com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver;
 
+import java.util.Map;
+
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.AutocompleteContext;
 
 import lombok.Getter;
@@ -13,13 +15,21 @@ public class FrontmatterContext implements AutocompleteContext {
     private final int replaceStart;
     private final int replaceEnd;
     private final String partialText;
+    @Getter
+    private final Map<String, String> contextValues;
 
     public FrontmatterContext(String key, boolean isValue, int replaceStart, int replaceEnd, String partialText) {
+        this(key, isValue, replaceStart, replaceEnd, partialText, Map.of());
+    }
+
+    public FrontmatterContext(String key, boolean isValue, int replaceStart, int replaceEnd, String partialText,
+        Map<String, String> contextValues) {
         this.key = key;
         this.isValue = isValue;
         this.replaceStart = replaceStart;
         this.replaceEnd = replaceEnd;
         this.partialText = partialText;
+        this.contextValues = Map.copyOf(contextValues);
     }
 
     @Override

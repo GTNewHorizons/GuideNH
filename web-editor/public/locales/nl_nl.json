@@ -62,6 +62,7 @@
     "previewPending": "Voorbeeldadapter wordt voorbereid",
     "navigationRuntime": "Navigatiegegevens zijn beschikbaar tijdens de uitvoering.",
     "tooltipRuntime": "Voorbeeldgegevens zijn beschikbaar tijdens de uitvoering.",
+    "binding.nativeSite": "Open deze gids in GuideNH om de inhoud in het spel te bekijken.",
     "runtimeData": "Uitvoeringsgegevens",
     "runtimePreview": "Voorbeeld tijdens uitvoering",
     "sceneRuntime": "Een 3D-scène is beschikbaar tijdens de uitvoering",

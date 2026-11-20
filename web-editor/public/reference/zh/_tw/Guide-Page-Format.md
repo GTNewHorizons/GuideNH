@@ -336,7 +336,8 @@ GuideNH 會讀取第一個 YAML frontmatter 塊，並解析這些已知鍵：
 | `item_ids` | 物品篩選表示式列表 | `item_id` 的列表形式，任一表示式匹配即可讓頁面被 `<ItemLink>` 發現 |
 | `fluid_id` / `fluid_ids` | string / string list | 流體註冊名繫結，可帶 #anchor |
 | `ore_ids` | 礦辭名列表 | 讓頁面可被礦辭物品（如 `ingotIron`、`oreCopper`）索引 |
-| `quest_ids` | BetterQuesting 任務 id 列表 | 讓頁面可被 `<QuestLink>` / `<QuestCard>` 以及 BQ 任務 GUI 中的開啟指南快捷鍵發現。支援標準 UUID 字串和 BetterQuesting 的緊湊 Base64 形式。僅在 BetterQuesting 載入時生效。參見 [模組相容](Mod-Compatibility) |
+| `bindings` | 對映列表 | 將任務、研究或自定義內容關聯到當前頁，每項寫成 `{type: "系統", id: "ID", anchor: "章節"}`；`anchor` 可省略 |
+| `research_id` / `research_ids` | 字串 / 字串列表 | 將 Thaumcraft 研究關聯到頁面頂部；章節繫結使用 `bindings` |
 | `author` | string | 單一作者名稱。顯示在底部欄中。 |
 | `authors` | 字串列表或 `{name: ...}` 對映列表 | 多位作者名稱。最多顯示兩位，多餘的用 `...` 替代。與 `author` 同時存在時以 `authors` 為準。 |
 | `date` | 字串或 YYYY-MM-DD 日期 | 內容建立日期。顯示在底部欄中。 |
@@ -359,6 +360,42 @@ navigation:
 ```
 
 `navigation.icon_fluid` 使用一個註冊名，`icon_fluids` 使用非空註冊名列表並每秒輪換。兩個欄位互斥，也不能與物品或紋理圖示源混用。它們只設定頁面圖示，不建立頁面繫結。流體是否可用需在執行中的遊戲驗證，離線預覽無法檢查登錄檔。
+
+### 外部內容繫結
+
+`bindings` 將任務、研究或其他已註冊型別的內容關聯到當前指南頁。**每條繫結使用一行 YAML 對映**，欄位之間用逗號分隔，整條記錄放在花括號內：
+
+```yaml
+---
+navigation:
+  title: 注魔指南
+  required_mod: Thaumcraft
+bindings:
+  - {type: "thaumcraft", id: "INFUSION", anchor: "infusion"}
+  - {type: "thaumcraft", id: "INFUSION", anchor: "apparatus"}
+  - {type: "betterquesting", id: "01234567-89ab-cdef-0123-456789abcdef"}
+---
+```
+
+| 欄位 | 必填 | 含義 |
+| --- | --- | --- |
+| `type` | 是 | 內容所屬系統：`thaumcraft` 表示研究，`betterquesting` 表示任務，也可填寫其他整合註冊的型別；型別名會去除首尾空白並轉為小寫 |
+| `id` | 是 | 原始內容 ID。研究填寫 `INFUSION` 等註冊 ID，不填翻譯後的名稱；任務支援 UUID 和緊湊 Base64 兩種形式 |
+| `anchor` | 否 | **當前指南頁**中的標題或命名錨點。省略時開啟頁面頂部，不是魔導手冊頁碼 |
+
+不同指南頁和不同錨點都保留為獨立目標；相同內容、頁面和錨點重複填寫時只保留一項。遊戲內編輯器、Web Editor 和兩種 IDE 外掛均支援這些單行條目。點選及目標選擇規則見 [任務、研究與自定義內容索引](Navigation#任務研究與自定義內容索引)。
+
+三個欄位都使用 YAML 字串。雙引號字串中的引號寫成 `\"`，反斜槓寫成 `\\`；單引號字串可以直接包含雙引號，其中的單引號要寫兩次：
+
+```yaml
+bindings:
+  - {type: "custom \"system\"", id: "chapter: \"one\", part#1", anchor: "reader's notes"}
+  - {type: 'custom "system"', id: 'chapter: "one", part#1', anchor: 'reader''s notes'}
+```
+
+字串內的引號、逗號、冒號和 `#` 都屬於欄位值。`id` 保留大小寫和 `@` 等原始字首，只去除首尾空白。指南錨點填寫在 `anchor`，不要拼到研究或任務 ID 後面。
+
+僅繫結研究頁面頂部時，也可用 `research_id` 寫一個 ID，或用 `research_ids` 寫字串列表。需要章節跳轉時使用 `bindings`。任務繫結統一使用 `bindings`，不再讀取舊任務表頭欄位。
 
 ### `navigation`
 
@@ -408,13 +445,6 @@ updated: 2024-06-01
 
 語言目錄下的 `templates/` 目錄是模板頁的保留位置。模板頁的寫法與普通頁面相同，但不會出現在列表
 與導航樹中。參見[模板](Templates)。
-
-對於 BetterQuesting 整合，`quest_ids` 支援兩種格式：
-
-- 標準 UUID 字串，例如 `01234567-89ab-cdef-0123-456789abcdef`
-- BetterQuesting 的緊湊 quest id，例如 `AAAAAAAAAAAAAAAAAAAMug==`
-
-不要在同一頁面的 `quest_ids` 中同時填寫同一個任務的兩種寫法；它們會歸一化成同一個內部 UUID，並被視為重複項。
 
 當 `author`、`authors`、`date` 或 `updated` 中任意一項存在時，GuideNH 會在
 指南介面底部顯示一個與頂部工具欄風格一致的底部欄，靠右對齊顯示形如：

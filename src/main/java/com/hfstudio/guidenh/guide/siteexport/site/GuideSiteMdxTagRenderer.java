@@ -99,11 +99,7 @@ import com.hfstudio.guidenh.guide.sound.GuideSoundSpec;
 import com.hfstudio.guidenh.guide.sound.GuideSoundTrigger;
 import com.hfstudio.guidenh.guide.units.AmountFormatter;
 import com.hfstudio.guidenh.guide.units.AmountUnitRegistry;
-import com.hfstudio.guidenh.integration.Mods;
 import com.hfstudio.guidenh.integration.api.GuideNhIntegrationRegistry;
-import com.hfstudio.guidenh.integration.betterquesting.BqHelpers;
-import com.hfstudio.guidenh.integration.betterquesting.QuestDisplay;
-import com.hfstudio.guidenh.integration.betterquesting.QuestIdParser;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxAttribute;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxAttributeNode;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
@@ -187,7 +183,9 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         this.fluidTagRenderer = new GuideSiteFluidTagRenderer(
             GuideSiteFluidIconResolver.from(this.itemIconResolver),
             parsedPagesById);
-        this.siteTagRenderers = GuideSiteTagRenderers.of(guide);
+        var renderers = new ArrayList<>(GuideSiteTagRenderers.of(guide));
+        renderers.add(new GuideSiteBindingTagRenderer(guide, parsedPagesById, this.itemIconResolver, assetExporter));
+        this.siteTagRenderers = List.copyOf(renderers);
         // Cached for the same reason as the tag renderers: the export asks for this list once per fence, and
         // resolving it copies the registry each time.
         this.fenceRenderers = CodeFenceRenderers.of(guide);
@@ -352,40 +350,7 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         if ("FunctionGraph".equals(name) || "Function".equals(name)) {
             return renderFunctionGraphTag(element, defaultNamespace, currentPageId, templates, sceneResolver, compiler);
         }
-        if ("QuestLink".equals(name)) {
-            return renderQuestLink(element);
-        }
-        if ("QuestCard".equals(name)) {
-            return renderQuestCard(element);
-        }
         return null;
-    }
-
-    private String renderQuestLink(MdxJsxElementFields element) {
-        String id = readOptional(element, "id");
-        if (id == null || id.trim()
-            .isEmpty()) {
-            return renderError("QuestLink requires an id");
-        }
-        String text = readOptional(element, "text");
-        String label = text != null && !text.trim()
-            .isEmpty() ? text : resolveQuestTitle(id);
-        return "<span class=\"guide-quest-link\" data-quest-id=\"" + escapeAttribute(id)
-            + "\">"
-            + escapeHtml(label)
-            + "</span>";
-    }
-
-    private String resolveQuestTitle(String id) {
-        if (Mods.BetterQuesting.isModLoaded()) {
-            QuestDisplay display = BqHelpers.resolveDisplay(QuestIdParser.parse(id), null, false);
-            String name = stripLegacyFormatting(display.getName());
-            if (!name.trim()
-                .isEmpty()) {
-                return name;
-            }
-        }
-        return "Quest " + id;
     }
 
     private String renderSoundLink(MdxJsxElementFields element, String defaultNamespace,
@@ -407,33 +372,6 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         html.append(">")
             .append(body)
             .append("</span>");
-        return html.toString();
-    }
-
-    private String renderQuestCard(MdxJsxElementFields element) {
-        String id = readOptional(element, "id");
-        if (id == null || id.trim()
-            .isEmpty()) {
-            return renderError("QuestCard requires an id");
-        }
-        boolean showDesc = readBoolean(element, "show_desc", true);
-        String title = readOptional(element, "title");
-        if (title == null || title.trim()
-            .isEmpty()) {
-            title = resolveQuestTitle(id);
-        }
-        StringBuilder html = new StringBuilder();
-        html.append("<div class=\"guide-quest-card\" data-quest-id=\"")
-            .append(escapeAttribute(id))
-            .append("\"><div class=\"guide-quest-card-title\">")
-            .append(escapeHtml(title))
-            .append("</div>");
-        if (showDesc) {
-            html.append("<div class=\"guide-quest-card-meta\">")
-                .append(escapeHtml(id))
-                .append("</div>");
-        }
-        html.append("</div>");
         return html.toString();
     }
 

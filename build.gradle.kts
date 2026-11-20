@@ -16,6 +16,13 @@ tasks.withType<Test>().configureEach {
     useJUnitPlatform()
 }
 
+tasks.processResources {
+    from("web-editor/public/reference") {
+        include("**/*.md", "index.json")
+        into("assets/guidenh/editor-reference")
+    }
+}
+
 tasks.named<ShadowJar>("shadowJar") {
     mergeServiceFiles()
     exclude("META-INF/maven/**", "META-INF/LICENSE*", "META-INF/NOTICE*")

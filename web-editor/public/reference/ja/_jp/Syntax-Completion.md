@@ -2,38 +2,66 @@
 
 ゲーム内のガイドエディターは、ページの編集中にタグ、属性、値の候補を表示します。
 
-## 候補リストの操作
+The in-game guide editor suggests tags, attributes and values while you write a page.
 
-| 操作 | 結果 |
+## 執筆リファレンス
+
+電球ボタンで執筆リファレンスを開きます。左側でトピック、属性、YAML フィールド、コード例を検索できます。Ctrl+F で検索欄にフォーカスし、右クリックで消去します。トピックを選ぶと文書全体の該当見出しへ移動します。両側のスクロールは滑らかです。
+
+戻る・進むボタンでトピックとスクロール位置を復元します。右のスクロールバーの見出し線にカーソルを置くとタイトルが表示され、クリックで移動できます。コード例は各ブロックから、トピックの Markdown はツールバーからコピーできます。リファレンスを開いている間、電球は青色になります。もう一度クリックすると、下書き、選択範囲、取り消し履歴を保持してガイドに戻ります。閉じるボタンまたは Esc でガイドのウィンドウを閉じます。未翻訳の文書は英語で表示します。
+
+## Using the candidate list
+
+| Action | Result |
 | --- | --- |
-| ↑ / ↓ | 前または次の候補を選ぶ |
-| Tab / Enter | 選択した候補を挿入する |
-| 候補をクリック | 選択した候補を挿入する |
-| Esc | リストを閉じる |
-| マウスホイール | 候補をスクロールする |
-| スクロールバー | スクロールバーをドラッグする |
+| ↑ / ↓ | Select the previous or next candidate |
+| Tab / Enter | Insert the selected candidate |
+| Click | Insert the selected candidate |
+| Esc | Close the list |
+| Mouse wheel | Scroll through candidates |
+| Scrollbar | Drag the scrollbar to scroll |
 
-## 補完できる内容
+## Supported completion
 
-| 編集箇所 | 候補 |
+| While editing | Suggestions |
 | --- | --- |
-| `<...` | 現在のコンテナで使えるタグ名 |
-| `<Tag ...` | 属性名と値の区切り記号 |
-| `id="..."`, `fluid="..."` | アイテム・流体の登録名、レシピ、ページ、リソースなどの対応する値 |
-| Markdown | 見出し、リスト、表、注意書きなどの Markdown 構造 |
-| コードブロック | 対応するコード言語と GuideNH のコードブロック名 |
-| Frontmatter | YAML キーと対応する値 |
+| `<...` | Tag names valid in the enclosing container |
+| `<Tag ...` | Attribute names and their value delimiters |
+| `id="..."`, `fluid="..."` | Item and fluid registry names, recipes, pages, assets and other supported values |
+| Markdown | Headings, lists, tables, alerts and other Markdown constructs |
+| Code fence | Supported code languages and GuideNH fence names |
+| Frontmatter | YAML keys and supported values |
 
-タグ名の補完は空のタグ、またはカーソルを内側に置いた開始・終了タグの組を挿入します。必要な属性と内容はその後に入力します。アイテムと流体の値にはアイコンが表示されます。流体は数値 ID ではなく、`water` や `steam` などの登録名を使います。
+Tag-name completion inserts an empty tag or a matching pair with the cursor inside. Add the attributes and content you need afterward. Item and fluid value candidates show icons; fluid values use registry names such as `water` or `steam`, rather than numeric IDs.
 
-## 複数行のテキストとテンプレート
+### Quest and research IDs
 
-候補には短いプレビューが表示されます。`\n` と `\t` は改行とタブを表し、確定すると実際のテキストが挿入されます。複数行の挿入では現在の字下げを引き継ぎ、入力を続ける位置にカーソルを置きます。
+ID suggestions follow the content being edited:
 
-完全な例を挿入するには、エディターの右クリックメニューからテンプレートを選びます。シーンとチャートのテンプレートが用意されています。通常のタグ名補完は空のタグを挿入します。
+| Editing | ID source |
+| --- | --- |
+| `ResearchLink`, `ResearchCard`, `ResearchIcon` | Thaumcraft research |
+| `QuestLink`, `QuestCard` | BetterQuesting quests |
+| `id` in a `bindings` entry | The system named by that entry's `type` |
+| `BindingLink`, `BindingCard`, `BindingIcon` | The system named by the tag's `type` |
 
-## 関連資料
+For a binding entry, fill in `type` before choosing an `id`:
 
-- [ページ形式](Guide-Page-Format)
-- [タグと属性](Tags-Reference)
-- [レシピ](Recipes)
+```yaml
+bindings:
+  - {type: "thaumcraft", id: "INFUSION", anchor: "infusion"}
+```
+
+The game editor reads IDs from the loaded mod. Both IDE plugins also suggest IDs already used in workspace pages; connecting to the running game adds its registered IDs. Research IDs retain their original case. To find or copy an ID, see [Thaumcraft compatibility](Mod-Compatibility#finding-and-copying-research-ids).
+
+## Multiline text and templates
+
+Candidate rows use short previews. The visible `\n` and `\t` markers stand for line breaks and tabs; accepting a candidate inserts the actual text. Multiline insertion follows the current indentation and places the cursor where typing should continue.
+
+For a complete example, open the editor's right-click menu and choose a template. Scene and chart templates are available there. Normal tag-name completion keeps the tag empty.
+
+## Related references
+
+- [Page format](Guide-Page-Format)
+- [Tags and attributes](Tags-Reference)
+- [Recipes](Recipes)

@@ -242,16 +242,9 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
 
         boolean isAir = block == null || block == Blocks.air;
         boolean hadTileEntity = tileEntities.get(x, y, z) != null;
-        long chunkKey = ChunkCoordIntPair.chunkXZ2Int(x >> 4, z >> 4);
-        GuidebookChunk chunk = chunks.get(chunkKey);
+        GuidebookChunk chunk = getChunk(x >> 4, z >> 4, !isAir);
         if (chunk == null) {
-            if (isAir) return;
-            chunk = new GuidebookChunk(x >> 4, z >> 4);
-            chunks.put(chunkKey, chunk);
-            cachedChunkX = x >> 4;
-            cachedChunkZ = z >> 4;
-            cachedChunk = chunk;
-            cachedChunkValid = true;
+            return;
         }
 
         chunk.setBlock(x, y, z, isAir ? null : block, meta);
@@ -279,15 +272,15 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
             } else {
                 tileEntities.remove(x, y, z);
             }
-            if (tileEntity != null || hadTileEntity) {
-                syncFakeWorldTileEntity(x, y, z);
-            }
             if (x < minX) minX = x;
             if (y < minY) minY = y;
             if (z < minZ) minZ = z;
             if (x > maxX) maxX = x;
             if (y > maxY) maxY = y;
             if (z > maxZ) maxZ = z;
+        }
+        if (tileEntity != null || hadTileEntity) {
+            syncFakeWorldTileEntity(x, y, z);
         }
         markSpatialDirty();
         previewStateDirty = true;
@@ -304,18 +297,9 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
         }
 
         boolean isAir = block == null || block == Blocks.air;
-        long chunkKey = ChunkCoordIntPair.chunkXZ2Int(x >> 4, z >> 4);
-        GuidebookChunk chunk = chunks.get(chunkKey);
+        GuidebookChunk chunk = getChunk(x >> 4, z >> 4, !isAir);
         if (chunk == null) {
-            if (isAir) {
-                return;
-            }
-            chunk = new GuidebookChunk(x >> 4, z >> 4);
-            chunks.put(chunkKey, chunk);
-            cachedChunkX = x >> 4;
-            cachedChunkZ = z >> 4;
-            cachedChunk = chunk;
-            cachedChunkValid = true;
+            return;
         }
 
         chunk.setBlock(x, y, z, isAir ? null : block, meta);
@@ -352,6 +336,7 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
     public void setTileEntity(int x, int y, int z, @Nullable TileEntity tileEntity) {
         TileEntity existing = tileEntities.get(x, y, z);
         if (existing == tileEntity) {
+            syncFakeWorldTileEntity(x, y, z);
             previewStateDirty = true;
             return;
         }
@@ -370,6 +355,7 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
     public void restoreTileEntityFast(int x, int y, int z, @Nullable TileEntity tileEntity) {
         if (tileEntity == null) {
             tileEntities.remove(x, y, z);
+            syncFakeWorldTileEntity(x, y, z);
             markSpatialDirty();
             previewStateDirty = true;
             return;

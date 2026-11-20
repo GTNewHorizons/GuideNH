@@ -1,3 +1,5 @@
+[English](Tags-Reference)
+
 # 标签参考
 
 本页说明指南作者可使用的内置标签。
@@ -6,6 +8,7 @@
 
 - 标签可以出现在块级上下文或行内上下文，具体取决于对应编译器。
 - 页面内容支持使用 `{/* ... */}` 形式的 MDX 注释，运行时解析器会忽略这些注释。
+- MDX 属性统一使用驼峰，例如 `showTooltip`、`showDesc` 和 `fromNbt`。
 - 无效标签或无效属性不会静默失败，而是以内联指南错误的形式显示。
 - 配方和 3D 场景这类大型功能标签会在独立页面中说明：
   - [配方](Recipes)
@@ -33,9 +36,11 @@
 | `<ItemImage>` | 行内物品图标 | `id`, `ore`, `nbt`, `scale`, `noTooltip`, `showTooltip`, `showIcon`, `label`, `format`, `yOffset`, `labelYOffset` |
 | `<ItemLink>` | 物品 tooltip + 可选导航链接 | `id` 或 `ore`，`linksTo`，`showTooltip`，`noTooltip`，`showIcon` |
 | `<FluidImage>` / `<FluidLink>` | 原生流体图标与页面导航 | `id`, `amount`, `nbt`, `scale`, `showTooltip`, `noTooltip`, `showIcon`, `label`, `linksTo` |
+| `<ResearchLink>` / `<BindingLink>` | 研究或自定义内容链接 | `id`, `type`（通用标签）, `text`, `target`, `showTooltip` |
+| `<ResearchIcon>` / `<BindingIcon>` | 研究或自定义内容图标，也可用于块级上下文 | `id`, `type`（通用标签）, `scale`, `showTooltip` |
 | `<CommandLink>` | 可点击的聊天命令链接 | `command`, `title`, `close` |
 | `<Latex>` | LaTeX 数学公式；在流式上下文中行内渲染，在块级上下文中居中显示为独立公式块 | `formula`, `color`, `scale`, `sourceScale`, `tooltip`, `showTooltip` |
-| `<QuestLink>` | BetterQuesting 任务链接，按任务状态自动调整样式（兼容标签，仅当 BetterQuesting 已加载时注册） | `id`, `text`, `show_tooltip` |
+| `<QuestLink>` | BetterQuesting 任务链接，按任务状态自动调整样式（兼容标签，仅当 BetterQuesting 已加载时注册） | `id`, `text`, `showTooltip` |
 
 行内 Markdown 也支持音效动作链接：
 
@@ -49,7 +54,7 @@
 | 标签 | 用途 | 关键属性 |
 | --- | --- | --- |
 | `<div>` | 透传块包装器 | 无 |
-| `<ContentTabs>` | 将可替代的富内容分组到独立标签页中 | `title`、`color`、`background`、`icon`、`iconPng`、`icon_png`、`iconItem`、`icon_item`, `iconFluid`, `icon_fluid`、`default`、`defaultIndex` |
+| `<ContentTabs>` | 将可替代的富内容分组到独立标签页中 | `title`、`color`、`background`、`icon`、`iconPng`、`iconItem`, `iconFluid`、`default`、`defaultIndex` |
 | `<Tab>` | `<ContentTabs>` 内的单个内容面板 | `title` |
 | `<details>` | 可折叠运行时块 | `open`、`width`、`height`、`wrap`、`align` |
 | `<FileTree>` | 目录树式大纲（带连接线） | `indent`、`gap` |
@@ -74,7 +79,8 @@
 | `<Function>` | 单曲线简写，等价于只含一个 `<Plot>` 的 `<FunctionGraph>` | `expr`，及全部 `<FunctionGraph>` 面板属性 |
 | `<Recipe>`, `<RecipeFor>`, `<RecipesFor>` | 配方渲染器 | 详见 [配方](Recipes) |
 | `<GameScene>`, `<Scene>` | 3D 指南游戏场景 | 详见 [游戏场景](GameScene) |
-| `<QuestCard>` | 块级 BetterQuesting 任务摘要卡片（兼容标签，仅当 BetterQuesting 已加载时注册） | `id`, `show_desc`, `show_tooltip` |
+| `<ResearchCard>` / `<BindingCard>` | 研究或自定义内容摘要卡片 | `id`, `type`（通用标签）, `title`, `target`, `showDesc`, `showIcon`, `showParents` |
+| `<QuestCard>` | 块级 BetterQuesting 任务摘要卡片（兼容标签，仅当 BetterQuesting 已加载时注册） | `id`, `title`, `showDesc`, `showTooltip` |
 
 `<ImportStructureLib>` 是 `<GameScene>` 的子标签。它支持 `controller`、`piece`、`facing`、
 `rotation`、`flip`、`tier`、`channel`、`channelName`、`value`、`locked` 属性，也支持用于设置 StructureLib 默认值的子标签：
@@ -185,7 +191,7 @@ Water is H<sub>2</sub>O and x<sup>2</sup> is a square.
 - `color` 可选，用 `#RRGGBB` 或 `#AARRGGBB` 覆盖左侧强调线与选中标签的高亮颜色
 - `background` 可选，用 `#RRGGBB`、`#AARRGGBB` 或 `transparent` 覆盖标签容器背景；省略时保留默认灰色引用块背景
 - `title` 会在标签栏上方增加一个可选的纯文本标题
-- `icon`、`iconPng` / `icon_png`、`iconItem` / `icon_item` 与 Markdown 标记/引用块标题的图标语义完全一致
+- `icon`、`iconPng` / `iconPng`、`iconItem` / `iconItem` 与 Markdown 标记/引用块标题的图标语义完全一致
 - 非法子节点或非法默认值会渲染为面向作者的可见错误
 
 ### `<FileTree>`
@@ -450,6 +456,175 @@ ExportSite 的物品数量和流体数量使用网站自带的 Pixeloid Mono 字
 页面通过 `fluid_id` / `fluid_ids` 绑定。鼠标停在原生流体图标或支持的容器/展示对象上，长按可改键的打开指南快捷键（默认 G）；单个目标直接打开，多个目标显示选择列表，先列流体页面，再列容器页面。数量和 NBT 影响显示实例，页面绑定只匹配注册名。空容器保留普通物品导航；没有悬停数据接口的流体 GUI 需要注册适配器。
 
 导航使用 `navigation.icon_fluid` / `icon_fluids` 设置静态/轮换页面图标；ContentTabs、FileTree 指令、引用指令和图表 Series / LineSeries / Slice 使用 `iconFluid`。流体图标不能与物品、PNG 或文本图标同时配置。六种 Recipe/Usage 标签支持 `fluid`、`inputFluid`、`outputFluid`；InputAnnotation 支持 `fluid`、`amount`、`nbt`。完整规则见配方、页面格式和注解文档。
+
+### 任务内容（BetterQuesting）
+
+`<QuestLink>` 与 `<QuestCard>` 仅在 BetterQuesting 模组已加载时才会被注册。详细说明位于 [模组兼容](Mod-Compatibility) 页面，下面给出常用用法摘要。
+
+#### `<QuestLink>`
+
+左键打开 BetterQuesting 任务界面。右键打开绑定的指南页；没有绑定指南时，右键也打开 BetterQuesting。多个页面使用与物品相同的目标选择界面，不同正文锚点保留为独立目标。
+
+| 属性 | 含义 |
+| --- | --- |
+| `id` | 必填，BetterQuesting 任务 id；支持标准 UUID 字符串和紧凑 Base64 id |
+| `text` | 可选，覆盖显示文本 |
+| `showTooltip` | 可选布尔值，默认 `true`；设为 `false` 可关闭任务描述 tooltip |
+
+按玩家进度在页面挂载时决定外观：
+
+- 已可见 / 已完成的任务渲染为可点击链接（已完成的会被染为绿色并追加 `✓`）
+- 已锁定但未隐藏的任务仍会渲染为可点击任务链接，因此仍可打开 BetterQuesting 任务界面或对应的索引指南页
+- 隐藏 / 机密的任务渲染为更深的斜体占位符，使用 `guidenh.binding.state.hidden`
+- 未知任务 id 渲染为红色占位符，使用 `guidenh.binding.state.missing`
+
+示例：
+
+````md
+下一步请参考 <QuestLink id="01234567-89ab-cdef-0123-456789abcdef" />。
+<QuestLink id="01234567-89ab-cdef-0123-456789abcdef" text="第二阶段任务" />
+<QuestLink id="01234567-89ab-cdef-0123-456789abcdef" showTooltip="false" />
+然后再看 <QuestLink id="AAAAAAAAAAAAAAAAAAAMug==" text="紧凑 quest id 示例" />。
+````
+
+#### `<QuestCard>`
+
+块级任务摘要卡片。标题使用与 `<QuestLink>` 相同的状态相关样式；当任务对当前玩家可见时，会附带任务描述作为正文段落。
+
+| 属性 | 含义 |
+| --- | --- |
+| `id` | 必填，BetterQuesting 任务 id；支持标准 UUID 字符串和紧凑 Base64 id |
+| `title` | 可选，覆盖卡片标题 |
+| `showDesc` | 可选布尔，默认 `true`；设为 `false` 可隐藏描述正文 |
+| `showTooltip` | 可选布尔值，默认 `true`；设为 `false` 可关闭可点击标题上的任务描述 tooltip |
+
+卡片边框颜色随任务状态变化：已完成绿色、锁定 / 隐藏灰色、缺失红色、可见时使用标准链接色。标题在可见、已完成以及锁定但未隐藏时都会保持可点击。
+
+示例：
+
+````md
+<QuestCard id="01234567-89ab-cdef-0123-456789abcdef" />
+<QuestCard id="01234567-89ab-cdef-0123-456789abcdef" showDesc="false" />
+<QuestCard id="01234567-89ab-cdef-0123-456789abcdef" showTooltip="false" />
+<QuestCard id="AAAAAAAAAAAAAAAAAAAMug==" />
+````
+
+### 研究与自定义内容
+
+研究标签对应 Thaumcraft；通用标签由 `type` 指定内容系统。绑定页面的写法见 [Frontmatter](Guide-Page-Format-zh-CN#外部内容绑定)。
+
+#### 导航规则
+
+以下规则用于 ResearchLink/Card 和 BindingLink/Card 的链接或卡片标题文本。
+
+| `target` | 左键 | 右键 |
+| --- | --- | --- |
+| `auto` | 优先打开指南，无绑定时打开原生界面 | 打开指南，无绑定时打开原生界面 |
+| `native` | 打开原生界面 | 打开指南，无绑定时打开原生界面 |
+| `guide` | 只打开指南，无绑定时给出提示 | 打开指南，无绑定时打开原生界面 |
+
+原生跳转打开研究树并定位到对应图标，无论研究是否完成，都不会自动解锁。隐藏研究不显示名称、简介或图标。多个指南目标会显示选择界面。
+
+#### `<ResearchLink>`
+
+行内内容链接。
+
+| 属性 | 说明 |
+| --- | --- |
+| `id` | 必填，原始内容 ID；研究 ID 区分大小写 |
+| `text` / `title` | 可选，覆盖链接文字 |
+| `target` | `auto`、`native` 或 `guide`，默认 `auto`，规则见上表 |
+| `showTooltip` | 显示提示，默认 `true` |
+
+```mdx
+<ResearchLink id="INFUSION" text="查看研究" target="native" />
+```
+
+#### `<ResearchCard>`
+
+块级内容摘要卡片。左键点击标题跳转，右键点击标题打开绑定指南。
+
+| 属性 | 说明 |
+| --- | --- |
+| `id` | 必填，原始内容 ID；研究 ID 区分大小写 |
+| `title` | 可选，覆盖卡片标题 |
+| `showDesc` | 显示内容简介；默认 `true` |
+| `showIcon` | 显示图标；默认 `true` |
+| `showParents` | 显示可见前置内容；默认 `false` |
+| `target` | `auto`、`native` 或 `guide`，默认 `native`，规则见上表 |
+| `showTooltip` | 显示提示，默认 `true` |
+
+```mdx
+<ResearchCard id="INFUSION" title="注魔研究" showParents={true} />
+```
+
+#### `<ResearchIcon>`
+
+内容图标及 tooltip；悬停时按住打开指南键可查看指南，点击不打开原生内容。
+
+| 属性 | 说明 |
+| --- | --- |
+| `id` | 必填，原始内容 ID；研究 ID 区分大小写 |
+| `scale` | 有限正数，默认 `1` |
+| `showTooltip` | 显示提示，默认 `true` |
+
+```mdx
+<ResearchIcon id="INFUSION" scale={1.5} />
+```
+
+#### `<BindingLink>`
+
+行内内容链接。
+
+| 属性 | 说明 |
+| --- | --- |
+| `type` | 必填，已注册内容类型，如 `thaumcraft`、`betterquesting` |
+| `id` | 必填，原始内容 ID；研究 ID 区分大小写 |
+| `text` / `title` | 可选，覆盖链接文字 |
+| `target` | `auto`、`native` 或 `guide`，默认 `auto`，规则见上表 |
+| `showTooltip` | 显示提示，默认 `true` |
+
+```mdx
+<BindingLink type="thaumcraft" id="INFUSION" text="查看研究" target="native" />
+```
+
+#### `<BindingCard>`
+
+块级内容摘要卡片。左键点击标题跳转，右键点击标题打开绑定指南。
+
+| 属性 | 说明 |
+| --- | --- |
+| `type` | 必填，已注册内容类型，如 `thaumcraft`、`betterquesting` |
+| `id` | 必填，原始内容 ID；研究 ID 区分大小写 |
+| `title` | 可选，覆盖卡片标题 |
+| `showDesc` | 显示内容简介；默认 `true` |
+| `showIcon` | 显示图标；默认 `true` |
+| `showParents` | 显示可见前置内容；默认 `false` |
+| `target` | `auto`、`native` 或 `guide`，默认 `native`，规则见上表 |
+| `showTooltip` | 显示提示，默认 `true` |
+
+```mdx
+<BindingCard type="thaumcraft" id="INFUSION" title="注魔研究" showParents={true} />
+```
+
+#### `<BindingIcon>`
+
+内容图标及 tooltip；悬停时按住打开指南键可查看指南，点击不打开原生内容。
+
+| 属性 | 说明 |
+| --- | --- |
+| `type` | 必填，已注册内容类型，如 `thaumcraft`、`betterquesting` |
+| `id` | 必填，原始内容 ID；研究 ID 区分大小写 |
+| `scale` | 有限正数，默认 `1` |
+| `showTooltip` | 显示提示，默认 `true` |
+
+```mdx
+<BindingIcon type="thaumcraft" id="INFUSION" scale={1.5} />
+```
+
+#### 导出与预览
+
+网站导出和浏览器预览不读取导出者的研究进度。绑定指南显示为链接或多目标列表；原生界面动作显示游戏内操作说明。未安装内容模组时，Research 与 Binding 标签显示集成不可用占位。Quest 标签仅在 BetterQuesting 已加载时注册。
 
 ### `<CommandLink>`
 
@@ -836,54 +1011,3 @@ $$\begin{pmatrix} a & b \\ c & d \end{pmatrix}$$
 - 可选 `color`、`label`。
 
 交互：鼠标悬停曲线会高亮该曲线；按住可沿曲线滑动一个标记点。若提供 `label`，提示框最上方先显示函数名，之后默认显示函数式和实时 `(x, y)` 值；可用对应开关关闭。提示框默认锚定在该点正上方，顶部空间不足时自动翻到下方。
-
-## BetterQuesting 兼容标签
-
-`<QuestLink>` 与 `<QuestCard>` 仅在 BetterQuesting 模组已加载时才会被注册。详细说明位于 [模组兼容](Mod-Compatibility) 页面，下面给出常用用法摘要。
-
-### `<QuestLink>`
-
-指向 BetterQuesting 任务的行内链接。点击时默认打开 BetterQuesting 任务 GUI；若该任务 id 出现在某个指南页的 `quest_ids` 前言中，则改为跳转到该页面。
-
-| 属性 | 含义 |
-| --- | --- |
-| `id` | 必填，BetterQuesting 任务 id；支持标准 UUID 字符串和紧凑 Base64 id |
-| `text` | 可选，覆盖显示文本 |
-| `show_tooltip` | 可选布尔值，默认 `true`；设为 `false` 可关闭任务描述 tooltip。也接受别名 `showTooltip` |
-
-按玩家进度在编译时决定外观：
-
-- 已可见 / 已完成的任务渲染为可点击链接（已完成的会被染为绿色并追加 `✓`）
-- 已锁定但未隐藏的任务仍会渲染为可点击任务链接，因此仍可打开 BetterQuesting 任务界面或对应的索引指南页
-- 隐藏 / 机密的任务渲染为更深的斜体占位符，使用 `guidenh.compat.bq.hidden`
-- 未知任务 id 渲染为红色占位符，使用 `guidenh.compat.bq.missing`
-
-示例：
-
-````md
-下一步请参考 <QuestLink id="01234567-89ab-cdef-0123-456789abcdef" />。
-<QuestLink id="01234567-89ab-cdef-0123-456789abcdef" text="第二阶段任务" />
-<QuestLink id="01234567-89ab-cdef-0123-456789abcdef" show_tooltip="false" />
-然后再看 <QuestLink id="AAAAAAAAAAAAAAAAAAAMug==" text="紧凑 quest id 示例" />。
-````
-
-### `<QuestCard>`
-
-块级任务摘要卡片。标题使用与 `<QuestLink>` 相同的状态相关样式；当任务对当前玩家可见时，会附带任务描述作为正文段落。
-
-| 属性 | 含义 |
-| --- | --- |
-| `id` | 必填，BetterQuesting 任务 id；支持标准 UUID 字符串和紧凑 Base64 id |
-| `show_desc` | 可选布尔，默认 `true`；设为 `false` 可隐藏描述正文 |
-| `show_tooltip` | 可选布尔值，默认 `true`；设为 `false` 可关闭可点击标题上的任务描述 tooltip。也接受别名 `showTooltip` |
-
-卡片边框颜色随任务状态变化：已完成绿色、锁定 / 隐藏灰色、缺失红色、可见时使用标准链接色。标题在可见、已完成以及锁定但未隐藏时都会保持可点击。
-
-示例：
-
-````md
-<QuestCard id="01234567-89ab-cdef-0123-456789abcdef" />
-<QuestCard id="01234567-89ab-cdef-0123-456789abcdef" show_desc="false" />
-<QuestCard id="01234567-89ab-cdef-0123-456789abcdef" show_tooltip="false" />
-<QuestCard id="AAAAAAAAAAAAAAAAAAAMug==" />
-````

@@ -32,6 +32,7 @@ public class LytDocument extends LytNode implements LytBlockContainer {
 
     @Nullable
     private Layout layout;
+    private float layoutVisualScale;
 
     /**
      * Advances whenever document content invalidates its layout. Consumers can use this to refresh
@@ -165,11 +166,14 @@ public class LytDocument extends LytNode implements LytBlockContainer {
     }
 
     public void updateLayout(LayoutContext context, int availableWidth) {
-        if (layout != null && layout.availableWidth == availableWidth) {
+        if (layout != null && layout.availableWidth == availableWidth
+            && layoutVisualScale == context.getVisualScale()) {
             return;
         }
 
+        invalidateVisibleCache();
         layout = createLayout(context, availableWidth);
+        layoutVisualScale = context.getVisualScale();
     }
 
     private Layout createLayout(LayoutContext context, int availableWidth) {

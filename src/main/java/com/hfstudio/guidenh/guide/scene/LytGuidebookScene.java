@@ -58,6 +58,7 @@ import com.hfstudio.guidenh.guide.document.interaction.ContentTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
 import com.hfstudio.guidenh.guide.internal.GuidebookText;
 import com.hfstudio.guidenh.guide.internal.debug.DebugComponent;
+import com.hfstudio.guidenh.guide.internal.debug.ScreenDebugComponents.Entry;
 import com.hfstudio.guidenh.guide.internal.scene.GuidebookPreviewPlayerPose;
 import com.hfstudio.guidenh.guide.internal.screen.GuideIconButton;
 import com.hfstudio.guidenh.guide.internal.structure.GuideTextNbtCodec;
@@ -7494,6 +7495,28 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
     public List<ComponentEntry> getDebugComponents() {
         List<ComponentEntry> components = new ArrayList<>();
 
+        if (cachedVisibleLayerSliderRect != null && !cachedVisibleLayerSliderRect.isEmpty()) {
+            addSliderDebugComponents(
+                components,
+                "VisibleLayerSlider",
+                cachedVisibleLayerSliderRect,
+                getVisibleLayerFraction());
+        }
+        if (cachedTierSliderRect != null && !cachedTierSliderRect.isEmpty()) {
+            addSliderDebugComponents(
+                components,
+                "StructureLibTierSlider",
+                cachedTierSliderRect,
+                getStructureLibTierFraction());
+        }
+        for (var slider : cachedChannelSliderRects.entrySet()) {
+            addSliderDebugComponents(
+                components,
+                "StructureLibChannelSlider:" + slider.getKey(),
+                slider.getValue(),
+                getStructureLibChannelFraction(getStructureLibChannelData(slider.getKey())));
+        }
+
         // Timeline slider (bottom area when ponder active)
         if (ponderSceneData != null && bounds != null) {
             int sliderHeight = SCENE_SLIDER_AREA_HEIGHT;
@@ -7536,5 +7559,17 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         }
 
         return components;
+    }
+
+    private void addSliderDebugComponents(List<ComponentEntry> components, String name, @Nullable LytRect track,
+        float fraction) {
+        if (track == null || track.isEmpty()) {
+            return;
+        }
+        var geometry = GuideSliderRenderer.layout(track.x(), track.y(), track.width(), fraction);
+        ComponentEntry slider = new Entry(name, geometry.hitRect(), null, 10, null);
+        components.add(slider);
+        components.add(new Entry(name + ":Track", geometry.trackRect(), null, 10, slider));
+        components.add(new Entry(name + ":Thumb", geometry.thumbRect(), null, 11, slider));
     }
 }

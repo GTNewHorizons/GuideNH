@@ -174,7 +174,10 @@ public class GuideSyntaxCompletion {
             return List.of();
         }
         return suggestionCandidates(
-            model.values(SyntaxValueRequest.frontmatter(kind, context.getPartialText(), context.getKey()), limit),
+            model.values(
+                SyntaxValueRequest.frontmatter(kind, context.getPartialText(), context.getKey())
+                    .withContextValues(context.getContextValues()),
+                limit),
             kind,
             limit);
     }
@@ -188,7 +191,8 @@ public class GuideSyntaxCompletion {
         SyntaxValueKind kind = attribute.kind();
         return suggestionCandidates(
             model.values(
-                SyntaxValueRequest.of(kind, context.getPartialText(), context.getTagName(), context.getAttrName()),
+                SyntaxValueRequest.of(kind, context.getPartialText(), context.getTagName(), context.getAttrName())
+                    .withContextValues(context.getContextValues()),
                 limit),
             kind,
             limit);
