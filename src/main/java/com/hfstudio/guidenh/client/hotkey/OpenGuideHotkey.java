@@ -19,6 +19,7 @@ import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.Display;
 
+import com.hfstudio.guidenh.guide.GuideAnchor;
 import com.hfstudio.guidenh.guide.PageAnchor;
 import com.hfstudio.guidenh.guide.internal.GuideRegistry;
 import com.hfstudio.guidenh.guide.internal.GuideScreen;
@@ -153,15 +154,8 @@ public class OpenGuideHotkey {
         if (TOOLTIP_HINTS_SUPPRESSED.get() || questId == null || lines == null) {
             return false;
         }
-        List<FoundPage> pages = findQuestPages(questId);
-        if (pages.isEmpty()) {
-            return false;
-        }
-
-        var found = pages.getFirst();
-        var current = GuideScreen.current();
-        if (current != null && found.page.pageId()
-            .equals(current.getCurrentPageId())) {
+        var targets = BindingNavigationService.findTargets(new BindingKey("betterquesting", questId.toString()));
+        if (!canOpenBindingTargets(targets)) {
             return false;
         }
 
@@ -299,12 +293,15 @@ public class OpenGuideHotkey {
         return meta == 0 ? name.toString() : name + ":" + meta;
     }
 
-    private static List<FoundPage> findQuestPages(UUID questId) {
-        if (questId == null) return List.of();
-        return BindingNavigationService.findTargets(new BindingKey("betterquesting", questId.toString()))
-            .stream()
-            .map(target -> new FoundPage(GuideRegistry.getById(target.guideId()), target.page()))
-            .toList();
+    private static boolean canOpenBindingTargets(List<GuideAnchor> targets) {
+        if (targets.isEmpty()) return false;
+        if (targets.size() > 1) return true;
+        var current = GuideScreen.current();
+        var target = targets.getFirst();
+        return current == null || !current.isShowingGuide(target.guideId())
+            || !target.page()
+                .pageId()
+                .equals(current.getCurrentPageId());
     }
 
     public static void updateBindingHover(BindingKey key) {
@@ -322,8 +319,7 @@ public class OpenGuideHotkey {
     public static String bindingHint(BindingKey key) {
         if (TOOLTIP_HINTS_SUPPRESSED.get()) return null;
         var selection = BINDING_SESSION.update(Minecraft.getMinecraft().currentScreen, key);
-        if (selection.targets()
-            .isEmpty()) return null;
+        if (!canOpenBindingTargets(selection.targets())) return null;
         return renderHint(BINDING_SESSION.ticksHeld() / (float) TICKS_TO_OPEN);
     }
 
@@ -350,13 +346,14 @@ public class OpenGuideHotkey {
             }
         }
         var selection = BINDING_SESSION.update(screen, key);
+        var targets = selection.targets();
         previousQuestId = key != null && "betterquesting".equals(key.type()) ? UUID.fromString(key.id()) : null;
         questGuidebookPages.clear();
         if (previousQuestId != null) {
-            for (var target : selection.targets())
+            for (var target : targets)
                 questGuidebookPages.add(new FoundPage(GuideRegistry.getById(target.guideId()), target.page()));
         }
-        if (BINDING_SESSION.advance(held, TICKS_TO_OPEN)) {
+        if (BINDING_SESSION.advance(held && canOpenBindingTargets(targets), TICKS_TO_OPEN)) {
             if (screen instanceof GuideScreen guide) guide.openResourceTargets(selection);
             else GuideScreen.openFromGuideHotkey(selection);
         }
