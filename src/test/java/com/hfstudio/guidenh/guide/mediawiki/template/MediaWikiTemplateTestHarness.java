@@ -30,19 +30,25 @@ public class MediaWikiTemplateTestHarness {
 
     private final Map<ResourceLocation, ParsedGuidePage> pages = new LinkedHashMap<>();
 
-    /** Registers a template under the page id its name maps to. */
+    /**
+     * Registers a template under the page id its name maps to.
+     */
     public MediaWikiTemplateTestHarness defineTemplate(String name, String body) {
         return definePage(TEMPLATE_FOLDER + name + ".md", body);
     }
 
-    /** Registers a page by path, used both for templates and for pages a template may test for. */
+    /**
+     * Registers a page by path, used both for templates and for pages a template may test for.
+     */
     public MediaWikiTemplateTestHarness definePage(String path, String body) {
         ResourceLocation pageId = new ResourceLocation(PACK, path);
         pages.put(pageId, PageCompiler.parse(PACK, "en_us", pageId, body));
         return this;
     }
 
-    /** Compiles source as an ordinary page and returns the laid-out result. */
+    /**
+     * Compiles source as an ordinary page and returns the laid-out result.
+     */
     public GuidePage compile(String source) {
         return compilePage("guidenh/probe.md", source);
     }
@@ -54,12 +60,16 @@ public class MediaWikiTemplateTestHarness {
         return PageCompiler.compile(new MapPageCollection(pages), extensions(), parsed);
     }
 
-    /** The parsed page without compiling, for assertions about parse failures. */
+    /**
+     * The parsed page without compiling, for assertions about parse failures.
+     */
     public ParsedGuidePage parse(String source) {
         return PageCompiler.parse(PACK, "en_us", new ResourceLocation(PACK, "guidenh/probe.md"), source);
     }
 
-    /** Publishes the registered templates so the compiler can resolve them by name. */
+    /**
+     * Publishes the registered templates so the compiler can resolve them by name.
+     */
     public void publishTemplates() {
         List<MediaWikiTemplateRepository.TemplatePageSource> sources = new ArrayList<>();
         for (ResourceLocation pageId : pages.keySet()) {
@@ -70,19 +80,25 @@ public class MediaWikiTemplateTestHarness {
         MediaWikiTemplateRepository.rebuild(sources);
     }
 
-    /** The visible text of a compiled page, which is what a reader would see. */
+    /**
+     * The visible text of a compiled page, which is what a reader would see.
+     */
     public static String text(GuidePage page) {
         String extracted = page.document()
             .getTextContent();
         return extracted != null ? extracted : "";
     }
 
-    /** Compiles one page against fresh templates and returns its visible text. */
+    /**
+     * Compiles one page against fresh templates and returns its visible text.
+     */
     public static String textOf(String source) {
         return text(new MediaWikiTemplateTestHarness().compile(source));
     }
 
-    /** The visible text of a page compiled by this harness, for a one-line assertion. */
+    /**
+     * The visible text of a page compiled by this harness, for a one-line assertion.
+     */
     public String textOfPage(String source) {
         return text(compile(source));
     }
@@ -101,7 +117,9 @@ public class MediaWikiTemplateTestHarness {
         return builder.build();
     }
 
-    /** A read-only page collection over an explicit page map. */
+    /**
+     * A read-only page collection over an explicit page map.
+     */
     private static final class MapPageCollection implements PageCollection {
 
         private final Map<ResourceLocation, ParsedGuidePage> pages;

@@ -9,6 +9,7 @@ import com.hfstudio.guidenh.guide.scene.annotation.DiamondAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.InWorldAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.InWorldBoxAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.InWorldLineAnnotation;
+import com.hfstudio.guidenh.guide.scene.annotation.InWorldOutlineAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.SceneAnnotation;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 
@@ -49,8 +50,15 @@ public class BlockAnnotationTemplateExpander {
                 new Vector3f(boxAnnotation.min()).add(x, y, z),
                 new Vector3f(boxAnnotation.max()).add(x, y, z),
                 boxAnnotation.color(),
-                boxAnnotation.thickness());
+                boxAnnotation.thickness(),
+                boxAnnotation.colorStyle());
             copyInWorldState(boxAnnotation, translated);
+            return translated;
+        }
+
+        if (templateAnnotation instanceof InWorldOutlineAnnotation outlineAnnotation) {
+            InWorldOutlineAnnotation translated = outlineAnnotation.translate(x, y, z);
+            copyInWorldState(outlineAnnotation, translated);
             return translated;
         }
 

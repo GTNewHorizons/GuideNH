@@ -9,23 +9,8 @@ import com.hfstudio.guidenh.guide.render.RenderContext;
 import lombok.Getter;
 
 /**
- * Wraps a single inner block and positions it horizontally according to a {@link ContentAlign}
- * value within the available width.
- *
- * <p>
- * For {@link ContentAlign#LEFT} this wrapper is a transparent no-op: the inner block is laid
- * out at its natural position and the wrapper simply delegates. For {@link ContentAlign#CENTER}
- * and {@link ContentAlign#RIGHT} the inner block is first measured at its natural content width
- * and then repositioned by issuing a second layout pass at the correct horizontal offset.
- *
- * <p>
- * Example — a Recipe box centred in the page:
- * 
- * <pre>
- * {@code
- * <Recipe id="minecraft:stone" align="center" />
- * }
- * </pre>
+ * Aligns one block within the available width. LEFT delegates directly; CENTER and RIGHT measure natural
+ * width before a second layout pass applies the horizontal offset.
  */
 @Getter
 public class LytAlignedBlock extends LytBlock {

@@ -30,7 +30,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.IResourceManager;
 import net.minecraft.client.resources.Language;
 import net.minecraft.client.resources.LanguageManager;
-import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
 
 import org.jetbrains.annotations.Nullable;
@@ -63,7 +62,6 @@ import com.hfstudio.guidenh.guide.internal.host.scripts.BlockImageScript;
 import com.hfstudio.guidenh.guide.internal.host.scripts.SceneScript;
 import com.hfstudio.guidenh.guide.internal.recipe.RecipeCache;
 import com.hfstudio.guidenh.guide.internal.resource.GuideResourceAccess;
-import com.hfstudio.guidenh.guide.internal.tooltip.AppendedItemTooltip;
 import com.hfstudio.guidenh.guide.internal.util.LangUtil;
 import com.hfstudio.guidenh.guide.mediawiki.MediaWikiListContext;
 import com.hfstudio.guidenh.guide.mediawiki.MediaWikiPageIds;
@@ -71,9 +69,7 @@ import com.hfstudio.guidenh.guide.mediawiki.MediaWikiSpecialDataIndexer;
 import com.hfstudio.guidenh.guide.navigation.NavigationNode;
 import com.hfstudio.guidenh.guide.navigation.NavigationTree;
 import com.hfstudio.guidenh.guide.scene.LytGuidebookScene;
-import com.hfstudio.guidenh.guide.scene.LytGuidebookScene.BlockStatsLayoutState;
 import com.hfstudio.guidenh.guide.scene.LytGuidebookScene.PonderTimelineKeyframe;
-import com.hfstudio.guidenh.guide.scene.SceneBlockStatsEntry;
 import com.hfstudio.guidenh.guide.scene.SceneSoundCue;
 import com.hfstudio.guidenh.guide.scene.SceneTagCompiler.ScenePlaceholder;
 import com.hfstudio.guidenh.guide.scene.StructureLibSceneBinding;
@@ -158,7 +154,7 @@ public class GuideSiteExportTask {
         MediaWikiSpecialDataIndexer mediaWikiIndexer = new MediaWikiSpecialDataIndexer();
         GuideSiteAssetRegistry assets = new GuideSiteAssetRegistry(outDir);
         GuideSiteTextureAnimations textureAnimations = new GuideSiteTextureAnimations(assets);
-        GuideSiteItemIconExporter itemIconExporter = new GuideSiteItemIconExporter(assets, textureAnimations);
+        GuideSiteIconExporters itemIconExporter = new GuideSiteIconExporters(assets, textureAnimations);
         GuideSiteNeiPhase1BackgroundExporter neiPhase1Exporter = new GuideSiteNeiPhase1BackgroundExporter(assets);
         writer.writeBootstrapFiles(outDir);
         GuideSiteSceneRuntimeExporter sceneExporter = new GuideSiteSceneRuntimeExporter(assets, textureAnimations);
@@ -310,6 +306,7 @@ public class GuideSiteExportTask {
                         context.mediaWikiContextsByGuideId()
                             .get(guide.getId()));
                     GuideSiteHtmlCompiler compiler = createHtmlCompiler(
+                        guide,
                         latexExporter,
                         assetExporter,
                         new GuideSiteRecipeTagRenderer(itemIconExporter, neiPhase1Exporter),
@@ -331,7 +328,9 @@ public class GuideSiteExportTask {
                                     .getOrDefault(guide.getId(), guide);
                                 GuideSiteTemplateRegistry templates = new GuideSiteTemplateRegistry(
                                     renderedTooltipCache,
-                                    stack -> mdxRenderer.resolveItemHref(stack, variant.pageId()));
+                                    stack -> mdxRenderer.resolveItemHref(stack, variant.pageId()),
+                                    fluid -> mdxRenderer.resolveFluidHref(fluid, variant.pageId()),
+                                    fluid -> mdxRenderer.resolveFluidTargets(fluid, variant.pageId()));
                                 long compileStartedAt = System.nanoTime();
                                 GuidePage compiledPage = PageCompiler
                                     .compile(scopedGuide, scopedGuide.getExtensions(), variant.parsedPage());
@@ -862,6 +861,18 @@ public class GuideSiteExportTask {
             return;
         }
 
+        if (icon.isFluidIcon()) {
+            String iconUrl = GuideSitePageAssetExporter.toRootRelativePath(
+                GuideSiteFluidIconResolver.from(itemIconResolver)
+                    .exportFluidIcon(
+                        icon.fluidSpecs()
+                            .getFirst()));
+            if (!iconUrl.isEmpty()) {
+                searchEntry.put("iconUrl", iconUrl);
+                searchEntry.put("iconKind", "fluid");
+            }
+            return;
+        }
         if (icon.isItemIcon() && icon.itemStack() != null) {
             String iconUrl = GuideSitePageAssetExporter
                 .toRootRelativePath(itemIconResolver.exportIcon(icon.itemStack()));
@@ -903,7 +914,7 @@ public class GuideSiteExportTask {
             assetId -> loadGuideAsset(guide, resourceManager, language, assetId));
     }
 
-    private GuideSiteHtmlCompiler createHtmlCompiler(GuideSiteLatexExporter latexExporter,
+    private GuideSiteHtmlCompiler createHtmlCompiler(MutableGuide guide, GuideSiteLatexExporter latexExporter,
         GuideSitePageAssetExporter assetExporter, GuideSiteHtmlCompiler.RecipeTagRenderer recipeTagRenderer,
         GuideSiteHtmlCompiler.MdxTagRenderer mdxTagRenderer, GuideSiteItemIconResolver itemIconResolver) {
         return new GuideSiteHtmlCompiler(
@@ -912,7 +923,8 @@ public class GuideSiteExportTask {
             mdxTagRenderer,
             latexExporter,
             assetExporter,
-            itemIconResolver);
+            itemIconResolver,
+            guide.getExtensions());
     }
 
     private byte[] loadGuideAsset(MutableGuide guide, IResourceManager resourceManager, String language,
@@ -1143,13 +1155,13 @@ public class GuideSiteExportTask {
             baseScene.hoverTargetsJson(),
             baseScene.sceneSoundsJson(),
             manifestPath,
-            renderBlockStatsHtml(scene, templates, parsedPage.getId(), itemIconResolver),
-            blockStatsLayoutClass(scene),
-            blockStatsLayoutStyle(scene),
+            GuideSiteBlockStatsRenderer.renderBlockStatsHtml(scene, templates, parsedPage.getId(), itemIconResolver),
+            GuideSiteBlockStatsRenderer.blockStatsLayoutClass(scene),
+            GuideSiteBlockStatsRenderer.blockStatsLayoutStyle(scene),
             scene.isGridButtonEnabled(),
             scene.isGridVisible(),
             buildGridAnnotationJson(scene),
-            scene.shouldExportBlockStats() && blockStatsButtonEnabled(scene),
+            scene.shouldExportBlockStats() && GuideSiteBlockStatsRenderer.blockStatsButtonEnabled(scene),
             scene.isBlockStatsVisible(),
             GuideSiteSceneHoverAssets.export(baseScene.hoverTargetsJson(), assets),
             scene.hasStructureLibHatchData(),
@@ -1163,7 +1175,13 @@ public class GuideSiteExportTask {
         scene.getLevel()
             .prepareForStaticExport();
         GuideSiteSceneAnnotationSerializer.AnnotationPayload annotationPayload = GuideSiteSceneAnnotationSerializer
-            .serialize(scene, templates, parsedPage.getId(), assetExporter, itemIconResolver);
+            .serialize(
+                scene,
+                templates,
+                parsedPage.getId(),
+                assetExporter,
+                itemIconResolver,
+                group -> exporter.exportOutlineMeshes(scene, group));
         String hoverTargetsJson = GuideSiteSceneHoverTargetSerializer
             .serialize(scene, templates, parsedPage.getId(), assetExporter, itemIconResolver);
         String sceneSoundsJson = serializeSceneSounds(scene, parsedPage.getId(), assetExporter);
@@ -1220,118 +1238,6 @@ public class GuideSiteExportTask {
             sounds.add(data);
         }
         return GSON.toJson(sounds);
-    }
-
-    private String renderBlockStatsHtml(LytGuidebookScene scene, GuideSiteTemplateRegistry templates,
-        ResourceLocation currentPageId, GuideSiteItemIconResolver itemIconResolver) {
-        if (scene == null || !scene.shouldExportBlockStats()) {
-            return null;
-        }
-        StringBuilder html = new StringBuilder();
-        html.append("<div class=\"guide-scene-block-stats\" data-scene-block-stats>");
-        for (SceneBlockStatsEntry entry : scene.getBlockStatsEntriesForExport()) {
-            ItemStack displayStack = entry != null ? entry.copyDisplayStack() : null;
-            if (displayStack == null) {
-                continue;
-            }
-            GuideSiteExportedItem item = GuideSiteItemSupport.export(displayStack, itemIconResolver);
-            String tooltipHtml = GuideSiteSceneAnnotationSerializer.renderTooltipHtml(
-                new AppendedItemTooltip(
-                    displayStack,
-                    List.of(GuidebookText.SceneBlockStatsTooltipCount.text(Integer.toString(entry.getCount())))),
-                currentPageId,
-                null,
-                itemIconResolver,
-                templates);
-            String templateId = tooltipHtml != null && !tooltipHtml.isBlank() ? templates.create(tooltipHtml) : null;
-            String itemHref = templates.resolveItemHref(displayStack);
-            html.append("<div class=\"guide-scene-block-stat")
-                .append(templateId != null ? " guide-tooltip" : "")
-                .append("\" data-block-stat-key=\"")
-                .append(escapeAttribute(entry.getKey()))
-                .append("\"");
-            if (templateId != null) {
-                html.append(" data-template=\"")
-                    .append(escapeAttribute(templateId))
-                    .append("\" tabindex=\"0\"");
-            }
-            if (!itemHref.isEmpty()) {
-                html.append(" data-guide-item-href=\"")
-                    .append(escapeAttribute(itemHref))
-                    .append("\"");
-            }
-            html.append(">");
-            GuideSiteItemHtml.appendIcon(html, item, "guide-scene-block-stat-icon", 1.0f, false);
-            html.append("<span class=\"guide-scene-block-stat-label\">")
-                .append(escapeHtml(entry.getLabel()))
-                .append("</span><span class=\"guide-scene-block-stat-count\">x")
-                .append(LytGuidebookScene.formatBlockStatsDisplayCount(entry.getCount()))
-                .append("</span></div>");
-        }
-        html.append("</div>");
-        return html.toString();
-    }
-
-    private String blockStatsLayoutClass(LytGuidebookScene scene) {
-        if (scene == null || !scene.shouldExportBlockStats()) {
-            return null;
-        }
-        BlockStatsLayoutState state = scene.getBlockStatsLayoutStateForExport();
-        StringBuilder cssClass = new StringBuilder("guide-scene-export-frame--block-stats");
-        cssClass.append(" guide-scene-export-frame--block-stats-")
-            .append(
-                state.dock()
-                    .name()
-                    .toLowerCase(Locale.ROOT));
-        cssClass.append(" guide-scene-export-frame--block-stats-corner-")
-            .append(
-                state.corner()
-                    .name()
-                    .toLowerCase(Locale.ROOT)
-                    .replace('_', '-'));
-        cssClass.append(" guide-scene-export-frame--block-stats-mode-")
-            .append(
-                state.mode()
-                    .name()
-                    .toLowerCase(Locale.ROOT));
-        if (!state.visible()) {
-            cssClass.append(" guide-scene-export-frame--block-stats-hidden");
-        }
-        cssClass.append(
-            state.showNames() ? " guide-scene-export-frame--block-stats-names"
-                : " guide-scene-export-frame--block-stats-icons");
-        return cssClass.toString();
-    }
-
-    private String blockStatsLayoutStyle(LytGuidebookScene scene) {
-        if (scene == null || !scene.shouldExportBlockStats()) {
-            return null;
-        }
-        BlockStatsLayoutState state = scene.getBlockStatsLayoutStateForExport();
-        StringBuilder style = new StringBuilder();
-        appendCssPx(style, "--guide-scene-block-stats-max-width", state.maxWidth());
-        appendCssPx(style, "--guide-scene-block-stats-max-height", state.maxHeight());
-        appendCssPx(style, "--guide-scene-logical-width", state.sceneWidth());
-        appendCssPx(style, "--guide-scene-logical-height", state.sceneHeight());
-        appendCssPx(style, "--guide-scene-button-reserve", state.buttonColumnReserve());
-        return style.toString();
-    }
-
-    private void appendCssPx(StringBuilder style, String property, int value) {
-        if (!style.isEmpty()) {
-            style.append(';');
-        }
-        style.append(property)
-            .append(':')
-            .append(Math.max(0, value))
-            .append("px");
-    }
-
-    private boolean blockStatsButtonEnabled(LytGuidebookScene scene) {
-        if (scene == null || !scene.shouldExportBlockStats()) {
-            return false;
-        }
-        return scene.getSceneButtonColumnReserveForExport() > 0;
     }
 
     private String buildGridAnnotationJson(LytGuidebookScene scene) {

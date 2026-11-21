@@ -7,11 +7,14 @@ import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.compiler.IdUtils;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
+import com.hfstudio.guidenh.guide.compiler.tags.FluidImageCompiler.FluidImagePlaceholder;
+import com.hfstudio.guidenh.guide.document.block.LytBlock;
 import com.hfstudio.guidenh.guide.document.block.LytImage;
 import com.hfstudio.guidenh.guide.document.block.LytItemImage;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowContent;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowInlineBlock;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowText;
+import com.hfstudio.guidenh.guide.internal.fluid.FluidStackSpec;
 import com.hfstudio.guidenh.guide.internal.item.GuideDisplayItemStacks;
 import com.hfstudio.guidenh.guide.internal.markdown.MarkdownRuntimeBlocks.QuoteIconSpec;
 
@@ -35,6 +38,7 @@ public class CalloutIconSupport {
             case TEXT -> LytFlowText.of(value);
             case PNG -> buildPngIcon(compiler, value);
             case ITEM -> buildItemIcon(compiler, value);
+            case FLUID -> LytFlowInlineBlock.of(buildFluidIcon(value, INLINE_ITEM_SCALE));
         };
     }
 
@@ -49,6 +53,11 @@ public class CalloutIconSupport {
             image.setTitle("Invalid image: " + value);
         }
         return LytFlowInlineBlock.of(image);
+    }
+
+    public static LytBlock buildFluidIcon(String id, float scale) {
+        return new FluidImagePlaceholder(
+            new FluidImageOptions(new FluidStackSpec(id), scale, true, true, null, null, null, null));
     }
 
     private static LytFlowContent buildItemIcon(PageCompiler compiler, String value) {

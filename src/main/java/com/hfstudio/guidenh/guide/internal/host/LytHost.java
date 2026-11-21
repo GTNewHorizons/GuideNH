@@ -15,6 +15,7 @@ import com.hfstudio.guidenh.ClientProxy;
 import com.hfstudio.guidenh.guide.GuidePage;
 import com.hfstudio.guidenh.guide.PageCollection;
 import com.hfstudio.guidenh.guide.document.block.LytBlock;
+import com.hfstudio.guidenh.guide.document.block.LytDetailsBlock;
 import com.hfstudio.guidenh.guide.document.block.LytDocument;
 import com.hfstudio.guidenh.guide.document.block.LytNode;
 import com.hfstudio.guidenh.guide.document.block.LytParagraph;
@@ -67,6 +68,7 @@ public class LytHost {
             ensureNodeResultStore(currentPageId);
             long tUid = System.nanoTime();
             allocateNodeUids(newDoc);
+            registerDetailsMountHandlers(newDoc);
             long tAttach = System.nanoTime();
             newDoc.setLive(true); // onAttach cascade
             dispatchMountEvents(newDoc); // MOUNT events → scripts materialize placeholders
@@ -170,7 +172,7 @@ public class LytHost {
                 .incrementAndGet();
             node.setNodeUid(currentPageId + "::" + prefix + ":" + seq);
         }
-        for (var child : node.getChildren()) {
+        for (var child : node.getLifecycleChildren()) {
             allocateNodeUids(child);
         }
         // Also traverse into flow content (LytParagraph, LytFlowSpan children)
@@ -201,27 +203,88 @@ public class LytHost {
     }
 
     /**
-     * Two-phase MOUNT dispatch:
-     * <p>
-     * <strong>Phase 1 (sync):</strong> walk the entire tree and execute
-     * every synchronous script immediately. This guarantees that all
-     * setup and initialization work (e.g. establishing CURRENT_SCENE,
-     * compiling child elements) is finished before any asynchronous
-     * work begins.
-     * <p>
-     * <strong>Phase 2 (async):</strong> walk the tree a second time and
-     * queue every asynchronous script as a {@link MaterializeTask} for
-     * execution on subsequent ticks (see {@link #step}).
-     * <p>
-     * Within each phase the original document order (parent before children)
-     * is preserved. The node-level result cache is consulted: if a node
-     * already has a cached result from a previous mount, the cached content
-     * is restored directly and the script is skipped in <em>both</em>
-     * phases.
+     * Runs synchronous mount scripts before queueing asynchronous materialization, preserving
+     * parent-before-child order in each pass. Cached node results are restored without running scripts in
+     * either pass.
      */
     private void dispatchMountEvents(LytNode node) {
         dispatchPhase(node, false); // Phase 1: sync scripts only
         dispatchPhase(node, true); // Phase 2: queue async scripts only
+        markOpenDetailsMounted(node);
+    }
+
+    private void registerDetailsMountHandlers(LytNode root) {
+        if (root instanceof LytDetailsBlock details) {
+            details.setContentMountHandler(() -> mountDetailsContent(details));
+        }
+        for (LytNode child : root.getLifecycleChildren()) {
+            registerDetailsMountHandlers(child);
+        }
+        if (root instanceof LytParagraph paragraph) {
+            registerDetailsMountHandlers(paragraph);
+        }
+    }
+
+    private void registerDetailsMountHandlers(LytParagraph paragraph) {
+        for (var child : paragraph.getContent()) {
+            if (child instanceof LytFlowInlineBlock inlineBlock && inlineBlock.getBlock() != null) {
+                registerDetailsMountHandlers(inlineBlock.getBlock());
+            } else if (child instanceof LytFlowSpan span) {
+                registerDetailsMountHandlers(span);
+            }
+        }
+    }
+
+    private void registerDetailsMountHandlers(LytFlowSpan span) {
+        for (var child : span.getChildren()) {
+            if (child instanceof LytFlowInlineBlock inlineBlock && inlineBlock.getBlock() != null) {
+                registerDetailsMountHandlers(inlineBlock.getBlock());
+            } else if (child instanceof LytFlowSpan nested) {
+                registerDetailsMountHandlers(nested);
+            }
+        }
+    }
+
+    private void mountDetailsContent(LytDetailsBlock details) {
+        if (details.isContentMountDispatched()) {
+            return;
+        }
+        // Mark before dispatch: scripts can replace nodes or open nested details during this pass.
+        details.markContentMountDispatched();
+        registerDetailsMountHandlers(details.getContentBox());
+        dispatchMountEvents(details.getContentBox());
+    }
+
+    private void markOpenDetailsMounted(LytNode root) {
+        if (root instanceof LytDetailsBlock details && details.isOpen()) {
+            details.markContentMountDispatched();
+        }
+        for (LytNode child : root.getChildren()) {
+            markOpenDetailsMounted(child);
+        }
+        if (root instanceof LytParagraph paragraph) {
+            markOpenDetailsMounted(paragraph);
+        }
+    }
+
+    private void markOpenDetailsMounted(LytParagraph paragraph) {
+        for (var child : paragraph.getContent()) {
+            if (child instanceof LytFlowInlineBlock inlineBlock && inlineBlock.getBlock() != null) {
+                markOpenDetailsMounted(inlineBlock.getBlock());
+            } else if (child instanceof LytFlowSpan span) {
+                markOpenDetailsMounted(span);
+            }
+        }
+    }
+
+    private void markOpenDetailsMounted(LytFlowSpan span) {
+        for (var child : span.getChildren()) {
+            if (child instanceof LytFlowInlineBlock inlineBlock && inlineBlock.getBlock() != null) {
+                markOpenDetailsMounted(inlineBlock.getBlock());
+            } else if (child instanceof LytFlowSpan nested) {
+                markOpenDetailsMounted(nested);
+            }
+        }
     }
 
     private void dispatchPhase(LytNode node, boolean asyncPhase) {
@@ -271,16 +334,7 @@ public class LytHost {
     }
 
     /**
-     * Dispatch a single script in the given phase.
-     * <ul>
-     * <li>If the node has a cached result from a previous mount, the
-     * cached content is restored directly and the script is skipped
-     * entirely (both phases).
-     * <li>In the <em>sync</em> phase ({@code asyncPhase == false}), only
-     * non-async scripts are executed synchronously.
-     * <li>In the <em>async</em> phase ({@code asyncPhase == true}), only
-     * async scripts are enqueued as {@link MaterializeTask}s.
-     * </ul>
+     * Restores cached content, or executes/queues the script only in its synchronous/asynchronous pass.
      */
     private void dispatchScriptInPhase(LytScript script, Object node, boolean asyncPhase) {
         String nodeUid = nodeUidOf(node);
@@ -415,9 +469,12 @@ public class LytHost {
         taskQueue.addLast(task);
     }
 
-    /** Recursively dispatch MOUNT events into a detached subtree. */
+    /**
+     * Recursively dispatch MOUNT events into a detached subtree.
+     */
     public void dispatchToSubtree(LytNode root) {
         allocateNodeUids(root);
+        registerDetailsMountHandlers(root);
         dispatchMountEvents(root);
     }
 

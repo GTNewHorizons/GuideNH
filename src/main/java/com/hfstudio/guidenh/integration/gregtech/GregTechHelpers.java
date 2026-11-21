@@ -36,8 +36,12 @@ import gregtech.api.metatileentity.implementations.MTEMultiBlockBase;
 import gregtech.api.structure.error.StructureError;
 import gregtech.common.blocks.ItemMachines;
 import gregtech.common.misc.GTStructureChannels;
+import gtnhlanth.common.beamline.IConnectsToBeamline;
+import gtnhlanth.common.beamline.MTEBeamlinePipe;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
+import tectech.thing.metaTileEntity.pipe.MTEPipeData;
+import tectech.thing.metaTileEntity.pipe.MTEPipeLaser;
 
 public class GregTechHelpers {
 
@@ -475,7 +479,7 @@ public class GregTechHelpers {
         if (!(tileEntity instanceof IGregTechTileEntity gtTile)) {
             return;
         }
-        ForgeDirection previewFacing = defaultPreviewFacing();
+        ForgeDirection previewFacing = ForgeDirection.NORTH;
         if (gtTile.isValidFacing(previewFacing)) {
             gtTile.setFrontFacing(previewFacing);
         }
@@ -835,7 +839,7 @@ public class GregTechHelpers {
         if (current != null && current != ForgeDirection.UNKNOWN && gtTile.isValidFacing(current)) {
             return;
         }
-        ForgeDirection[] preferred = new ForgeDirection[] { defaultPreviewFacing(), ForgeDirection.SOUTH,
+        ForgeDirection[] preferred = new ForgeDirection[] { ForgeDirection.NORTH, ForgeDirection.SOUTH,
             ForgeDirection.EAST, ForgeDirection.WEST, ForgeDirection.UP, ForgeDirection.DOWN };
         for (ForgeDirection facing : preferred) {
             if (gtTile.isValidFacing(facing)) {
@@ -1027,59 +1031,72 @@ public class GregTechHelpers {
 
     @Optional.Method(modid = "gregtech_nh")
     private static void preparePipeConnectionsImpl(GuidebookLevel level) {
-        for (TileEntity te : level.getTileEntities()) {
-            if (!(te instanceof BaseMetaPipeEntity basePipeEntity)) {
-                continue;
+        List<MetaPipeEntity> pipes = new ArrayList<>();
+        for (TileEntity tileEntity : level.getTileEntities()) {
+            if (tileEntity instanceof BaseMetaPipeEntity base
+                && base.getMetaTileEntity() instanceof MetaPipeEntity pipe) {
+                // Seed every endpoint before native connection checks can inspect or connect its neighbors.
+                pipe.mConnections = base.mConnections;
+                pipes.add(pipe);
             }
-            IMetaTileEntity mte = basePipeEntity.getMetaTileEntity();
-            if (!(mte instanceof MetaPipeEntity metaPipe)) {
-                continue;
+        }
+
+        for (MetaPipeEntity pipe : pipes) {
+            byte savedConnections = pipe.mConnections;
+            try {
+                refreshConnections(pipe);
+            } catch (RuntimeException | LinkageError failure) {
+                pipe.mConnections = savedConnections;
+                GregTechHelpers.logInfoOnce(
+                    "preview-pipe-connections:" + pipe.getClass()
+                        .getName(),
+                    "GregTech preview connection preparation failed for {}: {}",
+                    pipe.getClass()
+                        .getName(),
+                    failure.toString());
             }
-            int x = te.xCoord;
-            int y = te.yCoord;
-            int z = te.zCoord;
-            byte connections = 0;
-            for (ForgeDirection dir : ForgeDirection.VALID_DIRECTIONS) {
-                TileEntity adj = level.getTileEntity(x + dir.offsetX, y + dir.offsetY, z + dir.offsetZ);
-                if (adj == null) {
-                    continue;
-                }
-                if (isSamePipeType(metaPipe, adj)) {
-                    connections |= (byte) dir.flag;
-                    continue;
-                }
-                if (adj instanceof BaseMetaPipeEntity) {
-                    continue;
-                }
-                try {
-                    if (metaPipe.canConnect(dir, adj)) {
-                        connections |= (byte) dir.flag;
-                    }
-                } catch (Throwable ignored) {}
+        }
+
+        // Native checks may update a neighbor that was visited earlier; publish only after the complete pass.
+        for (MetaPipeEntity pipe : pipes) {
+            if (pipe.getBaseMetaTileEntity() instanceof BaseMetaPipeEntity base) {
+                base.mConnections = pipe.mConnections;
             }
-            basePipeEntity.mConnections = connections;
         }
     }
 
-    private static boolean isSamePipeType(MetaPipeEntity pipe, TileEntity adj) {
-        if (!(adj instanceof BaseMetaPipeEntity adjBase)) {
-            return false;
+    @Optional.Method(modid = "gregtech_nh")
+    private static void refreshConnections(MetaPipeEntity pipe) {
+        IGregTechTileEntity base = pipe.getBaseMetaTileEntity();
+        if (pipe instanceof MTEPipeData dataPipe) {
+            dataPipe.updateSelf(base);
+        } else if (pipe instanceof MTEPipeLaser laserPipe) {
+            laserPipe.updateSelf(base);
+        } else if (pipe instanceof MTEBeamlinePipe) {
+            refreshBeamlineConnections(pipe, base);
+        } else {
+            pipe.checkConnections();
         }
-        IMetaTileEntity adjMte = adjBase.getMetaTileEntity();
-        if (adjMte == null) {
-            return false;
-        }
-        return pipe.getClass()
-            .isInstance(adjMte)
-            || adjMte.getClass()
-                .isInstance(pipe);
     }
 
-    public static ForgeDirection defaultPreviewFacing() {
-        return ForgeDirection.NORTH;
+    @Optional.Method(modid = "gregtech_nh")
+    private static void refreshBeamlineConnections(MetaPipeEntity pipe, IGregTechTileEntity base) {
+        // GT5 currently embeds this render only calculation in its server tick instead of exposing a hook.
+        byte connections = 0;
+        for (ForgeDirection side : ForgeDirection.VALID_DIRECTIONS) {
+            TileEntity adjacent = base.getTileEntityAtSide(side);
+            IConnectsToBeamline connector = null;
+            if (adjacent instanceof IConnectsToBeamline beamline) {
+                connector = beamline;
+            } else if (adjacent instanceof IGregTechTileEntity gtTile
+                && gtTile.getMetaTileEntity() instanceof IConnectsToBeamline beamline) {
+                    connector = beamline;
+                }
+            if (connector != null && connector.canConnect(side.getOpposite())) {
+                connections = (byte) (connections | side.flag);
+            }
+        }
+        pipe.mConnections = connections;
     }
 
-    public static int defaultPreviewFacingMeta() {
-        return defaultPreviewFacing().ordinal();
-    }
 }

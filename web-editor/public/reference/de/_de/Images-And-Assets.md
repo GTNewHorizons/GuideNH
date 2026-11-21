@@ -1,73 +1,71 @@
-# Bilder und Assets
+# Bilder und Ressourcen
 
+Die ausführliche Referenz auf dieser Seite ist auf Englisch verfügbar. Tag-Namen, Attribute, IDs und Pfade werden unverändert verwendet.
 
-Diese Dokumentation beschreibt die GuideNH-Syntax und Laufzeitfunktionen. Code, Tags, Pfade, IDs und Attributwerte bleiben unverändert.
+GuideNH supports both normal markdown images and several runtime-specific visual elements.
 
-GuideNH unterstützt beide normal markdown Bilder und several Laufzeit-bestimmten visual elements.
+## Asset Resolution Rules
 
-## Ressource Resolution Regeln
+Guide assets resolve with the same rules used by page links.
 
-Leitfaden assets auflösen mit Die gleich Regeln verwendet by Seite Links.
-
-| Pfad form | Beispiel | Bedeutung |
+| Path form | Example | Meaning |
 | --- | --- | --- |
-| relativ | `test1.png` | relativ zu Die aktuell Seite Datei |
-| rooted | `/assets/example_structure.snbt` | relativ zu Die aktuell Leitfaden Wurzel |
-| explizit Ressource id | `guidenh:textures/gui/example.png` | absolut `modid:path` lookup |
+| relative | `test1.png` | relative to the current page file |
+| rooted | `/assets/example_structure.snbt` | relative to the current guide root |
+| explicit resource id | `guidenh:textures/gui/example.png` | absolute `modid:path` lookup |
 
-## Markdown Bilder
+## Markdown Images
 
-normal markdown Bilder sind unterstützt:
+Normal markdown images are supported:
 
 ````md
 ![Example](test1.png)
 ````
 
-GuideNH resolves Die Pfad und lädt Die binary Ressource von Die Leitfaden Inhalt Wurzel.
+GuideNH resolves the path and loads the binary asset from the guide content root.
 
 ## `FloatingImage`
 
-Mit `wrap="inline"` wird das Bild vertikal zum umgebenden Text zentriert. Die Zeile wächst so weit, dass das gesamte Bild hineinpasst. Benachbarte Textzeilen behalten ihre normale Höhe; es gibt keine feste Obergrenze für die Zeilenhöhe. Soll ein sehr hohes Bild allein in einer Zeile stehen, setzen Sie das Tag in einen eigenen Absatz mit einer Leerzeile davor und danach.
+With `wrap="inline"`, the image is vertically centered with the surrounding text and its line expands to contain the full image. Adjacent text lines keep their normal height; there is no fixed line-height cap. For a very tall image that should occupy its own line, place the tag in a separate paragraph with blank lines before and after it.
 
-`<FloatingImage>` rendert Eine cropped bitmap region dass kann Gleitkommazahl mit Text oder sit truly inline innerhalb ein
-paragraph. It auch accepts explizit `modid:path` texture ids, so it kann reference texture assets von
-andere mods directly.
+`<FloatingImage>` renders a cropped bitmap region that can float with text or sit truly inline inside a
+paragraph. It also accepts explicit `modid:path` texture ids, so it can reference texture assets from
+other mods directly.
 
-### Attribut
+### Attributes
 
-| Attribut | erforderlich | Bedeutung |
+| Attribute | Required | Meaning |
 | --- | --- | --- |
-| `src` | ja | Bild Pfad |
-| `x` | ja | crop Start X in Quelle-Bild Pixel |
-| `y` | ja | crop Start Y in Quelle-Bild Pixel |
-| `width` / `w` | ja | crop Breite in Quelle-Bild Pixel; genau eins Schreibweise muss sein verwendet |
-| `height` / `h` | ja | crop Höhe in Quelle-Bild Pixel; genau eins Schreibweise muss sein verwendet |
-| `scaleX` | nein | horizontal anzeigen Multiplikator, Standard `1.0` |
-| `scaleY` | nein | vertikal anzeigen Multiplikator, Standard `1.0` |
-| `displayWidth` | nein | final anzeigen Breite in Pixel; preserves Die crop aspect ratio wenn verwendet alone |
-| `displayHeight` | nein | final anzeigen Höhe in Pixel; preserves Die crop aspect ratio wenn verwendet alone |
-| `wrap` | nein | `inline` für true inline Positionierung, otherwise verwenden Die normal wrapping modes |
-| `align` | nein | `left` oder `right` für floating Positionierung; ignored wenn `wrap="inline"` |
-| `title` | nein | tooltip/Titel Text |
-| `sound` | nein | sound event played by Die whole Bild |
-| `soundSrc` | nein | sound Datei Pfad für Die whole Bild |
-| `trigger` | nein | `click` by Standard, oder `hover` für Hover playback |
+| `src` | yes | image path |
+| `x` | when cropping | crop start X in source-image pixels |
+| `y` | when cropping | crop start Y in source-image pixels |
+| `width` / `w` | when cropping | crop width in source-image pixels; exactly one spelling must be used |
+| `height` / `h` | when cropping | crop height in source-image pixels; exactly one spelling must be used |
+| `scaleX` | no | horizontal display multiplier, default `1.0` |
+| `scaleY` | no | vertical display multiplier, default `1.0` |
+| `displayWidth` | no | final display width in pixels; preserves the crop aspect ratio when used alone |
+| `displayHeight` | no | final display height in pixels; preserves the crop aspect ratio when used alone |
+| `wrap` | no | `inline` places the image on the text line; otherwise `align` chooses the floating side |
+| `align` | no | `left` or `right` for floating placement; ignored when `wrap="inline"` |
+| `title` | no | tooltip/title text |
+| `alt` | no | Alternative text |
+| `sound` | no | sound event played by the whole image |
+| `soundSrc` | no | sound file path for the whole image |
+| `trigger` | no | `click` by default, or `hover` for hover playback |
 
-### Hinweise
+### Notes
 
-- `x`, `y`, `width` / `w`, und `height` / `h` sind alle erforderlich together wenn cropping
-- wenn Die crop Attribut sind alle omitted, `displayWidth` oder `displayHeight` displays Die Vollständige Quelle Bild
-- `width` und `height` now describe Die crop rectangle, nicht Die final anzeigen Größe
-- `scaleX` und `scaleY` berechnen Die final anzeigen Größe als `cropWidth * scaleX` by `cropHeight * scaleY`
-- `displayWidth` oder `displayHeight` sets Die final anzeigen Größe in Pixel; wenn nur eins ist present, Die andere dimension ist berechnet von Die crop aspect ratio
-- providing beide `displayWidth` und `displayHeight` erlaubt intentional non-proportional stretching
-- `displayWidth` / `displayHeight` kann nicht sein kombiniert mit `scaleX` / `scaleY`
-- einzeln-axis stretching ist unterstützt by setting nur eins scale differently
-- `width` mit `w`, oder `height` mit `h`, ist ungültig und rendert Eine sichtbar Fehler
-- old `FloatingImage width/height as display size` Inhalt ist intentionally breaking und muss sein migrated manuell
-- `src` kann sein relativ, rooted, oder Eine explizit `modid:path` texture id such als `minecraft:textures/gui/options_background.png`
+- `x`, `y`, `width` / `w`, and `height` / `h` are all required together when cropping
+- when the crop attributes are all omitted, `displayWidth` or `displayHeight` displays the full source image
+- `width` and `height` specify the source crop size. Use `displayWidth` / `displayHeight` or scale multipliers for the displayed size.
+- `scaleX` and `scaleY` calculate the final display size as `cropWidth * scaleX` by `cropHeight * scaleY`
+- `displayWidth` or `displayHeight` sets the final display size in pixels; when only one is present, the other dimension is calculated from the crop aspect ratio
+- providing both `displayWidth` and `displayHeight` allows intentional non-proportional stretching
+- `displayWidth` / `displayHeight` cannot be combined with `scaleX` / `scaleY`
+- single-axis stretching is supported by setting only one scale differently
+- `width` with `w`, or `height` with `h`, is invalid and renders a visible error
 
-### Beispiel
+### Example
 
 ````md
 <FloatingImage
@@ -85,182 +83,119 @@ andere mods directly.
 
 ## `ImageAnnotation`
 
-`<ImageAnnotation>` ist ein untergeordnetes Element element von `<FloatingImage>` dass attaches Eine rich-Text Tooltip (und
-Eine optional farbig Rand) zu Eine rectangular region von Die Bild. Koordinaten sind specified in
-**cropped-Bild Pixel** und sind automatisch proportionally scaled wenn Die cropped Bild ist resized
-oder stretched.
+`<ImageAnnotation>` is a child element of `<FloatingImage>` that attaches a rich-text tooltip (and
+an optional colored border) to a rectangular region of the image. Coordinates are specified in
+**cropped-image pixels** and are automatically proportionally scaled when the cropped image is resized
+or stretched.
 
-### Attribut
+### Attributes
 
-| Attribut | erforderlich | Standard | Bedeutung |
+| Attribute | Required | Default | Meaning |
 | --- | --- | --- | --- |
-| `x` | nein | — | Links edge von Die region in Bild Pixel |
-| `y` | nein | — | oben edge von Die region in Bild Pixel |
-| `w` | nein | — | Breite von Die region in Bild Pixel |
-| `h` | nein | — | Höhe von Die region in Bild Pixel |
-| `border` | nein | `false` | anzeigen Eine farbig Rand around Die region |
-| `borderColor` | nein | random | Rand Farbe (`#RRGGBB` oder `#AARRGGBB`) |
-| `borderThickness` | nein | `1` | Rand thickness in anzeigen Pixel |
-| `sound` | nein | none | optional sound event played für dies region |
-| `src` | nein | none | optional sound Datei Pfad; converted zu Eine sound event id |
-| `trigger` | nein | `click` | `click` oder `hover` |
+| `x` | no | — | left edge of the region in image pixels |
+| `y` | no | — | top edge of the region in image pixels |
+| `w` | no | — | width of the region in image pixels |
+| `h` | no | — | height of the region in image pixels |
+| `border` | no | `false` | show a colored border around the region |
+| `borderColor` | no | random | border color (`#RRGGBB` or `#AARRGGBB`) |
+| `borderThickness` | no | `1` | border thickness in display pixels |
+| `sound` | no | none | optional sound event played for this region |
+| `src` | no | none | optional sound file path; converted to a sound event id |
+| `trigger` | no | `click` | `click` or `hover` |
 
-### Hinweise
+### Notes
 
-- omitting alle four von `x`, `y`, `w`, `h` makes Die Annotation cover Die **whole Bild**
-- Wenn beliebig von Die four ist present, Die remaining omitted ones Standard zu `0` (origin) oder `1` (Größe)
-- Rand ist **nicht angezeigt by Standard**; Fügen Sie hinzu `border` oder `border={true}` zu enable it
-- wenn `borderColor` ist omitted und `border` ist aktiviert, Eine random fully-opaque Farbe ist verwendet
-- untergeordnetes Element MDX Inhalt ist gerendert als Die Tooltip Inhalt und kann einschließen beliebig inline/Block elements
-- later Annotationen (lower in Die Liste) take Hover priority über earlier ones wenn regions overlap
+- omitting all four of `x`, `y`, `w`, `h` makes the annotation cover the **whole image**
+- if any of the four is present, the remaining omitted ones default to `0` (origin) or `1` (size)
+- border is **not shown by default**; add `border` or `border={true}` to enable it
+- when `borderColor` is omitted and `border` is enabled, a random fully-opaque color is used
+- child MDX content is rendered as the tooltip body and may include any inline/block elements
+- later annotations (lower in the list) take hover priority over earlier ones when regions overlap
 
-### Beispiel
+### Example
 
-Whole-Bild Annotation:
+Whole-image annotation:
 
 ````md
-<FloatingImage src="test1.png" align="left" x="0" y="0" width="128" height="128">
+<FloatingImage displayWidth="128" displayHeight="128" src="test1.png" align="left" x="0" y="0" width="32" height="32">
   <ImageAnnotation>
-    Bewege den Mauszeiger über das Bild, um diesen Tooltip zu sehen.
+    Hover anywhere on the image to see this tooltip.
   </ImageAnnotation>
 </FloatingImage>
 ````
 
-Region Annotation mit Eine sichtbar Rand:
+Region annotation with a visible border:
 
 ````md
-<FloatingImage src="test1.png" align="left" x="0" y="0" width="128" height="128">
-  <ImageAnnotation x="10" y="10" w="60" h="40" border borderColor="#FFFF4444" borderThickness="2">
-    Dies ist der Tooltip für den **hervorgehobenen Bereich**.
+<FloatingImage displayWidth="128" displayHeight="128" src="test1.png" align="left" x="0" y="0" width="32" height="32">
+  <ImageAnnotation x="2" y="2" w="15" h="10" border borderColor="#FFFF4444" borderThickness="2">
+    This is the **highlighted region** tooltip.
   </ImageAnnotation>
 </FloatingImage>
 ````
 
-mehrere regions auf eins Bild:
+Multiple regions on one image:
 
 ````md
-<FloatingImage src="test1.png" align="left" x="0" y="0" width="128" height="128">
-  <ImageAnnotation x="0" y="0" w="64" h="64" border borderColor="#FF44FF44">
+<FloatingImage displayWidth="128" displayHeight="128" src="test1.png" align="left" x="0" y="0" width="32" height="32">
+  <ImageAnnotation x="0" y="0" w="16" h="32" border borderColor="#FF44FF44">
     Left half
   </ImageAnnotation>
-  <ImageAnnotation x="64" y="0" w="64" h="64" border borderColor="#FF4444FF">
+  <ImageAnnotation x="16" y="0" w="16" h="32" border borderColor="#FF4444FF">
     Right half
   </ImageAnnotation>
 </FloatingImage>
 ````
 
-Bild regions kann auch play sounds. verwenden `<SoundArea>` wenn you nur need sound, oder put `sound`
-directly auf `<ImageAnnotation>` wenn Die gleich region auch hat Eine Tooltip oder Rand.
+Image regions can also play sounds. Use `<SoundArea>` when you only need sound, or put `sound`
+directly on `<ImageAnnotation>` when the same region also has a tooltip or border.
 
 ````md
 <FloatingImage
-  src="test1.png"
+  displayWidth="128" displayHeight="128" src="test1.png"
   align="left"
   x="0"
   y="0"
-  width="128"
-  height="128"
-  sound="guidenh:image.click"
+  width="32"
+  height="32"
+  sound="guidenh:guide.sample_click"
 >
-  <SoundArea x="0" y="0" w="64" h="64" sound="guidenh:image.left" />
-  <SoundArea x="64" y="0" w="64" h="64" sound="guidenh:image.right" trigger="hover" />
-  <ImageAnnotation x="10" y="10" w="40" h="40" border sound="guidenh:image.note">
-    Dieser Bereich hat Tooltip-Inhalt und einen Klickton.
+  <SoundArea x="0" y="0" w="16" h="32" sound="guidenh:guide.sample_left" />
+  <SoundArea x="16" y="0" w="16" h="32" sound="guidenh:guide.sample_hover" trigger="hover" />
+  <ImageAnnotation x="2" y="2" w="10" h="10" border sound="guidenh:guide.sample_click">
+    This region has both tooltip content and a click sound.
   </ImageAnnotation>
 </FloatingImage>
 ````
 
-`<FloatingImage sound="...">` covers Die whole Bild. Region sounds verwenden cropped-Bild Koordinaten
-und obey Die gleich overlap priority als tooltips: later regions win.
+`<FloatingImage sound="...">` covers the whole image. Region sounds use cropped-image coordinates
+and obey the same overlap priority as tooltips: later regions win.
 
-## Inhalt Embedding und Text Wrapping
+## Content Embedding and Text Wrapping
 
-alle Block-level Tags — `<FloatingImage>`, `<Recipe>`, `<GameScene>`, `<ItemImage>`, `<BlockImage>`,
-und beliebig andere Tag backed by `BlockTagCompiler` — Unterstützung zwei optional Layout Attribut dass
-provide Word-style Inhalt embedding.
+Block tags compiled by `BlockTagCompiler`, including `<Recipe>`, `<GameScene>`, and `<BlockImage>`, accept `wrap` and `align`.
 
-| Attribut | Werte | Standard | Bedeutung |
-| --- | --- | --- | --- |
-| `wrap` | `inline` · `square` · `tight` · `through` · `top-bottom` · `behind` · `front` | `inline` | Text-wrapping Modus |
-| `align` | `left` · `center` · `right` | `left` | horizontal alignment |
+`<FloatingImage>` follows its own rules: `wrap="inline"` places it on the text line; otherwise `align="left"` or `"right"` floats it. `<ItemImage>` is an inline icon; place it in a `<Column>` or `<Row>` to control layout.
 
-### Umbruchmodi
+| Attribute | Default | Meaning |
+| --- | --- | --- |
+| `wrap` | `inline` | `inline`: normal placement. `square`, `tight`, and `through`: float left or right. `top-bottom`, `behind`, and `front` currently use normal aligned placement; they do not create separate text layers. |
+| `align` | `left` | `left`, `center`, or `right` in block context. With a floating wrap mode, `right` floats right; other values float left. For a centered block, use `wrap="inline" align="center"`. |
+| `float` | — | Legacy `left` / `right` in flow context when `wrap` and `align` are absent. Prefer those explicit attributes. |
 
-| Modus | Word equivalent | Block-context behaviour | Flow-context behaviour |
-| --- | --- | --- | --- |
-| `inline` | in Linie mit Text | Standard stack (嵌入型) | Sits auf Die Text Linie |
-| `square` | Square | Document-level Gleitkommazahl; Text wraps around (方形环绕) | `FLOAT_LEFT` / `FLOAT_RIGHT` |
-| `tight` | Tight | gleich als `square` (紧密型) | gleich als `square` |
-| `through` | durch | gleich als `square` (穿越型) | gleich als `square` |
-| `top-bottom` | oben und unten | Vollständige-Breite slot; `align` repositions horizontal (上下型) | Linie-inline mit breaks |
-| `behind` | Behind Text | Aligned inline slot; rendert behind Text (衬于文字下方) | Sits auf Die Linie |
-| `front` | in front von Text | Aligned inline slot; rendert in front von Text (浮于文字上方) | Sits auf Die Linie |
+```mdx
+<BlockImage id="minecraft:stone" wrap="square" align="right" />
 
-### Alignment mit floating wrap
+<BlockImage id="minecraft:diamond_block" wrap="inline" align="center" />
 
-für `wrap=square/tight/through`:
-- `align=left` (Standard) — Block floats zu Die **Links**; Text fills Die rechts Seite.
-- `align=right` — Block floats zu Die **rechts**; Text fills Die Links Seite.
-- `align=center` — Block ist centred ohne floating (nein Text wrapping).
-
-### Beispiele
-
-Links-floating Bild using Die new `wrap` Attribut:
-
-````md
-<FloatingImage
-  src="test1.png"
-  wrap="square"
-  align="left"
-  x="0"
-  y="0"
-  width="128"
-  height="128"
-  scaleX="0.5"
-  scaleY="0.5"
-/>
-
-Absatztext, der rechts neben dem Bild fließt …
-````
-
-rechts-floating recipe:
-
-````md
-<Recipe id="minecraft:stone" wrap="square" align="right" />
-
-Text, der links neben dem Rezeptfeld fließt …
-````
-
-Centred Element Bild (nein Text wrapping):
-
-````md
-<ItemImage id="minecraft:diamond" align="center" />
-````
-
-rechts-aligned Element Bild:
-
-````md
-<ItemImage id="minecraft:diamond" align="right" />
-````
-
-Element NBT kann sein supplied separately von Die Element id. Inline SNBT in `id` ist weiterhin unterstützt;
-wenn beide forms sind present, Die standalone `nbt` Attribut ist merged letzte.
-
-````md
-<ItemImage id="minecraft:diamond" nbt='{display:{Name:"Custom Diamond"}}' />
-<ItemImage
-  id="minecraft:chest"
-  scale="2"
-  nbt='{id:"Chest",Items:[{Slot:0b,id:"minecraft:diamond",Count:1b,Damage:0s}]}'
-/>
-````
-
-> **Hinweis** — `wrap="inline"` now gives `<FloatingImage>` true inline Positionierung innerhalb flow Text.
-> in inline Modus, `align` ist ignored stattdessen von producing Eine Fehler.
+<Column align="center">
+  <ItemImage id="minecraft:diamond" nbt='{display:{Name:"Custom Diamond"}}' />
+</Column>
+```
 
 ## Navigation Texture Icons
 
-Frontmatter kann verwenden `icon_texture` zu anzeigen Eine texture stattdessen von Eine Element in navigation/Suche:
+Frontmatter can use `icon_texture` to show a texture instead of an item in navigation/search:
 
 ```yaml
 navigation:
@@ -268,42 +203,40 @@ navigation:
   icon_texture: test1.png
 ```
 
-Die Datei muss decode als Eine Bild. Die Pfad ist aufgelöst like beliebig andere Leitfaden Ressource Pfad.
+The file must decode as an image. The path is resolved like any other guide asset path.
 
-## Non-Bild Assets
+## Non-Image Assets
 
-GuideNH pages kann auch reference non-Bild Laufzeit assets, especially structure files, für Beispiel:
+GuideNH pages may also reference non-image runtime assets, especially structure files, for example:
 
 ````md
 <ImportStructure src="/assets/example_structure.snbt" />
 ````
 
-diese assets sind geladen durch Die gleich Leitfaden Ressource pipeline but sind consumed by benutzerdefiniert Tags rather als gerendert directly als Bilder.
+These assets are loaded through the same guide asset pipeline but are consumed by custom tags rather than rendered directly as images.
 
 ## Best Practices
 
-- Beibehalten Seite-lokal Bilder nahe Die Seite dass verwendet sie
-- Beibehalten reusable files under Die Leitfaden Wurzel `assets/` Ordner
-- prefer rooted `/assets/...` paths für shared files referenced by mehrere pages
-- verwenden texture icons nur für real Bild assets
+- keep page-local images near the page that uses them
+- keep reusable files under the guide root `assets/` folder
+- prefer rooted `/assets/...` paths for shared files referenced by multiple pages
+- use texture icons only for real image assets
 
 ## `BlockImage`
 
-`<BlockImage>` verwendet Die gleich Block-level embedding Regeln als `<FloatingImage>`, but Die visual
-Inhalt ist ein transparent 3D einzeln-Block Vorschau stattdessen von Eine bitmap. It ist best suited für
-showing how Eine placed Block looks in-Welt während weiterhin fitting inline mit normal Leitfaden prose.
+`<BlockImage>` renders a placed block as a transparent 3D preview. It supports the block layout attributes above, including horizontal alignment and floating text wrap.
 
-Schlüssel behavior:
+Key behavior:
 
-- transparent Hintergrund und Rand
-- nein Szene buttons, nein layer slider, nein Annotation authoring surface
-- Hover weiterhin zeigt Die ausgewählt Block outline und tooltip
-- `scale` Änderungen Kamera Zoom und Standards zu `4`
-- `perspective` accepts `isometric-north-east`, `isometric-north-west`, und `up`
-- `nbt` supplies tile-entity SNBT; inline `id="mod:block:meta:{...}"` SNBT weiterhin works, but Die
-  standalone `nbt` Attribut ist easier zu lesen und ist bevorzugt
+- transparent background and border
+- no scene buttons, no layer slider, no annotation authoring surface
+- hover still shows the selected block outline and tooltip
+- `scale` changes camera zoom and defaults to `4`
+- `perspective` accepts `isometric-north-east`, `isometric-north-west`, and `up`
+- `nbt` supplies tile-entity SNBT; inline `id="mod:block:meta:{...}"` SNBT still works, but the
+  standalone `nbt` attribute is easier to read and is preferred
 
-Beispiel:
+Example:
 
 ````md
 <BlockImage id="minecraft:stone" />
@@ -315,12 +248,12 @@ Beispiel:
 />
 ````
 
-## Laufzeit Beispiel Files
+## Runtime Example Files
 
 - `wiki/resourcepack/assets/guidenh/guidenh/_en_us/test1.png`
 - `wiki/resourcepack/assets/guidenh/guidenh/assets/example_structure.snbt`
 
-## Verwandte Seiten
+## Related Pages
 
 - [Guide Page Format](Guide-Page-Format)
 - [Tags Reference](Tags-Reference)

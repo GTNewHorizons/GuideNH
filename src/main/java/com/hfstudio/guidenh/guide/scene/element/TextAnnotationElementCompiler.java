@@ -16,6 +16,7 @@ import com.hfstudio.guidenh.guide.internal.localization.GuideLanguageIndex;
 import com.hfstudio.guidenh.guide.internal.util.GuideStringLines;
 import com.hfstudio.guidenh.guide.scene.CameraSettings;
 import com.hfstudio.guidenh.guide.scene.LytGuidebookScene;
+import com.hfstudio.guidenh.guide.scene.StructureLibSceneConditionParser;
 import com.hfstudio.guidenh.guide.scene.annotation.InWorldBoxAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.TextAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.compiler.AnnotationTagCompiler;
@@ -60,6 +61,7 @@ public class TextAnnotationElementCompiler implements SceneElementTagCompiler {
             parseConnectorSide(compiler, errorSink, el),
             MdxAttrs.getInt(compiler, errorSink, el, "connectorOffset", 0),
             MdxAttrs.getInt(compiler, errorSink, el, "connectorLength", TextAnnotation.CONNECTOR_HEIGHT));
+        annotation.setStructureLibCondition(StructureLibSceneConditionParser.parse(compiler, errorSink, el));
         if (compiler != null) {
             var paragraph = new LytParagraph();
             compiler.compileInlineMarkdown(text, paragraph);
@@ -94,6 +96,7 @@ public class TextAnnotationElementCompiler implements SceneElementTagCompiler {
             new ConstantColor(hlArgb),
             InWorldBoxAnnotation.DEFAULT_THICKNESS);
         box.setAlwaysOnTop(false);
+        box.setStructureLibCondition(annotation.getStructureLibCondition());
         scene.addAnnotation(box);
     }
 

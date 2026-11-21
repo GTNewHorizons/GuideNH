@@ -6,188 +6,166 @@ navigation:
   icon: minecraft:wool:1
 categories:
   - widgets
-  # 循环图标示例——取消注释即可启用：
-  # icons:
-  #   - minecraft:wool:1
-  #   - minecraft:wool:4
-  #   - minecraft:wool:14
-  # icon 物品内联 SNBT 示例：
-  # icon: minecraft:wool:1:{display:{Name:"彩色羊毛演示"}}
 ---
 
 # 图片
 
-`<FloatingImage>`、`<ItemImage>` 和 `<BlockImage>` 渲染测试。
+随包提供的 `test1.png` 为 **32×32** 像素。裁剪框使用原图像素坐标，图片注解使用裁剪后区域内的像素坐标；显示尺寸决定结果在页面中占多大。
 
-## FloatingImage
-
-相对路径引用当前目录下 `test1.png`：
+## Markdown 图片
 
 ![测试图片](test1.png)
 
-段落内嵌图：这是一张图 ![inline](test1.png) 嵌在文字里。
+图片也可以嵌在段落中：文字前 ![行内图片](test1.png) 文字后。需要指定尺寸、裁剪或区域 tooltip 时，使用 `<FloatingImage>`。
 
-`<FloatingImage>` 采用“先裁剪，再确定显示尺寸”的语义。`x`、`y`、`width` / `w`、`height` / `h` 用于从原图中选取子区域。`scaleX` 和 `scaleY` 按倍率缩放裁剪结果；`displayWidth` 和 `displayHeight` 则直接以像素指定最终尺寸。只提供一个显示尺寸时会保持裁剪区域比例，两个都提供时可拉伸。显示尺寸不能与 `scaleX` 或 `scaleY` 同时使用。
+## FloatingImage
 
-裁剪 64×64 区域并按原始大小显示：
+| 属性 | 默认值 | 说明 |
+| --- | --- | --- |
+| `src` | 必填 | 相对路径、根路径或 `modid:path` 图片引用 |
+| `x`, `y` | 裁剪时必填 | 原图中的裁剪起点，非负整数 |
+| `width` / `w`, `height` / `h` | 裁剪时必填 | 正整数裁剪尺寸；每个维度只能选一种名称 |
+| `displayWidth`, `displayHeight` | 裁剪尺寸 | 最终正整数显示尺寸；只指定一个维度时保持裁剪区域比例 |
+| `scaleX`, `scaleY` | `1` | 裁剪尺寸的正数缩放倍率，不能与显示尺寸同时使用 |
+| `wrap` | 浮动 | `inline` 将图片嵌入文字行；其他情况下由 `align` 决定浮动方向 |
+| `align` | `left` | `left` 或 `right`，`wrap="inline"` 时忽略 |
+| `title`, `alt` | 无 | 悬停标题与替代文本 |
+| `sound`, `soundSrc` | 无 | 整图音效事件或音频文件路径 |
+| `trigger` | `click` | `click` 或 `hover` |
 
-<FloatingImage src="test1.png" align="left" x="0" y="0" width="64" height="64" title="crop 64x64" />
+省略全部裁剪属性并提供 `displayWidth` 或 `displayHeight` 可显示整张图。裁剪时必须同时提供 `x`、`y`、宽、高。
 
-将裁剪出的 64×64 区域拉伸到 200×80：
+完整图片显示为 128×128：
 
-<FloatingImage src="test1.png" align="right" x="0" y="0" width="64" height="64" displayWidth="200" displayHeight="80" title="拉伸到 200x80" />
+<FloatingImage src="test1.png" displayWidth="128" wrap="inline" title="32x32 原图显示为 128x128" />
 
-只设置一个最终尺寸时，会保持裁剪区域比例：
+从原图裁剪 16×16 区域，并拉伸到 160×80：
 
-<FloatingImage src="test1.png" align="left" x="0" y="0" width="64" height="32" displayWidth="160" title="等比 160x80 裁剪" />
+<FloatingImage src="test1.png" x="8" y="8" width="16" height="16" displayWidth="160" displayHeight="80" wrap="inline" title="16x16 裁剪显示为 160x80" />
 
-跨模组纹理并真正行内放置：
+只设置一个显示尺寸时保持比例：
 
-前文 <FloatingImage src="minecraft:textures/gui/options_background.png" x="0" y="0" width="32" height="32" scaleX="0.75" scaleY="0.75" wrap="inline" title="inline crop" /> 后文。
+<FloatingImage src="test1.png" x="0" y="0" width="32" height="16" displayWidth="160" wrap="inline" title="32x16 裁剪显示为 160x80" />
 
-## ImageAnnotation
+缩放倍率是显示尺寸之外的另一种写法：
 
-`<ImageAnnotation>` 是 `<FloatingImage>` 的子标签，用于为图片的矩形区域添加悬停 tooltip 和可选的彩色边框。坐标（`x`、`y`、`w`、`h`）以**裁剪后子图像像素**为单位；当裁剪后的图像被缩放或拉伸时，注解区域会随之自动缩放。省略全部四个坐标时，注解覆盖整张图片。
+文字前 <FloatingImage src="minecraft:textures/gui/options_background.png" x="0" y="0" width="32" height="32" scaleX="0.75" scaleY="0.75" wrap="inline" title="显示为 24x24" /> 文字后。
 
-整图注解（鼠标悬停在图片任意位置均显示 tooltip）：
+### ImageAnnotation
 
-<FloatingImage src="test1.png" align="left" x="0" y="0" width="128" height="128">
+`<ImageAnnotation>` 是 `<FloatingImage>` 的子标签，正文作为富文本 tooltip。坐标以**裁剪后的图片像素**计，显示尺寸改变时会自动跟随缩放。
+
+| 属性 | 默认值 | 说明 |
+| --- | --- | --- |
+| `x`, `y` | `0` | 区域起点；省略全部四个坐标时覆盖整图 |
+| `w`, `h` | `1` | 存在任意坐标时使用的区域宽高 |
+| `border` | `false` | 启用彩色边框 |
+| `borderColor` | 随机不透明颜色 | `#RRGGBB` 或 `#AARRGGBB` |
+| `borderThickness` | `1` | 边框宽度，以显示像素计 |
+| `sound`, `src` | 无 | 区域音效事件或音频文件路径 |
+| `trigger` | `click` | `click` 或 `hover` |
+
+悬停图片任意位置：
+
+<FloatingImage src="test1.png" displayWidth="128" wrap="inline">
   <ImageAnnotation>
-    悬停在图片**任意位置**都会显示此 tooltip。
+    此注解覆盖**整张图片**。
   </ImageAnnotation>
 </FloatingImage>
 
-区域注解，显示红色边框（x=10, y=10, w=60, h=40）：
+两个区域分别覆盖 32×32 原图的左右半边：
 
-<FloatingImage src="test1.png" align="left" x="0" y="0" width="128" height="128">
-  <ImageAnnotation x="10" y="10" w="60" h="40" border borderColor="#FFFF4444" borderThickness="2">
-    悬停在**红色边框区域**内显示此 tooltip。
+<FloatingImage src="test1.png" x="0" y="0" width="32" height="32" displayWidth="160" displayHeight="80" wrap="inline">
+  <ImageAnnotation x="0" y="0" w="16" h="32" border borderColor="#FF44FF44" borderThickness="2">
+    左半边，随图片一起缩放。
+  </ImageAnnotation>
+  <ImageAnnotation x="16" y="0" w="16" h="32" border borderColor="#FF4444FF" borderThickness="2">
+    右半边，随图片一起缩放。
   </ImageAnnotation>
 </FloatingImage>
 
-同一张图上的多个注解——每个区域显示不同 tooltip：
+### 图片音效
 
-<FloatingImage src="test1.png" align="left" x="0" y="0" width="128" height="128">
-  <ImageAnnotation x="0" y="0" w="64" h="64" border borderColor="#FF44FF44">
-    左半部分
-  </ImageAnnotation>
-  <ImageAnnotation x="64" y="0" w="64" h="64" border borderColor="#FF4444FF">
-    右半部分
-  </ImageAnnotation>
-</FloatingImage>
+音效事件在 `assets/guidenh/sounds.json` 中声明；需在 `assets/guidenh/sounds/` 中提供对应音频文件才能听到声音。区域重叠时，靠后的区域优先。
 
-缩放后的裁剪图，注解会随拉伸自动适配：
+&[行内音效动作](sound:guidenh:guide.sample_click)
 
-<FloatingImage src="test1.png" align="right" x="0" y="0" width="64" height="64" scaleX="3.125" scaleY="1.25">
-  <ImageAnnotation x="0" y="0" w="64" h="64" border borderColor="#FFFFFF44" borderThickness="2">
-    整个裁剪区域在拉伸后的范围。
+<SoundLink sound="guidenh:guide.sample_click" volume="0.8">**播放示例音效**</SoundLink>
+
+<FloatingImage src="test1.png" displayWidth="128" wrap="inline" sound="guidenh:guide.sample_click">
+  <SoundArea x="0" y="0" w="16" h="32" sound="guidenh:guide.sample_left" />
+  <SoundArea x="16" y="0" w="16" h="32" sound="guidenh:guide.sample_hover" trigger="hover" />
+  <ImageAnnotation x="4" y="4" w="8" h="8" border borderColor="#FFFFCC44" sound="guidenh:guide.sample_click">
+    同一区域同时带有 tooltip、边框和点击音效。
   </ImageAnnotation>
 </FloatingImage>
 
-## 图片音效
+## ItemImage
 
-&[内联音效动作](sound:guidenh:guide.sample_click)
+| 属性 | 默认值 | 说明 |
+| --- | --- | --- |
+| `id` | 必填 | 物品 ID，可附元数据与内联 SNBT |
+| `ore` | 无 | 矿物词典选择器，优先于同时提供的 `id` |
+| `nbt` | 无 | 物品堆叠 SNBT，覆盖内联 SNBT 中的同名键 |
+| `scale` | `1` | 图标缩放倍率 |
+| `showTooltip` | `true` | 显示物品 tooltip |
+| `noTooltip` | `false` | 兼容的旧开关，推荐使用 `showTooltip` |
+| `showIcon` | `true` | 显示图标 |
+| `label` | 无 | 在图标 `left` 或 `right` 侧显示物品名 |
+| `format` | 斜体物品名 | 标签格式，`%s` 代入物品名 |
+| `yOffset` | `0` | 行内物品及标签整体的垂直偏移，以 `scale=1` 的像素计 |
+| `labelYOffset` | `0` | 仅标签文字的额外垂直偏移，以 `scale=1` 的像素计 |
 
-<SoundLink sound="guidenh:guide.sample_click" volume="0.8">
-  **富文本音效链接**
-</SoundLink>
+偏移随图标倍率缩放，正值向下。自定义富文本 tooltip 应使用 `<Tooltip label="...">` 及其子内容，示例见 [Tooltip](./tooltips.md)。
 
-<FloatingImage src="test1.png" align="left" x="0" y="0" width="128" height="128" sound="guidenh:guide.sample_click">
-  <SoundArea x="0" y="0" w="64" h="128" sound="guidenh:guide.sample_left" />
-  <SoundArea x="64" y="0" w="64" h="128" sound="guidenh:guide.sample_hover" trigger="hover" />
-  <ImageAnnotation x="16" y="16" w="32" h="32" border borderColor="#FFFFCC44"
-    sound="guidenh:guide.sample_click">
-    这个注解同时拥有 tooltip 和点击音效。
-  </ImageAnnotation>
-</FloatingImage>
-
-## ItemImage 缩放
+### 缩放与 NBT
 
 <Row>
   <ItemImage id="minecraft:diamond" scale="1" />
   <ItemImage id="minecraft:diamond" scale="2" />
   <ItemImage id="minecraft:diamond" scale="3" />
   <ItemImage id="minecraft:diamond" scale="4" />
-  <ItemImage id="minecraft:diamond" scale="6" />
 </Row>
-
-## ItemImage NBT
-
-`ItemImage` 支持可选的 `nbt` 属性来提供物品堆叠数据。`id` 中的内联 SNBT 仍然支持；
-两种写法同时存在时，独立的 `nbt` 属性最后合并。
 
 <ItemImage id="minecraft:diamond" nbt='{display:{Name:"自定义钻石"}}' />
 
-<ItemImage
-  id="minecraft:chest"
-  scale="2"
-  nbt='{id:"Chest",Items:[{Slot:0b,id:"minecraft:diamond",Count:1b,Damage:0s}]}'
-/>
+<ItemImage id="minecraft:iron_ingot" ore="ingotIron" label="right" />
 
-### 内联图标与文字的纵向对齐
+### 标签与对齐
 
-内联的 `<ItemImage>` 默认会向上偏移约 4 像素（随 `scale` 等比例缩放），让图标视觉中心与文字基线对齐。标签文字有独立的较小默认偏移（-2 px），两者可分别覆盖。
+- 默认偏移：<ItemImage id="minecraft:diamond" label="right" />
+- 整体向下：<ItemImage id="minecraft:diamond" label="right" yOffset="2" />
+- 仅标签向上：<ItemImage id="minecraft:diamond" label="right" labelYOffset="-2" />
+- 名称位于左侧：<ItemImage id="minecraft:iron_ingot" label="left" />
+- 粗体名称：<ItemImage id="minecraft:gold_ingot" label="right" format="**%s**" />
+- 删除线：<ItemImage id="minecraft:rotten_flesh" label="right" format="~~%s~~" />
+- 下划线：<ItemImage id="minecraft:emerald" label="right" format="__%s__" />
+- 波浪下划线：<ItemImage id="minecraft:blaze_rod" label="right" format="^^%s^^" />
+- 点状下划线与固定文字：<ItemImage id="minecraft:ender_pearl" label="right" format="::自定义标签::" />
+- 只显示标签：<ItemImage id="minecraft:diamond" showIcon={false} label="right" />
+- 关闭物品 tooltip：<ItemImage id="minecraft:emerald" label="right" showTooltip={false} />
 
-- 默认偏移（图标 -4px，标签 -3px）：这行里有 <ItemImage id="minecraft:diamond" label="right" /> 钻石 <ItemImage id="minecraft:apple" label="right" /> 苹果和 <ItemImage id="minecraft:iron_ingot" label="right" /> 铁锭。
-- 图标偏移归零（`yOffset="0"`，标签不变）：<ItemImage id="minecraft:diamond" yOffset="0" label="right" /> 钻石 <ItemImage id="minecraft:apple" yOffset="0" label="right" /> 苹果。
-- 标签偏移归零（`labelYOffset="0"`，图标不变）：<ItemImage id="minecraft:diamond" labelYOffset="0" label="right" /> 钻石 <ItemImage id="minecraft:apple" labelYOffset="0" label="right" /> 苹果。
-- 两者全部归零（`yOffset="0" labelYOffset="0"`）：<ItemImage id="minecraft:diamond" yOffset="0" labelYOffset="0" label="right" /> 钻石 <ItemImage id="minecraft:apple" yOffset="0" labelYOffset="0" label="right" /> 苹果。
+## BlockImage
 
-> 偏移量以 scale=1 下的像素数给出，实际渲染时会乘以当前 `scale`。
+`<BlockImage>` 以透明背景显示放置在世界中的方块，保留方块名称 tooltip 和悬停描边。
 
-## ItemImage 标签文字
-
-右侧标签（默认斜体显示物品名）：
-
-<ItemImage id="minecraft:diamond" label="right" />
-
-左侧标签：
-
-<ItemImage id="minecraft:iron_ingot" label="left" />
-
-粗体格式（`%s` 占位符）：
-
-<ItemImage id="minecraft:gold_ingot" label="right" format="**%s**" />
-
-删除线格式：
-
-<ItemImage id="minecraft:rotten_flesh" label="right" format="~~%s~~" />
-
-下划线（使用 `__`）：
-
-<ItemImage id="minecraft:emerald" label="right" format="__%s__" />
-
-波浪下划线：
-
-<ItemImage id="minecraft:blaze_rod" label="right" format="^^%s^^" />
-
-点状下划线（自定义静态文字，无占位符）：
-
-<ItemImage id="minecraft:ender_pearl" label="right" format="::自定义标签::" />
-
-仅显示文字（不显示图标）：
-
-<ItemImage id="minecraft:diamond" showIcon="false" label="right" />
-
-显示图标但不显示 tooltip：
-
-<ItemImage id="minecraft:emerald" label="right" showTooltip="false" />
-
-## BlockImage 缩放
-
-`BlockImage` 现在显示的是透明背景的 3D 放置方块预览，而不是物品形态图标。
-省略 `scale` 时，默认值为 `4`。
+| 属性 | 默认值 | 说明 |
+| --- | --- | --- |
+| `id` / `ore` | 至少一个 | 方块引用或矿物词典选择器 |
+| `meta` | 来自 `id` | 显式覆盖方块元数据 |
+| `nbt` | 无 | TileEntity SNBT，覆盖内联 SNBT 中的同名键 |
+| `scale` | `4` | 相机缩放倍率 |
+| `width`, `height` | 分别为 `128` | 预览视口像素尺寸 |
+| `perspective` | `isometric-north-east` | `isometric-north-east`、`isometric-north-west` 或 `up` |
+| `wrap` | `inline` | 块级内容环绕模式 |
+| `align` | `left` | 块级上下文中的 `left`、`center` 或 `right` |
+| `float` | 无 | 流式上下文兼容的 `left` / `right`，推荐使用 `wrap` 和 `align` |
 
 <Row>
-  <BlockImage id="minecraft:stone" />
-  <BlockImage id="minecraft:stone" scale="1" />
   <BlockImage id="minecraft:stone" scale="2" />
-  <BlockImage id="minecraft:stone" scale="3" />
-  <BlockImage id="minecraft:stone" scale="4" />
+  <BlockImage id="minecraft:stone" />
   <BlockImage id="minecraft:stone" scale="6" />
 </Row>
-
-## BlockImage 视角与 Tile NBT
 
 <Row>
   <BlockImage id="minecraft:furnace" scale="2.5" perspective="isometric-north-east" />
@@ -195,41 +173,18 @@ categories:
   <BlockImage id="minecraft:chest" scale="2.5" nbt='{id:"Chest",Items:[{Slot:0b,id:"minecraft:diamond",Count:1b,Damage:0s}]}' />
 </Row>
 
-## BlockImage 行列示例
-
-<Row>
-  <BlockImage id="minecraft:log" scale="4" />
-  <BlockImage id="minecraft:log2" scale="4" />
-  <BlockImage id="minecraft:planks" scale="4" />
-  <BlockImage id="minecraft:cobblestone" scale="4" />
-  <BlockImage id="minecraft:stonebrick" scale="4" />
-  <BlockImage id="minecraft:mossy_cobblestone" scale="4" />
-</Row>
-
-<ItemImage id="minecraft:compass" />
+箱子使用 **TileEntity** NBT；`ItemImage nbt` 使用**物品堆叠** NBT。更多布局示例见[内容嵌入](./content-embed.md)。
 
 ## ItemLink
 
-基本链接（仅文字，开启 tooltip）：
+纯文字：<ItemLink id="minecraft:chest" />
 
-<ItemLink id="appliedenergistics2:tile.BlockSkyChest" />
+左侧图标：<ItemLink id="minecraft:chest" showIcon="left" />
 
-左侧显示图标：
+右侧图标并关闭 tooltip：<ItemLink id="minecraft:diamond" showIcon="right" showTooltip={false} />
 
-<ItemLink id="appliedenergistics2:tile.BlockSkyChest" showIcon="left" />
+矿物词典查询：<ItemLink ore="stickWood" />
 
-右侧显示图标，关闭 tooltip：
+跳转其他页面：<ItemLink id="minecraft:diamond" linksTo="./markdown.md#标题" />
 
-<ItemLink id="minecraft:diamond" showIcon="right" showTooltip="false" />
-
-矿辞查询：
-
-<ItemLink ore="stickWood" />
-
-指定跳转目标（带锚点）：
-
-<ItemLink id="minecraft:diamond" linksTo="./markdown.md#headings" />
-
-同页面锚点跳转：
-
-<ItemLink id="minecraft:diamond" linksTo="#itemlink" />
+页内锚点：<ItemLink id="minecraft:diamond" linksTo="#itemlink" />

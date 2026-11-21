@@ -21,6 +21,7 @@ import com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver.Frontmat
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver.MarkdownSyntaxContext;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver.MdxAttrNameContext;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver.MdxValueContext;
+import com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver.NeiActionContext;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver.TagStartContext;
 import com.hfstudio.guidenh.guide.syntax.AttributeSyntax;
 import com.hfstudio.guidenh.guide.syntax.GuideSyntaxModel;
@@ -75,6 +76,32 @@ public class GuideSyntaxCompletion {
     }
 
     private static List<AutocompleteCandidate> resolve(GuideSyntaxModel model, AutocompleteContext context, int limit) {
+        if (context instanceof NeiActionContext action) {
+            if (action.valueKind() == null) return textCandidates(
+                action.choices()
+                    .stream()
+                    .filter(
+                        choice -> choice.regionMatches(
+                            true,
+                            0,
+                            action.partialText(),
+                            0,
+                            action.partialText()
+                                .length()))
+                    .toList(),
+                limit);
+            return suggestionCandidates(
+                model.values(
+                    SyntaxValueRequest.of(
+                        action.valueKind(),
+                        action.partialText(),
+                        "NeiRecipeLink",
+                        action.valueKind()
+                            .equals(SyntaxValueKind.ITEM_ID) ? "id" : "handlerId"),
+                    limit),
+                action.valueKind(),
+                limit);
+        }
         if (context instanceof TagStartContext tagStart) {
             return tagCandidates(model, tagStart, limit);
         }
@@ -103,7 +130,7 @@ public class GuideSyntaxCompletion {
             if (results.size() >= limit) {
                 break;
             }
-            results.add(new TagCandidate(tagName, model.isContainerTag(tagName), model.insertTemplate(tagName)));
+            results.add(new TagCandidate(tagName, model.isContainerTag(tagName)));
         }
         return results;
     }
@@ -174,7 +201,10 @@ public class GuideSyntaxCompletion {
             return List.of();
         }
         return suggestionCandidates(
-            model.values(SyntaxValueRequest.frontmatter(kind, context.getPartialText(), context.getKey()), limit),
+            model.values(
+                SyntaxValueRequest.frontmatter(kind, context.getPartialText(), context.getKey())
+                    .withContextValues(context.getContextValues()),
+                limit),
             kind,
             limit);
     }
@@ -188,7 +218,8 @@ public class GuideSyntaxCompletion {
         SyntaxValueKind kind = attribute.kind();
         return suggestionCandidates(
             model.values(
-                SyntaxValueRequest.of(kind, context.getPartialText(), context.getTagName(), context.getAttrName()),
+                SyntaxValueRequest.of(kind, context.getPartialText(), context.getTagName(), context.getAttrName())
+                    .withContextValues(context.getContextValues()),
                 limit),
             kind,
             limit);
@@ -242,7 +273,9 @@ public class GuideSyntaxCompletion {
         return results;
     }
 
-    /** Ranks the closest matches first, since the popup pre-selects the head of the list. */
+    /**
+     * Ranks the closest matches first, since the popup pre-selects the head of the list.
+     */
     private static Comparator<AutocompleteCandidate> relevanceOrder(@Nullable String partialText) {
         if (partialText == null || partialText.isEmpty()) {
             return (left, right) -> 0;

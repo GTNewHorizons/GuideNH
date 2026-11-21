@@ -29,6 +29,10 @@ import com.hfstudio.guidenh.guide.scene.CameraSettings;
 import com.hfstudio.guidenh.guide.scene.GuidebookLevelRenderer;
 import com.hfstudio.guidenh.guide.scene.GuidebookSceneLayerSelection;
 import com.hfstudio.guidenh.guide.scene.LytGuidebookScene;
+import com.hfstudio.guidenh.guide.scene.annotation.InWorldOutlineAnnotation;
+import com.hfstudio.guidenh.guide.scene.outline.OutlineFrame;
+import com.hfstudio.guidenh.guide.scene.outline.OutlineSilhouette;
+import com.hfstudio.guidenh.guide.scene.outline.OutlineTargetResolver;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.guide.siteexport.site.GuideSiteSceneTessellatorCapture.TextureExportCache;
 
@@ -192,27 +196,8 @@ public class GuideSiteSceneRuntimeExporter implements AutoCloseable {
     }
 
     private void captureSceneMeshes(LytGuidebookScene scene, int width, int height) {
-        Minecraft minecraft = Minecraft.getMinecraft();
-        if (minecraft == null || minecraft.gameSettings == null) {
-            throw new IllegalStateException("Minecraft client is not ready for scene export.");
-        }
-
-        Framebuffer framebuffer = captureFramebuffer(width, height);
-
-        int previousDisplayWidth = minecraft.displayWidth;
-        int previousDisplayHeight = minecraft.displayHeight;
-        int previousGuiScale = minecraft.gameSettings.guiScale;
-
-        try {
+        withCaptureTarget(width, height, () -> {
             preparePlayerSkins(scene);
-            minecraft.displayWidth = width;
-            minecraft.displayHeight = height;
-            minecraft.gameSettings.guiScale = 1;
-
-            framebuffer.bindFramebuffer(true);
-            GL11.glClearColor(0f, 0f, 0f, 0f);
-            GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT);
-
             Integer visibleLayerY = resolveVisibleLayerY(scene);
             GuidebookSceneLayerSelection layerSelection = GuidebookSceneLayerSelection.fromVisibleLayer(visibleLayerY);
             GuidebookLevelRenderer.getInstance()
@@ -233,6 +218,88 @@ public class GuideSiteSceneRuntimeExporter implements AutoCloseable {
                     scene.getRenderableParticlesForExport(),
                     scene.getRenderableWeatherEffectsForExport(),
                     scene.getSceneAnimationTickForRender());
+        });
+    }
+
+    public GuideSiteOutlineMeshExporter.Meshes exportOutlineMeshes(LytGuidebookScene scene,
+        List<InWorldOutlineAnnotation> group) throws Exception {
+        GuidebookSceneLayerSelection layers = GuidebookSceneLayerSelection
+            .fromVisibleLayer(resolveVisibleLayerY(scene));
+        OutlineFrame frame = new OutlineFrame();
+        for (InWorldOutlineAnnotation annotation : group) {
+            OutlineTargetResolver.collect(scene.getLevel(), annotation, layers, 0L, frame);
+        }
+        return new GuideSiteOutlineMeshExporter.Meshes(
+            exportOutlineMesh(scene, frame, OutlineSilhouette.GEOMETRY),
+            exportOutlineMesh(scene, frame, OutlineSilhouette.CUTOUT));
+    }
+
+    @Nullable
+    private String exportOutlineMesh(LytGuidebookScene scene, OutlineFrame frame, OutlineSilhouette silhouette)
+        throws Exception {
+        boolean empty = true;
+        for (int i = 0; i < frame.batchCount() && empty; i++) {
+            empty = frame.batch(i)
+                .targets(silhouette)
+                .isEmpty();
+        }
+        if (empty) {
+            return null;
+        }
+        CameraSettings camera = scene.getCamera();
+        Matrix4f inverseViewMatrix = new Matrix4f(camera.getViewMatrix()).invert();
+        GuideSiteSceneTessellatorCapture recorder = new GuideSiteSceneTessellatorCapture(
+            assets,
+            textureCache,
+            inverseViewMatrix);
+        int width = Math.max(16, scene.getSceneWidth());
+        int height = Math.max(16, scene.getSceneHeight());
+        try {
+            GuideSiteSceneTessellatorCapture.activate(recorder);
+            withCaptureTarget(width, height, () -> {
+                for (int i = 0; i < frame.batchCount(); i++) {
+                    GuidebookLevelRenderer.getInstance()
+                        .renderOutlineTargets(
+                            scene.getLevel(),
+                            camera,
+                            width,
+                            height,
+                            frame.batch(i)
+                                .targets(silhouette),
+                            0.0f);
+                }
+            });
+        } finally {
+            GuideSiteSceneTessellatorCapture.deactivate();
+        }
+        GuideSiteSceneTessellatorCapture.RecordingResult result = recorder.finish();
+        if (result.meshes.isEmpty()) {
+            return null;
+        }
+        return assets.writeSharedCompressed("scenes", ".scene", encodeScene(camera, result, List.of()));
+    }
+
+    private void withCaptureTarget(int width, int height, Runnable draw) {
+        Minecraft minecraft = Minecraft.getMinecraft();
+        if (minecraft == null || minecraft.gameSettings == null) {
+            throw new IllegalStateException("Minecraft client is not ready for scene export.");
+        }
+
+        Framebuffer framebuffer = captureFramebuffer(width, height);
+
+        int previousDisplayWidth = minecraft.displayWidth;
+        int previousDisplayHeight = minecraft.displayHeight;
+        int previousGuiScale = minecraft.gameSettings.guiScale;
+
+        try {
+            minecraft.displayWidth = width;
+            minecraft.displayHeight = height;
+            minecraft.gameSettings.guiScale = 1;
+
+            framebuffer.bindFramebuffer(true);
+            GL11.glClearColor(0f, 0f, 0f, 0f);
+            GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT);
+            draw.run();
         } finally {
             framebuffer.unbindFramebuffer();
             minecraft.displayWidth = previousDisplayWidth;

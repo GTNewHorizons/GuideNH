@@ -20,6 +20,8 @@ import org.yaml.snakeyaml.LoaderOptions;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.SafeConstructor;
 
+import com.hfstudio.guidenh.guide.internal.fluid.FluidStackSpec;
+
 public class Frontmatter {
 
     @Nullable
@@ -84,6 +86,7 @@ public class Frontmatter {
             }
             var iconIdStr = getString(navigationMap, "icon");
             var iconTextureStr = getString(navigationMap, "icon_texture");
+            List<FluidStackSpec> fluidIcons = parseFluidIcons(navigationMap);
 
             ResourceLocation parentId = null;
             if (parentIdStr != null) {
@@ -156,7 +159,8 @@ public class Frontmatter {
                 requiredMods,
                 excludedMods,
                 keywords,
-                loadPriority);
+                loadPriority,
+                fluidIcons);
         }
 
         return new Frontmatter(navigation, Map.copyOf(new HashMap<>(data)));
@@ -169,6 +173,30 @@ public class Frontmatter {
 
     public Map<String, Object> additionalProperties() {
         return additionalProperties;
+    }
+
+    public static List<FluidStackSpec> parseFluidIcons(Map<?, ?> navigation) {
+        Object single = navigation.get("icon_fluid");
+        Object multiple = navigation.get("icon_fluids");
+        if (single == null && multiple == null) return List.of();
+        if (single != null && multiple != null) {
+            throw new IllegalArgumentException("Choose icon_fluid or icon_fluids");
+        }
+        for (String key : List.of("icon", "icons", "icon_texture", "icon_textures")) {
+            if (navigation.get(key) != null) throw new IllegalArgumentException("Fluid icons conflict with " + key);
+        }
+        if (single instanceof String id) return List.of(new FluidStackSpec(id));
+        if (single != null) throw new IllegalArgumentException("icon_fluid must be a fluid registry name");
+        if (!(multiple instanceof List<?>values) || values.isEmpty()) {
+            throw new IllegalArgumentException("icon_fluids must be a nonempty list of fluid registry names");
+        }
+        var icons = new ArrayList<FluidStackSpec>();
+        for (Object value : values) {
+            if (!(value instanceof String id))
+                throw new IllegalArgumentException("icon_fluids entries must be fluid registry names");
+            icons.add(new FluidStackSpec(id));
+        }
+        return List.copyOf(new LinkedHashSet<>(icons));
     }
 
     @Nullable

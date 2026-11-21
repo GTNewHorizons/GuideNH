@@ -423,19 +423,34 @@ function createInputAnnotationNode(documentRef, annotation) {
   body.className = "scene-input-annotation-body";
   wrapper.append(body);
 
-  const item = annotation?.item;
+  const item = annotation?.fluid || annotation?.item;
+  if (Array.isArray(annotation?.fluid?.tooltipLines)) {
+    body.title = annotation.fluid.tooltipLines.filter(line => typeof line === "string")
+      .map(line => line.replace(/§[0-9a-fk-or]/gi, "")).join("\n");
+  }
   if (item?.iconSrc) {
     const icon = documentRef.createElement("img");
     icon.className = "scene-input-annotation-item";
     icon.src = item.iconSrc;
-    icon.alt = item.displayName || item.itemId || "";
+    icon.alt = item.displayName || item.id || item.itemId || "";
     icon.decoding = "async";
     body.append(icon);
-  } else if (item?.displayName || item?.itemId) {
+  } else if (item?.displayName || item?.id || item?.itemId) {
     const fallback = documentRef.createElement("span");
     fallback.className = "scene-input-annotation-item scene-input-annotation-item--fallback";
-    fallback.textContent = item.displayName || item.itemId;
+    fallback.textContent = item.displayName || item.id || item.itemId;
     body.append(fallback);
+  }
+  if (annotation?.fluid?.amount !== undefined) {
+    const amount = documentRef.createElement("span");
+    amount.className = "scene-input-annotation-amount";
+    amount.textContent = annotation.fluid.amountText || `${annotation.fluid.amount} L`;
+    body.append(amount);
+  } else if (Number.isInteger(annotation?.item?.count) && annotation.item.count !== 1) {
+    const amount = documentRef.createElement("span");
+    amount.className = "scene-input-annotation-amount";
+    amount.textContent = `${annotation.item.count}`;
+    body.append(amount);
   }
 
   const input = documentRef.createElement("span");

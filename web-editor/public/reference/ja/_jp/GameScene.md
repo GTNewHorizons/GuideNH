@@ -1,58 +1,55 @@
-# GameScene
+# 3D シーン
 
-GuideNH の構文と実行時機能を説明します。コード、タグ、パス、ID、属性値は仕様のためそのまま保持しています。
+このページの詳細なリファレンスは英語で提供しています。タグ名、属性、ID、パスは翻訳せずに使用してください。
 
+`<GameScene>` is GuideNH's 3D preview tag. `<Scene>` is an alias with the same behavior.
 
-`<GameScene>` は GuideNH の 3D プレビュー タグ. `<Scene>` は alias とともに  同じ behavior.
+## Scene Attributes
 
-## シーン属性
-
-| 属性 | 型 | 既定値 | 意味 |
+| Attribute | Type | Default | Meaning |
 | --- | --- | --- | --- |
-| `width` | 整数 | `256` | viewport 幅 で pixels |
-| `height` | 整数 | `192` | viewport 高さ で pixels |
-| `zoom` | 浮動小数点数 | `1.0` | カメラ ズーム multiplier |
-| `perspective` | 文字列 | `isometric-north-east` | カメラ preset |
-| `rotateX` | 浮動小数点数 | auto | 明示的な X 回転 上書き |
-| `rotateY` | 浮動小数点数 | auto | 明示的な Y 回転 上書き |
-| `rotateZ` | 浮動小数点数 | auto | 明示的な Z 回転 上書き |
-| `offsetX` | 浮動小数点数 | auto | 画面空間 horizontal pan |
-| `offsetY` | 浮動小数点数 | auto | 画面空間 vertical pan |
-| `centerX` | 浮動小数点数 | auto | 明示的な ワールド 回転 中央 X |
-| `centerY` | 浮動小数点数 | auto | 明示的な ワールド 回転 中央 Y |
-| `centerZ` | 浮動小数点数 | auto | 明示的な ワールド 回転 中央 Z |
-| `interactive` | 真偽値 式 | `true` | マウス操作を有効にします |
-| `showBackground` | 真偽値 式 | `true` | shows  シーン 背景 fill と 境界線 |
-| `allowLayerSlider` | 真偽値 | `true` | shows  vertical layer slider |
-| `gridButtonEnabled` | 真偽値 | `true` | shows  floor grid toggle button |
-| `showGrid` | 真偽値 | `false` | 初期 表示状態 of  floor grid |
+| `width` | integer | `256` | viewport width in pixels |
+| `height` | integer | `192` | viewport height in pixels |
+| `zoom` | float | `1.0` | camera zoom multiplier |
+| `perspective` | string | `isometric-north-east` | camera preset |
+| `rotateX` | float | auto | explicit X rotation override |
+| `rotateY` | float | auto | explicit Y rotation override |
+| `rotateZ` | float | auto | explicit Z rotation override |
+| `offsetX` | float | auto | screen-space horizontal pan |
+| `offsetY` | float | auto | screen-space vertical pan |
+| `centerX` | float | auto | explicit world rotation center X |
+| `centerY` | float | auto | explicit world rotation center Y |
+| `centerZ` | float | auto | explicit world rotation center Z |
+| `interactive` | boolean expression | `true` | enables mouse interaction |
+| `showBackground` | boolean expression | `true` | shows the scene background fill and border |
+| `allowLayerSlider` | boolean | `true` | shows the vertical layer slider |
+| `gridButtonEnabled` | boolean | `true` | shows the floor grid toggle button |
+| `showGrid` | boolean | `false` | initial visibility of the floor grid |
 
-## ブロック統計オーバーレイ
+## Block Statistics Overlay
 
-シーン that 含む ブロック enable  ブロック-stat toggle button by 既定値. 追加します a `<BlockStats>`
-子 場合 you want へ 上書き its モード, placement, filters, 表示状態, または サイズ.  一覧 です
-cached と のみ rebuilt 場合  シーン ブロック, Ponder アニメーション timeline 状態, StructureLib 選択, または
-ブロック-stat settings 変更; 通常 描画 reuses  prepared 行. Long lists です clipped へ
-`maxWidth` と `maxHeight`; もし those です omitted, 各 です  larger of  固定 `224` by `96` pixels と
-40% of  シーン サイズ.
-あふれた内容にはドラッグ可能なスクロールバーが付きます, と  mouse wheel scrolls  一覧 中  cursor です
-上  overlay. Hold Shift へ wheel-スクロール horizontally.
+Scenes that contain blocks enable the block-stat toggle button by default. Add a `<BlockStats>`
+child when you want to override its mode, placement, filters, visibility, or size. Long lists are clipped to
+`maxWidth` and `maxHeight`; if those are omitted, each is the larger of the fixed `224` by `96` pixels and
+40% of the scene size.
+Overflow receives draggable scrollbars, and the mouse wheel scrolls the list while the cursor is
+over the overlay. Hold Shift to wheel-scroll horizontally.
 
-で 自動 モード, GuideNH scans  シーン's filled ブロック と resolves 各 ブロック へ  アイテム
-stack users normally 参照してください. ブロック that 含む 複数の 表示 components できます contribute 複数の
-項目 から  同じ 座標; この 含みます AE2 cable bus parts と facades, ForgeMultipart part
-drops, と Carpenters' ブロック covers または overlays 場合 those mods です installed. Counts です grouped
-by `item:meta` と sorted by count.
+In automatic mode, GuideNH scans the scene's filled blocks and resolves each block to the item
+stack users normally see. Blocks that contain multiple visible components can contribute multiple
+items from the same coordinate; this includes AE2 cable bus parts and facades, ForgeMultipart part
+drops, and Carpenters' Blocks covers or overlays when those mods are installed. Counts are grouped
+by `item:meta` and sorted by count.
 
-自動 lists できます も なる docked 外部  シーン とともに `dock="left"`, `dock="top"`,
-`dock="right"`, または `dock="bottom"`. Docked lists wrap into extra columns または 行 based on 
-attached 側 length, reserve レイアウト 空間, と avoid  シーン button 列 on  右. クリック an
-アイテム で 自動 一覧 へ 強調表示 すべての 一致する シーン placements とともに their 解決された collision
-boxes using 常に-on-上 face overlay; クリック  同じ アイテム again へ clear  強調表示. Counts
-です 描画される 通じて  ItemStack stack-サイズ overlay. 設定します `showNames={true}` へ append  count
-後 各 名前 as well, と ホバー an アイテム へ 参照してください  exact ブロック count で  ツールチップ.
+Automatic lists can also be docked outside the scene with `dock="left"`, `dock="top"`,
+`dock="right"`, or `dock="bottom"`. Docked lists wrap into extra columns or rows based on the
+attached side length, reserve layout space, and avoid the scene button column on the right. Click an
+item in an automatic list to highlight all matching scene placements with their resolved collision
+boxes using an always-on-top face overlay; click the same item again to clear the highlight. Counts
+are rendered through the ItemStack stack-size overlay. Set `showNames={true}` to append the count
+after each name as well, and hover an item to see the exact block count in the tooltip.
 
-Filters できます 非表示 一般的な ブロック または 表示 のみ 選択済み ブロック:
+Filters can hide common blocks or show only selected blocks:
 
 ````md
 <GameScene>
@@ -63,7 +60,7 @@ Filters できます 非表示 一般的な ブロック または 表示 のみ
 </GameScene>
 ````
 
-使用 manual モード 場合 a ガイド wants へ 表示 planned material 一覧 代わりに of  literal シーン
+Use manual mode when a guide wants to show a planned material list instead of the literal scene
 contents:
 
 ````md
@@ -76,94 +73,94 @@ contents:
 </GameScene>
 ````
 
-## デバッグモードのオーバーレイ
+## Debug Mode Overlays
 
-場合  `enableDebugMode` オプション 有効な場合 で  GuideNH mod config,  following extra
-overlays become 利用可能 で  3D シーン プレビュー.
+When the `enableDebugMode` option is enabled in the GuideNH mod config, the following extra
+overlays become available in the 3D scene preview.
 
-### Grid 座標 Labels
+### Grid Coordinate Labels
 
-場合 debug モード です **on** と  floor grid です **表示**, 座標 labels です 描画される
-below 各 grid 行:
+When debug mode is **on** and the floor grid is **visible**, coordinate labels are rendered
+below each grid line:
 
-- **X-axis numbers** です 表示される along  近く edge of  grid (north/−Z edge で  既定値
-  `isometric-north-east` カメラ).  各 整数 X ワールド-座標 receives ラベル.
-- **Z-axis numbers** です 表示される along  近く edge of  grid (east/+X edge).  各 整数
-  Z ワールド-座標 receives ラベル.
-- **Cardinal direction initials** (`N`, `S`, `E`, `W`) です drawn at  midpoint of 各
+- **X-axis numbers** are shown along the near edge of the grid (north/−Z edge in the default
+  `isometric-north-east` camera).  Each integer X world-coordinate receives a label.
+- **Z-axis numbers** are shown along the near edge of the grid (east/+X edge).  Each integer
+  Z world-coordinate receives a label.
+- **Cardinal direction initials** (`N`, `S`, `E`, `W`) are drawn at the midpoint of each
   respective grid edge.
 
-座標 follow  実際の ワールド X/Z 値 stored で  シーン level, so これらは できます なる
-negative 場合  structure 含みます ブロック とともに negative 座標.
+Coordinates follow the actual world X/Z values stored in the scene level, so they can be
+negative when the structure contains blocks with negative coordinates.
 
- grid toggle button です **常に 有効** 中 debug モード です active, に関係なく 
-`gridButtonEnabled` 属性, so you できます 表示 または 非表示  grid と its labels at 任意の time.
- 既定値 grid 表示状態 (`showGrid`) です ない affected.
+The grid toggle button is **always enabled** while debug mode is active, regardless of the
+`gridButtonEnabled` attribute, so you can show or hide the grid and its labels at any time.
+The default grid visibility (`showGrid`) is not affected.
 
-### ブロック 座標 ツールチップ
+### Block Coordinate Tooltip
 
-場合 debug モード です **on** と  cursor hovers 上 a ブロック 内部  シーン, second
-ツールチップ です 描画される 上に  primary ブロック ツールチップ, showing  ワールド空間 ブロック 位置
-as `X, Y, Z` で gold テキスト.
+When debug mode is **on** and the cursor hovers over a block inside the scene, a second
+tooltip is rendered above the primary block tooltip, showing the world-space block position
+as `X, Y, Z` in gold text.
 
-もし  座標 ツールチップ would なる clipped at  上 of  画面 it 自動的に snaps
-below  cursor area 代わりに (magnetic snapping).
+If the coordinate tooltip would be clipped at the top of the screen it automatically snaps
+below the cursor area instead (magnetic snapping).
 
-## 視点プリセット
+## Perspective Presets
 
-Accepted `perspective` 値:
+Accepted `perspective` values:
 
 - `isometric-north-east`
 - `isometric-north-west`
 - `up`
 
-不明な 値 fall back へ `isometric-north-east`.
+Unknown values fall back to `isometric-north-east`.
 
-## コンテンツの埋め込みとテキスト折り返し
+## Content Embedding and Text Wrapping
 
-任意の ブロック-level タグ — including `<GameScene>` — 対応します 2 つ 任意の 属性 that control
-how it です embedded で  ページ, Microsoft Word の "テキスト Wrapping" オプション.
+Any block-level tag — including `<GameScene>` — supports two optional attributes that control
+how it is embedded in the page, mirroring Microsoft Word's "Text Wrapping" options.
 
-| 属性 | 値 | 既定値 | 意味 |
+| Attribute | Values | Default | Meaning |
 | --- | --- | --- | --- |
-| `wrap` | `inline` · `square` · `tight` · `through` · `top-bottom` · `behind` · `front` | `inline` | テキスト-wrapping モード |
-| `align` | `left` · `center` · `right` | `left` | 水平配置 |
+| `wrap` | `inline` · `square` · `tight` · `through` · `top-bottom` · `behind` · `front` | `inline` | Text-wrapping mode |
+| `align` | `left` · `center` · `right` | `left` | Horizontal alignment |
 
-### 折り返しモード
+### Wrap modes
 
-| モード | Word equivalent | Effect |
+| Mode | Word equivalent | Effect |
 | --- | --- | --- |
-| `inline` | で 行 とともに テキスト | 既定値 flow: シーン occupies its 独自の vertical slot (嵌入型) |
-| `square` | Square | シーン floats 左 または 右; surrounding テキスト wraps で rectangle around it (方形环绕) |
-| `tight` | Tight | Tighter wrap; equivalent へ `square` で この レイアウト system (紧密型) |
-| `through` | 通じて | 通じて-wrap; equivalent へ `square` で この レイアウト system (穿越型) |
-| `top-bottom` | 上 と 下 | テキスト のみ 上に と below, ない beside; respects `align` 用 horizontal placement (上下型) |
-| `behind` | Behind テキスト | ブロック 描画 behind surrounding テキスト; respects `align` (衬于文字下方) |
-| `front` | で front of テキスト | ブロック 描画 で front of surrounding テキスト; respects `align` (浮于文字上方) |
+| `inline` | In line with text | Default flow: scene occupies its own vertical slot (嵌入型) |
+| `square` | Square | Scene floats left or right; surrounding text wraps in a rectangle around it (方形环绕) |
+| `tight` | Tight | Tighter wrap; equivalent to `square` in this layout system (紧密型) |
+| `through` | Through | Through-wrap; equivalent to `square` in this layout system (穿越型) |
+| `top-bottom` | Top and Bottom | Text only above and below, not beside; respects `align` for horizontal placement (上下型) |
+| `behind` | Behind text | Block renders behind surrounding text; respects `align` (衬于文字下方) |
+| `front` | In front of text | Block renders in front of surrounding text; respects `align` (浮于文字上方) |
 
-### 例
+### Examples
 
-左-floating シーン — テキスト で  次の paragraph wraps へ  右:
+Left-floating scene — text in the next paragraph wraps to the right:
 
 ````md
 <GameScene wrap="square" align="left" width="200" height="150">
   <Block id="minecraft:stone" />
 </GameScene>
 
-シーンの右側に流れるテキスト…
+Text that flows to the right of the scene...
 ````
 
-右-floating シーン:
+Right-floating scene:
 
 ````md
 <GameScene wrap="square" align="right" width="200" height="150">
   <Block id="minecraft:stone" />
 </GameScene>
 
-シーンの左側に流れるテキスト…
+Text that flows to the left of the scene...
 ````
 
-Centred シーン (いいえ テキスト wrapping):
+Centred scene (no text wrapping):
 
 ````md
 <GameScene align="center" width="200" height="150">
@@ -171,7 +168,7 @@ Centred シーン (いいえ テキスト wrapping):
 </GameScene>
 ````
 
-Inline で テキスト (flow context) — テキスト wraps around small シーン:
+Inline in text (flow context) — text wraps around a small scene:
 
 ````md
 Some text {<GameScene wrap="square" align="left" width="80" height="80">
@@ -179,7 +176,7 @@ Some text {<GameScene wrap="square" align="left" width="80" height="80">
 </GameScene>} and more text that wraps to the right.
 ````
 
-## 例
+## Example
 
 ````md
 <GameScene width="256" height="160" zoom={4} perspective="isometric-north-east" interactive={true}>
@@ -189,12 +186,12 @@ Some text {<GameScene wrap="square" align="left" width="80" height="80">
 </GameScene>
 ````
 
-## Import 例
+## Import Examples
 
-これらの 例 focus on  シーン-側 behavior that most 多くの場合 trips people up 場合 importing
+These examples focus on the scene-side behavior that most often trips people up when importing
 structures.
 
-StructureLib import とともに 明示的な facing, 回転, flip, と offsets:
+StructureLib import with explicit facing, rotation, flip, and offsets:
 
 ````md
 <GameScene width="384" height="256" zoom={4} interactive={true}>
@@ -211,8 +208,8 @@ StructureLib import とともに 明示的な facing, 回転, flip, と offsets:
 </GameScene>
 ````
 
-GregTech controllers stay unformed by 既定値, even 場合  imported multiblock です otherwise
-有効:
+GregTech controllers stay unformed by default, even when the imported multiblock is otherwise
+valid:
 
 ````md
 <GameScene width="384" height="256" zoom={4} interactive={true}>
@@ -220,7 +217,7 @@ GregTech controllers stay unformed by 既定値, even 場合  imported multibloc
 </GameScene>
 ````
 
-設定します `formed={true}` のみ 場合  プレビュー する必要があります intentionally 表示  formed controller 状態:
+Set `formed={true}` only when the preview should intentionally show the formed controller state:
 
 ````md
 <GameScene width="384" height="256" zoom={4} interactive={true}>
@@ -228,7 +225,7 @@ GregTech controllers stay unformed by 既定値, even 場合  imported multibloc
 </GameScene>
 ````
 
- 同じ 既定値 も 適用します へ controllers placed directly とともに `<Block>`, including GregTech
+The same default also applies to controllers placed directly with `<Block>`, including GregTech
 controllers that rely on surrounding multiblock casings:
 
 ````md
@@ -238,7 +235,7 @@ controllers that rely on surrounding multiblock casings:
 </GameScene>
 ````
 
-Simple ブロック-のみ layouts できます 引き続き なる authored directly と remain compatible とともに multiblock
+Simple block-only layouts can still be authored directly and remain compatible with multiblock
 inspection logic:
 
 ````md
@@ -253,9 +250,9 @@ inspection logic:
 </GameScene>
 ````
 
-## シーンの子要素
+## Scene Child Elements
 
-GuideNH 現在 registers これらの シーン 子 タグ:
+GuideNH currently registers these scene child tags:
 
 - `<Block>`
 - `<ImportStructure>`
@@ -269,16 +266,16 @@ GuideNH 現在 registers これらの シーン 子 タグ:
 - `<PlaceBlock>`
 - `<BlockAnnotationTemplate>`
 - `<Entity>`
-- 注釈 タグ 例として `<BoxAnnotation>` と `<LineAnnotation>`
+- annotation tags such as `<BoxAnnotation>` and `<LineAnnotation>`
 
-## シーンのサウンド
+## Scene Sounds
 
-`<PlaySound>` できます なる placed 内部 `<GameScene>` へ play sounds から シーン interaction または timeline
-エントリ. 使用できるトリガーは次のとおりです:
+`<PlaySound>` can be placed inside `<GameScene>` to play sounds from scene interaction or timeline
+entry. Supported triggers are:
 
-- `click`,  既定値
-- `hover`, fired once 場合  cursor enters  シーン
-- `enter`, fired once 場合  シーン 最初の 描画
+- `click`, the default
+- `hover`, fired once when the cursor enters the scene
+- `enter`, fired once when the scene first renders
 
 ```mdx
 <GameScene width="256" height="160">
@@ -288,40 +285,53 @@ GuideNH 現在 registers これらの シーン 子 タグ:
 </GameScene>
 ```
 
-場合 `x`, `y`, と `z` です 指定された,  sound volume です attenuated で 画面 空間 から 
-projected シーン 座標 へ  クリック 点 または シーン 中央. `radius` defaults へ 75% of 
-shorter シーン 側, と `minVolume` defaults へ `0.15`.
+When `x`, `y`, and `z` are provided, the sound volume is attenuated in screen space from the
+projected scene coordinate to the click point or scene center. `radius` defaults to 75% of the
+shorter scene side, and `minVolume` defaults to `0.15`.
 
-## `<BlockStats>` と `<BlockStat>`
+## `<InputAnnotation>` fluid targets
 
-Declares または customizes a ブロック統計オーバーレイ. シーン とともに ブロック enable  自動 toggle
-button even 場合 この 子 省略された場合. Adding 1 つ または さらに `<BlockStat>` 子要素 switches 
-overlay へ manual statistics モード 用 that シーン.
+InputAnnotation accepts either `item` or `fluid`, never both. A fluid target also accepts optional `amount` (integer) and `nbt` (SNBT). Amount and NBT require `fluid`. Existing position, inputType, modifier, and StructureLib visibility conditions remain available.
 
-`<BlockStats>` 属性:
+```mdx
+<GameScene width="180" height="120">
+  <Block x="0" y="0" z="0" id="minecraft:stone" />
+  <InputAnnotation pos="0.5 1.5 0.5" inputType="rmb" fluid="water" amount={1000} />
+</GameScene>
+```
 
-| 属性 | 必須 | 既定値 | 意味 |
+The annotation displays an interaction icon and fluid information. It does not fill a tank or change the scene world. Fluid blocks still use real block IDs in Block / PlaceBlock.
+
+## `<BlockStats>` and `<BlockStat>`
+
+Declares or customizes a block statistics overlay. Scenes with blocks enable the automatic toggle
+button even when this child is omitted. Adding one or more `<BlockStat>` children switches the
+overlay to manual statistics mode for that scene.
+
+`<BlockStats>` attributes:
+
+| Attribute | Required | Default | Meaning |
 | --- | --- | --- | --- |
-| `visible` | いいえ | config, 既定値 `false` | 初期 overlay 表示状態 |
-| `buttonEnabled` | いいえ | config, 既定値 `true` | shows  ブロック statistics toggle button |
-| `mode` | いいえ | `auto` | `auto` または `manual`; 子 `<BlockStat>` エントリ force manual モード |
-| `corner` | いいえ | `topRight` | overlay corner: `topRight`, `topLeft`, `bottomRight`, または `bottomLeft` |
-| `dock` | いいえ | `inside` | 自動 lists できます attach へ `inside`, `left`, `top`, `right`, または `bottom`; manual モード 常に 使用します  内部 overlay |
-| `showNames` | いいえ | `false` | whether へ 表示 アイテム names beside icons; 場合 有効  count です も appended 後  名前 |
-| `filterMode` | いいえ | `blacklist` | `blacklist` または `whitelist` |
-| `filter` | いいえ | 空 | アイテム キー 例として `minecraft:stone` または `minecraft:stone:0`, separated by spaces, commas, または semicolons |
-| `maxWidth` | いいえ |  larger of `224` px と 40% of  シーン 幅 | maximum overlay 幅 で pixels 前 horizontal スクロールすると |
-| `maxHeight` | いいえ |  larger of `96` px と 40% of  シーン 高さ | maximum overlay 高さ で pixels 前 vertical スクロールすると |
+| `visible` | no | config, default `false` | initial overlay visibility |
+| `buttonEnabled` | no | config, default `true` | shows the block statistics toggle button |
+| `mode` | no | `auto` | `auto` or `manual`; child `<BlockStat>` entries force manual mode |
+| `corner` | no | `topRight` | overlay corner: `topRight`, `topLeft`, `bottomRight`, or `bottomLeft` |
+| `dock` | no | `inside` | automatic lists can attach to `inside`, `left`, `top`, `right`, or `bottom`; manual mode always uses the inside overlay |
+| `showNames` | no | `false` | whether to show item names beside icons; when enabled the count is also appended after the name |
+| `filterMode` | no | `blacklist` | `blacklist` or `whitelist` |
+| `filter` | no | empty | item keys such as `minecraft:stone` or `minecraft:stone:0`, separated by spaces, commas, or semicolons |
+| `maxWidth` | no | the larger of `224` px and 40% of the scene width | maximum overlay width in pixels before horizontal scrolling |
+| `maxHeight` | no | the larger of `96` px and 40% of the scene height | maximum overlay height in pixels before vertical scrolling |
 
-`<BlockStat>` 属性:
+`<BlockStat>` attributes:
 
-| 属性 | 必須 | 意味 |
+| Attribute | Required | Meaning |
 | --- | --- | --- |
-| `item` | はい, 場合を除き `id` です 使用されます | アイテム id 表示される で  一覧 |
-| `id` | はい, 場合を除き `item` です 使用されます | existing アイテム-stack 属性 form |
-| `count` | いいえ | displayed count; omitting it shows  行 once, と `count="0"` hides  行 |
+| `item` | yes, unless `id` is used | item id shown in the list |
+| `id` | yes, unless `item` is used | existing item-stack attribute form |
+| `count` | no | displayed count; omitting it shows the row once, and `count="0"` hides the row |
 
-例:
+Example:
 
 ````md
 <GameScene>
@@ -334,29 +344,29 @@ overlay へ manual statistics モード 用 that シーン.
 
 ## `<Block>`
 
-Places a ブロック into  プレビュー ワールド.
+Places a block into the preview world.
 
-| 属性 | 必須 | 意味 |
+| Attribute | Required | Meaning |
 | --- | --- | --- |
-| `id` | はい, 場合を除き `ore` です 使用されます | ブロック id |
-| `ore` | いいえ | ore dictionary 名前;  最初の 一致する stack 必要があります 解決 へ a ブロック アイテム |
-| `x` | いいえ | 整数 ワールド X, 既定値 `0` |
-| `y` | いいえ | 整数 ワールド Y, 既定値 `0` |
-| `z` | いいえ | 整数 ワールド Z, 既定値 `0` |
-| `meta` | いいえ | 整数 ブロック metadata |
-| `facing` | いいえ | `down`, `up`, `north`, `south`, `west`, `east` |
-| `nbt` | いいえ | SNBT TileEntity compound |
-| `formed` | いいえ | whether  placed structure controller する必要があります なる treated as formed 中 プレビュー sync; 既定値 `false` |
+| `id` | yes, unless `ore` is used | block id |
+| `ore` | no | ore dictionary name; the first matching stack must resolve to a block item |
+| `x` | no | integer world X, default `0` |
+| `y` | no | integer world Y, default `0` |
+| `z` | no | integer world Z, default `0` |
+| `meta` | no | integer block metadata |
+| `facing` | no | `down`, `up`, `north`, `south`, `west`, `east` |
+| `nbt` | no | SNBT TileEntity compound |
+| `formed` | no | whether the placed structure controller should be treated as formed during preview sync; default `false` |
 
-注記:
+Notes:
 
-- `ore` takes precedence 上 `id`; もし GregTech です installed,  選択済み stack です unified 通じて `GTOreDictUnificator.setStack(...)`
-- もし `meta` 省略された場合 と an `ore` 一致 carries concrete non-wildcard アイテム damage, that damage です 使用されます 前  `facing` フォールバック
-- もし `meta` 省略された場合, some ブロック derive sensible 既定値 から `facing`
-- もし `nbt` 作成します TileEntity successfully,  プレビュー 使用します it
-- 設定します `formed={false}` 場合 controller-based structure する必要があります stay unformed で プレビュー even though  surrounding structure です otherwise 有効
+- `ore` takes precedence over `id`; if GregTech is installed, the chosen stack is unified through `GTOreDictUnificator.setStack(...)`
+- if `meta` is omitted and an `ore` match carries concrete non-wildcard item damage, that damage is used before the `facing` fallback
+- if `meta` is omitted, some blocks derive a sensible default from `facing`
+- if `nbt` creates a TileEntity successfully, the preview uses it
+- set `formed={false}` when a controller-based structure should stay unformed in preview even though the surrounding structure is otherwise valid
 
-例:
+Example:
 
 ````md
 <Block id="minecraft:furnace" x="2" facing="south" />
@@ -366,31 +376,31 @@ Places a ブロック into  プレビュー ワールド.
 
 ## `<ImportStructure>`
 
-読み込みます 外部 structure ファイル into  シーン.
+Loads an external structure file into the scene.
 
-| 属性 | 必須 | 意味 |
+| Attribute | Required | Meaning |
 | --- | --- | --- |
-| `src` | はい | structure アセット パス |
-| `x` | いいえ | 整数 翻訳 X (alias 用 `offsetX`) |
-| `y` | いいえ | 整数 翻訳 Y (alias 用 `offsetY`) |
-| `z` | いいえ | 整数 翻訳 Z (alias 用 `offsetZ`) |
-| `offsetX` | いいえ | 整数 翻訳 X (推奨 上 `x`) |
-| `offsetY` | いいえ | 整数 翻訳 Y, clamped へ `[0, worldHeight-1]` (推奨 上 `y`) |
-| `offsetZ` | いいえ | 整数 翻訳 Z (推奨 上 `z`) |
-| `formed` | いいえ | whether imported structure controllers する必要があります なる treated as formed 中 プレビュー sync; 既定値 `false` |
+| `src` | yes | structure asset path |
+| `x` | no | integer translation X (alias for `offsetX`) |
+| `y` | no | integer translation Y (alias for `offsetY`) |
+| `z` | no | integer translation Z (alias for `offsetZ`) |
+| `offsetX` | no | integer translation X (preferred over `x`) |
+| `offsetY` | no | integer translation Y, clamped to `[0, worldHeight-1]` (preferred over `y`) |
+| `offsetZ` | no | integer translation Z (preferred over `z`) |
+| `formed` | no | whether imported structure controllers should be treated as formed during preview sync; default `false` |
 
-対応形式:
+Supported formats:
 
-- SNBT テキスト
+- SNBT text
 - gzipped binary NBT
 - uncompressed binary NBT
 
-必須 structure キー:
+Required structure keys:
 
 - `palette`
 - `blocks`
 
-例:
+Example:
 
 ````md
 <ImportStructure src="/assets/example_structure.snbt" />
@@ -400,37 +410,37 @@ Places a ブロック into  プレビュー ワールド.
 
 ## `<ImportStructureLib>`
 
-Imports StructureLib multiblock プレビュー by controller id.
+Imports a StructureLib multiblock preview by controller id.
 
-| 属性 | 必須 | 意味 |
+| Attribute | Required | Meaning |
 | --- | --- | --- |
-| `controller` | はい | controller ブロック id, using `modid:block[:meta]` |
-| `name` | いいえ | 任意の binding 名前 使用されます by `showWhenStructure` on 注釈, templates, と sounds |
-| `piece` | いいえ | StructureLib piece 名前 上書き |
-| `facing` | いいえ | facing 上書き passed へ  importer |
-| `rotation` | いいえ | 回転 上書き passed へ  importer |
-| `flip` | いいえ | flip/mirror 上書き passed へ  importer |
-| `channel` | いいえ | 整数 channel 上書き 用 channel-aware structures |
-| `tier` | いいえ | tier 対応構造の初期 tier 値 |
-| `channelName` | いいえ | ルートの `channel` または `value` 上書きに使う channel 名 |
-| `value` | いいえ | `channelName` と組み合わせる channel 値 |
-| `locked` | いいえ | 明示した tier または channel の値を固定 |
-| `offsetX` | いいえ | 整数 X offset applied へ すべての placed ブロック (既定値 `0`) |
-| `offsetY` | いいえ | 整数 Y offset applied へ すべての placed ブロック, clamped へ `[0, worldHeight-1]` (既定値 `0`) |
-| `offsetZ` | いいえ | 整数 Z offset applied へ すべての placed ブロック (既定値 `0`) |
-| `formed` | いいえ | whether imported StructureLib controllers する必要があります なる treated as formed 中 プレビュー sync; 既定値 `false` |
+| `controller` | yes | controller block id, using `modid:block[:meta]` |
+| `name` | no | optional binding name used by `showWhenStructure` on annotations, templates, and sounds |
+| `piece` | no | StructureLib piece name override |
+| `facing` | no | facing override passed to the importer |
+| `rotation` | no | rotation override passed to the importer |
+| `flip` | no | flip/mirror override passed to the importer |
+| `tier` | no | initial tier value for tier-aware structures |
+| `channel` | no | integer channel override for channel-aware structures |
+| `channelName` | no | name of the channel used with the root `channel` or `value` override |
+| `value` | no | channel value used with `channelName` |
+| `locked` | no | when `true`, locks the explicitly supplied root tier or channel value during interaction |
+| `offsetX` | no | integer X offset applied to all placed blocks (default `0`) |
+| `offsetY` | no | integer Y offset applied to all placed blocks, clamped to `[0, worldHeight-1]` (default `0`) |
+| `offsetZ` | no | integer Z offset applied to all placed blocks (default `0`) |
+| `formed` | no | whether imported StructureLib controllers should be treated as formed during preview sync; default `false` |
 
-注記:
+Notes:
 
--  imported structure starts から シーン `0 0 0`;  controller です ない forced へ なる placed at `0 0 0`
-- この タグ enables StructureLib-特定の ツールチップ, hatch 強調表示, と channel slider UI 場合 metadata です 利用可能
-- controller 一致する 対応します  GTNH-style `modid:block:meta` form
-- 使用 `name` 場合  シーン 含みます 複数の StructureLib imports と another タグ needs へ 対象 1 つ 特定の structure 状態
-- `facing`, `rotation`, と `flip` 使用  同じ orientation vocabulary as StructureLib export; 場合 requested combination です ない allowed by  controller, GuideNH falls back へ  最初の 有効 alignment 自動的に
-- GregTech controller previews now 既定値 へ  controller's opposite horizontal facing から  older プレビュー orientation, rotating  プレビュー front by 180 degrees around  Y axis
-- 設定します `formed={false}` 場合  imported controller する必要があります remain visibly unformed; この です  対応 alternative へ shipping intentionally broken NBT
+- the imported structure starts from scene `0 0 0`; the controller is not forced to be placed at `0 0 0`
+- this tag enables StructureLib-specific tooltip, hatch highlight, and channel slider UI when metadata is available
+- controller matching supports the GTNH-style `modid:block:meta` form
+- use `name` when the scene contains multiple StructureLib imports and another tag needs to target one specific structure state
+- `facing`, `rotation`, and `flip` use the same orientation vocabulary as StructureLib export; when a requested combination is not allowed by the controller, GuideNH falls back to the first valid alignment automatically
+- GregTech controller previews use the opposite horizontal facing by default
+- set `formed={false}` when the imported controller should remain visibly unformed; this is the supported alternative to shipping intentionally broken NBT
 
-例:
+Example:
 
 ````md
 <ImportStructureLib controller="botanichorizons:automatedCraftingPool" />
@@ -441,7 +451,7 @@ Imports StructureLib multiblock プレビュー by controller id.
 <ImportStructureLib controller="gregtech:gt.blockmachines:15411" formed={false} />
 ````
 
-Structure-aware 注釈 と sound 例:
+Structure-aware annotation and sound example:
 
 ````md
 <GameScene interactive={true}>
@@ -467,26 +477,24 @@ Structure-aware 注釈 と sound 例:
 </GameScene>
 ````
 
-StructureLib defaults できます も なる supplied as 子 タグ. これらの defaults です part of  シーン's
-初期 インタラクティブ 状態, so  reset-view button restores them 後  user 変更 tier または
+StructureLib defaults can also be supplied as child tags. These defaults are part of the scene's
+initial interactive state, so the reset-view button restores them after the user changes tier or
 channel sliders.
 
-| 子 タグ | 意味 |
+| Child tag | Meaning |
 | --- | --- |
-| `<Tier value="1" />` | Master tier 値. |
-| `<Tier value="4" locked={true} />` | 明示した tier または channel の値を固定. |
-| `<Channel name="channelName" value="1" />` | Named StructureLib channel 上書き. Repeat 用 複数の channels. |
-| `<Channel name="channelName" value="1" locked={true} />` | 明示した tier または channel の値を固定. |
-| `<Facing value="north" />` | 既定値 facing. |
-| `<Rotation value="normal" />` | 既定値 回転. |
-| `<Flip value="none" />` | 既定値 flip/mirror. |
-| `<Orientation value="north:normal:none" />` | Facing, 回転, と flip で 1 つ タグ. |
-| `<GregTechActiveController />` | GregTech のみ: 描画  controller とともに its active texture 場合 possible. |
-| `<GregTechPlaceHatches />` | GregTech のみ: 配置 通常 GT hatches 用 hatch-のみ プレビュー positions. なしで この, GT previews 引き続き 使用 survival construct 用 hatch-aware machines, but 空 hatch positions fall back へ casing ブロック. |
+| `<Tier value="1" />` | Master tier value. |
+| `<Tier value="4" locked={true} />` | Master tier value that cannot be changed by the user. |
+| `<Channel name="channelName" value="1" />` | Named StructureLib channel override. Repeat for multiple channels. |
+| `<Channel name="channelName" value="1" locked={true} />` | Named channel override that cannot be changed by the user. |
+| `<Facing value="north" />` | Default facing. |
+| `<Rotation value="normal" />` | Default rotation. |
+| `<Flip value="none" />` | Default flip/mirror. |
+| `<Orientation value="north:normal:none" />` | Facing, rotation, and flip in one tag. |
+| `<GregTechActiveController />` | GregTech only: render the controller with its active texture when possible. |
+| `<GregTechPlaceHatches />` | GregTech only: place normal GT hatches for hatch-only preview positions. Without this, GT previews still use survival construct for hatch-aware machines, but empty hatch positions fall back to casing blocks. |
 
-用 GregTech controllers, GuideNH now 使用します  同じ StructureLib survival-プレビュー パス as 
-export command. この fixes hatch-のみ positions that 通常 `construct()` できません populate 中
-keeping フォールバック casings by 既定値.
+GregTech hatch-aware previews use fallback casings unless `<GregTechPlaceHatches>` is enabled.
 
 ````md
 <GameScene width="384" height="256" zoom={4} interactive={true}>
@@ -504,22 +512,22 @@ keeping フォールバック casings by 既定値.
 
 ## `<IsometricCamera>`
 
-適用します 明示的な isometric カメラ yaw/pitch/roll.
+Applies explicit isometric camera yaw/pitch/roll.
 
-もし この タグ 省略された場合,  シーン keeps using  `<GameScene>` `perspective` preset.  既定値
-`isometric-north-east` preset です equivalent へ:
+If this tag is omitted, the scene keeps using the `<GameScene>` `perspective` preset. The default
+`isometric-north-east` preset is equivalent to:
 
 ````md
 <IsometricCamera yaw="225" pitch="30" />
 ````
 
-| 属性 | 意味 |
+| Attribute | Meaning |
 | --- | --- |
-| `yaw` | 浮動小数点数 |
-| `pitch` | 浮動小数点数 |
-| `roll` | 浮動小数点数 |
+| `yaw` | float |
+| `pitch` | float |
+| `roll` | float |
 
-例:
+Example:
 
 ````md
 <IsometricCamera yaw="45" pitch="30" roll="0" />
@@ -527,15 +535,15 @@ keeping フォールバック casings by 既定値.
 
 ## `<RemoveBlocks>`
 
-Removes すべての すでに-placed ブロック 一致する 対象 ブロック id.
+Removes every already-placed block matching a target block id.
 
-| 属性 | 必須 | 意味 |
+| Attribute | Required | Meaning |
 | --- | --- | --- |
-| `id` | はい | ブロック id へ 削除, using `modid:block[:meta]` |
+| `id` | yes | block id to remove, using `modid:block[:meta]` |
 
-この です useful 後 importing structure 場合 you want へ 非表示 特定の ブロック 用 clarity.
+This is useful after importing a structure when you want to hide specific blocks for clarity.
 
-例:
+Example:
 
 ````md
 <ImportStructure src="/assets/example_structure.snbt" />
@@ -545,34 +553,34 @@ Removes すべての すでに-placed ブロック 一致する 対象 ブロッ
 
 ## `<ReplaceBlock>`
 
-Replaces すでに-placed ブロック that 一致 ソース ブロック id (と optionally partial tile entity NBT
-pattern) とともに new ブロック.  検索 できます なる グローバル (すべての filled ブロック) または restricted へ a
+Replaces already-placed blocks that match a source block id (and optionally a partial tile entity NBT
+pattern) with a new block. The search can be global (all filled blocks) or restricted to a
 bounding box.
 
-| 属性 | 必須 | 意味 |
+| Attribute | Required | Meaning |
 | --- | --- | --- |
-| `from` | はい | ソース ブロック へ 一致, using `modid:block[:meta]` |
-| `from_nbt` | いいえ | partial SNBT compound; a ブロック 一致します のみ 場合 its tile entity NBT 含みます すべての listed キー |
-| `to` | はい | replacement ブロック, using `modid:block[:meta]` |
-| `to_nbt` | いいえ | SNBT TileEntity compound へ apply へ  replacement |
-| `x` | いいえ | bounding box 開始 X; もし 任意の of `x/y/z/dx/dy/dz` です present,  box モード です activated |
-| `y` | いいえ | bounding box 開始 Y |
-| `z` | いいえ | bounding box 開始 Z |
-| `dx` | いいえ | bounding box length on  X axis (既定値 `1`) |
-| `dy` | いいえ | bounding box 高さ on  Y axis (既定値 `1`) |
-| `dz` | いいえ | bounding box 幅/depth on  Z axis (既定値 `1`) |
-| `formed` | いいえ | whether replacement 結果 controllers する必要があります なる treated as formed 中 プレビュー sync; 既定値 `false` |
+| `from` | yes | source block to match, using `modid:block[:meta]` |
+| `fromNbt` | no | partial SNBT compound; a block matches only when its tile entity NBT contains all listed keys |
+| `to` | yes | replacement block, using `modid:block[:meta]` |
+| `toNbt` | no | SNBT TileEntity compound to apply to the replacement |
+| `x` | no | bounding box start X; if any of `x/y/z/dx/dy/dz` is present, the box mode is activated |
+| `y` | no | bounding box start Y |
+| `z` | no | bounding box start Z |
+| `dx` | no | bounding box length on the X axis (default `1`) |
+| `dy` | no | bounding box height on the Y axis (default `1`) |
+| `dz` | no | bounding box width/depth on the Z axis (default `1`) |
+| `formed` | no | whether replacement result controllers should be treated as formed during preview sync; default `false` |
 
-注記:
+Notes:
 
-- 場合 none of `x/y/z/dx/dy/dz` です 指定された, すべての filled ブロック です scanned globally
-- `from_nbt` は **partial** 一致: のみ  キー listed で  pattern 必要があります 一致; extra キー で
-   実際の tile entity です ignored
--  replacement です performed via  同じ ブロック placement pipeline as `<Block>`, so GregTech MetaTile
-  と BartWorks tile entities です handled correctly
-- もし  replacement places controller, `formed={false}` keeps that controller unformed 中 プレビュー
+- when none of `x/y/z/dx/dy/dz` are provided, all filled blocks are scanned globally
+- `fromNbt` is a **partial** match: only the keys listed in the pattern must match; extra keys in
+  the actual tile entity are ignored
+- the replacement is performed via the same block placement pipeline as `<Block>`, so GregTech MetaTile
+  and BartWorks tile entities are handled correctly
+- if the replacement places a controller, `formed={false}` keeps that controller unformed during preview
 
-例:
+Example:
 
 ````md
 <ImportStructure src="/assets/example_structure.snbt" />
@@ -582,31 +590,31 @@ bounding box.
 
 ## `<PlaceBlock>`
 
-Fills an 軸に揃った box とともに a 単一の ブロック 型, overwriting whatever was there 前.
-Unlike `<Block>` (これらは targets a 単一の 位置), `<PlaceBlock>` 対応します multi-ブロック regions via
-`dx`/`dy`/`dz`, ordered as length, 高さ, と 幅/depth on  X/Y/Z axes.
+Fills an axis-aligned box with a single block type, overwriting whatever was there before.
+Unlike `<Block>` (which targets a single position), `<PlaceBlock>` supports multi-block regions via
+`dx`/`dy`/`dz`, ordered as length, height, and width/depth on the X/Y/Z axes.
 
-| 属性 | 必須 | 意味 |
+| Attribute | Required | Meaning |
 | --- | --- | --- |
-| `id` | はい | ブロック id, using `modid:block[:meta]` |
-| `nbt` | いいえ | SNBT TileEntity compound applied へ すべての placed ブロック |
-| `x` | いいえ | region 開始 X, 既定値 `0` |
-| `y` | いいえ | region 開始 Y, 既定値 `0` |
-| `z` | いいえ | region 開始 Z, 既定値 `0` |
-| `dx` | いいえ | region length on  X axis, 既定値 `1` |
-| `dy` | いいえ | region 高さ on  Y axis, 既定値 `1` |
-| `dz` | いいえ | region 幅/depth on  Z axis, 既定値 `1` |
-| `formed` | いいえ | whether placed controllers する必要があります なる treated as formed 中 プレビュー sync; 既定値 `false` |
+| `id` | yes | block id, using `modid:block[:meta]` |
+| `nbt` | no | SNBT TileEntity compound applied to every placed block |
+| `x` | no | region start X, default `0` |
+| `y` | no | region start Y, default `0` |
+| `z` | no | region start Z, default `0` |
+| `dx` | no | region length on the X axis, default `1` |
+| `dy` | no | region height on the Y axis, default `1` |
+| `dz` | no | region width/depth on the Z axis, default `1` |
+| `formed` | no | whether placed controllers should be treated as formed during preview sync; default `false` |
 
-注記:
+Notes:
 
-- すべての ブロック で  box です unconditionally placed (いいえ prior-ブロック check)
--  NBT compound です copied 各 individual placement
--  同じ ブロック placement pipeline as `<Block>` です 使用されます, so GregTech MetaTile と BartWorks tile entities
-  です fully 対応
-- もし  region places 1 つ または さらに controllers, `formed={false}` keeps すべての affected controller unformed
+- all blocks in the box are unconditionally placed (no prior-block check)
+- the NBT compound is copied for each individual placement
+- the same block placement pipeline as `<Block>` is used, so GregTech MetaTile and BartWorks tile entities
+  are fully supported
+- if the region places one or more controllers, `formed={false}` keeps every affected controller unformed
 
-例:
+Example:
 
 ````md
 <PlaceBlock id="minecraft:stone" x="0" y="0" z="0" dx="5" dy="1" dz="5" />
@@ -616,19 +624,19 @@ Unlike `<Block>` (これらは targets a 単一の 位置), `<PlaceBlock>` 対�
 
 ## `<BlockAnnotationTemplate>`
 
-Expands 1 つ または さらに 子 注釈 onto すべての 一致する ブロック that すでに exists で  現在の シーン.
+Expands one or more child annotations onto every matching block that already exists in the current scene.
 
-| 属性 | 必須 | 意味 |
+| Attribute | Required | Meaning |
 | --- | --- | --- |
-| `id` | はい | ブロック matcher で `modid:block[:meta]` form |
+| `id` | yes | block matcher in `modid:block[:meta]` form |
 
-規則:
+Rules:
 
-- 配置 it 後  ブロック または imported structures that it する必要があります 一致
-- 一致する happens against  現在の シーン 状態 at 解析 time
-- 子 注釈 使用 ローカル 座標 相対 へ 各 一致する ブロック
+- place it after the blocks or imported structures that it should match
+- matching happens against the current scene state at parse time
+- child annotations use local coordinates relative to each matched block
 
-例:
+Example:
 
 ````md
 <ImportStructure src="/assets/example_structure.snbt" />
@@ -641,56 +649,56 @@ Expands 1 つ または さらに 子 注釈 onto すべての 一致する ブ�
 
 ## `<Entity>`
 
-Adds entity へ  プレビュー シーン.
+Adds an entity to the preview scene.
 
- 属性 follow summon-style entity placement と SNBT データ.
+The attributes follow summon-style entity placement and SNBT data.
 
-| 属性 | 必須 | 意味 |
+| Attribute | Required | Meaning |
 | --- | --- | --- |
-| `id` | はい | entity 型 id; legacy names like `Sheep`, modern vanilla ids like `minecraft:sheep`, と 登録済み mod entity ids で いずれか `modid.entityName` または `modid:entityName` form です accepted |
-| `x` | いいえ | 浮動小数点数 X 座標  entity です centered on, 既定値 `0.5` |
-| `y` | いいえ | 浮動小数点数 Y 座標 at  下 of  entity, 既定値 `0` |
-| `z` | いいえ | 浮動小数点数 Z 座標  entity です centered on, 既定値 `0.5` |
-| `rotationY` | いいえ | yaw で degrees, 既定値 `-45` |
-| `rotationX` | いいえ | pitch で degrees, 既定値 `0` |
-| `data` | いいえ | summon-style SNBT merged into  entity NBT 前 spawn |
-| `sceneEntityId` | いいえ | stable シーン-ローカル entity id 使用されます by later `<Entity>` / `<RemoveEntity>` operations と by imported シーン snapshots |
-| `mount` | いいえ | stable `sceneEntityId` of  vehicle that この entity する必要があります ride 後 spawn |
-| `unmount` | いいえ | 真偽値 式 that clears この entity's 現在の stable mount relation 後 spawn または 状態 replay |
-| `baby` | いいえ | 真偽値 式 forcing 対応 entities into baby form; omitted leaves  entity's 通常 age/状態 unchanged |
-| `name` | いいえ | プレビュー player 名前 場合 `id` です `player`, `fakeplayer`, `minecraft:player`, または `minecraft:fakeplayer` |
-| `uuid` | いいえ | プレビュー player UUID 場合 using 1 つ of  player ids 上に |
-| `showName` | いいえ | 真偽値 式 controlling  プレビュー player nameplate, 既定値 `true` 用 player プレビュー ids |
-| `showCape` | いいえ | 真偽値 式 controlling  プレビュー player cape, 既定値 `true` 用 player プレビュー ids |
-| `headRotation` | いいえ | プレビュー player head 回転 as `x y z` degrees |
-| `leftArmRotation` | いいえ | プレビュー player 左 arm 回転 as `x y z` degrees |
-| `rightArmRotation` | いいえ | プレビュー player 右 arm 回転 as `x y z` degrees |
-| `leftLegRotation` | いいえ | プレビュー player 左 leg 回転 as `x y z` degrees |
-| `rightLegRotation` | いいえ | プレビュー player 右 leg 回転 as `x y z` degrees |
-| `capeRotation` | いいえ | プレビュー player cape 回転 as `x y z` degrees; defaults へ  standing-引き続き angle `6 0 0` |
+| `id` | yes | entity type id; legacy names like `Sheep`, modern vanilla ids like `minecraft:sheep`, and registered mod entity ids in either `modid.entityName` or `modid:entityName` form are accepted |
+| `x` | no | float X coordinate the entity is centered on, default `0.5` |
+| `y` | no | float Y coordinate at the bottom of the entity, default `0` |
+| `z` | no | float Z coordinate the entity is centered on, default `0.5` |
+| `rotationY` | no | yaw in degrees, default `-45` |
+| `rotationX` | no | pitch in degrees, default `0` |
+| `data` | no | summon-style SNBT merged into the entity NBT before spawn |
+| `sceneEntityId` | no | stable scene-local entity id used by later `<Entity>` / `<RemoveEntity>` operations and by imported scene snapshots |
+| `mount` | no | stable `sceneEntityId` of the vehicle that this entity should ride after spawn |
+| `unmount` | no | boolean expression that clears this entity's current stable mount relation after spawn or state replay |
+| `baby` | no | boolean expression forcing supported entities into baby form; omitted leaves the entity's normal age/state unchanged |
+| `name` | no | preview player name when `id` is `player`, `fakeplayer`, `minecraft:player`, or `minecraft:fakeplayer` |
+| `uuid` | no | preview player UUID when using one of the player ids above |
+| `showName` | no | boolean expression controlling the preview player nameplate, default `true` for player preview ids |
+| `showCape` | no | boolean expression controlling the preview player cape, default `true` for player preview ids |
+| `headRotation` | no | preview player head rotation as `x y z` degrees |
+| `leftArmRotation` | no | preview player left arm rotation as `x y z` degrees |
+| `rightArmRotation` | no | preview player right arm rotation as `x y z` degrees |
+| `leftLegRotation` | no | preview player left leg rotation as `x y z` degrees |
+| `rightLegRotation` | no | preview player right leg rotation as `x y z` degrees |
+| `capeRotation` | no | preview player cape rotation as `x y z` degrees; defaults to the standing-still angle `6 0 0` |
 
-注記:
+Notes:
 
-- entity bounds participate で シーン auto-centering と 表示-layer フィルタリング
-- entity creation falls back gracefully 場合  プレビュー ワールド です ない ready yet, then binds on 最初の 描画
-- `sceneEntityId` です 任意の, but strongly recommended whenever later シーン mutations need へ find, 削除, remount, または restore  同じ logical entity なしで scanning by 未加工 実行時 id
-- 1 つ `sceneEntityId` できます 独自の さらに than 1 つ 実行時 entity instance; `<RemoveEntity sceneEntityId="..."/>` removes すべての entity 現在 登録済み へ that stable id
-- `mount` リンク entities by stable シーン id rather than by 未加工 NBT passenger lists, so replay, import/export, プレビュー rebuild, と Ponder アニメーション seeking できます すべての restore  同じ rider/vehicle relation deterministically
-- `unmount={true}` clears  stable mount relation 用 that entity 前 任意の later mount です applied
-- `baby={true}` 現在 対応します プレビュー players, ageable mobs, vanilla zombies, と modded entities that expose stable `setChild(boolean)` または `setBaby(boolean)` style APIs
-- 子-状態 entities です re-aligned へ their 現在の 位置 後 resizing so ホバー と pick bounds stay centered on  描画される model
-- player プレビュー ids 作成 client-側 fake remote player so  通常 player renderer と skin pipeline できます なる 使用されます
-- 場合 両方 `name` と `uuid` です omitted 用 player プレビュー, GuideNH falls back へ `Steve` と  vanilla 既定値 skin
-- 場合 のみ `name` です given 用 player プレビュー, GuideNH 最初の tries へ 解決  real online profile so skins と capes できます 読み込み; もし lookup fails, it falls back へ stable offline UUID
-- 場合 のみ `uuid` です given 用 player プレビュー, GuideNH generates placeholder 表示 名前 と 引き続き tries へ 解決  skin から  profile
-- `showName={false}` hides  プレビュー player's overhead 名前 なしで bypassing  通常 player renderer
-- `showCape={false}` hides  プレビュー player's cape 中 引き続き respecting  通常 player 描画 パス と Forge hooks
-- player pose 属性 使用 3 つ 空間-separated floats mapped へ model `X Y Z` 回転 で degrees
-- omitted head と limb 回転 属性 保持します  通常 vanilla idle pose; omitted `capeRotation` falls back へ  standing-引き続き cape angle `6 0 0`
-- player previews require active client ワールド at 解析 time because Minecraft's player entity constructor できません なる 作成された worldless
-- ホバーすると entity shows its ローカライズ済み 表示 名前, または its カスタム 名前 もし 1 つ was 指定された
+- entity bounds participate in scene auto-centering and visible-layer filtering
+- entity creation falls back gracefully when the preview world is not ready yet, then binds on first render
+- `sceneEntityId` is optional, but strongly recommended whenever later scene mutations need to find, remove, remount, or restore the same logical entity without scanning by raw runtime id
+- one `sceneEntityId` can own more than one runtime entity instance; `<RemoveEntity sceneEntityId="..."/>` removes every entity currently registered to that stable id
+- `mount` links entities by stable scene id rather than by raw NBT passenger lists, so replay, import/export, preview rebuild, and Ponder seeking can all restore the same rider/vehicle relation deterministically
+- `unmount={true}` clears the stable mount relation for that entity before any later mount is applied
+- `baby={true}` currently supports preview players, ageable mobs, vanilla zombies, and modded entities that expose stable `setChild(boolean)` or `setBaby(boolean)` style APIs
+- child-state entities are re-aligned to their current position after resizing so hover and pick bounds stay centered on the rendered model
+- player preview ids create a client-side fake remote player so the normal player renderer and skin pipeline can be used
+- when both `name` and `uuid` are omitted for a player preview, GuideNH falls back to `Steve` and the vanilla default skin
+- when only `name` is given for a player preview, GuideNH first tries to resolve the real online profile so skins and capes can load; if lookup fails, it falls back to a stable offline UUID
+- when only `uuid` is given for a player preview, GuideNH generates a placeholder display name and still tries to resolve the skin from the profile
+- `showName={false}` hides the preview player's overhead name without bypassing the normal player renderer
+- `showCape={false}` hides the preview player's cape while still respecting the normal player render path and Forge hooks
+- player pose attributes use three space-separated floats mapped to model `X Y Z` rotation in degrees
+- omitted head and limb rotation attributes keep the normal vanilla idle pose; omitted `capeRotation` falls back to the standing-still cape angle `6 0 0`
+- player previews require an active client world at parse time because Minecraft's player entity constructor cannot be created worldless
+- hovering an entity shows its localized display name, or its custom name if one was provided
 
-例:
+Example:
 
 ````md
 <GameScene zoom={4} interactive={true}>
@@ -699,7 +707,7 @@ Adds entity へ  プレビュー シーン.
 </GameScene>
 ````
 
-Stable-id mount 例:
+Stable-id mount example:
 
 ````md
 <GameScene zoom={4} interactive={true}>
@@ -709,7 +717,7 @@ Stable-id mount 例:
 </GameScene>
 ````
 
-Removal と unmount 例:
+Removal and unmount example:
 
 ````md
 <GameScene zoom={4} interactive={true}>
@@ -721,7 +729,7 @@ Removal と unmount 例:
 </GameScene>
 ````
 
-Baby entity 例:
+Baby entity example:
 
 ````md
 <GameScene zoom={4} interactive={true}>
@@ -731,7 +739,7 @@ Baby entity 例:
 </GameScene>
 ````
 
-プレビュー player pose 例:
+Preview player pose example:
 
 ````md
 <GameScene zoom={4} interactive={true}>
@@ -750,7 +758,7 @@ Baby entity 例:
 </GameScene>
 ````
 
-プレビュー player 名前 と cape 例:
+Preview player name and cape example:
 
 ````md
 <GameScene zoom={4} interactive={true}>
@@ -762,20 +770,20 @@ Baby entity 例:
 
 ## `<RemoveEntity>`
 
-Removes すべての 実行時 entity 現在 登録済み へ 1 つ stable `sceneEntityId`.
+Removes every runtime entity currently registered to one stable `sceneEntityId`.
 
-| 属性 | 必須 | 意味 |
+| Attribute | Required | Meaning |
 | --- | --- | --- |
-| `sceneEntityId` | はい | stable シーン-ローカル entity id へ 削除 |
-| `unmount` | いいえ | 真偽値 式 that clears  stable mount relation 前 removal |
+| `sceneEntityId` | yes | stable scene-local entity id to remove |
+| `unmount` | no | boolean expression that clears the stable mount relation before removal |
 
-注記:
+Notes:
 
-- この です  シーン-側 counterpart へ Ponder アニメーション's `removeEntities`
-- removal works on  indexed stable-id registry, so it しません need へ scan すべての entities すべての frame
-- もし 複数の imported または replayed entities share  同じ `sceneEntityId`, これらは です 削除された together
+- this is the scene-side counterpart to Ponder's `removeEntities`
+- removal works on the indexed stable-id registry, so it does not need to scan all entities every frame
+- if multiple imported or replayed entities share the same `sceneEntityId`, they are removed together
 
-例:
+Example:
 
 ````md
 <GameScene zoom={4} interactive={true}>
@@ -785,30 +793,30 @@ Removes すべての 実行時 entity 現在 登録済み へ 1 つ stable `scen
 </GameScene>
 ````
 
-## 天候
+## Weather
 
-`<Weather>` adds animated rain または snow directly へ a `GameScene`. Unlike Ponder アニメーション 天候 presets,
-シーン 天候 です ない timeline-owned: it keeps looping 中 通常 シーン 描画, it しません
-fade で または fade out, と it できません なる paused または scrubbed independently.  renderer 引き続き 使用します 
-同じ precipitation ジオメトリ パス as Ponder アニメーション 天候, so ローカル プレビュー と site export stay aligned.
+`<Weather>` adds animated rain or snow directly to a `GameScene`. Unlike Ponder weather presets,
+scene weather is not timeline-owned: it keeps looping during normal scene rendering, it does not
+fade in or fade out, and it cannot be paused or scrubbed independently. The renderer still uses the
+same precipitation geometry path as Ponder weather, so local preview and site export stay aligned.
 
-| 属性 | 既定値 | 説明 |
+| Attribute | Default | Description |
 | --- | --- | --- |
-| `weather` / `type` | `rain` | 天候 kind. 対応 値: `rain`, `snow`. |
-| `x`, `z` | シーン bounds | Covered precipitation columns. scalar targets 1 つ 列. Arrays 使用 endpoint pairs へ define 1 つ または さらに rectangles. |
-| `density` | 型-特定の | Coverage density. Higher 値 保持します さらに precipitation columns active; lower 値 sparsify  effect. |
+| `weather` / `type` | `rain` | Weather kind. Supported values: `rain`, `snow`. |
+| `x`, `z` | scene bounds | Covered precipitation columns. A scalar targets one column. Arrays use endpoint pairs to define one or more rectangles. |
+| `density` | type-specific | Coverage density. Higher values keep more precipitation columns active; lower values sparsify the effect. |
 
-注記:
+Notes:
 
-- `<Weather>` ignores `y`;  vertical span です derived から  現在の シーン bounds と から 
-  highest precipitation-blocking ブロック で 各 covered 列.
-- もし 1 つ axis has unmatched extra array 値,  unmatched tail です ignored.
-- 内部で 1 つ 天候 declaration, rain と snow 決して stack on  同じ `x/z` 列. もし 複数の
-  天候 タグ overlap, earlier タグ 保持します  shared columns.
-- 異なる non-overlapping columns で  同じ `GameScene` できます 描画 rain と snow at  同じ
+- `<Weather>` ignores `y`; the vertical span is derived from the current scene bounds and from the
+  highest precipitation-blocking block in each covered column.
+- If one axis has unmatched extra array values, the unmatched tail is ignored.
+- Within one weather declaration, rain and snow never stack on the same `x/z` column. If multiple
+  weather tags overlap, earlier tags keep the shared columns.
+- Different non-overlapping columns in the same `GameScene` can render rain and snow at the same
   time.
 
-例:
+Example:
 
 ````md
 <GameScene width="256" height="160" zoom={4} interactive={false}>
@@ -820,22 +828,22 @@ fade で または fade out, と it できません なる paused または scru
 </GameScene>
 ````
 
-## カメラ中心の動作
+## Camera Center Behavior
 
-もし いいえ 明示的な `centerX/Y/Z` です given, GuideNH auto-centers  シーン から  placed ブロック bounds. もし 任意の 明示的な 中央 座標 設定されている場合, auto-centering 無効な場合 と 不足 座標 既定値 へ `0`.
+If no explicit `centerX/Y/Z` is given, GuideNH auto-centers the scene from the placed block bounds. If any explicit center coordinate is set, auto-centering is disabled and missing coordinates default to `0`.
 
-## 操作に関する注意
+## Interaction Notes
 
-場合 `interactive={true}`  シーン 対応します 回転, pan, ズーム, reset, 注釈 toggles, と 他の UI controls exposed by  ガイド 画面.
+When `interactive={true}` the scene supports rotation, pan, zoom, reset, annotation toggles, and other UI controls exposed by the guide screen.
 
-- シーン spanning 複数の Y levels 表示 a 表示-layer slider 上に  下 edge
-- StructureLib シーン できます 追加します hatch-強調表示 toggle button plus channel slider at  very 下 場合  imported metadata 提供します them
-- 注釈 ホバー takes priority 上 ブロック ホバー; ブロック tooltips appear normally once いいえ 注釈 hotspot です being hovered
-- StructureLib ホバー keeps  ブロック 名前 on  最初の ツールチップ 行, adds structure-特定の テキスト starting on  second 行, と expands replacement candidates 場合 `Shift` です held
+- scenes spanning multiple Y levels show a visible-layer slider above the bottom edge
+- StructureLib scenes can add a hatch-highlight toggle button plus a channel slider at the very bottom when the imported metadata provides them
+- annotation hover takes priority over block hover; block tooltips appear normally once no annotation hotspot is being hovered
+- StructureLib hover keeps the block name on the first tooltip line, adds structure-specific text starting on the second line, and expands replacement candidates when `Shift` is held
 
-## 関連ページ
+## Related Pages
 
 - [Annotations](Annotations)
 - [Structure Export](Structure-Export)
 - [Recipes](Recipes)
-- [例s](例s)
+- [Examples](Examples)

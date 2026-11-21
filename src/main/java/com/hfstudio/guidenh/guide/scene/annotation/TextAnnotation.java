@@ -26,14 +26,9 @@ import com.hfstudio.guidenh.guide.scene.element.ImportPonderElementCompiler;
 import lombok.Getter;
 
 /**
- * Speech-bubble text label rendered as a 2D overlay anchored to a world position or at a fixed
- * screen-space offset. Supports optional word-wrapping via a {@code maxWidth} pixel limit, and
- * an optional highlight box (drawn as a companion in-world annotation when used via
- * {@link ImportPonderElementCompiler}).
- *
- * <p>
- * The fade value inherited from {@link OverlayAnnotation} is applied to all drawn colours so
- * the annotation smoothly fades in when its keyframe first becomes active.
+ * Text bubble anchored to a world position or an independent screen offset. {@code maxWidth} controls
+ * wrapping. {@link ImportPonderElementCompiler} may attach a companion in-world highlight box. Overlay fade
+ * applies to all drawn colors.
  */
 public class TextAnnotation extends OverlayAnnotation {
 
@@ -118,7 +113,9 @@ public class TextAnnotation extends OverlayAnnotation {
         this.screenYOffset = screenYOffset;
     }
 
-    /** Convenience constructor for independent mode with no word-wrapping. */
+    /**
+     * Convenience constructor for independent mode with no word-wrapping.
+     */
     public TextAnnotation(String text, int borderArgb, float screenYOffset) {
         this(text, new ConstantColor(borderArgb), screenYOffset, 0);
     }

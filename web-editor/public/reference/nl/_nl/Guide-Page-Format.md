@@ -1,66 +1,65 @@
-# Indeling van gids­pagina's
+# Paginaformaat van de gids
 
-Deze documentatie beschrijft de GuideNH-syntaxis en runtimefuncties. Code, tags, paden, ID's en attribuutwaarden blijven ongewijzigd.
+De uitgebreide naslag op deze pagina is beschikbaar in het Engels. Namen van tags, attributen, ID’s en paden worden zonder vertaling gebruikt.
 
+GuideNH runtime pages are markdown files parsed with:
 
-GuideNH runtime pages are Markdown files parsed met:
-
-- standard Markdown blok en inline syntaxis
+- standard markdown block and inline syntax
 - YAML frontmatter
-- GFM tabellen
+- GFM tables
 - strikethrough
-- mark markeren met `==text==`
+- mark highlight with `==text==`
 - GuideNH inline underline extensions: `++text++` (straight underline), `^^text^^` (wavy underline), `::text::` (emphasis dots / dotted underline)
 - MDX comments using `{/* ... */}`
-- MDX-style aangepaste tags
+- MDX-style custom tags
 
-## Ondersteunde Markdown
+## Supported Markdown
 
-GuideNH pages ondersteuning De algemene Markdown features gebruikt in De example gids:
+GuideNH pages support the common markdown features used in the example guide:
 
 - headings
 - paragraphs
-- inline emphasis, bold, strike, en code
-- inline mark markeren (`==text==`)
-- inline underline (`++text++`), wavy underline (`^^text^^`), en emphasis dots (`::text::`)
-- links en afbeeldingen
-- literal autolinks voor direct URLs, `www.` hosts, en email addresses
-- reference links en reference afbeeldingen
-- unordered en ordered lists
+- inline emphasis, bold, strike, and code
+- inline mark highlight (`==text==`)
+- inline underline (`++text++`), wavy underline (`^^text^^`), and emphasis dots (`::text::`)
+- links and images
+- literal autolinks for direct URLs, `www.` hosts, and email addresses
+- reference links and reference images
+- unordered and ordered lists
 - GFM task lists
 - blockquotes
 - GitHub-style alert blockquotes such as `[!NOTE]`
-- horizontal Regels
-- fenced codeblokken
-- indented codeblokken
-- GFM tabellen
+- horizontal rules
+- fenced code blocks
+- indented code blocks
+- GFM tables
 - HTML tables with captions, column groups, row groups, and merged cells
 - footnotes
-- lowercase HTML fragments such as `<a>`, `<br>`, `<kbd>`, `<sub>`, `<sup>`, en `<details>`
-- MDX comments in pagina tekst
+- lowercase HTML fragments such as `<a>`, `<br>`, `<kbd>`, `<sub>`, `<sup>`, and `<details>`
+- MDX comments in page text
 
-See `wiki/resourcepack/assets/guidenh/guidenh/_en_us/markdown.md` voor Een live sample pagina.
+See `wiki/resourcepack/assets/guidenh/guidenh/_en_us/markdown.md` for a live sample page.
 
-## markeren
+## Highlight
 
-gebruiken `==text==` voor inline highlighted tekst. gebruiken `<mark color="#8A6A00">text</mark>` wanneer Een aangepaste markeren kleur is needed. De Standaard mark achtergrond is Een dark golden yellow chosen naar Behoud white tekst readable.
+Use `==text==` for inline highlighted text. Use `<mark color="#8A6A00">text</mark>` when a custom highlight color is needed. The default mark background is a dark golden yellow chosen to keep white text readable.
 
-## codeblokken
+## Code Blocks
 
-runtime codeblokken currently ondersteuning:
+Runtime code blocks currently support:
 
-- explicit fence languages such as `java`, `lua`, `scala`, `csv`, en `mermaid`
-- automatic taal inference wanneer De fence taal wordt weggelaten
-- Een taal label getoond above De blok
-- Een top-right copy button in De in-game viewer
-- lightweight runtime syntaxis highlighting voor De detected taal
+- explicit fence languages such as `java`, `lua`, `scala`, `csv`, and `mermaid`
+- automatic language inference when the fence language is omitted
+- a language label shown above the block
+- a top-right copy button in the in-game viewer
+- lightweight runtime syntax highlighting for the detected language
 
 Example:
 
 ````md
 ```lua
-lokale waarde = 42
-print(waarde)
+local value = 42
+print(value)
 ```
 
 ```
@@ -70,56 +69,56 @@ object Demo extends App {
 ```
 ````
 
-Indented codeblokken are ook supported:
+Indented code blocks are also supported:
 
 ````md
     print("indented code")
 ````
 
-wanneer Een fenced blok resolves naar `mermaid` en De source is Een supported `mindmap`, GuideNH renders it as Een interactief runtime mindmap instead of Een plain codeblok.
+When a fenced block resolves to `mermaid` and the source is a supported `mindmap`, GuideNH renders it as an interactive runtime mindmap instead of a plain code block.
 
-wanneer Een fenced blok is explicitly marked as `csv`, GuideNH renders it as Een runtime tabel instead of Een plain codeblok. Als De fence taal wordt weggelaten, CSV-shaped tekst still stays Een codeblok en alleen uses CSV taal detection voor labeling/highlighting.
+When a fenced block is explicitly marked as `csv`, GuideNH renders it as a runtime table instead of a plain code block. If the fence language is omitted, CSV-shaped text still stays a code block and only uses CSV language detection for labeling/highlighting.
 
-Explicit CSV tabellen kan ook bieden kolom breedte hints:
+Explicit CSV tables can also provide column width hints:
 
 ````md
 ```csv widths=120,80
-naam,waarde
+name,value
 iron,42
 gold,17
 ```
 ````
 
-Fence metadata ook ondersteunt `header=false` en quoted breedte lists:
+Fence metadata also supports `header=false` and quoted width lists:
 
 ````md
 ```csv widths="120,80" header=false
-naam,waarde
+name,value
 iron,42
 gold,17
 ```
 ````
 
-Direct GFM-style literal autolinks are ook supported in normal paragraph tekst:
+Direct GFM-style literal autolinks are also supported in normal paragraph text:
 
 ````md
 Visit https://example.com/docs, www.example.org, or guide@example.com
 ````
 
-## Mermaid-mindmaps
+## Mermaid Mindmaps
 
-GuideNH runtime Mermaid ondersteuning is currently focused on `mindmap` diagrams:
+GuideNH runtime Mermaid support is currently focused on `mindmap` diagrams:
 
-- fenced ```` ```mermaid ```` blokken
-- auto-detected mermaid code fences whose inhoud starts met `mindmap`
+- fenced ```` ```mermaid ```` blocks
+- auto-detected mermaid code fences whose content starts with `mindmap`
 - explicit `<Mermaid>...</Mermaid>` tags
 - explicit `<Mermaid src="./diagram.mmd" />` imports
-- rich inline Markdown labels binnen Mermaid node tekst
-- optioneel `<NodeContent id="...">...</NodeContent>` kinderen voor arbitrary runtime blokken binnen matching nodes
-- whole-diagram slepen-naar-pan interaction in De in-game viewer
-- `layout: tidy-tree` frontmatter binnen Mermaid source
-- algemene mindmap node shapes such as square, rounded, circle, bang, cloud, en hexagon
-- parsed `::icon(...)` en `:::class` metadata
+- rich inline markdown labels inside Mermaid node text
+- optional `<NodeContent id="...">...</NodeContent>` children for arbitrary runtime blocks inside matching nodes
+- whole-diagram drag-to-pan interaction in the in-game viewer
+- `layout: tidy-tree` frontmatter inside Mermaid source
+- common mindmap node shapes such as square, rounded, circle, bang, cloud, and hexagon
+- parsed `::icon(...)` and `:::class` metadata
 
 Example:
 
@@ -127,11 +126,11 @@ Example:
 ```mermaid
 mindmap
   root((GuideNH))
-    runtime
+    Runtime
       Markdown
       CSV
     Mindmap::icon(fa fa-sitemap)
-      slepen naar pan
+      Drag to pan
 ```
 
 <Mermaid src="./markdown-mindmap.mmd" />
@@ -143,48 +142,50 @@ mindmap
     export["Site export"]
 
 <NodeContent id="runtime">
-Runtimeknooppunten kunnen tekst, links en blokken combineren.
+Runtime nodes can mix text, links, and blocks.
 
 <ItemImage id="minecraft:diamond" />
 </NodeContent>
 
 <NodeContent id="export">
-![Machine Diagram](./resourcepack/assets/guidenh/guidenh/_en_us/test1.png)
+![Machine Diagram](./test1.png)
 </NodeContent>
 </Mermaid>
 ````
 
-Mermaid diagrams that are niet supported at runtime yet still fall back naar regular Mermaid-labeled codeblokken.
+Mermaid diagrams that are not supported at runtime yet still fall back to regular Mermaid-labeled code blocks.
 
-## CSV-tabel importeren
+## CSV Table Import
 
-GuideNH ook ondersteunt runtime CSV bestand imports through Een explicit tag:
+GuideNH also supports runtime CSV file imports through an explicit tag:
 
 ````md
 <CsvTable src="./markdown-table.csv" />
 ````
 
-De `src` pad resolves relative naar De huidige pagina, De zelfde way runtime asset links en scène `src` imports do.
+The `src` path resolves relative to the current page, the same way runtime asset links and scene `src` imports do.
 
-Imported CSV tabellen kan ook bieden breedte hints:
+Imported CSV tables can also provide width hints:
 
 ````md
 <CsvTable src="./markdown-table.csv" widths="120,80" />
 ````
 
-You kan ook write Een CSV tabel inline met Een explicit fence:
+You can also write a CSV table inline with an explicit fence:
 
 ````md
 ```csv
-naam,waarde
+name,value
 iron,42
 gold,17
 ```
 ````
 
-## Breedte-aanwijzingen voor Markdown-tabellen
+## Markdown Tables
 
-Ordinary GFM Markdown tabellen kan ook bieden runtime kolom breedte hints by adding Een trailing runtime Attribuut regel immediately na De tabel:
+### Column Widths
+
+Ordinary GFM markdown tables can also provide runtime column width hints by adding a runtime attribute line immediately before the table:
 
 ````md
 {: widths="120,80" }
@@ -194,11 +195,29 @@ Ordinary GFM Markdown tabellen kan ook bieden runtime kolom breedte hints by add
 | Gold | 17 |
 ````
 
-Deze keeps De tabel itself standard Markdown terwijl letting GuideNH apply runtime-alleen preferred kolom widths.
+This keeps the table itself standard markdown while letting GuideNH apply runtime-only preferred column widths.
 
-## HTML Tables
+### Merged Cells and Cell Attributes
 
-HTML tables support captions, column groups, semantic row groups, merged cells, and alignment. `col` accepts pixel `width`; `span` repeats a width. `th` and `td` support `colspan`, `rowspan`, and `align`; `th` supports `scope`:
+- An extra `|` after a cell adds one spanned column: `||` spans two columns, `|||` spans three.
+- Start a cell with `^^` to merge it into the cell above; its content is added on a new line.
+- Edge colons set cell alignment: `: left`, `right :`, or `: centered :`.
+- A trailing IAL (`{: ... }`) sets `color`, `background` / `bgcolor`, safe `style`, `align`, `valign`, `id`, or `class`. Define reusable attributes with `{:name: ...}`. Unsafe CSS and external URLs are ignored.
+- End a physical row with `\` to continue it on the next line. A delimiter row first (`|--|--|`) creates a headerless table.
+- Cells accept ordinary inline Markdown and MDX, including links, images, emphasis, and LaTeX. HTML tables also support explicit `<thead>`, `<tbody>`, and `<tfoot>` groups.
+
+```markdown
+{:warning: style="background: #4b2418; color: #ffd8c2; font-weight: bold"}
+| Stage | Products | Notes |
+| --- | --- | --- |
+| : First stage : | 2 ATP ||
+| ^^ Next step | 3 ATP | {: warning } |
+| Total ||| {: style="text-align: right; background: #26364d"}
+```
+
+### HTML Tables
+
+Use an HTML table for explicit row groups and multi-row headers. `<caption>` is shown above the table. Use `<colgroup>` and `<col>` to set preferred pixel or percentage column widths; `width` accepts pixels or percentages (with an optional `px` suffix), and `span` repeats one width for several columns. Group rows with `<thead>`, `<tbody>`, and `<tfoot>`. Header and data cells support `colspan`, `rowspan`, `align`, and `valign`; `th` also supports `scope`, `abbr`, and `headers`. Site export preserves common table attributes such as `width`, `border`, `cellpadding`, `cellspacing`, `frame`, `rules`, `summary`, `bgcolor`, and `bordercolor`. A table-level `widths` attribute can also provide comma-separated pixel hints:
 
 ````md
 <table widths="150,70,70,150">
@@ -209,26 +228,43 @@ HTML tables support captions, column groups, semantic row groups, merged cells, 
     <col width="150" />
   </colgroup>
   <thead>
-    <tr><th scope="col" rowspan="2" align="left">Fuel</th><th scope="colgroup" colspan="2" align="center">Rate</th><th scope="col" rowspan="2" align="right">Notes</th></tr>
-    <tr><th scope="col" align="right">Charcoal</th><th scope="col" align="right">Coal</th></tr>
+    <tr>
+      <th scope="col" rowspan="2" align="left">Fuel</th>
+      <th scope="colgroup" colspan="2" align="center">Burn rate</th>
+      <th scope="col" rowspan="2" align="right">Notes</th>
+    </tr>
+    <tr>
+      <th scope="col" align="right">Charcoal</th>
+      <th scope="col" align="right">Coal</th>
+    </tr>
   </thead>
   <tbody>
-    <tr><th scope="row" rowspan="2" align="left">Solid fuel</th><td align="right">42</td><td align="right">17</td><td rowspan="2" align="left">Per tick</td></tr>
-    <tr><td colspan="2" align="right">59 combined</td></tr>
+    <tr>
+      <th scope="row" rowspan="2" align="left">Solid fuel</th>
+      <td align="right">42</td>
+      <td align="right">17</td>
+      <td rowspan="2" align="left">Per tick</td>
+    </tr>
+    <tr>
+      <td colspan="2" align="right">59 combined</td>
+    </tr>
   </tbody>
   <tfoot>
-    <tr><th scope="rowgroup" align="left">Total</th><td colspan="3" align="right">59 units</td></tr>
+    <tr>
+      <th scope="rowgroup" align="left">Total</th>
+      <td colspan="3" align="right">59 units</td>
+    </tr>
   </tfoot>
 </table>
 ````
 
-## Takenlijsten, meldingen en voetnoten
+## Task Lists, Alerts, And Footnotes
 
-GuideNH runtime ook ondersteunt several useful GFM-style behaviors:
+GuideNH runtime also supports several useful GFM-style behaviors:
 
-- task lists using `- [ ]` en `- [x]`
-- GitHub alert blockquotes such as `[!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]`, en `[!CAUTION]`
-- footnote references en definitions
+- task lists using `- [ ]` and `- [x]`
+- GitHub alert blockquotes such as `[!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]`, and `[!CAUTION]`
+- footnote references and definitions
 
 Example:
 
@@ -244,11 +280,11 @@ Footnote ref[^one]
 [^one]: tooltip text
 ````
 
-Footnote references renderen as tooltip-style inline markers, en GuideNH appends Een compact runtime footnote lijst near De bottom of De pagina.
+Footnote references render as tooltip-style inline markers, and GuideNH appends a compact runtime footnote list near the bottom of the page.
 
-## Lijstbreedte aanpassen
+## List Width Customization
 
-Standard Markdown lists do niet define breedte controls, but GuideNH runtime containers kan constrain them:
+Standard markdown lists do not define width controls, but GuideNH runtime containers can constrain them:
 
 ````md
 <Column width="220">
@@ -257,11 +293,11 @@ Standard Markdown lists do niet define breedte controls, but GuideNH runtime con
 </Column>
 ````
 
-Deze is currently De recommended way naar customize lijst regel breedte at runtime.
+This is currently the recommended way to customize list line width at runtime.
 
-## Referentielinks en afbeeldingen
+## Reference Links And Images
 
-GuideNH ondersteunt CommonMark reference definitions:
+GuideNH supports CommonMark reference definitions:
 
 ````md
 [Guide Ref][doc]
@@ -271,9 +307,9 @@ GuideNH ondersteunt CommonMark reference definitions:
 [img]: ./test1.png "Machine Diagram"
 ````
 
-## Runtime-tags voor kleine HTML-letters
+## Lowercase HTML Runtime Tags
 
-GuideNH runtime ondersteunt Een focused subset of lowercase HTML-style tags directly:
+GuideNH runtime supports a focused subset of lowercase HTML-style tags directly:
 
 ````md
 Press <kbd>Shift</kbd> + <sub>1</sub>
@@ -287,14 +323,14 @@ Body text
 </details>
 ````
 
-Other raw HTML fragments still fall back naar literal tekst-style handling instead of browser-grade HTML rendering.
+Other raw HTML fragments still fall back to literal text-style handling instead of browser-grade HTML rendering.
 
 ## MDX Comments
 
-GuideNH ondersteunt De MDX comment form en ignores it voor Markdown compilation:
+GuideNH supports the MDX comment form and ignores it before markdown compilation:
 
 ````md
-Zichtbare tekst. {/* verborgen inlineopmerking */}
+Visible text. {/* hidden inline comment */}
 
 {/*
 multiline comment
@@ -303,107 +339,141 @@ multiline comment
 More visible text.
 ````
 
-## frontmatter
+## Frontmatter
 
-GuideNH reads De first YAML frontmatter blok en parses Deze known keys:
+GuideNH reads the first YAML frontmatter block and parses these known keys:
 
-| Key | Type | Betekenis |
+| Key | Type | Meaning |
 | --- | --- | --- |
-| `navigation` | map | Adds De pagina naar De Navigatie tree |
-| `categories` | lijst of strings | Adds De pagina naar MediaWiki-style categories; elke entry kan optionally gebruiken `category|sort key` |
-| `item_id` | item filter expressie | Een enkele NEI-style item expressie that makes De pagina discoverable by `<ItemLink>` |
-| `item_ids` | lijst of item filter expressions | lijst form of `item_id`; any matching expressie makes De pagina discoverable by `<ItemLink>` |
-| `ore_ids` | lijst of ore dictionary names | Makes De pagina discoverable by ore-dictionary items (e.g. `ingotIron`, `oreCopper`) |
-| `quest_ids` | lijst of BetterQuesting quest ids | Makes De pagina discoverable by `<QuestLink>` / `<QuestCard>` en by De open-gids hotkey wanneer Een quest is hovered in De BQ GUI. Accepts canonical UUID strings en BetterQuesting's compact Base64 form. alleen consumed wanneer BetterQuesting is loaded. See [Mod Compatibility](Mod-Compatibility) |
-| `author` | tekenreeks | enkele author naam. Displayed in De bottom bar. |
-| `authors` | lijst of strings of `{name: ...}` maps | meerdere author names. At most two are displayed; additional ones are vervangen met `...`. Takes precedence over `author` Als both are present. |
-| `date` | tekenreeks of YYYY-MM-DD date | inhoud creation date. Displayed in De bottom bar. |
-| `updated` | tekenreeks of YYYY-MM-DD date | Last bijgewerkt date. Displayed in De bottom bar. |
-| `zoom` | positive kommagetal | Per-pagina inhoud zoomen multiplier (e.g. `1.5` = 150 %). Multiplied met De globale `contentZoom` setting in ModConfig. Standaard `1.0`. |
-| any other key | any YAML waarde | Preserved in `additionalProperties` voor extensions of tooling |
+| `navigation` | map | Adds the page to the navigation tree |
+| `categories` | list of strings | Adds the page to MediaWiki-style categories; each entry can optionally use `category|sort key` |
+| `item_id` | item filter expression | A single NEI-style item expression that makes the page discoverable by `<ItemLink>` |
+| `item_ids` | list of item filter expressions | List form of `item_id`; any matching expression makes the page discoverable by `<ItemLink>` |
+| `fluid_id` / `fluid_ids` | string / string list | Exact fluid registry-name binding, optionally with #anchor |
+| `ore_ids` | list of ore dictionary names | Makes the page discoverable by ore-dictionary items (e.g. `ingotIron`, `oreCopper`) |
+| `bindings` | list of mappings | Associates quests, research or custom content with this page; each entry is `{type: "system", id: "ID", anchor: "section"}`, with optional `anchor` |
+| `research_id` / `research_ids` | string / string list | Thaumcraft research shortcuts for the page top; use `bindings` for section targets |
+| `author` | string | Single author name. Displayed in the bottom bar. |
+| `authors` | list of strings or `{name: ...}` maps | Multiple author names. At most two are displayed; additional ones are replaced with `...`. Takes precedence over `author` if both are present. |
+| `date` | string or YYYY-MM-DD date | Content creation date. Displayed in the bottom bar. |
+| `updated` | string or YYYY-MM-DD date | Last updated date. Displayed in the bottom bar. |
+| `zoom` | positive float | Per-page content zoom multiplier (e.g. `1.5` = 150 %). Multiplied with the global `contentZoom` setting in ModConfig. Default `1.0`. |
+| any other key | any YAML value | Available to extensions and authoring tools |
+
+### Native fluid bindings and navigation icons
+
+`fluid_id` accepts one registry-name binding. `fluid_ids` accepts a string list. Both may coexist and are merged without duplicate destinations. Append `#anchor` to target a section; distinct anchors remain distinct. Bindings use exact names and ignore displayed amount and NBT.
+
+```yaml
+fluid_id: water
+fluid_ids:
+  - water#coolant
+  - steam#uses
+navigation:
+  title: Fluid handling
+  icon_fluid: water
+```
+
+Choose either `navigation.icon_fluid` for one registry name or `icon_fluids` for a nonempty list cycling once per second. These fields are mutually exclusive and cannot be combined with item or texture icon sources. They select page icons, not page bindings. Validate fluid availability in the running game; offline previews cannot verify registry contents.
+
+### External content bindings
+
+`bindings` associates quests, research or another registered content type with this guide page. Write **one YAML flow mapping per entry**, with braces and commas:
+
+```yaml
+---
+navigation:
+  title: Infusion guide
+  required_mod: Thaumcraft
+bindings:
+  - {type: "thaumcraft", id: "INFUSION", anchor: "infusion"}
+  - {type: "thaumcraft", id: "INFUSION", anchor: "apparatus"}
+  - {type: "betterquesting", id: "01234567-89ab-cdef-0123-456789abcdef"}
+---
+```
+
+| Field | Required | Meaning |
+| --- | --- | --- |
+| `type` | Yes | Content system: `thaumcraft` for research, `betterquesting` for quests, or a type registered by another integration; names are trimmed and lowercased |
+| `id` | Yes | Original content ID. Research uses the registered ID, such as `INFUSION`, rather than a translated name. Quest IDs accept UUID and compact Base64 forms |
+| `anchor` | No | Heading or named anchor **in this guide page**. Omit it to open the page from the top; it is not a Thaumonomicon page number |
+
+Different pages and anchors remain separate destinations. Repeating the same content, page and anchor does not add another choice. The native editor, Web Editor and both IDE plugins support these single-line entries. Navigation and click behavior are described under [External content pages](Navigation#external-content-pages).
+
+All three fields are YAML strings. Double-quoted strings escape a quote as `\"` and a backslash as `\\`; single-quoted strings keep double quotes unchanged and escape an apostrophe by doubling it:
+
+```yaml
+bindings:
+  - {type: "custom \"system\"", id: "chapter: \"one\", part#1", anchor: "reader's notes"}
+  - {type: 'custom "system"', id: 'chapter: "one", part#1', anchor: 'reader''s notes'}
+```
+
+Quotes, commas, colons and `#` inside a quoted value belong to that value. `id` preserves case and prefixes such as `@`; surrounding whitespace is removed. Do not append an anchor to the ID: use the separate `anchor` field.
+
+The research-only shortcuts `research_id` and `research_ids` accept one research ID and a string list respectively. Use `bindings` whenever a heading destination is needed. Quest bindings use `bindings`; the old quest frontmatter field is no longer read.
 
 ### `navigation`
 
-| Field | Vereist | Type | Notes |
+| Field | Required | Type | Notes |
 | --- | --- | --- | --- |
-| `title` | yes | tekenreeks | weergeven naam in Navigatie en zoeken title fallback |
-| `keyword` | no | tekenreeks | One additional zoeken keyword of alias; ondersteunt prefix matching |
-| `keywords` | no | lijst of strings | Additional Zoekwoorden of aliases; waarden are combined en deduplicated |
-| `parent` | no | pagina-ID | bovenliggend pagina-ID; omitted betekent top-level node |
-| `position` | no | geheel getal | Sibling sort order; Standaard `0`, larger waarden appear earlier |
-| `priority` | no | geheel getal | Laadprioriteit voor zelfde-pad pagina overrides; Standaard `0`, higher wins, equal priority lets De later resourcepack entry win |
-| `icon` | no | item id | item icon getoond in Navigatie/zoeken. Accepts `modid:name`, `modid:name:meta`, of `modid:name:meta:{snbt}`. De inline SNBT tail is De preferred way naar attach NBT such as Een aangepaste weergeven naam. |
-| `icons` | no | lijst of item ids | lijst of item icons voor animated cycling (one per second). elke entry uses De zelfde syntaxis as `icon`, including inline `:{snbt}` tails. wanneer present takes priority over `icon`. |
-| `icon_texture` | no | asset pad | Texture icon pad opgelost like any other asset link |
-| `icon_textures` | no | lijst of asset paths | lijst of texture icons voor animated cycling (one per second). wanneer present takes priority over `icon_texture`. |
-| `required_mod` | no | mod id | Hides De pagina unless Deze mod is loaded. |
-| `required_mods` | no | lijst of mod ids | Hides De pagina unless iedere listed mod is loaded. |
-| `excluded_mod` | no | mod id | Hides De pagina wanneer Deze mod is loaded. |
-| `excluded_mods` | no | lijst of mod ids | Hides De pagina wanneer any listed mod is loaded. |
+| `title` | yes | string | Display name in navigation and search title fallback |
+| `keyword` | no | string | One additional search keyword or alias; supports prefix matching |
+| `keywords` | no | list of strings | Additional search keywords or aliases; values are combined and deduplicated |
+| `parent` | no | page id | Parent page id; omitted means top-level node |
+| `position` | no | integer | Sibling sort order; default `0`, larger values appear earlier |
+| `recommend` | no | integer | Home recommendation priority; only included when set, larger values first |
+| `priority` | no | integer | Load priority for same-path page overrides; default `0`, higher wins, equal priority lets the later resource pack entry win |
+| `icon` | no | item id | Item icon shown in navigation/search. Accepts `modid:name`, `modid:name:meta`, or `modid:name:meta:{snbt}`. The inline SNBT tail is the preferred way to attach NBT such as a custom display name. |
+| `icons` | no | list of item ids | List of item icons for animated cycling (one per second). Each entry uses the same syntax as `icon`, including inline `:{snbt}` tails. When present takes priority over `icon`. |
+| `icon_texture` | no | asset path | Texture icon path resolved like any other asset link |
+| `icon_textures` | no | list of asset paths | List of texture icons for animated cycling (one per second). When present takes priority over `icon_texture`. |
+| `icon_fluid` | no | string | One fluid registry name; excludes `icon_fluids` and item/texture sources |
+| `icon_fluids` | no | string list | Nonempty fluid registry names cycling once per second; excludes `icon_fluid` and item/texture sources |
+| `required_mod` | no | mod id | Hides the page unless this mod is loaded. |
+| `required_mods` | no | list of mod ids | Hides the page unless every listed mod is loaded. |
+| `excluded_mod` | no | mod id | Hides the page when this mod is loaded. |
+| `excluded_mods` | no | list of mod ids | Hides the page when any listed mod is loaded. |
 
-### Example frontmatter
+### Example Frontmatter
 
 ```yaml
-item_id: minecraft:potion 16384-16462,!16386
 item_ids:
-  - ae2:white_paint_ball:*
-  - "<minecraft:wool:14>"
+  - minecraft:book
+fluid_id: water#coolant
 navigation:
-  title: Root
+  title: Guide Overview
   parent: index.md
   position: 10
-  priority: 0
-  icon: minecraft:book:0:{display:{Name:"My Custom Book"}}
-  # Use meta/damage to select a specific subtype:
-  # icon: minecraft:wool:1       (orange wool, colon form)
-  # Cycling icons list — cycles one per second:
-  # icons:
-  #   - minecraft:wool:1
-  #   - minecraft:wool:4:{display:{Name:"Custom Green Wool"}}
-  #   - minecraft:wool:14
-
-  icon_texture: test1.png
-  # Cycling textures:
-  # icon_textures:
-  #   - test1.png
-  #   - test2.png
+  recommend: 0
+  icon: minecraft:book
 categories:
   - basics
-  - examples|Examples Overview
-ore_ids:
-  - ingotIron
-  - oreCopper
-quest_ids:
-  - 01234567-89ab-cdef-0123-456789abcdef
-  - AAAAAAAAAAAAAAAAAAAMug==
+  - examples|Overview
 author: ExampleAuthor
 date: 2024-01-15
 updated: 2024-06-01
 ```
 
-`categories` accepts either plain category names of `category|sort key` entries.
-gebruiken `<Category name="examples" rows="3" />` naar renderen Een category listing blok, en
-`<Special name="SpecialPages" rows="3" />` naar embed De generated MediaWiki-style special-pagina index.
+`categories` accepts either plain category names or `category|sort key` entries.
+Use `<Category name="examples" rows="3" />` to render a category listing block, and
+`<Special name="SpecialPages" rows="3" />` to embed the generated MediaWiki-style special-page index.
 
-voor BetterQuesting integration, `quest_ids` accepts either of Deze formats:
+The `templates/` folder under a language folder is reserved for template pages. Templates are written
+like any other page but are excluded from listings and the navigation tree. See
+[Templates](Templates).
 
-- canonical UUID strings such as `01234567-89ab-cdef-0123-456789abcdef`
-- BetterQuesting compact quest ids such as `AAAAAAAAAAAAAAAAAAAMug==`
+When any of `author`, `authors`, `date`, or `updated` is present, GuideNH shows a
+bottom bar in the guide screen (matching the top toolbar style) with right-aligned
+text like: *Content from MyMod, Author ExampleAuthor, Date 2024-01-15, Updated 2024-06-01*.
 
-Do niet lijst both forms voor De zelfde quest in one pagina's `quest_ids`; they normalize naar De zelfde internal UUID en would be treated as duplicates.
-
-wanneer any of `author`, `authors`, `date`, of `updated` is present, GuideNH shows a
-bottom bar in De gids scherm (matching De top toolbar style) met right-aligned
-tekst like: *inhoud van MyMod, Author ExampleAuthor, Date 2024-01-15, bijgewerkt 2024-06-01*.
-
-meerdere authors example:
+Multiple authors example:
 ```yaml
 authors:
   - Alice
   - Bob
-  - Charlie   # only Alice and Bob are shown, "..." appended
+  - Charlie
 ```
-of met structured entries:
+Or with structured entries:
 ```yaml
 authors:
   - name: Alice
@@ -412,20 +482,20 @@ authors:
 
 ### `zoom`
 
-De `zoom` key lets you enlarge of shrink De inhoud of Een enkele pagina zonder
-affecting any other pagina. De waarde is Een positive kommagetal treated as Een multiplier:
+The `zoom` key lets you enlarge or shrink the content of a single page without
+affecting any other page. The value is a positive float treated as a multiplier:
 
-| Example waarde | Effect |
+| Example value | Effect |
 | --- | --- |
-| `1.0` (Standaard) | Normal grootte |
-| `1.5` | 150 % — inhoud 50 % larger |
-| `0.75` | 75 % — inhoud 25 % smaller |
+| `1.0` (default) | Normal size |
+| `1.5` | 150 % — content 50 % larger |
+| `0.75` | 75 % — content 25 % smaller |
 
-De per-pagina zoomen is multiplied met De globale **contentZoom** slider in
-ModConfig → GuideNH → UI. Deze lets server packs Stel in Een sensible baseline terwijl
-still allowing individual pages naar fine-tune layout voor narrow of wide inhoud.
+The per-page zoom is multiplied with the global **contentZoom** slider in
+ModConfig → GuideNH → UI. This lets server packs set a sensible baseline while
+still allowing individual pages to fine-tune layout for narrow or wide content.
 
-Example: Stel in Deze pagina naar weergeven at 150 % of De base zoomen:
+Example: set this page to display at 150 % of the base zoom:
 
 ```yaml
 zoom: 1.5
@@ -433,49 +503,49 @@ navigation:
   title: My Dense Page
 ```
 
-pagina layout is recomputed at De zoomen-adjusted breedte, so tekst wrapping en alle
-blok geometry remain correct at any zoomen level.
+Page layout is recomputed at the zoom-adjusted width, so text wrapping and all
+block geometry remain correct at any zoom level.
 
-## Linkresolutie
+## Link Resolution
 
-GuideNH resolves ids en paths using Deze Regels:
+GuideNH resolves ids and paths using these rules:
 
-### pagina links
+### Page links
 
-| Input | Betekenis |
+| Input | Meaning |
 | --- | --- |
-| `subpage.md` | relative naar De huidige pagina, in De huidige pagina namespace |
-| `./subpage.md` | relative naar De huidige pagina, in De huidige pagina namespace |
-| `/guide.md` | rooted naar De huidige pagina namespace, equivalent naar `currentmod:guide.md` |
-| `gregtech:guide.md` | explicit namespace; opens `gregtech:guidenh` wanneer De huidige gids pad is `guidenh` |
-| `gregtech:/guide.md` | explicit namespace plus rooted pad, normalized naar `gregtech:guide.md` |
-| `subpage.md#anchor` | pagina plus anchor fragment |
+| `subpage.md` | relative to the current page, in the current page namespace |
+| `./subpage.md` | relative to the current page, in the current page namespace |
+| `/guide.md` | rooted to the current page namespace, equivalent to `currentmod:guide.md` |
+| `gregtech:guide.md` | explicit namespace; opens `gregtech:guidenh` when the current guide path is `guidenh` |
+| `gregtech:/guide.md` | explicit namespace plus rooted path, normalized to `gregtech:guide.md` |
+| `subpage.md#anchor` | page plus anchor fragment |
 | `guidenh:other.md#anchor` | explicit `modid:path#anchor` |
 | `https://example.com` | external HTTP/HTTPS link |
 
-pagina links are isolated by namespace. Een link written van `assets/guidenh/guidenh/_en_us/index.md` as
-`[Guide](guide.md)` resolves naar `guidenh:guide.md`; De zelfde tekst in
-`assets/gregtech/guidenh/_en_us/index.md` resolves naar `gregtech:guide.md`. Als that pagina is missing in De
-huidige namespace, GuideNH reports it as Een broken link instead of falling back naar another mod's pagina.
+Page links are isolated by namespace. A link written from `assets/guidenh/guidenh/_en_us/index.md` as
+`[Guide](guide.md)` resolves to `guidenh:guide.md`; the same text in
+`assets/gregtech/guidenh/_en_us/index.md` resolves to `gregtech:guide.md`. If that page is missing in the
+current namespace, GuideNH reports it as a broken link instead of falling back to another mod's page.
 
-Explicit `modid:path` links kan cross van one mod's data-driven gids naar another. De gids id is derived van
-De target pagina namespace en De huidige gids pad, so Een link van `guidenh:guidenh` naar `gregtech:guide.md`
-opens pagina `gregtech:guide.md` in gids `gregtech:guidenh`.
+Explicit `modid:path` links can cross from one mod's data-driven guide to another. The guide id is derived from
+the target page namespace and the current guide path, so a link from `guidenh:guidenh` to `gregtech:guide.md`
+opens page `gregtech:guide.md` in guide `gregtech:guidenh`.
 
-Anchor fragments scrollen De gids naar Een heading whose tekst lowercased en spaces vervangen met hyphens
-matches De fragment (e.g. `#crafting-recipe` scrolls naar `## Crafting Recipe`), of naar a `<a name="...">` anchor.
+Anchor fragments scroll the guide to a heading whose text lowercased and spaces replaced with hyphens
+matches the fragment (e.g. `#crafting-recipe` scrolls to `## Crafting Recipe`), or to a `<a name="...">` anchor.
 
-### asset links
+### Asset links
 
-Assets gebruiken De zelfde resolution Regels as links. voor example:
+Assets use the same resolution rules as links. For example:
 
-- `test1.png` resolves relative naar De huidige pagina bestand.
-- `/assets/example_structure.snbt` resolves naar De gids's asset root.
-- `guidenh:textures/gui/example.png` resolves as Een explicit resource location.
+- `test1.png` resolves relative to the current page file.
+- `/assets/example_structure.snbt` resolves to the guide's asset root.
+- `guidenh:textures/gui/example.png` resolves as an explicit resource location.
 
-## Syntaxis voor itemverwijzingen
+## Item Reference Syntax
 
-Navigatie `icon` en `icons`, along met tags that accept Een item id, gebruiken ordinary item references:
+Navigation `icon` and `icons`, along with tags that accept an item id, use ordinary item references:
 
 ```text
 modid:name
@@ -483,10 +553,10 @@ modid:name:meta
 modid:name:meta:{snbt}
 ```
 
-Een omitted `meta` defaults naar `0`. Een SNBT tail starts at De first `{` en is parsed as item NBT. Where wildcard
-metadata is supported, `*` kan be combined met De SNBT tail.
+An omitted `meta` defaults to `0`. An SNBT tail starts at the first `{` and is parsed as item NBT. Where wildcard
+metadata is supported, `*` can be combined with the SNBT tail.
 
-Voorbeelden:
+Examples:
 
 ```text
 minecraft:diamond
@@ -495,18 +565,18 @@ minecraft:written_book:0:{title:TestBook,author:GuideNH}
 minecraft:written_book:*:{title:TestBook,author:GuideNH}
 ```
 
-### Item-indexexpressies
+### Item Index Expressions
 
-`item_id` accepts one NEI-style expressie en `item_ids` accepts Een YAML lijst of De zelfde expressions. elke
-`item_ids` entry is independent; De pagina is linked wanneer any entry matches. Whitespace combines terms, `|`
-combines alternatives, en `,` combines Regels within one term.
+`item_id` accepts one NEI-style expression and `item_ids` accepts a YAML list of the same expressions. Each
+`item_ids` entry is independent; the page is linked when any entry matches. Whitespace combines terms, `|`
+combines alternatives, and `,` combines rules within one term.
 
-- `minecraft:lava` performs Een case-insensitive partial registry-id match, so it ook matches `minecraft:lava_bucket`.
-- `<minecraft:wool:14>` strictly matches one item en meta waarde.
-- `ae2:white_paint_ball:*`, `:32767`, en uppercase meta tokens such as `:ANY` are compatible strict alle-meta forms.
-- `16384-16462,!16386` matches Een metadata range terwijl excluding `16386`.
-- `!minecraft:portal` excludes Een matching registry id.
-- `r/^m\\w{6}ft$/` uses Een Java regular expressie against De registry id.
+- `minecraft:lava` performs a case-insensitive partial registry-id match, so it also matches `minecraft:lava_bucket`.
+- `<minecraft:wool:14>` strictly matches one item and meta value.
+- `ae2:white_paint_ball:*`, `:32767`, and uppercase meta tokens such as `:ANY` are compatible strict all-meta forms.
+- `16384-16462,!16386` matches a metadata range while excluding `16386`.
+- `!minecraft:portal` excludes a matching registry id.
+- `r/^m\\w{6}ft$/` uses a Java regular expression against the registry id.
 
 ```yaml
 item_id: "minecraft:potion 16384-16462,!16386 | ae2:white_paint_ball:*"
@@ -520,50 +590,21 @@ item_ids:
   - minecraft:diamond#Usage
 ```
 
-In Deze example, whitespace combines voorwaarden, `,` combines Regels within one term, `!` excludes Een match, en
-`|` separates alternatives. De first expressie therefore accepts potion metadata van `16384` through `16462`
-except `16386`, of any metadata of `ae2:white_paint_ball`. De second expressie demonstrates Een wildcard item
-reference in Een comma-separated expressie met Een reverse (`!`) rule. De last two entries tonen Een metadata union
-met `28` excluded en Een item mapping that opens De `Usage` heading anchor.
+In this example, whitespace combines conditions, `,` combines rules within one term, `!` excludes a match, and
+`|` separates alternatives. The first expression therefore accepts potion metadata from `16384` through `16462`
+except `16386`, or any metadata of `ae2:white_paint_ball`. The second expression demonstrates a wildcard item
+reference in a comma-separated expression with a reverse (`!`) rule. The last two entries show a metadata union
+with `28` excluded and an item mapping that opens the `Usage` heading anchor.
 
-Een optioneel `#anchor` suffix opens Een matching pagina at Een heading anchor. Exact item en explicit-meta mappings gebruiken
-De direct index first; expressions are evaluated alleen wanneer needed.
+An optional `#anchor` suffix opens a matching page at a heading anchor. Exact item and explicit-meta mappings use
+the direct index first; expressions are evaluated only when needed.
 
-## Foutafhandeling
+## Error Handling
 
-Als Een pagina fails naar parse, GuideNH creates Een error pagina instead of crashing De gids. Invalid tags, ids, en attributen are reported inline as gids-gerenderd error tekst.
+If a page fails to parse, GuideNH creates an error page instead of crashing the guide. Invalid tags, ids, and attributes are reported inline as guide-rendered error text.
 
-## Gerelateerde pagina's
+## Related Pages
 
 - [Navigation](Navigation)
 - [Images And Assets](Images-And-Assets)
 - [Tags Reference](Tags-Reference)
-
-### Markdown table spans and cell attributes
-
-GuideNH extends GFM tables with the same compact span notation used by jekyll-spaceship:
-
-- Add one extra `|` after a cell for each additional column it occupies. `||` therefore means `colspan="2"`, and `|||` means `colspan="3"`.
-- Start a cell with `^^` to continue the cell directly above it. The content is appended with a line break and the original cell receives a larger `rowspan`.
-- A cell can use edge colons for alignment (`: left`, `right :`, or `: centered :`).
-- A trailing IAL (`{: ... }`) applies safe attributes to that cell. Supported properties are `color`, `background`/`bgcolor`, `style` (color, background, font-weight, text-decoration, and alignment declarations), `align`, `valign`, `id`, and `class`.
-- Reusable IAL definitions use `{:name: ...}` on their own line and can be referenced from a cell IAL. Unsafe CSS and external URLs are ignored.
-
-```markdown
-{:warning: style="background: #4b2418; color: #ffd8c2; font-weight: bold"}
-| Stage | Products | Notes |
-| --- | --- | --- |
-| : Glycolysis : | 2 ATP ||
-| ^^ A. Peach | 3 ATP | {: warning } |
-| Final total ||| {: style="text-align: right; background: #26364d"}
-```
-
-The syntax remains ordinary Markdown when the extension is not available: extra empty cells are harmless, while `^^` and IAL text stay visible. HTML tables remain supported for complex headers and explicit `rowspan`/`colspan` attributes.
-### Extended Markdown table syntax
-
-GuideNH also supports the jekyll-spaceship table extensions in every preview:
-
-- End a physical row with `\` to append the next physical row to the same cells; each part is rendered on a new line.
-- Use a delimiter row as the first row (`|--|--|`) for a headerless table. Its rows remain data rows and are not bolded.
-- Cell contents keep normal GuideNH Markdown and MDX inline syntax, including links, images, emphasis, and LaTeX.
-- Use HTML `<thead>`, `<tbody>`, and `<tfoot>` when explicit row groups are needed.

@@ -77,6 +77,10 @@ public abstract class LytNode implements Styleable {
         return List.of();
     }
 
+    public List<? extends LytNode> getLifecycleChildren() {
+        return getChildren();
+    }
+
     /**
      * Get the document we're a part of, if any.
      */

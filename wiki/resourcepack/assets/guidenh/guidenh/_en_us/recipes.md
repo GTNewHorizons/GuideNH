@@ -9,17 +9,41 @@ categories:
 
 # Recipes
 
-`<Recipe>`, `<RecipeFor>`, and `<RecipesFor>` widget tests.
+Examples show recipes, usages and filters for items and fluids.
 
 > Recipe boxes are rendered by NEI's native handlers — crafting table, furnace, brewing stand, etc. all show their own background/animation. Without NEI, we fall back to a built-in 3x3 crafting display.
 
-The small icon in the top-left shows which "recipe pool" the entry belongs to (sourced from `GuiRecipeTab.handlerMap`).
+The small icon in the top-left shows which "recipe pool" the entry belongs to.
+
+## Native fluid recipes
+
+<RecipeFor fluid="steam" fallbackText="No fluid recipe provider is available." />
+
+<RecipesUsage fluid="water" inputFluid="water&amp;!lava" limit="3" fallbackText="No fluid usage provider is available." />
 
 ## Basic Examples
 
 <RecipeFor id="minecraft:wooden_door" />
 <Recipe id="minecraft:missingrecipe" fallbackText="This recipe is not registered." />
 <RecipeFor id="minecraft:iron_pickaxe" />
+
+## Inline NEI recipe links
+
+Action links open every recipe in a handler, recipes producing an item, or item usages. Use `<NeiRecipeLink>` for formatted labels and enter an exact NEI identifier for `handlerId`.
+
+&[Check all Coke Oven recipes](nei:handler?handlerId=gt.recipe.cokeoven)
+
+&[Check recipes](nei:recipes?id=minecraft:iron_ingot)
+
+&[Check usages](nei:usage?id=gregtech:gt.blockmachines:236&handlerId=gt.recipe.cokeoven)
+
+<NeiRecipeLink id="minecraft:iron_ingot" title="NEI">Check **recipes**</NeiRecipeLink>
+
+<NeiRecipeLink mode="usage" id="gregtech:gt.blockmachines:236" handlerId="gt.recipe.cokeoven">Check usages</NeiRecipeLink>
+
+Percent encode SNBT and reserved characters in URI values; a literal `+` remains unchanged:
+
+&[Book recipes with SNBT](nei:recipes?id=minecraft:written_book:0:%7Btitle:%22Guide%2BNEI%22%2Cauthor:GuideNH%7D)
 
 ## Vanilla Recipe Types
 
@@ -159,7 +183,7 @@ A page's own `handlerBlacklist` is added to the configured one, so a page can hi
 
 **Ore dictionary `ore` attribute:**
 
-- First match item: <ItemImage ore="ingotIron" /> iron ingot via ore name
+- First match item: <ItemImage id="minecraft:iron_ingot" ore="ingotIron" /> iron ingot via ore name
 - First match text link: <ItemLink ore="stickWood" />
 - Block preview: <BlockImage ore="logWood" scale="3" />
 - `ore` takes precedence over `id`: <ItemImage id="minecraft:apple" ore="gemDiamond" />

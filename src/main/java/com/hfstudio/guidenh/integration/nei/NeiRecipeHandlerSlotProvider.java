@@ -3,8 +3,12 @@ package com.hfstudio.guidenh.integration.nei;
 import java.util.ArrayList;
 import java.util.List;
 
+import net.minecraft.item.ItemStack;
+
 import org.jetbrains.annotations.Nullable;
 
+import com.hfstudio.guidenh.guide.internal.fluid.FluidStackResolver;
+import com.hfstudio.guidenh.guide.internal.fluid.FluidStackSpec;
 import com.hfstudio.guidenh.integration.api.RecipeHandlerSlotProvider;
 import com.hfstudio.guidenh.integration.api.RecipeSlot;
 
@@ -44,6 +48,20 @@ public class NeiRecipeHandlerSlotProvider implements RecipeHandlerSlotProvider {
         if (slot == null) {
             return null;
         }
-        return new RecipeSlot(slot.relx, slot.rely, slot.stacks, slot.current);
+        if (!slot.fluids.isEmpty())
+            return new RecipeSlot(slot.relx, slot.rely, slot.stacks, slot.current, slot.fluids, slot.currentFluid);
+        var fluids = new ArrayList<FluidStackSpec>();
+        for (var stack : slot.stacks == null ? List.<ItemStack>of() : slot.stacks) {
+            var fluid = FluidStackResolver.getDisplayedFluid(stack);
+            if (fluid != null) fluids.add(FluidStackSpec.fromStack(fluid, true));
+        }
+        var current = FluidStackResolver.getDisplayedFluid(slot.current);
+        return new RecipeSlot(
+            slot.relx,
+            slot.rely,
+            slot.stacks,
+            slot.current,
+            fluids,
+            current == null ? null : FluidStackSpec.fromStack(current, true));
     }
 }

@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.Supplier;
 
+import com.hfstudio.guidenh.guide.compiler.ActionLinkResolver;
 import com.hfstudio.guidenh.guide.compiler.TagCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.ATagCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.AmountCompiler;
@@ -26,6 +27,8 @@ import com.hfstudio.guidenh.guide.compiler.tags.DivTagCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.EmphasisCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.FileTreeTagCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.FloatingImageCompiler;
+import com.hfstudio.guidenh.guide.compiler.tags.FluidImageCompiler;
+import com.hfstudio.guidenh.guide.compiler.tags.FluidLinkCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.FootnoteListCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.HeadingCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.HrCompiler;
@@ -40,6 +43,7 @@ import com.hfstudio.guidenh.guide.compiler.tags.ListCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.ListItemCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.MarkTagCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.MermaidCompiler;
+import com.hfstudio.guidenh.guide.compiler.tags.NeiRecipeLinkCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.ParagraphCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.PlayerNameTagCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.PreCompiler;
@@ -52,6 +56,7 @@ import com.hfstudio.guidenh.guide.compiler.tags.SubscriptTagCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.SuperscriptTagCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.TableCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.TooltipTagCompiler;
+import com.hfstudio.guidenh.guide.compiler.tags.WordBreakCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.chart.BarChartCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.chart.ColumnChartCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.chart.LineChartCompiler;
@@ -65,13 +70,17 @@ import com.hfstudio.guidenh.guide.compiler.tags.mediawiki.TemplateCompiler;
 import com.hfstudio.guidenh.guide.extensions.Extension;
 import com.hfstudio.guidenh.guide.extensions.ExtensionCollection;
 import com.hfstudio.guidenh.guide.extensions.ExtensionPoint;
+import com.hfstudio.guidenh.guide.internal.binding.BindingBlockCompiler;
+import com.hfstudio.guidenh.guide.internal.binding.BindingLinkCompiler;
 import com.hfstudio.guidenh.guide.internal.syntax.BuiltinSyntaxContributor;
+import com.hfstudio.guidenh.guide.nei.NeiActionLinkResolver;
 import com.hfstudio.guidenh.guide.scene.SceneTagCompiler;
 import com.hfstudio.guidenh.guide.scene.annotation.compiler.BlockAnnotationElementCompiler;
 import com.hfstudio.guidenh.guide.scene.annotation.compiler.BlockAnnotationTemplateElementCompiler;
 import com.hfstudio.guidenh.guide.scene.annotation.compiler.BoxAnnotationElementCompiler;
 import com.hfstudio.guidenh.guide.scene.annotation.compiler.DiamondAnnotationElementCompiler;
 import com.hfstudio.guidenh.guide.scene.annotation.compiler.LineAnnotationElementCompiler;
+import com.hfstudio.guidenh.guide.scene.annotation.compiler.OutlineAnnotationElementCompiler;
 import com.hfstudio.guidenh.guide.scene.element.BlockElementCompiler;
 import com.hfstudio.guidenh.guide.scene.element.EntityElementCompiler;
 import com.hfstudio.guidenh.guide.scene.element.ImportPonderElementCompiler;
@@ -89,6 +98,7 @@ import com.hfstudio.guidenh.guide.scene.element.SceneElementTagCompiler;
 import com.hfstudio.guidenh.guide.scene.element.TextAnnotationElementCompiler;
 import com.hfstudio.guidenh.guide.scene.element.WeatherElementCompiler;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
+import com.hfstudio.guidenh.guide.sound.SoundActionLinkResolver;
 import com.hfstudio.guidenh.guide.syntax.SyntaxContributor;
 import com.hfstudio.guidenh.integration.api.GuideNhIntegrationRegistry;
 import com.hfstudio.guidenh.integration.api.SceneElementTagCompilerProvider;
@@ -97,11 +107,16 @@ import com.hfstudio.guidenh.integration.api.TagCompilerProvider;
 public class DefaultExtensions {
 
     public static final List<Registration<?>> EXTENSIONS = List.of(
+        new Registration<>(ActionLinkResolver.EXTENSION_POINT, DefaultExtensions::actionLinkResolvers),
         new Registration<>(TagCompiler.EXTENSION_POINT, DefaultExtensions::tagCompilers),
         new Registration<>(SceneElementTagCompiler.EXTENSION_POINT, DefaultExtensions::sceneElementCompilers),
         new Registration<>(SyntaxContributor.EXTENSION_POINT, DefaultExtensions::syntaxContributors));
 
     private DefaultExtensions() {}
+
+    public static List<ActionLinkResolver> actionLinkResolvers() {
+        return List.of(new SoundActionLinkResolver(), new NeiActionLinkResolver());
+    }
 
     public static void addAll(ExtensionCollection.Builder builder, Set<ExtensionPoint<?>> disabledExtensionPoints) {
         for (var registration : EXTENSIONS) {
@@ -135,13 +150,18 @@ public class DefaultExtensions {
                 new SuperscriptTagCompiler(),
                 new ColorTagCompiler(),
                 new ItemLinkCompiler(),
+                new BindingLinkCompiler(),
+                new BindingBlockCompiler(),
                 new FloatingImageCompiler(),
                 new BreakCompiler(),
+                new WordBreakCompiler(),
                 new ContentTabsTagCompiler(),
                 new DetailsTagCompiler(),
                 new FileTreeTagCompiler(),
                 new RecipeCompiler(),
                 new ItemGridCompiler(),
+                new FluidImageCompiler(),
+                new FluidLinkCompiler(),
                 new CategoryCompiler(),
                 new SpecialCompiler(),
                 new TemplateCompiler(),
@@ -153,6 +173,7 @@ public class DefaultExtensions {
                 new SubPagesCompiler(),
                 new CommandLinkCompiler(),
                 new SoundLinkCompiler(),
+                new NeiRecipeLinkCompiler(),
                 new PlayerNameTagCompiler(),
                 new KeyBindTagCompiler(),
                 new CommentTagCompiler(),
@@ -170,7 +191,6 @@ public class DefaultExtensions {
                 new FunctionGraphTagCompiler(),
                 new FunctionTagCompiler(),
                 new LatexTagCompiler(),
-                // Phase 2A: block-level compilers
                 new ParagraphCompiler(),
                 new HeadingCompiler(),
                 new ListCompiler(),
@@ -179,7 +199,6 @@ public class DefaultExtensions {
                 new BlockquoteCompiler(),
                 new TableCompiler(),
                 new HrCompiler(),
-                // Phase 2A: inline compilers
                 new StrongCompiler(),
                 new EmphasisCompiler(),
                 new DelUWaveMarkCompiler(),
@@ -218,6 +237,7 @@ public class DefaultExtensions {
                 new BoxAnnotationElementCompiler(),
                 new LineAnnotationElementCompiler(),
                 new DiamondAnnotationElementCompiler(),
+                new OutlineAnnotationElementCompiler(),
                 new BlockAnnotationTemplateElementCompiler(),
                 new TextAnnotationElementCompiler(),
                 new ParticleElementCompiler(),

@@ -1,4 +1,7 @@
 {
+  "nei": {
+    "inGame": "請在 GuideNH 中開啟本指南以查看 NEI 配方。"
+  },
   "scene": {
     "hideAnnotations": "隱藏註解",
     "showAnnotations": "顯示註解",
@@ -22,8 +25,11 @@
   "navigation": {
     "open": "導覽",
     "close": "關閉導覽",
-    "holdToOpenGuide": "長按 G 開啟指南"
+    "holdToOpenGuide": "長按 G 開啟指南",
+    "chooseGuide": "選擇指南頁面",
+    "closeChooser": "關閉頁面選擇"
   },
+  "binding.nativeSite": "請在 GuideNH 中開啟此指南以查看原生內容。",
   "sceneLoading": {
     "error": "3D 場景載入失敗。",
     "retry": "重試",

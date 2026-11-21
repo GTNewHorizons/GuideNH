@@ -14,6 +14,20 @@ categories:
 
 另见：[图表](./charts.md) · [函数图](./function-graph.md) · [Markdown 表格扩展](./markdown-table.md)
 
+## 原生流体图标
+
+默认悬停提示显示流体名称、开尔文温度和气体/液体状态。显式填写 `amount`（包括零）时才显示数量，单位遵循 L/mB 设置；省略数量不会添加数量行。高级提示还显示注册名。加载 GregTech 后，化学式等材料信息遵循 GT 的提示设置。游戏内提示、已连接的运行时预览与 ExportSite 共用这些信息；未连接的 Web 预览只能显示已有名称和数量。不依赖 NEI。
+
+<FluidImage id="water" amount={1000} label="right" />
+
+<FluidLink id="steam" showIcon="left" />
+
+<ItemGrid>
+  <ItemIcon id="minecraft:bucket" />
+  <FluidIcon id="water" amount={1000} />
+  <FluidIcon id="steam" />
+</ItemGrid>
+
 ## LaTeX 公式
 
 使用 `<Latex formula="..." />` 在行内渲染 LaTeX 数学公式；将同一标签单独写成一段（块级上下文）则渲染为居中展示的独立公式块。
@@ -75,7 +89,7 @@ $$\begin{pmatrix} a & b \\ c & d \end{pmatrix}$$
 | `formula` | 字符串（必填） | — | LaTeX 源码 |
 | `color` | `#RRGGBB` 或 `#AARRGGBB` | `#FFFFFF` | 字形颜色 |
 | `scale` | float | `1.0` | 显示大小倍率 |
-| `sourceScale` | float | `100.0` | jlatexmath 渲染分辨率 |
+| `sourceScale` | float | `100.0` | jlatexmath 排版基准尺寸（站点导出 PNG 分辨率；游戏内始终匹配屏幕分辨率） |
 | `tooltip` | 字符串 | — | 自定义普通 tooltip 文本 |
 | `showTooltip` | boolean | `false` | 没有自定义 tooltip 时，悬停显示原式内容 |
 | `valign` | `baseline`/`top`/`center`/`bottom` | `baseline` | 行内公式垂直对齐方式 |
@@ -118,6 +132,25 @@ $$\begin{pmatrix} a & b \\ c & d \end{pmatrix}$$
 Press <kbd>Shift</kbd> + <sub>1</sub>
 
 <a href="./index.md" title="Open index">打开首页</a><br clear="all" />
+
+## Amount 数字格式化
+
+`<Amount>` 默认只显示数字。注册的单位类型可以添加自己的显示规则；`fluid` 会遵循 GTNHLib 的 `mB`/`L` 偏好。
+
+| 属性 | 含义 |
+| --- | --- |
+| `value` | 必填的有限十进制数值 |
+| `unit` | 可选值 `none`、`item` 或 `fluid`，默认 `none` |
+| `format` | 可选数字格式，默认 `default` |
+| `decimals` | 可选的非负小数位上限 |
+
+```md
+<Amount value="250" unit="fluid" />/s
+<Amount value="1200000" unit="fluid" format="compact" />/s
+```
+
+<Amount value="250" unit="fluid" />/s
+<Amount value="1200000" unit="fluid" format="compact" />/s
 
 ## 标题
 
@@ -221,6 +254,9 @@ Markdown：
 </Column>
 
 ## 表格
+
+跨列、跨行、多行单元格、无表头表格、单元格 IAL 和完整 HTML 表格的可复制示例请参见[Markdown 表格扩展](./markdown-table.md)。游戏内、Web Editor 和 Site Export 都支持同一套语法。
+
 
 Markdown：
 
@@ -343,6 +379,22 @@ HTML 表格可以表示标题、列分组、语义行分组和合并单元格。
   </tfoot>
 </table>
 
+用 `<wbr>` 指定可选换行点。下面的列宽故意设得很窄：第一行会在每个 `<wbr>` 处换行，第二行没有 `<wbr>`，内容会被裁切。单词放得下时 `<wbr>` 不显示任何内容。
+
+```markdown
+{: widths="50,24" }
+| Item | Rate |
+| --- | --- |
+| Cobble<wbr>stone/s | 11,<wbr>520 |
+| Cobblestone/s | 11,520 |
+```
+
+{: widths="50,24" }
+| Item | Rate |
+| --- | --- |
+| Cobble<wbr>stone/s | 11,<wbr>520 |
+| Cobblestone/s | 11,520 |
+
 ## 引用式链接与图片
 
 [Guide Ref][doc]
@@ -352,9 +404,32 @@ HTML 表格可以表示标题、列分组、语义行分组和合并单元格。
 [doc]: ./index.md#top
 [img]: test1.png "Machine Diagram"
 
+### NEI 动作链接
+
+查看行内动作语法和转义规则：[配方示例](./recipes.md)。
+
+&[查看合成配方](nei:recipes?id=minecraft:iron_ingot)
+
+<NeiRecipeLink id="minecraft:iron_ingot">查看**合成配方**</NeiRecipeLink>
+
 ## 折叠详情
 
 `<details>` 支持 `width`、`height`、`wrap`、`align`。`<summary>` 支持行内标签，正文则可以混排普通文本与任意运行时块。设置高度时，标题和外框保持固定，只有正文区域滚动。
+
+标题、正文和结束标签之间不必保留空行，连续的面板也各自独立。
+标题和正文都支持行内 Markdown，以及 `<ItemLink>`、`<ItemImage>` 等行内标签。
+请使用复数标签 `<details>`，不支持 `<detail>`。
+
+<details open>
+  <summary>紧凑面板 1 <ItemImage id="minecraft:diamond" /></summary>
+  **加粗文本**、*斜体文本*，以及 <ItemLink id="minecraft:diamond" /> <ItemImage id="minecraft:diamond" />。
+</details>
+<details open>
+  <summary>紧凑面板 2 <ItemLink id="minecraft:crafting_table" /></summary>
+  这是独立的面板，包含 <ItemImage id="minecraft:crafting_table" /> 和**格式化文本**。
+</details>
+
+这个段落位于两个面板之外。折叠任意面板后，它都应该保持可见。
 
 <details open width="220" height="150" wrap="square" align="right">
 <summary>混合运行时内容 <ItemImage id="minecraft:diamond" /></summary>
@@ -550,6 +625,82 @@ docs
 </FileTree>
 ```
 
+### 长路径与深层目录
+
+下面包含长路径、连续无分隔符文件名、中英文混排、多个同级文件和九层目录。缩窄窗口或调大指南缩放，观察长名称的自动换行：续行应对齐名称开头，图标保持在首行，目录连接线贯穿多行；深层目录会压缩缩进，为文件名保留阅读空间。
+
+```filetree
+GuideNH-Large-Project/
+├── assets/
+│   ├── guidenh/
+│   │   ├── guides/
+│   │   │   ├── zh_cn/
+│   │   │   │   ├── progression/
+│   │   │   │   │   ├── electrical_age/
+│   │   │   │   │   │   ├── high_voltage/
+│   │   │   │   │   │   │   ├── advanced_processing/
+│   │   │   │   │   │   │   │   ├── `superconductingwirefactorycontrollerconfiguration.json`
+│   │   │   │   │   │   │   │   ├── `大型化工厂连续生产线与副产物回收配置说明.md`
+│   │   │   │   │   │   │   │   └── `configuration/processing/machines/very_long_machine_recipe_with_multiple_byproducts.json`
+│   │   │   │   │   │   │   ├── `高压时代的能源输入与多方块机器排布建议.md`
+│   │   │   │   │   │   │   └── `machine_maintenance_and_energy_distribution_checklist.md`
+│   │   │   │   │   │   └── `README-high-voltage-machine-progression-and-material-requirements.md`
+│   │   │   │   │   ├── medium_voltage/
+│   │   │   │   │   │   ├── `ore_processing_with_secondary_products_and_recycling.json`
+│   │   │   │   │   │   └── `电路生产线 从原料准备到成品自动化.md`
+│   │   │   │   │   └── low_voltage/
+│   │   │   │   │       └── [低压入门与基础机器配置](./index.md)
+│   │   │   │   ├── `跨维度物流与远程物品传输网络的完整使用手册.md`
+│   │   │   │   └── `installation-and-troubleshooting-for-custom-resource-packs.md`
+│   │   │   ├── en_us/
+│   │   │   │   ├── `getting_started_with_large_multiblock_factory_layouts.md`
+│   │   │   │   └── `configuration_reference_for_automated_processing_networks.md`
+│   │   │   └── `shared_navigation_and_localization_fallback_configuration.json`
+│   │   ├── textures/
+│   │   │   ├── {:iconPng=test1.png} `machine_controller_front_panel_with_active_indicator.png`
+│   │   │   ├── `超大型生产线总览图 与机器连接方向说明.png`
+│   │   │   └── `high_resolution_resource_pack_preview_for_all_voltage_tiers.png`
+│   │   └── lang/
+│   │       ├── `zh_CN.lang`
+│   │       ├── `en_US.lang`
+│   │       └── `additional_localization_entries_for_factory_controllers.lang`
+│   └── minecraft/
+│       └── `textures/blocks/custom_machine_casing_with_connected_textures.png`
+├── config/
+│   ├── {:iconItem=minecraft:iron_ingot} `industrial_material_processing_and_energy_balance.json`
+│   ├── `client_rendering_options_for_small_screens_and_large_gui_scales.json`
+│   ├── `世界生成、矿脉分布与大型矿场自动化配置.toml`
+│   └── `server_side_recipe_overrides_and_machine_compatibility_settings.cfg`
+├── documentation/
+│   ├── **安装与升级说明（包含旧版配置迁移步骤）**
+│   ├── [图表交互与数值显示示例](./charts.md)
+│   ├── `known-issues-and-workarounds-for-complex-directory-layouts.md`
+│   └── `Frequently Asked Questions for Guide Authors and Resource Pack Maintainers.md`
+├── `README-with-installation-steps-and-supported-modpack-versions.md`
+├── `CHANGELOG-for-machine-recipe-updates-and-localization-improvements.md`
+└── `LICENSE`
+```
+
+### 较浅目录中的连续长名称
+
+这个示例保留较大的行距，便于检查长文件名换行后的连接线，以及图标与首行的对齐。
+
+<FileTree indent="16" gap="3">
+factory-backups/
+├── {:iconItem=minecraft:chest} `2026-11-14-complete-factory-backup-including-machine-settings-and-item-routing.zip`
+├── {:icon=档} `连续生产线配置备份（包含全部机器参数、物品过滤与流体路由规则）.json`
+├── `aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.json`
+├── `LV-MV-HV-EV-IV-LuV-ZPM-UV-UHV-UEV-UIV-UMV-UXV-complete-progression-checklist.md`
+├── [资源包目录与指南编写说明](./index.md)
+└── `最后一个超长文件名用于检查多行内容下方的末端分支是否正确结束.md`
+</FileTree>
+
+## 函数图
+
+<Function expr="x^2 - 2x + 1" xRange="-2..4" yRange="-1..5" color="#3399ff" />
+
+完整的容器、围栏、曲线与标记点示例见[函数图](./function-graph.md)。
+
 ## Mermaid 思维导图
 
 内联 Mermaid 围栏：
@@ -620,175 +771,3 @@ mindmap
 脚注引用[^one]
 
 [^one]: 这里是脚注的提示内容
-
-## 函数图
-
-GuideNH 提供 Desmos 风格的交互函数图，支持三种写法：`funcgraph` 围栏代码块、
-`<FunctionGraph>` MDX 容器，以及只画一条曲线的简写 `<Function>`。三者共享同一
-面板：可配置尺寸、X/Y 范围、可选网格/坐标轴、自动象限扩展，以及每条曲线的定义域
-限制。在曲线上按住鼠标拖动可沿曲线滑动一个带标签的点；提示框默认锚定在该点正上方，
-顶部空间不足时自动翻到下方。
-
-任何带有 `label` 的曲线都会出现在面板下方的图例里：每一项是一个小色块加曲线名，
-按从左到右的顺序排列，宽度不够时自动换到下一行。
-
-### 围栏代码块
-
-用 ` ```funcgraph ` 作为语言标识符。**第一行**设置面板属性（空格分隔的 `key=value`
-对），后续每行是一条表达式或标记点，`#` 之后到行尾为注释。
-
-```funcgraph
-width=360 height=220 xRange=-pi..pi yRange=-2..2 quadrants=all
-sin(x)        | color=#ff5566 label="sin"
-cos(x)        | color=#3399ff label="cos"
-x/2           | color=#88cc77 domain=-pi..pi
-:0,0
-@plot=0 atX=1.5708
-```
-
-### `<FunctionGraph>` 容器
-
-容器接受与围栏首行完全相同的面板属性。子元素：曲线用 `<Plot expr="…" />`（或
-`<Function expr="…" />`），标记点用 `<Point … />`。
-
-```mdx
-<FunctionGraph width="360" height="220" xRange="-6..6" yRange="-3..3" quadrants="all">
-  <Plot expr="sin(x)" color="#ff5566" label="sin x"/>
-  <Plot expr="x^2 / 4" color="#3399ff" domain="-4..4" label="x² / 4"/>
-  <Plot expr="|x| - 1" color="#88cc77" label="|x| - 1"/>
-  <Point x="0" y="0"/>
-  <Point plot="0" atX="1.5708"/>
-</FunctionGraph>
-```
-
-<FunctionGraph width="360" height="220" xRange="-6..6" yRange="-3..3" quadrants="all">
-  <Plot expr="sin(x)" color="#ff5566" label="sin x"/>
-  <Plot expr="x^2 / 4" color="#3399ff" domain="-4..4" label="x² / 4"/>
-  <Plot expr="|x| - 1" color="#88cc77" label="|x| - 1"/>
-  <Point x="0" y="0"/>
-  <Point plot="0" atX="1.5708"/>
-</FunctionGraph>
-
-### `<Function>` 简写
-
-只想画一条曲线时，`<Function>` 不必再套外壳，面板属性直接写在元素上：
-
-```mdx
-<Function expr="x^2 - 2x + 1" xRange="-2..4" yRange="-1..5" color="#3399ff"/>
-```
-
-<Function expr="x^2 - 2x + 1" xRange="-2..4" yRange="-1..5" color="#3399ff"/>
-
-### 面板属性参考
-
-面板属性可以写在围栏首行（`key=value`）或 `<FunctionGraph>` / `<Function>` 的 JSX
-属性里（`attr="value"` 或 `attr={value}`）。
-
-| 属性 | 类型 | 默认值 | 说明 |
-|---|---|---|---|
-| `width` | 整数 | `360` | 面板宽度（像素） |
-| `height` | 整数 | `220` | 面板高度（像素） |
-| `xRange` | `a..b` | — | X 轴范围简写，等同同时设置 `xMin` 和 `xMax` |
-| `xMin` | 数字 | 自动 | X 轴下限；省略时由曲线内容自动推算 |
-| `xMax` | 数字 | 自动 | X 轴上限；省略时由曲线内容自动推算 |
-| `xStep` | 数字 | 自动 | X 轴采样步长（越小越平滑，越大越快） |
-| `yRange` | `a..b` | — | Y 轴范围简写，等同同时设置 `yMin` 和 `yMax` |
-| `yMin` | 数字 | 自动 | Y 轴下限 |
-| `yMax` | 数字 | 自动 | Y 轴上限 |
-| `yStep` | 数字 | 自动 | Y 轴刻度步长 |
-| `quadrants` | `all` 或 `1,2,3,4` | `1`（仅第一象限） | 初始显示的象限集合；`all` 等同 `1,2,3,4` |
-| `title` | 字符串 | — | 显示在面板顶部的标题文字 |
-| `background` | 颜色 | 主题默认 | 面板背景色（`#RGB` / `#RRGGBB` / `#AARRGGBB`） |
-| `border` | 颜色 | 主题默认 | 面板边框颜色 |
-| `axisColor` | 颜色 | 主题默认 | X/Y 坐标轴颜色 |
-| `gridColor` | 颜色 | 主题默认 | 网格线颜色 |
-| `showGrid` | 布尔 | `true` | 是否渲染网格线 |
-| `showAxes` | 布尔 | `true` | 是否渲染 X/Y 坐标轴 |
-
-### 曲线属性参考
-
-`<Plot>` / `<Function>` 子元素（或围栏中每条非注释、非点行）的可用属性。围栏写法用
-管道符 `|` 分隔：`expr | attr1=val1 attr2=val2`。
-
-| 属性 | 类型 | 默认值 | 说明 |
-|---|---|---|---|
-| `expr` | 字符串 | **必填** | 数学表达式，如 `sin(x)`、`x^2 - 1`、`\|x\|` |
-| `color` | 颜色 | 自动循环 | 曲线颜色（`#RRGGBB` / `#AARRGGBB`） |
-| `label` | 字符串 | — | 图例标签；填写后曲线出现在面板下方图例中 |
-| `domain` | 字符串 | 全轴 | 定义域限制，格式为 `min..max` 或逗号分隔的比较子句，如 `x>=0, x<=pi`；两侧支持常量 |
-| `inverse` | 布尔 | `false` | `true` 时将表达式解释为 `x = f(y)`，对 y 求值并旋转曲线 |
-
-### 标记点属性参考
-
-`<Point>` 子元素（或围栏中的 `:x,y` / `@plot=N atX=v` 行）。
-
-| 属性 | 说明 |
-|---|---|
-| `x` + `y` | 固定坐标点，直接在面板对应位置渲染 |
-| `plot="N"` + `atX="v"` | 锚定到第 N 条曲线（0-indexed），在 x = v 处求 y 后放置标记 |
-| `plot="N"` + `atY="v"` | 锚定到第 N 条曲线，在 y = v 处求 x 后放置标记 |
-
-围栏写法对应：`:x,y` 为固定点；`@plot=N atX=v` / `@plot=N atY=v` 为锚定点。
-
-### 表达式语法参考
-
-| 语法 / 函数 | 说明 |
-|---|---|
-| `+ - * / %` | 基本算术；`%` 为取模 |
-| `^` | 幂运算，**右结合**：`2^3^2` = `2^(3^2)` = 512 |
-| 一元 `-` | 取负；优先级低于 `^`，高于 `*` |
-| `n!` | 后缀阶乘；通过 Gamma 函数推广到实数（负整数返回 NaN） |
-| `\|expr\|` | 绝对值（管道符对） |
-| `2x`、`2pi`、`(a)(b)` | 隐式乘法 |
-| `sqrt(x)` / `√x` | 平方根 |
-| `cbrt(x)` / `∛x` | 立方根 |
-| `abs(x)` | 绝对值，等价于 `\|x\|` |
-| `sign(x)` | 符号函数：`-1` / `0` / `1` |
-| `floor(x)` | 向下取整 |
-| `ceil(x)` | 向上取整 |
-| `round(x)` | 四舍五入 |
-| `sin(x)` / `cos(x)` / `tan(x)` | 三角函数（弧度制） |
-| `asin(x)` / `acos(x)` / `atan(x)` | 反三角函数 |
-| `atan2(y, x)` / `atan(y, x)` | 双参数反正切，结果范围 (−π, π] |
-| `sinh(x)` / `cosh(x)` / `tanh(x)` | 双曲函数 |
-| `exp(x)` | 自然指数 eˣ |
-| `ln(x)` | 自然对数 |
-| `log(x)` | 常用对数（底 10） |
-| `log(b, x)` | 以 `b` 为底的对数 |
-| `log2(x)` | 以 2 为底的对数 |
-| `log10(x)` | 以 10 为底的对数（同 `log(x)`） |
-| `min(a, b, …)` | 最小值，支持任意多参数 |
-| `max(a, b, …)` | 最大值，支持任意多参数 |
-| `pow(a, b)` | 幂运算，等价于 `a^b` |
-| `hypot(a, b)` | 斜边长，等价于 `sqrt(a^2 + b^2)` |
-| `mod(x, m)` | 取模，等价于 `x % m` |
-| `pi` / `τ` / `tau` | 圆周率 π ≈ 3.14159 / 2π ≈ 6.28318 |
-| `e` | 自然常数 e ≈ 2.71828 |
-| `phi` / `φ` | 黄金比例 φ ≈ 1.61803 |
-
-### 默认象限行为
-
-省略 `xRange` / `yRange` 与 `quadrants` 时，面板初始仅显示**第一象限**（`x≥0`、
-`y≥0`）。若采样过程发现曲线存在 `y<0` 的点且未显式设置 y 轴上下界，面板会自动扩展
-到第三、第四象限以保证曲线完整可见；x 轴方向同理。
-
-<FunctionGraph>
-  <Function expr="x" color="#4488ff" label="y = x"/>
-  <Function expr="-x + 4" color="#ff6644" label="y = −x + 4"/>
-</FunctionGraph>
-
-## Amount 数字格式化
-
-`<Amount>` 默认只显示数字。注册的单位类型可以添加自己的显示规则；`fluid` 会遵循 GTNHLib 的 `mB`/`L` 偏好。
-
-```md
-<Amount value="250" unit="fluid" />/s
-<Amount value="1200000" unit="fluid" format="compact" />/s
-```
-
-<Amount value="250" unit="fluid" />/s
-<Amount value="1200000" unit="fluid" format="compact" />/s
-
-## 表格扩展参考
-
-跨列、跨行、多行单元格、无表头表格、单元格 IAL 和完整 HTML 表格的可复制示例请参见[Markdown 表格扩展](./markdown-table.md)。游戏内、Web Editor 和 Site Export 都支持同一套语法。

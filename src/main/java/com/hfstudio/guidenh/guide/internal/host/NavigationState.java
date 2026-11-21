@@ -6,21 +6,34 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 
 import net.minecraft.util.ResourceLocation;
 
 import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.PageAnchor;
+import com.hfstudio.guidenh.guide.PageCollection;
 import com.hfstudio.guidenh.guide.internal.GuideRegistry;
 import com.hfstudio.guidenh.guide.internal.GuideScreenRoute;
 import com.hfstudio.guidenh.guide.internal.GuideScreenViewState;
-import com.hfstudio.guidenh.guide.internal.MutableGuide;
 import com.hfstudio.guidenh.guide.internal.screen.GuideNavBarState;
 
 public class NavigationState {
 
-    /** Sentinel key for the home page's nav bar state (home has no guideId). */
+    private final Function<ResourceLocation, ? extends PageCollection> pageCollections;
+
+    public NavigationState() {
+        this(GuideRegistry::getById);
+    }
+
+    public NavigationState(Function<ResourceLocation, ? extends PageCollection> pageCollections) {
+        this.pageCollections = pageCollections;
+    }
+
+    /**
+     * Sentinel key for the home page's nav bar state (home has no guideId).
+     */
     static final ResourceLocation HOME_KEY = new ResourceLocation("guidenh", "_home");
 
     @Nullable
@@ -194,7 +207,7 @@ public class NavigationState {
         ResourceLocation guideId = route.guideId();
         PageAnchor anchor = route.anchor();
         if (guideId == null || anchor == null) return false;
-        MutableGuide guide = GuideRegistry.getById(guideId);
+        PageCollection guide = pageCollections.apply(guideId);
         return guide != null && guide.pageExists(anchor.pageId());
     }
 

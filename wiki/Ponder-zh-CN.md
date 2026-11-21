@@ -21,10 +21,10 @@ GuideNH 在游戏场景（`<GameScene>`）块中支持思索风格的动画时�
 思索 JSON 文件遵循与 SNBT 结构文件相同的资源包路径规则：
 
 ```
-assets/<modid>/guidebooks/
-  pages/machines/my_machine.mdx       ← guide 页面
-  pages/machines/my_machine.snbt      ← 结构数据
-  pages/machines/my_machine.json      ← 思索 JSON
+assets/<modid>/guidenh/
+  _en_us/machines/my_machine.md       ← guide 页面
+  _en_us/machines/my_machine.snbt      ← 结构数据
+  _en_us/machines/my_machine.json      ← 思索 JSON
 ```
 
 `src` 属性支持相对路径和绝对 ID：
@@ -32,7 +32,7 @@ assets/<modid>/guidebooks/
 | 示例 | 解析方式 |
 |------|----------|
 | `src="my_machine.json"` | 相对于当前页面目录 |
-| `src="mymod:guidebooks/pages/machines/my_machine.json"` | 绝对路径（`mymod` 命名空间） |
+| `src="mymod:guidenh/_en_us/machines/my_machine.json"` | 绝对路径（`mymod` 命名空间） |
 
 ## JSON 格式
 
@@ -296,8 +296,8 @@ assets/<modid>/guidebooks/
 
 ## 实体操作
 
-游戏场景（`<GameScene>`）本身已经支持普通 `<Entity>` 标签。思索时间轴现在也可以通过
-`createEntities` 创建由时间轴管理的实体，并在后续关键帧中通过 `ref` 引用它们。
+使用 `<Entity>` 在场景中放置实体，或通过思索时间轴的 `createEntities` 动作创建实体。
+时间轴创建的实体可在后续关键帧中通过 `ref` 引用。
 
 ```json
 {
@@ -708,9 +708,9 @@ assets/<modid>/guidebooks/
 
 ```
 assets/mymod/guidebooks/
-  pages/machines/grinder.mdx
-  pages/machines/grinder.snbt
-  pages/machines/grinder.json
+  _en_us/machines/grinder.md
+  _en_us/machines/grinder.snbt
+  _en_us/machines/grinder.json
 ```
 
 ### `grinder.json`
@@ -820,9 +820,9 @@ assets/mymod/guidebooks/
 
 ### `grinder.snbt`
 
-标准 NBT 结构文件（通过 `/structure save` 命令或 Litematica 等工具创建）。完整的 SNBT 格式参考请见 [Getting Started](Getting-Started-zh-CN.md)。
+使用 `<ImportStructure>` 支持的 SNBT/NBT 结构；格式说明见 [GameScene](GameScene-zh-CN#importstructure)。
 
-### `grinder.mdx`
+### `grinder.md`
 
 ```mdx
 # 磨碎机

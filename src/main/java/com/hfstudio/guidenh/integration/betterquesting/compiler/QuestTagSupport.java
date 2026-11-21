@@ -2,22 +2,18 @@ package com.hfstudio.guidenh.integration.betterquesting.compiler;
 
 import java.util.UUID;
 
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiScreen;
-
 import org.jetbrains.annotations.Nullable;
 
-import com.hfstudio.guidenh.guide.PageAnchor;
 import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.MdxAttrs;
 import com.hfstudio.guidenh.guide.document.LytErrorSink;
+import com.hfstudio.guidenh.guide.document.flow.LytBindingLink;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowLink;
 import com.hfstudio.guidenh.guide.document.interaction.TextTooltip;
-import com.hfstudio.guidenh.guide.ui.GuideUiHost;
-import com.hfstudio.guidenh.integration.betterquesting.BqHelpers;
+import com.hfstudio.guidenh.guide.internal.binding.BindingSpec;
+import com.hfstudio.guidenh.integration.api.binding.BindingKey;
 import com.hfstudio.guidenh.integration.betterquesting.QuestDisplay;
-import com.hfstudio.guidenh.integration.betterquesting.QuestIndex;
 import com.hfstudio.guidenh.integration.betterquesting.QuestState;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 
@@ -27,12 +23,8 @@ public class QuestTagSupport {
 
     public static boolean resolveShowTooltip(PageCompiler compiler, LytErrorSink errorSink, MdxJsxElementFields el) {
         try {
-            Boolean camelCaseValue = MdxAttrs.parseOptionalBoolean(el.getAttribute("showTooltip"), "showTooltip");
-            if (camelCaseValue != null) {
-                return camelCaseValue;
-            }
-            Boolean snakeCaseValue = MdxAttrs.parseOptionalBoolean(el.getAttribute("show_tooltip"), "show_tooltip");
-            return snakeCaseValue != null ? snakeCaseValue : true;
+            Boolean value = MdxAttrs.parseOptionalBoolean(el.getAttribute("showTooltip"), "showTooltip");
+            return value == null || value;
         } catch (IllegalArgumentException | MdxAttrs.AttributeException e) {
             errorSink.appendError(compiler, e.getMessage(), el);
             return true;
@@ -48,38 +40,21 @@ public class QuestTagSupport {
     }
 
     public static LytFlowLink createQuestGuiLink(UUID questId, QuestDisplay display, String text, boolean showTooltip) {
-        var link = new LytFlowLink();
-        link.setClickCallback(screen -> openBetterQuestingQuest(screen, questId));
+        var link = new LytBindingLink(
+            BindingSpec.quest(new BindingKey("betterquesting", questId.toString()), text, showTooltip),
+            text);
         applyQuestLinkStyle(link, display, text, showTooltip);
         return link;
     }
 
     public static LytFlowLink createQuestLink(PageCompiler compiler, UUID questId, QuestDisplay display, String text,
         boolean showTooltip) {
-        var link = new LytFlowLink();
-        attachQuestNavigation(compiler, questId, link);
-        applyQuestLinkStyle(link, display, text, showTooltip);
-        return link;
+        return createQuestGuiLink(questId, display, text, showTooltip);
     }
 
     public static String nameOrFallback(QuestDisplay display, UUID questId) {
         String name = display.getName();
         return name != null && !name.isEmpty() ? name : "Quest " + questId;
-    }
-
-    private static void attachQuestNavigation(PageCompiler compiler, UUID questId, LytFlowLink link) {
-        PageAnchor pageAnchor = compiler.getIndex(QuestIndex.class)
-            .findByUuid(questId);
-        if (pageAnchor != null && shouldNavigateToGuidePage(compiler, pageAnchor)) {
-            link.setPageLink(pageAnchor);
-            return;
-        }
-        link.setClickCallback(screen -> openBetterQuestingQuest(screen, questId));
-    }
-
-    private static boolean shouldNavigateToGuidePage(PageCompiler compiler, PageAnchor pageAnchor) {
-        return !pageAnchor.pageId()
-            .equals(compiler.getPageId());
     }
 
     private static void applyQuestLinkStyle(LytFlowLink link, QuestDisplay display, String text, boolean showTooltip) {
@@ -90,12 +65,6 @@ public class QuestTagSupport {
         if (showTooltip) {
             applyTooltip(link, display.getDescription());
         }
-    }
-
-    private static void openBetterQuestingQuest(GuideUiHost screen, UUID questId) {
-        GuiScreen originScreen = screen instanceof GuiScreen guiScreen ? guiScreen
-            : Minecraft.getMinecraft().currentScreen;
-        BqHelpers.openQuestGui(questId, originScreen);
     }
 
     private static void applyTooltip(LytFlowLink link, @Nullable String tooltipText) {

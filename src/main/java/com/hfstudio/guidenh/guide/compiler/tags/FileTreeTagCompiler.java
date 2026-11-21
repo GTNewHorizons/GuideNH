@@ -16,10 +16,8 @@ import com.hfstudio.guidenh.libs.unist.UnistNode;
 import com.hfstudio.guidenh.libs.unist.UnistParent;
 
 /**
- * Compiles the {@code <FileTree>} block tag. Body content is recovered as raw source text via
- * {@link PageCompiler#getBlockTagChildrenSource} so that the verbatim tree characters survive
- * markdown re-tokenization. When the source position is unavailable (e.g. authored programmatically
- * without offsets) a best-effort text join over the element children is used as fallback.
+ * Reads FileTree bodies from verbatim source so Markdown parsing cannot alter tree characters.
+ * Programmatically created nodes without source offsets fall back to joining child text.
  */
 public class FileTreeTagCompiler extends BlockTagCompiler {
 

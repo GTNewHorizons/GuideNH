@@ -28,15 +28,13 @@ public class MarkdownRuntimeBlocks {
     }
 
     public static @Nullable QuoteIconSpec parseQuoteIconAttributes(MdxJsxElementFields element) {
-        String item = firstNonBlank(
-            element.getAttributeString("iconItem", null),
-            element.getAttributeString("icon_item", null));
+        String fluid = firstNonBlank(element.getAttributeString("iconFluid", null));
+        if (fluid != null) return new QuoteIconSpec(QuoteIconKind.FLUID, fluid);
+        String item = firstNonBlank(element.getAttributeString("iconItem", null));
         if (item != null) {
             return new QuoteIconSpec(QuoteIconKind.ITEM, item);
         }
-        String png = firstNonBlank(
-            element.getAttributeString("iconPng", null),
-            element.getAttributeString("icon_png", null));
+        String png = firstNonBlank(element.getAttributeString("iconPng", null));
         if (png != null) {
             return new QuoteIconSpec(QuoteIconKind.PNG, png);
         }
@@ -116,6 +114,8 @@ public class MarkdownRuntimeBlocks {
                 icon = new QuoteIconSpec(QuoteIconKind.PNG, value);
             } else if ("iconItem".equalsIgnoreCase(key) || "icon_item".equalsIgnoreCase(key)) {
                 icon = new QuoteIconSpec(QuoteIconKind.ITEM, value);
+            } else if ("iconFluid".equalsIgnoreCase(key) || "icon_fluid".equalsIgnoreCase(key)) {
+                icon = new QuoteIconSpec(QuoteIconKind.FLUID, value);
             }
         }
 
@@ -286,7 +286,8 @@ public class MarkdownRuntimeBlocks {
     public enum QuoteIconKind {
         TEXT,
         PNG,
-        ITEM
+        ITEM,
+        FLUID
     }
 
     private record FirstParagraphText(@Nullable MdAstAnyContent paragraph, String text) {}

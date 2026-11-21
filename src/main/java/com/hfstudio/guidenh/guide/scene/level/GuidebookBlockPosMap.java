@@ -1,11 +1,13 @@
 package com.hfstudio.guidenh.guide.scene.level;
 
 import java.util.AbstractCollection;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
+import it.unimi.dsi.fastutil.HashCommon;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 
@@ -23,38 +25,65 @@ import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
  */
 public class GuidebookBlockPosMap<V> {
 
+    private static final int COLUMN_CACHE_SIZE = 64;
+
     private final Long2ObjectOpenHashMap<Int2ObjectOpenHashMap<V>> valuesByColumn = new Long2ObjectOpenHashMap<>();
+    // Cache column containers, never their mutable values. Missing columns are cached too.
+    private final long[] cachedColumnKeys = new long[COLUMN_CACHE_SIZE];
+    private final Object[] cachedColumns = new Object[COLUMN_CACHE_SIZE];
+    private final boolean[] cachedColumnValid = new boolean[COLUMN_CACHE_SIZE];
     private final Collection<V> valuesView = Collections.unmodifiableCollection(new ValuesView());
     private int size;
+    private int minX;
+    private int minY;
+    private int minZ;
+    private int maxX;
+    private int maxY;
+    private int maxZ;
 
     public V get(int x, int y, int z) {
-        Int2ObjectOpenHashMap<V> values = valuesByColumn.get(packColumn(x, z));
+        if (!mayContain(x, y, z)) return null;
+        Int2ObjectOpenHashMap<V> values = findColumn(packColumn(x, z));
         return values != null ? values.get(y) : null;
     }
 
     public boolean containsKey(int x, int y, int z) {
-        Int2ObjectOpenHashMap<V> values = valuesByColumn.get(packColumn(x, z));
+        if (!mayContain(x, y, z)) return false;
+        Int2ObjectOpenHashMap<V> values = findColumn(packColumn(x, z));
         return values != null && values.containsKey(y);
     }
 
     public V put(int x, int y, int z, V value) {
         long column = packColumn(x, z);
-        Int2ObjectOpenHashMap<V> values = valuesByColumn.get(column);
+        Int2ObjectOpenHashMap<V> values = findColumn(column);
         if (values == null) {
             values = new Int2ObjectOpenHashMap<>();
             valuesByColumn.put(column, values);
+            cacheColumn(column, values);
         }
         boolean hadValue = values.containsKey(y);
         V previous = values.put(y, value);
         if (!hadValue) {
             size++;
+            if (size == 1) {
+                minX = maxX = x;
+                minY = maxY = y;
+                minZ = maxZ = z;
+            } else {
+                minX = Math.min(minX, x);
+                minY = Math.min(minY, y);
+                minZ = Math.min(minZ, z);
+                maxX = Math.max(maxX, x);
+                maxY = Math.max(maxY, y);
+                maxZ = Math.max(maxZ, z);
+            }
         }
         return previous;
     }
 
     public V remove(int x, int y, int z) {
         long column = packColumn(x, z);
-        Int2ObjectOpenHashMap<V> values = valuesByColumn.get(column);
+        Int2ObjectOpenHashMap<V> values = findColumn(column);
         if (values == null || !values.containsKey(y)) {
             return null;
         }
@@ -62,13 +91,41 @@ public class GuidebookBlockPosMap<V> {
         size--;
         if (values.isEmpty()) {
             valuesByColumn.remove(column);
+            cacheColumn(column, null);
         }
         return previous;
     }
 
     public void clear() {
         valuesByColumn.clear();
+        Arrays.fill(cachedColumns, null);
+        Arrays.fill(cachedColumnValid, false);
         size = 0;
+    }
+
+    @SuppressWarnings("unchecked")
+    private Int2ObjectOpenHashMap<V> findColumn(long column) {
+        int index = (int) HashCommon.mix(column) & (COLUMN_CACHE_SIZE - 1);
+        if (cachedColumnValid[index] && cachedColumnKeys[index] == column) {
+            return (Int2ObjectOpenHashMap<V>) cachedColumns[index];
+        }
+        Int2ObjectOpenHashMap<V> values = valuesByColumn.get(column);
+        cachedColumnKeys[index] = column;
+        cachedColumns[index] = values;
+        cachedColumnValid[index] = true;
+        return values;
+    }
+
+    private void cacheColumn(long column, Int2ObjectOpenHashMap<V> values) {
+        int index = (int) HashCommon.mix(column) & (COLUMN_CACHE_SIZE - 1);
+        cachedColumnKeys[index] = column;
+        cachedColumns[index] = values;
+        cachedColumnValid[index] = true;
+    }
+
+    private boolean mayContain(int x, int y, int z) {
+        // Bounds stay conservative after removal, avoiding a scan of the surviving entries.
+        return size != 0 && x >= minX && x <= maxX && y >= minY && y <= maxY && z >= minZ && z <= maxZ;
     }
 
     public boolean isEmpty() {

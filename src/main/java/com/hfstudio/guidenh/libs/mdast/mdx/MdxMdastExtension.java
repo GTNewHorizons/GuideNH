@@ -17,6 +17,7 @@ import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxExpressionAttribute;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxFlowElement;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxTextElement;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstNode;
+import com.hfstudio.guidenh.libs.mdast.model.MdAstParagraph;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstPosition;
 import com.hfstudio.guidenh.libs.mdx.FactoryTag;
 import com.hfstudio.guidenh.libs.micromark.ListUtils;
@@ -264,7 +265,29 @@ public class MdxMdastExtension {
             tag.selfClosing = true;
         }
 
-        if (tag.selfClosing || tag.close) {
+        if (tag.close && tail != null
+            && "summary".equals(tag.name)
+            && Objects.equals(tail.name, tag.name)
+            && "mdxJsxFlowTag".equals(tail.tokenType)
+            && "mdxJsxTextTag".equals(token.type)
+            && context.getStack()
+                .getLast() instanceof MdAstParagraph) {
+            // A multiline summary can end inside a paragraph even though it opened in flow context.
+            // Close the paragraph and summary against their actual openers, then continue the same
+            // paragraph outside the summary so its remaining text and later exit event stay balanced.
+            var paragraphOpen = context.getTokenStack()
+                .getLast()
+                .token();
+            var paragraphClose = new Token(paragraphOpen);
+            paragraphClose.end = token.start;
+            context.exit(paragraphClose);
+            var matchingClose = new Token(token);
+            matchingClose.type = tail.tokenType;
+            context.exit(matchingClose, MdxMdastExtension::onErrorLeftIsTag);
+            var continuation = new Token(paragraphOpen);
+            continuation.start = token.end;
+            context.enter(new MdAstParagraph(), continuation);
+        } else if (tag.selfClosing || tag.close) {
             context.exit(token, MdxMdastExtension::onErrorLeftIsTag);
         } else {
             stack.add(tag);
@@ -316,8 +339,10 @@ public class MdxMdastExtension {
         boolean recovered;
         Point start;
         Point end;
+        final String tokenType;
 
         public Tag(Token token) {
+            tokenType = token.type;
             start = token.start;
             end = token.end;
         }

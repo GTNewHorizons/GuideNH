@@ -7,8 +7,7 @@ MDX 标签来转译它：
 <Template name="InfoBox" name="Steel" icon="minecraft:iron_ingot" />
 ```
 
-转译发生在**页面编译期**，而不是查看时。编译器会读取模板页的正文、代入参数，然后交给普通的标签与
-Markdown 编译器处理。模板在查看阶段不做任何解析。
+模板会把正文插入调用位置并代入参数，支持普通页面中的 Markdown 和标签。
 
 由于模板本身就是页面，它天然继承页面已有的一切能力：按语言分目录、`.lang` 整页覆盖、资源包优先级，
 以及开发环境下的热更新。
@@ -24,9 +23,9 @@ assets/<命名空间>/<指南目录>/
 |       `-- nav/
 |           `-- Row.md
 `-- _zh_cn/
-|   |-- index.md
-|   `-- templates/
-|       `-- InfoBox.md
+    |-- index.md
+    `-- templates/
+        `-- InfoBox.md
 ```
 
 `templates/` 是保留前缀。模板页面不会出现在 `Special:AllPages`、分类列表、翻译统计和导航树中，
@@ -39,7 +38,7 @@ assets/<命名空间>/<指南目录>/
 
 名称忽略首字母大小写，并把 `_` 视为空格，与 MediaWiki 一致：
 
-- `name="infobox"` 与 `name="InfoBox"` 是同一个模板
+- `name="infoBox"` 与 `name="InfoBox"` 是同一个模板
 - `name="Info_Box"` 与 `name="Info Box"` 是同一个模板
 - `name="InfoBox"` 与 `name="infobox"` **不是**同一个模板
 
@@ -51,7 +50,7 @@ assets/<命名空间>/<指南目录>/
 <Template name="InfoBox" name="Steel" icon="minecraft:iron_ingot" />
 ```
 
-`name` 用于指定模板，因此其余属性都是参数。值较长时写成 `<Arg>` 子标签更易读：
+第一个 `name` 属性指定模板，其余属性作为参数；后续同名的 `name` 属性可传入模板的 `name` 参数。需要更清晰的写法或较长的值时，使用 `<Arg>` 子标签：
 
 ```md
 <Template name="InfoBox">
@@ -90,7 +89,7 @@ assets/<命名空间>/<指南目录>/
 未传入且没有默认值的参数会记入日志，并且不产生任何内容，因此笔误会在日志里暴露，而不是悄悄渲染出
 错误结果。
 
-具名参数与位置参数共用一个键空间：模板可以声明 `<Param name="tier" />`，而调用方仍可用位置方式传入。
+具名参数与位置参数分别读取。`<Param name="tier" />` 需要传入名为 `tier` 的参数；位置参数用 `<Param pos="1" />` 读取，不会自动绑定到 `tier`。
 
 ## 条件判断
 
@@ -180,7 +179,7 @@ assets/<命名空间>/<指南目录>/
 
 ## 代码与字面文本
 
-围栏代码块、行内代码，以及 `<pre>`/`<Code>` 内容体中的花括号与标签不会被展开。这正是「在页面上讲解
+围栏代码块、行内代码，以及 `<pre>` 内容体中的花括号与标签不会被展开。这正是「在页面上讲解
 模板语法而不触发展开」的办法：
 
 ````md

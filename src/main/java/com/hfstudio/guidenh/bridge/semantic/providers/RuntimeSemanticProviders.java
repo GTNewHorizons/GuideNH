@@ -11,6 +11,8 @@ public class RuntimeSemanticProviders {
     public static void registerBaseline(SemanticProviderRegistry registry) {
         SemanticProvider itemProvider = new ItemSemanticProvider();
         registry.register(itemProvider);
+        registry.register(new FluidSemanticProvider());
+        registry.register(new RecipeHandlerSemanticProvider());
         registry.register(new AliasSemanticProvider(SemanticCapability.RECIPES, itemProvider));
         registry.register(new PageSemanticProvider());
         registry.register(new OreSemanticProvider());
@@ -20,6 +22,7 @@ public class RuntimeSemanticProviders {
         registry.register(new SoundSemanticProvider());
         registry.register(new KeybindSemanticProvider());
         registry.register(new QuestSemanticProvider());
+        registry.register(new BindingSemanticProvider());
         registry.register(new StructureLibSemanticProvider());
         registry.register(new EntitySemanticProvider());
     }

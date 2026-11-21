@@ -48,9 +48,7 @@ GuideNH 也支持更宽的开发源根目录：
 | `wiki/resourcepack/assets` | assets-root 模式；`assets/<modid>/guidenh/...` 映射为 `<modid>:...` |
 | `wiki/resourcepack` | resourcepack-root 模式；`assets/<modid>/guidenh/...` 映射为 `<modid>:...` |
 
-数据驱动指南仍然会合并为同一个 guide。多个命名空间下存在同名 Markdown 时，会保留命名空间作为页面 id 的一部分，因此
-`assets/gregtech/guidenh/_zh_cn/index.md` 和 `assets/appliedenergistics2/guidenh/_zh_cn/index.md`
-会分别成为 `gregtech:index.md` 和 `appliedenergistics2:index.md`，不会互相覆盖。
+每个命名空间拥有独立指南，导航栏会汇总已加载的指南。页面 ID 保留命名空间，`gregtech:index.md` 与 `appliedenergistics2:index.md` 不会相互覆盖。
 
 ## 多资源包实时预览
 
@@ -67,8 +65,11 @@ GuideNH 也支持更宽的开发源根目录：
 冲突规则如下：
 
 - 不同 modid 通过命名空间隔离，例如 `gregtech:index.md` 和 `appliedenergistics2:index.md` 是两张不同页面
-- 同一个 modid、同一种语言、同一个 Markdown 路径重复出现时，先出现的 `guideme.resourcePacks.sources` 目录获胜
-- 如果同一页面也存在于普通已加载资源包里，开发资源包目录优先
+- 同一命名空间、语言和页面路径按 `navigation.priority` 选择，优先级更高者获胜；同值时后扫描的资源包获胜
+- 开发资源包先于普通资源包扫描，因此同优先级的普通资源包可以覆盖开发页面
+- 开发资源包中的资源文件使用最先包含该资源的配置目录
+
+需要直接覆盖某本指南的资源包页面时，使用单指南的 `guideme.<namespace>.<path>.sources` 参数。
 
 修改这些开发资源包根目录下的 Markdown、Ponder JSON、图片或其他文件时，会触发客户端资源重载，合并指南和场景内容会一起刷新。
 
@@ -82,21 +83,21 @@ GuideNH 也支持更宽的开发源根目录：
 
 `!` 后面的相对页面 id 会自动按指南命名空间解析，因此 `index.md` 会变成 `guidenh:index.md`。
 
-## 性能说明
+## 重载时间
 
-GuideNH 不会每帧轮询指南文件。
-
-- 只有当至少一个 guide 启用了 development sources 时，才会注册单 guide 的开发源 watcher
-- 只有当至少存在一个 `guideme.resourcePacks.sources` 根目录时，才会注册多资源包实时预览 watcher
-- watcher 处理会被节流为每 `20` 个客户端 tick 执行一次
-- 非 Markdown 指南资源也会触发页面重新解析，因此 Ponder JSON 等外部文件也可以实时更新
-- 启动时的指南打开和校验只会在标题界面出现后执行一次
-
-这样既能保持实时预览足够灵敏，也不会引入不必要的高频客户端开销。
+每 20 个客户端刻检查一次变更，正常刻速下约为一秒。已配置源目录内的页面和资源可在客户端运行时重载。
 
 ## 推荐工作流
 
-1. 通过 `runGuide` 或带有对应 `-D` 参数的客户端启动游戏。
+预览仓库示例时，将下列路径换成你的仓库位置，并把这个 JVM 参数添加到游戏启动配置中：
+
+```text
+-Dguideme.guidenh.guidenh.sources=E:/Github/GuideNH-NH/wiki/resourcepack/assets/guidenh/guidenh
+```
+
+需要自动打开示例指南时，再添加 `-Dguideme.showOnStartup=guidenh:guidenh!index.md`。这些参数必须传入游戏进程；仅给 Gradle 进程设置系统属性不会配置其启动的客户端。
+
+1. 在启动器中添加源目录的 JVM 参数，然后启动客户端。
 2. 编辑 `wiki/resourcepack/assets/...` 或配置的开发资源包根目录下的运行时指南文件。
 3. 等待 watcher 检测到变更并触发资源重载。
 4. 如果修改了导航结构或启动目标，可以重新打开或重新访问对应页面。

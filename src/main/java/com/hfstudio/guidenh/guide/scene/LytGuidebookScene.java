@@ -58,6 +58,7 @@ import com.hfstudio.guidenh.guide.document.interaction.ContentTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
 import com.hfstudio.guidenh.guide.internal.GuidebookText;
 import com.hfstudio.guidenh.guide.internal.debug.DebugComponent;
+import com.hfstudio.guidenh.guide.internal.debug.ScreenDebugComponents.Entry;
 import com.hfstudio.guidenh.guide.internal.scene.GuidebookPreviewPlayerPose;
 import com.hfstudio.guidenh.guide.internal.screen.GuideIconButton;
 import com.hfstudio.guidenh.guide.internal.structure.GuideTextNbtCodec;
@@ -73,6 +74,7 @@ import com.hfstudio.guidenh.guide.scene.annotation.InWorldBlockFaceOverlayAnnota
 import com.hfstudio.guidenh.guide.scene.annotation.InWorldBoxAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.InWorldBoxFaceOverlayAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.InWorldLineAnnotation;
+import com.hfstudio.guidenh.guide.scene.annotation.InWorldOutlineAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.OverlayAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.PonderInputAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.SceneAnnotation;
@@ -87,6 +89,8 @@ import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookPreviewBlockPlacer;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookPreviewRuntimeMutationTracker;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookTileEntityLoader;
+import com.hfstudio.guidenh.guide.scene.outline.OutlineRegion;
+import com.hfstudio.guidenh.guide.scene.outline.OutlineTargetResolver;
 import com.hfstudio.guidenh.guide.scene.ponder.PonderEntityAnimationRuntimeSupport;
 import com.hfstudio.guidenh.guide.scene.ponder.PonderKeyframe;
 import com.hfstudio.guidenh.guide.scene.ponder.PonderKeyframeBlockChange;
@@ -214,7 +218,9 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
     private float ponderCamRotZ = 0f;
     private float ponderCamOffX = 0f;
     private float ponderCamOffY = 0f;
-    /** Temporary camera save state reused by render and hover paths. */
+    /**
+     * Temporary camera save state reused by render and hover paths.
+     */
     private final float[] cameraStateScratch = new float[6];
     private final float[] projectedSoundPositionScratch = new float[2];
     // GameScene offsets are world-space in normal scenes. For a Ponder timeline they are
@@ -534,7 +540,9 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
 
     private float[] initialCam = new float[] { 1f, 0f, 0f, 0f, 0f, 0f };
     private final Vector3f initialRotationCenter = new Vector3f();
-    /** Orbit pivot used by Ponder reset/auto-camera; derived from the initial structure AABB. */
+    /**
+     * Orbit pivot used by Ponder reset/auto-camera; derived from the initial structure AABB.
+     */
     private final Vector3f initialPonderRotationCenter = new Vector3f();
     private boolean initialPonderRotationCenterCaptured;
 
@@ -1089,6 +1097,10 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         if (annotation instanceof InWorldBoxFaceOverlayAnnotation overlayAnnotation) {
             return intersectsVisibleLayer(overlayAnnotation.min().y, overlayAnnotation.max().y, visibleLayerY);
         }
+        if (annotation instanceof InWorldOutlineAnnotation outlineAnnotation) {
+            OutlineRegion region = outlineAnnotation.layerCullingRegion();
+            return region == null || intersectsVisibleLayer(region.minY(), region.maxY(), visibleLayerY);
+        }
         return true;
     }
 
@@ -1116,6 +1128,10 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         }
         if (annotation instanceof InWorldBoxFaceOverlayAnnotation overlayAnnotation) {
             return intersectsLayerSelection(overlayAnnotation.min().y, overlayAnnotation.max().y, layerSelection);
+        }
+        if (annotation instanceof InWorldOutlineAnnotation outlineAnnotation) {
+            OutlineRegion region = outlineAnnotation.layerCullingRegion();
+            return region == null || intersectsLayerSelection(region.minY(), region.maxY(), layerSelection);
         }
         return true;
     }
@@ -1306,19 +1322,10 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
     }
 
     /**
-     * Re-reads the tier and channel ranges of every bound structure and republishes them.
+     * Refreshes tier and channel ranges after BlockRenderer6343 publishes its asynchronous scan. Merges
+     * definition ranges into existing metadata without rebuilding worlds or replacing per-block tooltip data.
      *
-     * <p>
-     * A scene materializes before BlockRenderer6343's scan has published anything, so its bindings were built
-     * without tiers or channels and both sliders stay hidden until the page is reopened. Reading the ranges
-     * again is a definition lookup with no world work, so a scene can do it while it is on screen.
-     *
-     * <p>
-     * The ranges are merged into the metadata a binding already holds rather than replacing it, because the
-     * ranges are read from the structure definition and carry no per-block tooltip data, which the original
-     * build produced.
-     *
-     * @return true when a binding now reports ranges it did not have before
+     * @return true if any binding gains ranges
      */
     public boolean refreshStructureLibControlMetadata() {
         StructureLibDefinitionCache definitions = StructureLibDefinitionCache.getInstance();
@@ -1430,7 +1437,6 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         GuidebookLevel sceneLevel = getLevel();
         if (sceneLevel == null) return;
 
-        // Phase 1: SNBT static placements (ImportStructure)
         for (SnbtPlacement p : snbtPlacements) {
             // The compiler parsed this when it registered the placement, so a rebuild uses that rather than
             // the shared cache, which is bounded and may no longer hold it.
@@ -1454,7 +1460,6 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
                 p.getSrc());
         }
 
-        // Phase 2: StructureLib dynamic structures
         StructureLibBuildService svc = new StructureLibBuildService();
         for (StructureLibSceneBinding binding : structureLibBindings.values()) {
             if (!binding.hasRebuildRecipe()) continue;
@@ -2243,6 +2248,8 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
                         hovered = boxRayContains(box, ray);
                     } else if (a instanceof InWorldLineAnnotation line) {
                         hovered = lineScreenContains(line, viewport, mouseX, mouseY);
+                    } else if (a instanceof InWorldOutlineAnnotation outline) {
+                        hovered = OutlineTargetResolver.intersectsRay(level, outline, ray);
                     }
                 }
                 a.setHovered(hovered);
@@ -2333,7 +2340,9 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
 
     // LytBlock
 
-    /** Horizontal space the floating button column steals from the row when interactive. */
+    /**
+     * Horizontal space the floating button column steals from the row when interactive.
+     */
     private int buttonColumnReserve() {
         return interactive && sceneButtonsVisible ? (BTN_OUTSIDE_GAP + BTN_SIZE) : 0;
     }
@@ -2768,9 +2777,13 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
     private int lastAbsX, lastAbsY, lastW, lastH;
     private float lastDocZoom = 1.0f;
     private int lastOuterAbsX, lastOuterAbsY, lastOuterW, lastOuterH;
-    /** Width reserved for the inner 3D scene (bounds.width minus the button column). */
+    /**
+     * Width reserved for the inner 3D scene (bounds.width minus the button column).
+     */
     private int layoutSceneWidth;
-    /** Height reserved for the inner 3D scene (bounds.height minus the bottom slider band). */
+    /**
+     * Height reserved for the inner 3D scene (bounds.height minus the bottom slider band).
+     */
     private int layoutSceneHeight;
     private int layoutSceneOffsetX;
     private int layoutSceneOffsetY;
@@ -2951,11 +2964,7 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
     }
 
     /**
-     * How a block-statistics count is written: plain below a thousand, then shortened.
-     *
-     * <p>
-     * The exported site reads this too, so a row that says {@code 1.2k} in the book says the same on the
-     * site instead of showing the raw number.
+     * Formats counts with k/m suffixes for both in-game and exported block statistics.
      */
     public static String formatBlockStatsDisplayCount(int count) {
         int value = Math.max(1, count);
@@ -4417,7 +4426,9 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         syncVisualCameraToLogicalState();
     }
 
-    /** Synchronizes the rendered camera immediately after an externally applied scene state. */
+    /**
+     * Synchronizes the rendered camera immediately after an externally applied scene state.
+     */
     public void syncVisualCameraToLogicalState() {
         visualCamZoom.snapTo(getLogicalCameraZoom());
         visualCamRotX.snapTo(getLogicalCameraRotationX());
@@ -6669,7 +6680,9 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
             && Ae2PonderSupport.isCableBusBlock(block);
     }
 
-    /** Compact holder for the initial block state at a ponder-changed position. */
+    /**
+     * Compact holder for the initial block state at a ponder-changed position.
+     */
     private static class PonderBlockInfo {
 
         final int x;
@@ -7482,6 +7495,28 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
     public List<ComponentEntry> getDebugComponents() {
         List<ComponentEntry> components = new ArrayList<>();
 
+        if (cachedVisibleLayerSliderRect != null && !cachedVisibleLayerSliderRect.isEmpty()) {
+            addSliderDebugComponents(
+                components,
+                "VisibleLayerSlider",
+                cachedVisibleLayerSliderRect,
+                getVisibleLayerFraction());
+        }
+        if (cachedTierSliderRect != null && !cachedTierSliderRect.isEmpty()) {
+            addSliderDebugComponents(
+                components,
+                "StructureLibTierSlider",
+                cachedTierSliderRect,
+                getStructureLibTierFraction());
+        }
+        for (var slider : cachedChannelSliderRects.entrySet()) {
+            addSliderDebugComponents(
+                components,
+                "StructureLibChannelSlider:" + slider.getKey(),
+                slider.getValue(),
+                getStructureLibChannelFraction(getStructureLibChannelData(slider.getKey())));
+        }
+
         // Timeline slider (bottom area when ponder active)
         if (ponderSceneData != null && bounds != null) {
             int sliderHeight = SCENE_SLIDER_AREA_HEIGHT;
@@ -7524,5 +7559,17 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         }
 
         return components;
+    }
+
+    private void addSliderDebugComponents(List<ComponentEntry> components, String name, @Nullable LytRect track,
+        float fraction) {
+        if (track == null || track.isEmpty()) {
+            return;
+        }
+        var geometry = GuideSliderRenderer.layout(track.x(), track.y(), track.width(), fraction);
+        ComponentEntry slider = new Entry(name, geometry.hitRect(), null, 10, null);
+        components.add(slider);
+        components.add(new Entry(name + ":Track", geometry.trackRect(), null, 10, slider));
+        components.add(new Entry(name + ":Thumb", geometry.thumbRect(), null, 11, slider));
     }
 }

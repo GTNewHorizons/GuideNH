@@ -13,8 +13,9 @@ import static org.lwjgl.opengl.GL11.GL_TEXTURE_2D;
 
 import java.nio.FloatBuffer;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
+import java.util.Map;
+import java.util.WeakHashMap;
 
 import net.minecraft.block.Block;
 import net.minecraft.client.Minecraft;
@@ -22,6 +23,7 @@ import net.minecraft.client.renderer.OpenGlHelper;
 import net.minecraft.client.renderer.RenderBlocks;
 import net.minecraft.client.renderer.RenderHelper;
 import net.minecraft.client.renderer.Tessellator;
+import net.minecraft.client.renderer.entity.Render;
 import net.minecraft.client.renderer.entity.RenderManager;
 import net.minecraft.client.renderer.texture.TextureMap;
 import net.minecraft.client.renderer.tileentity.TileEntityRendererDispatcher;
@@ -45,14 +47,22 @@ import com.hfstudio.guidenh.guide.internal.scene.GuidebookPreviewPlayer;
 import com.hfstudio.guidenh.guide.internal.util.DisplayScale;
 import com.hfstudio.guidenh.guide.scene.annotation.InWorldAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.InWorldAnnotationRenderer;
+import com.hfstudio.guidenh.guide.scene.element.GuidebookNameplateControllable;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
+import com.hfstudio.guidenh.guide.scene.outline.GuidebookOutlineRenderer;
+import com.hfstudio.guidenh.guide.scene.outline.OutlineTargetDrawer;
+import com.hfstudio.guidenh.guide.scene.outline.OutlineTargetSet;
+import com.hfstudio.guidenh.guide.scene.render.GuideSceneBlockVisibilityCache;
+import com.hfstudio.guidenh.guide.scene.render.GuideSceneGeometryCache;
+import com.hfstudio.guidenh.guide.scene.render.GuideSceneTessellationBatch;
+import com.hfstudio.guidenh.guide.scene.render.GuideSceneTranslucentBlockSorter;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.guide.siteexport.site.GuideSiteSceneTessellatorCapture;
 import com.hfstudio.guidenh.integration.api.client.GuideNhClientIntegrationRegistry;
 import com.hfstudio.guidenh.integration.gregtech.GregTechHelpers;
 import com.hfstudio.guidenh.mixins.early.forge.AccessorForgeHooksClient;
 
-public class GuidebookLevelRenderer {
+public class GuidebookLevelRenderer implements OutlineTargetDrawer {
 
     public static final GuidebookLevelRenderer INSTANCE = new GuidebookLevelRenderer();
     public static final int FULL_BRIGHTNESS = 15728880;
@@ -60,19 +70,26 @@ public class GuidebookLevelRenderer {
     public static final ResourceLocation SNOW_TEXTURE = new ResourceLocation("textures/environment/snow.png");
     public static final int WEATHER_RENDER_RADIUS = 10;
     public static final int WEATHER_COVERAGE_RESOLUTION = 1024;
-    private static final int AABB_CULLING_BLOCK_THRESHOLD = 128;
 
     private final FloatBuffer matrixBuffer = BufferUtils.createFloatBuffer(16);
     private final GuideEntityRenderStateResolver.ResolvedEntityRenderState entityRenderState = new GuideEntityRenderStateResolver.ResolvedEntityRenderState();
-    /** Reused per-frame list; block visibility is identical for opaque and translucent passes. */
-    private final ArrayList<int[]> visibleBlocksScratch = new ArrayList<>();
-    /** Reused per-frame list of visible blocks that actually participate in the translucent pass. */
+    private final GuideSceneBlockVisibilityCache blockVisibilityCache = new GuideSceneBlockVisibilityCache();
+    private final GuideSceneGeometryCache geometryCache = new GuideSceneGeometryCache();
+    private final Map<GuidebookLevel, GuideSceneTranslucentBlockSorter> translucentSorters = new WeakHashMap<>();
+    /**
+     * Reused per-frame list of visible blocks that actually participate in the translucent pass.
+     */
     private final ArrayList<int[]> translucentBlocksScratch = new ArrayList<>();
-    /** Reused per-frame list of visible tile entities with a special renderer. */
+    /**
+     * Reused per-frame list of visible tile entities with a special renderer.
+     */
     private final ArrayList<TileEntity> visibleBlockEntitiesScratch = new ArrayList<>();
     private final ArrayList<GuidebookSceneWeatherRenderColumn> weatherColumnsScratch = new ArrayList<>();
     private final ArrayList<GuidebookSceneWeatherRenderColumn> weatherColumnPool = new ArrayList<>();
     private final BillboardAxes billboardAxesScratch = new BillboardAxes();
+
+    private final GuidebookOutlineRenderer outlineRenderer = new GuidebookOutlineRenderer();
+    private final Runnable noOutlineState = () -> {};
 
     // The block access is rebound before every block render and cleared after the frame.
     private RenderBlocks cachedRenderBlocks;
@@ -277,29 +294,29 @@ public class GuidebookLevelRenderer {
                 try {
                     mc.getTextureManager()
                         .bindTexture(TextureMap.locationBlocksTexture);
-                    var filledBlocks = level.getFilledBlocks();
                     var tileEntities = level.getTileEntities();
-                    visibleBlocksScratch.clear();
                     translucentBlocksScratch.clear();
                     visibleBlockEntitiesScratch.clear();
-                    collectVisibleBlocks(filledBlocks, layerSelection, camera, visibleBlocksScratch);
                     GuidebookSceneLayerSelection effectiveSelection = layerSelection != null ? layerSelection
                         : GuidebookSceneLayerSelection.all();
+                    List<int[]> visibleBlocks = blockVisibilityCache.collect(level, camera, effectiveSelection);
                     boolean renderAllFaces = effectiveSelection.shouldRenderAllFaces();
 
                     mc.entityRenderer.enableLightmap(partialTicks);
                     try {
                         setRenderPass(0);
                         GL11.glDisable(GL_BLEND);
-                        renderBlocksPass(level, visibleBlocksScratch, 0, renderAllFaces, translucentBlocksScratch);
+                        renderVisibleBlocksPass(level, visibleBlocks, 0, renderAllFaces, translucentBlocksScratch);
 
                         if (!translucentBlocksScratch.isEmpty()) {
-                            sortTranslucentBlocksBackToFront(translucentBlocksScratch, camera);
+                            List<int[]> sortedTranslucentBlocks = translucentSorters
+                                .computeIfAbsent(level, ignored -> new GuideSceneTranslucentBlockSorter())
+                                .sort(translucentBlocksScratch, camera.getCombinedMatrix());
                             setRenderPass(1);
                             GL11.glEnable(GL_BLEND);
                             GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
                             GL11.glDepthMask(false);
-                            renderBlocksPass(level, translucentBlocksScratch, 1, renderAllFaces, null);
+                            renderVisibleBlocksPass(level, sortedTranslucentBlocks, 1, renderAllFaces, null);
                             GL11.glDepthMask(true);
                             GL11.glDisable(GL_BLEND);
                         }
@@ -314,6 +331,13 @@ public class GuidebookLevelRenderer {
                         renderEntities(level.getEntities(), partialTicks, layerSelection, camera);
 
                         if (!annotations.isEmpty()) {
+                            outlineRenderer.render(
+                                level,
+                                annotations,
+                                effectiveSelection,
+                                this,
+                                camera.getCombinedMatrix(),
+                                partialTicks);
                             InWorldAnnotationRenderer.render(annotations);
                         }
                         if (weatherEffects != null && !weatherEffects.isEmpty()) {
@@ -367,22 +391,116 @@ public class GuidebookLevelRenderer {
             // RenderBlocks.blockAccess is a strong reference to the fake WorldClient. It is only
             // needed during this draw call, so clear it even when rendering aborts with an error.
             clearCachedRenderBlocksReference();
-            visibleBlocksScratch.clear();
             translucentBlocksScratch.clear();
             visibleBlockEntitiesScratch.clear();
         }
     }
 
-    public void releaseLevel(GuidebookLevel level) {
-        clearCachedRenderBlocksReference();
+    public void renderOutlineTargets(GuidebookLevel level, CameraSettings camera, int width, int height,
+        OutlineTargetSet targets, float partialTicks) {
+        try (var env = GuidebookFakeRenderEnvironment.enter(level, camera, partialTicks)) {
+            level.prepareForStaticExport();
+            GL11.glPushAttrib(
+                GL11.GL_ENABLE_BIT | GL11.GL_COLOR_BUFFER_BIT
+                    | GL11.GL_DEPTH_BUFFER_BIT
+                    | GL11.GL_LIGHTING_BIT
+                    | GL11.GL_TEXTURE_BIT
+                    | GL11.GL_CURRENT_BIT
+                    | GL11.GL_VIEWPORT_BIT
+                    | GL11.GL_TRANSFORM_BIT
+                    | GL11.GL_POLYGON_BIT);
+            GL11.glViewport(0, 0, width, height);
+            GL11.glMatrixMode(GL_PROJECTION);
+            GL11.glPushMatrix();
+            loadMatrix(camera.getProjectionMatrix());
+            GL11.glMatrixMode(GL_MODELVIEW);
+            GL11.glPushMatrix();
+            loadMatrix(camera.getViewMatrix());
+            try {
+                draw(level, targets, partialTicks, noOutlineState);
+            } catch (Throwable t) {
+                GuideDebugLog.warn("Scene outline export warning", t);
+            } finally {
+                GL11.glMatrixMode(GL_PROJECTION);
+                GL11.glPopMatrix();
+                GL11.glMatrixMode(GL_MODELVIEW);
+                GL11.glPopMatrix();
+                GL11.glPopAttrib();
+            }
+        } finally {
+            clearCachedRenderBlocksReference();
+        }
     }
 
-    /** Clears the renderer's process-wide fake-world binding during client world unload. */
+    @Override
+    public void drawBlocks(GuidebookLevel level, List<int[]> blocks) {
+        Minecraft.getMinecraft()
+            .getTextureManager()
+            .bindTexture(TextureMap.locationBlocksTexture);
+        for (int pass = 0; pass < 2; pass++) {
+            setRenderPass(pass);
+            renderBlocksPass(level, blocks, pass, true, null);
+        }
+        setRenderPass(-1);
+    }
+
+    @Override
+    public void drawTileEntity(TileEntity tile, float partialTicks) {
+        // Pass 1 carries effects such as beacon beams; it only defines the shape of tiles drawn there alone.
+        int pass = tile.shouldRenderInPass(0) ? 0 : 1;
+        setRenderPass(pass);
+        renderBlockEntity(TileEntityRendererDispatcher.instance, tile, pass, partialTicks);
+        setRenderPass(-1);
+    }
+
+    @Override
+    public void drawEntity(Entity entity, float partialTicks) {
+        Render render = RenderManager.instance.getEntityRenderObject(entity);
+        if (render == null) {
+            return;
+        }
+        GuideEntityRenderStateResolver.ResolvedEntityRenderState renderState = GuideEntityRenderStateResolver
+            .resolve(entity, partialTicks, entityRenderState);
+        boolean invisible = entity.isInvisible();
+        GuidebookNameplateControllable nameplate = entity instanceof GuidebookNameplateControllable controllable
+            && controllable.isGuidebookNameplateVisible() ? controllable : null;
+        try {
+            // Like the glowing effect, an outline keeps invisible entities visible as a contour.
+            entity.setInvisible(false);
+            if (nameplate != null) {
+                nameplate.setGuidebookNameplateVisible(false);
+            }
+            preparePreviewModelLighting();
+            render.doRender(entity, renderState.x(), renderState.y(), renderState.z(), renderState.yaw(), partialTicks);
+        } catch (Throwable t) {
+            GuideDebugLog.warn("Scene outline render warning", t);
+        } finally {
+            entity.setInvisible(invisible);
+            if (nameplate != null) {
+                nameplate.setGuidebookNameplateVisible(true);
+            }
+        }
+    }
+
+    public void releaseLevel(GuidebookLevel level) {
+        clearCachedRenderBlocksReference();
+        blockVisibilityCache.release(level);
+        geometryCache.release(level);
+        GuideSceneTranslucentBlockSorter sorter = translucentSorters.remove(level);
+        if (sorter != null) {
+            sorter.clear();
+        }
+    }
+
     public void clearClientRuntimeCaches() {
         clearCachedRenderBlocksReference();
         weatherColumnsScratch.clear();
         weatherColumnPool.clear();
-        visibleBlocksScratch.clear();
+        blockVisibilityCache.clear();
+        geometryCache.clear();
+        translucentSorters.values()
+            .forEach(GuideSceneTranslucentBlockSorter::clear);
+        translucentSorters.clear();
         translucentBlocksScratch.clear();
         visibleBlockEntitiesScratch.clear();
     }
@@ -393,33 +511,21 @@ public class GuidebookLevelRenderer {
         }
     }
 
-    private void collectVisibleBlocks(Iterable<int[]> filledBlocks, GuidebookSceneLayerSelection layerSelection,
-        CameraSettings camera, List<int[]> destination) {
-        GuidebookSceneLayerSelection effectiveSelection = layerSelection != null ? layerSelection
-            : GuidebookSceneLayerSelection.all();
-        // For small previews the entire structure normally fits in the viewport. Avoid paying a
-        // matrix projection per block in that common case; filtered layer modes still need the
-        // inexpensive Y check below.
-        if (effectiveSelection.getMode() == GuidebookSceneLayerSelection.Mode.ALL
-            && filledBlocks instanceof Collection<?>collection
-            && collection.size() <= AABB_CULLING_BLOCK_THRESHOLD) {
-            for (int[] p : filledBlocks) {
-                destination.add(p);
-            }
-            return;
-        }
-        for (int[] p : filledBlocks) {
-            if (!effectiveSelection.isLayerVisible(p[1])) {
-                continue;
-            }
-            if (isAabbPotentiallyVisible(camera, p[0], p[1], p[2], p[0] + 1.0f, p[1] + 1.0f, p[2] + 1.0f)) {
-                destination.add(p);
-            }
+    private void renderVisibleBlocksPass(GuidebookLevel level, List<int[]> blocks, int pass, boolean renderAllFaces,
+        @Nullable List<int[]> translucentBlocks) {
+        if (!geometryCache.render(
+            level,
+            blocks,
+            pass,
+            renderAllFaces,
+            translucentBlocks,
+            () -> renderBlocksPass(level, blocks, pass, renderAllFaces, translucentBlocks))) {
+            renderBlocksPass(level, blocks, pass, renderAllFaces, translucentBlocks);
         }
     }
 
-    private void renderBlocksPass(GuidebookLevel level, Iterable<int[]> filledBlocks, int pass, boolean renderAllFaces,
-        @Nullable List<int[]> translucentBlocks) {
+    private boolean renderBlocksPass(GuidebookLevel level, Iterable<int[]> filledBlocks, int pass,
+        boolean renderAllFaces, @Nullable List<int[]> translucentBlocks) {
         RenderBlocks rb = cachedRenderBlocks;
         if (rb == null) {
             rb = new RenderBlocks(level.getOrCreateFakeWorld());
@@ -430,10 +536,8 @@ public class GuidebookLevelRenderer {
         mc.gameSettings.ambientOcclusion = 0;
         IBlockAccess fakeWorld = level.getOrCreateFakeWorld();
         GuideNhClientIntegrationRegistry integrationRegistry = GuideNhClientIntegrationRegistry.global();
-        var tes = Tessellator.instance;
-        tes.startDrawingQuads();
-        try {
-            tes.setBrightness((15 << 20) | (15 << 4));
+        boolean successful = true;
+        try (GuideSceneTessellationBatch batch = new GuideSceneTessellationBatch(Tessellator.instance)) {
             boolean filteredLayerMode = renderAllFaces;
             for (int[] p : filledBlocks) {
                 Block block = level.getBlock(p[0], p[1], p[2]);
@@ -444,6 +548,7 @@ public class GuidebookLevelRenderer {
                 }
                 boolean rendersInCurrentPass = pass == 1 ? rendersInTranslucentPass : block.canRenderInPass(0);
                 if (!rendersInCurrentPass) continue;
+                boolean geometrySubmitted = true;
                 try {
                     TileEntity tileEntity = level.getTileEntity(p[0], p[1], p[2]);
                     // Promotion and GregTech repair mutate the level and only need to happen
@@ -467,33 +572,24 @@ public class GuidebookLevelRenderer {
                     resetRenderBlocksState(rb, fakeWorld, filteredLayerMode);
                     boolean rendered = rb.renderBlockByRenderType(block, p[0], p[1], p[2]);
                     if (!rendered) {
-                        integrationRegistry.tryRenderPreviewWorldBlock(rb, fakeWorld, block, p[0], p[1], p[2]);
+                        rendered = integrationRegistry
+                            .tryRenderPreviewWorldBlock(rb, fakeWorld, block, p[0], p[1], p[2]);
                     }
+                    // The standard cube renderer reports whether it emitted faces. Custom types remain conservative.
+                    geometrySubmitted = rendered || block.getRenderType() != 0;
                 } catch (Throwable t) {
+                    successful = false;
                     GuideDebugLog.warn("Scene render warning", t);
+                }
+                if (geometrySubmitted) {
+                    batch.blockSubmitted();
                 }
             }
         } finally {
-            tes.draw();
-            tes.setTranslation(0.0D, 0.0D, 0.0D);
+            Tessellator.instance.setTranslation(0.0D, 0.0D, 0.0D);
             mc.gameSettings.ambientOcclusion = savedAmbientOcclusion;
         }
-    }
-
-    private static void sortTranslucentBlocksBackToFront(List<int[]> blocks, CameraSettings camera) {
-        if (blocks.size() < 2) {
-            return;
-        }
-        var combined = camera.getCombinedMatrix();
-        float m02 = combined.m02();
-        float m12 = combined.m12();
-        float m22 = combined.m22();
-        float m32 = combined.m32();
-        blocks.sort((left, right) -> {
-            float leftDepth = m02 * (left[0] + 0.5f) + m12 * (left[1] + 0.5f) + m22 * (left[2] + 0.5f) + m32;
-            float rightDepth = m02 * (right[0] + 0.5f) + m12 * (right[1] + 0.5f) + m22 * (right[2] + 0.5f) + m32;
-            return Float.compare(rightDepth, leftDepth);
-        });
+        return successful;
     }
 
     public static void resetRenderBlocksState(RenderBlocks renderBlocks, IBlockAccess blockAccess,
@@ -548,41 +644,7 @@ public class GuidebookLevelRenderer {
             setTileEntityRenderPassState(pass);
             preparePreviewModelLighting();
             for (TileEntity te : tileEntities) {
-                // Preview repair can allocate and touch integration state. A culled tile or a
-                // tile without a TESR does not need that work in this frame.
-                if (GregTechHelpers.isGregTechTileEntity(te) && !GregTechHelpers.hasValidMetaTileBinding(te)) {
-                    GregTechHelpers.logInfoOnce(
-                        "render-invalid-tesr-pass:" + pass + ":" + GregTechHelpers.describeTile(te),
-                        "Render pass {} found invalid GregTech tile before TESR render: {}",
-                        pass,
-                        GregTechHelpers.describeTile(te));
-                    GregTechHelpers.repairMetaTileBinding(te);
-                }
-                if (!te.shouldRenderInPass(pass)) {
-                    continue;
-                }
-                try {
-                    preparePreviewModelLighting();
-                    try (PreviewTileViewerScope ignored = PreviewTileViewerScope.open(te)) {
-                        double cameraX = TileEntityRendererDispatcher.staticPlayerX;
-                        double cameraY = TileEntityRendererDispatcher.staticPlayerY;
-                        double cameraZ = TileEntityRendererDispatcher.staticPlayerZ;
-                        GL11.glPushMatrix();
-                        GL11.glTranslated(cameraX, cameraY, cameraZ);
-                        try {
-                            dispatcher.renderTileEntityAt(
-                                te,
-                                te.xCoord - cameraX,
-                                te.yCoord - cameraY,
-                                te.zCoord - cameraZ,
-                                partialTicks);
-                        } finally {
-                            GL11.glPopMatrix();
-                        }
-                    }
-                } catch (Throwable t) {
-                    GuideDebugLog.warn("Scene render warning", t);
-                }
+                renderBlockEntity(dispatcher, te, pass, partialTicks);
             }
         }
         setRenderPass(-1);
@@ -591,6 +653,45 @@ public class GuidebookLevelRenderer {
         GL11.glEnable(GL_DEPTH_TEST);
         GL11.glDisable(GL_BLEND);
         GL11.glDepthMask(true);
+    }
+
+    private static void renderBlockEntity(TileEntityRendererDispatcher dispatcher, TileEntity te, int pass,
+        float partialTicks) {
+        // Preview repair can allocate and touch integration state. A culled tile or a
+        // tile without a TESR does not need that work in this frame.
+        if (GregTechHelpers.isGregTechTileEntity(te) && !GregTechHelpers.hasValidMetaTileBinding(te)) {
+            GregTechHelpers.logInfoOnce(
+                "render-invalid-tesr-pass:" + pass + ":" + GregTechHelpers.describeTile(te),
+                "Render pass {} found invalid GregTech tile before TESR render: {}",
+                pass,
+                GregTechHelpers.describeTile(te));
+            GregTechHelpers.repairMetaTileBinding(te);
+        }
+        if (!te.shouldRenderInPass(pass)) {
+            return;
+        }
+        try {
+            preparePreviewModelLighting();
+            try (PreviewTileViewerScope ignored = PreviewTileViewerScope.open(te)) {
+                double cameraX = TileEntityRendererDispatcher.staticPlayerX;
+                double cameraY = TileEntityRendererDispatcher.staticPlayerY;
+                double cameraZ = TileEntityRendererDispatcher.staticPlayerZ;
+                GL11.glPushMatrix();
+                GL11.glTranslated(cameraX, cameraY, cameraZ);
+                try {
+                    dispatcher.renderTileEntityAt(
+                        te,
+                        te.xCoord - cameraX,
+                        te.yCoord - cameraY,
+                        te.zCoord - cameraZ,
+                        partialTicks);
+                } finally {
+                    GL11.glPopMatrix();
+                }
+            }
+        } catch (Throwable t) {
+            GuideDebugLog.warn("Scene render warning", t);
+        }
     }
 
     private static class PreviewTileViewerScope implements AutoCloseable {

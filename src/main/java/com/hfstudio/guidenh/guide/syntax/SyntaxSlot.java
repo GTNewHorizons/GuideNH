@@ -17,7 +17,9 @@ public interface SyntaxSlot extends Extension {
     @Nullable
     SyntaxSlotMatch match(String text, int cursorIndex, GuideSyntaxModel model);
 
-    /** The range a double click inside this slot selects, or {@code null} to leave the selection to the editor. */
+    /**
+     * The range a double click inside this slot selects, or {@code null} to leave the selection to the editor.
+     */
     default @Nullable SyntaxSelection selection(String text, int cursorIndex) {
         return null;
     }

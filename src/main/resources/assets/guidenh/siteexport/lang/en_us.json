@@ -1,4 +1,7 @@
 {
+  "nei": {
+    "inGame": "Open this guide in GuideNH to view NEI recipes."
+  },
   "scene": {
     "hideAnnotations": "Hide annotations",
     "showAnnotations": "Show annotations",
@@ -22,8 +25,11 @@
   "navigation": {
     "open": "Navigation",
     "close": "Close navigation",
-    "holdToOpenGuide": "Hold G to open guide"
+    "holdToOpenGuide": "Hold G to open guide",
+    "chooseGuide": "Choose a guide page",
+    "closeChooser": "Close page chooser"
   },
+  "binding.nativeSite": "Open this guide in GuideNH to view the native content.",
   "sceneLoading": {
     "error": "The 3D scene could not be loaded.",
     "retry": "Retry",

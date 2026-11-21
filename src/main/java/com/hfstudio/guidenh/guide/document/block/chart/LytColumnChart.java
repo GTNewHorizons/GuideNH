@@ -3,8 +3,6 @@ package com.hfstudio.guidenh.guide.document.block.chart;
 import java.util.ArrayList;
 import java.util.List;
 
-import net.minecraft.item.ItemStack;
-
 import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.internal.debug.DebugComponent;
@@ -26,9 +24,13 @@ public class LytColumnChart extends LytChartBase implements DebugComponent {
 
     private static final int LINE_THICKNESS = 1;
     private static final int LINE_POINT_RADIUS = 2;
-    /** High bit marker so line-overlay keys do not collide with bar keys ((si<<16)|ci). */
+    /**
+     * High bit marker so line-overlay keys do not collide with bar keys ((si<<16)|ci).
+     */
     private static final int LINE_KEY_FLAG = 0x40000000;
-    /** Extra horizontal space reserved on the chart's right side when pie inset is RIGHT_OUTSIDE. */
+    /**
+     * Extra horizontal space reserved on the chart's right side when pie inset is RIGHT_OUTSIDE.
+     */
     private static final int PIE_OUTSIDE_GAP = 6;
 
     @Getter
@@ -170,7 +172,7 @@ public class LytColumnChart extends LytChartBase implements DebugComponent {
         if (seriesCount > 0) {
             float clusterWidth = categoryWidth * barWidthRatio;
             float barWidth = clusterWidth / seriesCount;
-            float baselineY = CartesianChartRenderer.mapY(0d, yRange, inner);
+            float baselineY = CartesianChartRenderer.mapY(Math.clamp(0d, yRange.min, yRange.max), yRange, inner);
             for (int ci = 0; ci < categoryCount; ci++) {
                 float clusterCenter = inner.x() + categoryWidth * (ci + 0.5f);
                 float clusterLeft = clusterCenter - clusterWidth / 2f;
@@ -178,7 +180,7 @@ public class LytColumnChart extends LytChartBase implements DebugComponent {
                     ChartSeries s = series.get(si);
                     if (ci >= s.getYs().length) continue;
                     double v = s.getYs()[ci];
-                    float topY = CartesianChartRenderer.mapY(v, yRange, inner);
+                    float topY = CartesianChartRenderer.mapY(Math.clamp(v, yRange.min, yRange.max), yRange, inner);
                     float x0 = clusterLeft + barWidth * si;
                     float x1 = x0 + barWidth - 0.5f;
                     int key = encodeKey(si, ci);
@@ -205,42 +207,45 @@ public class LytColumnChart extends LytChartBase implements DebugComponent {
         // Line overlays: draw on top of bars sharing the Y axis. Each point sits at the cluster center
         // of its category index so they line up with the column groups beneath.
         if (!lineOverlays.isEmpty()) {
-            int hoveredLineSeries = isLineKey(hoveredKey) ? decodeSeries(hoveredKey & ~LINE_KEY_FLAG) : -1;
-            int hoveredLinePoint = isLineKey(hoveredKey) ? decodeCategory(hoveredKey & ~LINE_KEY_FLAG) : -1;
-            for (int li = 0; li < lineOverlays.size(); li++) {
-                ChartSeries s = lineOverlays.get(li);
-                int n = s.getYs().length;
-                if (n == 0) continue;
-                float[] px = new float[n];
-                float[] py = new float[n];
-                for (int i = 0; i < n; i++) {
-                    px[i] = inner.x() + categoryWidth * (i + 0.5f);
-                    py[i] = CartesianChartRenderer.mapY(s.getYs()[i], yRange, inner);
-                }
-                for (int i = 0; i + 1 < n; i++) {
-                    float thick = LINE_THICKNESS + 1f;
-                    if (hoveredLineSeries == li && (hoveredLinePoint == i || hoveredLinePoint == i + 1)) {
-                        thick += 1f;
+            context.pushLocalScissor(inner);
+            try {
+                int hoveredLineSeries = isLineKey(hoveredKey) ? decodeSeries(hoveredKey & ~LINE_KEY_FLAG) : -1;
+                int hoveredLinePoint = isLineKey(hoveredKey) ? decodeCategory(hoveredKey & ~LINE_KEY_FLAG) : -1;
+                for (int li = 0; li < lineOverlays.size(); li++) {
+                    ChartSeries s = lineOverlays.get(li);
+                    int n = s.getYs().length;
+                    if (n == 0) continue;
+                    float[] px = new float[n];
+                    float[] py = new float[n];
+                    for (int i = 0; i < n; i++) {
+                        px[i] = inner.x() + categoryWidth * (i + 0.5f);
+                        py[i] = CartesianChartRenderer.mapY(s.getYs()[i], yRange, inner);
                     }
-                    context.drawLine(px[i], py[i], px[i + 1], py[i + 1], thick, s.getColor());
-                }
-                for (int i = 0; i < n; i++) {
-                    boolean ph = hoveredLineSeries == li && hoveredLinePoint == i;
-                    float r = ph ? LINE_POINT_RADIUS + 2f : LINE_POINT_RADIUS;
-                    context.fillCircle(px[i], py[i], r, s.getColor());
-                    if (ph) {
-                        context.drawCircleOutline(px[i], py[i], r, 1f, ColorUtils.BLACK.getColor());
+                    for (int i = 0; i + 1 < n; i++) {
+                        float thick = LINE_THICKNESS + 1f;
+                        if (hoveredLineSeries == li && (hoveredLinePoint == i || hoveredLinePoint == i + 1)) {
+                            thick += 1f;
+                        }
+                        context.drawLine(px[i], py[i], px[i + 1], py[i + 1], thick, s.getColor());
+                    }
+                    for (int i = 0; i < n; i++) {
+                        boolean ph = hoveredLineSeries == li && hoveredLinePoint == i;
+                        float r = ph ? LINE_POINT_RADIUS + 2f : LINE_POINT_RADIUS;
+                        context.fillCircle(px[i], py[i], r, s.getColor());
+                        if (ph) {
+                            context.drawCircleOutline(px[i], py[i], r, 1f, ColorUtils.BLACK.getColor());
+                        }
                     }
                 }
+            } finally {
+                context.popScissor();
             }
         }
 
         // Pie inset (if configured) goes after columns + lines so it sits on top.
-        if (pieArea != null) {
-            PieInsetRenderer.drawAt(context, pieArea, pieInset);
-        } else {
-            PieInsetRenderer.draw(context, inner, pieInset);
-        }
+        CartesianChartRenderer.drawReferenceLines(context, inner, yAxis, yRange);
+        drawPieInset(context, inner, pieArea, pieInset);
+        drawHoverCursor(context, inner, yAxis, yRange);
     }
 
     private void drawValueLabel(RenderContext context, ResolvedTextStyle style, double value, LytRect bar,
@@ -283,6 +288,9 @@ public class LytColumnChart extends LytChartBase implements DebugComponent {
     private int maxSeriesLength() {
         int n = 0;
         for (ChartSeries s : series) {
+            if (s.getYs().length > n) n = s.getYs().length;
+        }
+        for (ChartSeries s : lineOverlays) {
             if (s.getYs().length > n) n = s.getYs().length;
         }
         return n;
@@ -341,7 +349,8 @@ public class LytColumnChart extends LytChartBase implements DebugComponent {
         int seriesCount = series.size();
         float clusterWidth = categoryWidth * barWidthRatio;
         float barWidth = clusterWidth / seriesCount;
-        float baselineY = CartesianChartRenderer.mapY(0d, yRangeCache, plotCache);
+        float baselineY = CartesianChartRenderer
+            .mapY(Math.clamp(0d, yRangeCache.min, yRangeCache.max), yRangeCache, plotCache);
         for (int ci = 0; ci < categoryCount; ci++) {
             float clusterCenter = plotCache.x() + categoryWidth * (ci + 0.5f);
             float clusterLeft = clusterCenter - clusterWidth / 2f;
@@ -349,7 +358,8 @@ public class LytColumnChart extends LytChartBase implements DebugComponent {
                 ChartSeries s = series.get(si);
                 if (ci >= s.getYs().length) continue;
                 double v = s.getYs()[ci];
-                float topY = CartesianChartRenderer.mapY(v, yRangeCache, plotCache);
+                float topY = CartesianChartRenderer
+                    .mapY(Math.clamp(v, yRangeCache.min, yRangeCache.max), yRangeCache, plotCache);
                 float x0 = clusterLeft + barWidth * si;
                 float x1 = x0 + barWidth;
                 float yTop = Math.min(topY, baselineY);
@@ -411,19 +421,19 @@ public class LytColumnChart extends LytChartBase implements DebugComponent {
     }
 
     @Override
-    protected ItemStack getHitItemStack(int key) {
+    protected ChartIcon getHitIcon(int key) {
         if (isLineKey(key)) {
             int li = decodeSeries(key & ~LINE_KEY_FLAG);
             if (li < 0 || li >= lineOverlays.size()) return null;
             ChartIcon icon = lineOverlays.get(li)
                 .getIcon();
-            return icon != null && icon.hasItemStack() ? icon.getStack() : null;
+            return icon;
         }
         int si = decodeSeries(key);
         if (si < 0 || si >= series.size()) return null;
         ChartIcon icon = series.get(si)
             .getIcon();
-        return icon != null && icon.hasItemStack() ? icon.getStack() : null;
+        return icon;
     }
 
     @Override
@@ -455,7 +465,8 @@ public class LytColumnChart extends LytChartBase implements DebugComponent {
         float categoryWidth = (float) plotCache.width() / categoryCount;
         float clusterWidth = categoryWidth * barWidthRatio;
         float barWidth = clusterWidth / seriesCount;
-        float baselineY = CartesianChartRenderer.mapY(0d, yRangeCache, plotCache);
+        float baselineY = CartesianChartRenderer
+            .mapY(Math.clamp(0d, yRangeCache.min, yRangeCache.max), yRangeCache, plotCache);
 
         for (int ci = 0; ci < categoryCount; ci++) {
             float clusterCenter = plotCache.x() + categoryWidth * (ci + 0.5f);
@@ -466,7 +477,8 @@ public class LytColumnChart extends LytChartBase implements DebugComponent {
                 if (ci >= s.getYs().length) continue;
 
                 double v = s.getYs()[ci];
-                float topY = CartesianChartRenderer.mapY(v, yRangeCache, plotCache);
+                float topY = CartesianChartRenderer
+                    .mapY(Math.clamp(v, yRangeCache.min, yRangeCache.max), yRangeCache, plotCache);
                 float x0 = clusterLeft + barWidth * si;
                 float x1 = x0 + barWidth - 0.5f;
 

@@ -1,158 +1,131 @@
 # Сумісність із модами
 
-Ця документація описує синтаксис і функції виконання GuideNH. Код, теги, шляхи, ідентифікатори та значення атрибутів збережено без змін.
+Докладний довідник на цій сторінці доступний англійською. Назви тегів, атрибути, ідентифікатори та шляхи потрібно використовувати без перекладу.
 
-
-GuideNH ships з conditional integrations для вибраний mods. кожен integration is лише activated коли його ціль mod is завантажений; коли  ціль is absent,  related теги, indices і ключ bindings залишаються inert і  rest of  посібник зберігає working.
+GuideNH ships with conditional integrations for selected mods. Each integration is only activated when its target mod is loaded; runtime providers and native hover integration activate only when the target mod is present. Pure content-binding identities and page indices remain available without the target mod.
 
 ## StructureLib
 
-коли StructureLib is завантажений, GuideNH може import multiblock previews до `<GameScene>` з `<ImportStructureLib>`.  client command `/exportStructure structureLib` може також export those previews as PNG documentation screenshots. Дивіться [Structure Export](Structure-Export) для  full command reference, StructureLib-певний параметри, і  related `gameScene` export режим.
+When StructureLib is loaded, GuideNH can import multiblock previews into `<GameScene>` with `<ImportStructureLib>`. The client command `/exportStructure structureLib` can also export those previews as PNG documentation screenshots. See [Structure Export](Structure-Export) for the full command reference, StructureLib-specific options, and the related `gameScene` export mode.
 
 ## BetterQuesting
 
-коли [BetterQuesting](https://github.com/GTNewHorizons/BetterQuesting) is завантажений, GuideNH unlocks three features:
+When [BetterQuesting](https://github.com/GTNewHorizons/BetterQuesting) is loaded, GuideNH unlocks three features:
 
-1.  `quest_ids` сторінка-frontmatter ключ starts indexing сторінки by BetterQuesting quest id.
-2. два новий теги become доступний: `<QuestLink>` (inline) і `<QuestCard>` (блок).
-3.  стандартний "open посібник" hotkey works поки наведення quest in  BetterQuesting GUI: holding  ключ looks up  hovered quest id і navigates до  відповідний сторінка посібника.
+1. Page bindings with `type: "betterquesting"` associate a guide with a quest. Identity indexing does not require BetterQuesting; native quest navigation does.
+2. Two new tags become available: `<QuestLink>` (inline) and `<QuestCard>` (block).
+3. The standard "open guide" hotkey works while hovering a quest in the BetterQuesting GUI: holding the key looks up the hovered quest id and navigates to the matching guide page.
 
-### Indexing сторінки by quest id
+### Indexing pages by quest id
 
-Додайте a `quest_ids` список до  frontmatter of any сторінка посібника you want associated з один або more quests:
+Add a `bindings` list to the frontmatter of any guide page you want associated with one or more quests:
 
 ```yaml
 ---
 navigation:
   title: Stage 2 — Steam Age
-quest_ids:
-  - 01234567-89ab-cdef-0123-456789abcdef
-  - AAAAAAAAAAAAAAAAAAAMug==
+bindings:
+  - {type: "betterquesting", id: "01234567-89ab-cdef-0123-456789abcdef"}
+  - {type: "betterquesting", id: "AAAAAAAAAAAAAAAAAAAMug=="}
 ---
 ```
 
- значення може be canonical UUID strings або BetterQuesting compact Base64 quest ids. Malformed або empty записи є skipped з попередження in  log.
+Each entry uses `type: "betterquesting"`; its `id` may be a canonical UUID or a compact BetterQuesting Base64 ID. Add `anchor` to target a section of the current guide page. Malformed or empty entries are skipped with a warning in the log.
 
-Compact ids є decoded перший, потім GuideNH falls назад до canonical UUID parsing. Цей відповідає BetterQuesting's compact quest-id format наприклад `AAAAAAAAAAAAAAAAAAAMug==`.
+Compact ids are decoded first, then GuideNH falls back to canonical UUID parsing. This matches BetterQuesting's compact quest-id format such as `AAAAAAAAAAAAAAAAAAAMug==`.
 
-Do не список both encodings для  той самий quest in один сторінка's `quest_ids`; Вони normalize до  той самий внутрішній UUID і would be treated as duplicates.
+Do not list both encodings for the same quest in one page's `bindings`; they normalize to the same internal UUID and would be treated as duplicates.
 
-коли quest id is indexed by a сторінка, both `<QuestLink>` і `<QuestCard>` буде route  натискання до який сторінка посібника замість цього of opening  BetterQuesting quest GUI directly.
+### Linking from BetterQuesting descriptions to GuideNH pages
 
-### Linking з BetterQuesting descriptions до GuideNH сторінки
+BetterQuesting quest descriptions can link back into GuideNH with a `[guide]` tag. The tag is parsed by GuideNH only when BetterQuesting is loaded, and then rendered through BetterQuesting's native hyperlink-aware text box, so BQ word wrapping, scrolling and click hit boxes stay compatible.
 
-BetterQuesting quest descriptions може посилання назад до GuideNH з a `[guide]` тег.  тег is проаналізований by GuideNH лише коли BetterQuesting is завантажений, і потім відтворений through BetterQuesting's native hyperlink-aware текст box, so BQ word wrapping, прокручування і натискання hit boxes залишаються compatible.
-
-використовувати  ідентифікатор сторінки as  ціль:
+Use the page id as the target:
 
 ```text
 [guide]guidenh:navigation-guide[/guide]
 ```
 
-Якщо  ціль сторінка exists,  видимий посилання текст is замінений з який сторінка посібника's заголовок.  `.md` suffix is необов’язковий, so `guidenh:navigation-guide` і `guidenh:navigation-guide.md` точка до  той самий сторінка коли  Markdown сторінка exists.
+If the target page exists, the visible link text is replaced with that guide page's title. The `.md` suffix is optional, so `guidenh:navigation-guide` and `guidenh:navigation-guide.md` point to the same page when the markdown page exists.
 
-використовувати `page=` коли you want власний видимий текст:
+Use `page=` when you want custom visible text:
 
 ```text
 [guide page=guidenh:navigation-guide]Open the navigation guide[/guide]
 ```
 
- посилання is показано in BetterQuesting's normal hyperlink колір з underline styling, shows GuideNH підказка on наведення, і opens  ціль GuideNH сторінка коли clicked. сторінка anchors є також Підтримувані:
+The link is shown in BetterQuesting's normal hyperlink color with underline styling, shows a GuideNH tooltip on hover, and opens the target GuideNH page when clicked. Page anchors are also supported:
 
 ```text
 [guide page=guidenh:navigation-guide#navigation-fields]Navigation fields[/guide]
 ```
 
-### `<QuestLink>` і `<QuestCard>`
+### `<QuestLink>` and `<QuestCard>`
 
-Both теги приймають BetterQuesting quest id via `id` і decide їхні appearance з  гравець's progress at компілювати час:
+Both tags accept a BetterQuesting quest id via `id` and decide their appearance from the player's progress when the page mounts:
 
-| стан | Source | відтворення |
+| State | Source | Rendering |
 | --- | --- | --- |
-| видимий | quest is unlocked but не completed | clickable посилання, Типове style |
-| Completed | `quest.isComplete(player)` повертає true | clickable посилання, green колір, trailing `✓` |
-| Locked | quest exists but is не unlocked, видимість ≠ прихований/SECRET | italic gray placeholder, не clickable |
-| прихований | locked plus видимість is прихований або SECRET | italic dark-gray placeholder, no quest details leaked |
-| Missing | quest id не розв’язати до any quest in  database | italic red placeholder |
+| Visible | quest is unlocked but not completed | clickable link, default style |
+| Completed | quest is completed | clickable link, green color |
+| Locked | quest exists but is not unlocked, visibility ≠ HIDDEN/SECRET | clickable quest link or card title |
+| Hidden | locked plus visibility is HIDDEN or SECRET | italic dark-gray placeholder, no quest details leaked |
+| Missing | quest id does not resolve to any quest in the database | italic red placeholder |
 
-Locked but non-прихований quests є також clickable. Вони використовувати  той самий Навігація ціль Правила as видимий і completed quests.
+Locked but non-hidden quests are also clickable. They use the same navigation target rules as visible and completed quests.
 
-для видимий / completed / locked quests,  натискання ціль is:
+Left click opens the quest in BetterQuesting. Right click opens its bound guide pages; when no guide is bound, right click also opens BetterQuesting. Multiple pages open the same destination selector used for items, and distinct page anchors remain separate destinations.
 
--  indexed сторінка посібника Якщо  quest id is present in some сторінка's `quest_ids`
-- otherwise BetterQuesting's quest-book quest екран, використовуючи BetterQuesting's native батьківський-екран flow
+See [Tags Reference](Tags-Reference#questlink) for attribute tables and inline examples.
 
-Дивіться [Tags Reference](Tags-Reference#questlink) для Атрибут таблиці і inline Приклади.
+### Hidden-quest handling
 
-### прихований-quest handling
+GuideNH never renders the title or description of a quest whose visibility is `HIDDEN` or `SECRET` while the quest is still locked for the player. The placeholder text is taken from a translation key so packs can localize the wording:
 
-GuideNH ніколи renders  заголовок або опис of quest whose видимість is `HIDDEN` або `SECRET` поки  quest is досі locked для  гравець.  placeholder текст is taken з a ключ перекладу so packs може localize  wording:
-
-| ключ перекладу | Типове (en_US) |
+| Translation key | Default (en_US) |
 | --- | --- |
-| `guidenh.compat.bq.locked` | `Locked Quest` |
-| `guidenh.compat.bq.hidden` | `Hidden Quest` |
-| `guidenh.compat.bq.missing` | `Unknown Quest` |
+| `guidenh.binding.state.hidden` | `Hidden content` |
+| `guidenh.binding.state.missing` | `Content not found` |
 | `guidenh.compat.bq.open_in_guide` | `Open in Guide` |
 
-Locked quests може досі показувати їхні опис as a наведення підказка on `<QuestLink>` і on  clickable заголовок усередині `<QuestCard>`, because BetterQuesting itself reveals  опис on locked quest tooltips. Установіть `show_tooltip="false"` (або `showTooltip={false}`) до suppress який підказка. прихований quests do не expose any підказка.
+Locked quests can still show their description as a hover tooltip on `<QuestLink>` and on the clickable title inside `<QuestCard>`, because BetterQuesting itself reveals the description on locked quest tooltips. Set `showTooltip={false}` to suppress that tooltip. Hidden quests do not expose any tooltip.
 
-> [!Примітка]
-> Quest стан is розв’язаний at сторінка-компілювати час використовуючи  локальний гравець's progress.  скомпільований сторінка is cached per посібник; reopening  посібник після completing або unlocking quest re-evaluates  стан.
+> [!NOTE]
+> Reopen the guide after completing or unlocking a quest to refresh its displayed state.
 
-### Open-посібник hotkey integration
+### Open-guide hotkey integration
 
- Типове open-посібник hotkey (`G`, configurable under `key.guidenh.open_guide`) gains second activation шлях коли BetterQuesting is завантажений. поки  BetterQuesting quest-рядок GUI is open:
+The default open-guide hotkey (`G`, configurable under `key.guidenh.open_guide`) gains a second activation path when BetterQuesting is loaded. While the BetterQuesting quest-line GUI is open:
 
-1. наведення over any quest button in  BQ panel
-2. Hold  open-посібник hotkey
+1. Hover over any quest button in the BQ panel
+2. Hold the open-guide hotkey
 
-Якщо any зареєстрований посібник indexes який quest id through `quest_ids`, GuideNH буде navigate до  відповідний сторінка (або open  посібник Якщо it's не вже open). Якщо no сторінка indexes  hovered id,  hotkey does nothing — it не fall назад до opening  BetterQuesting quest GUI, since BQ вже shows який information.
+If any registered guide indexes that quest id through `bindings`, GuideNH will navigate to the matching page (or open the guide if it's not already open). If no page indexes the hovered id, the hotkey does nothing — it does not fall back to opening the BetterQuesting quest GUI, since BQ already shows that information.
 
-Цей шлях is independent of  inventory предмет-підказка шлях, so наведення items in your inventory досі routes through  existing предмет / ore index lookups.
+This path is independent of the inventory item-tooltip path, so hovering items in your inventory still routes through the existing item / ore index lookups.
 
-### поведінка коли BetterQuesting is absent
+### Behavior when BetterQuesting is absent
 
-- `<QuestLink>` і `<QuestCard>` є не зареєстрований, so сторінки який використовувати їх fall назад до  стандартний "невідомий тег" помилка відтворення until you видалити  тег.
-- `quest_ids` frontmatter записи є досі проаналізований і stored under `additionalProperties`, but nothing reads їх.
--  hotkey's quest-наведення branch стає no-op.
-- BetterQuesting `[guide]...[/guide]` опис links є ніколи проаналізований because  BetterQuesting текст box і related mixins є не завантажений.
+- `<QuestLink>` and `<QuestCard>` are not registered, so pages that use them fall back to the standard "unknown tag" error rendering until you remove the tag.
+- `bindings` remain indexed without BetterQuesting. Native quest navigation and BQ hover targets are unavailable.
+- BetterQuesting description links require BetterQuesting.
 
-## Exporting your теги до  site
+For optional BetterQuesting pages, set `navigation.required_mod: betterquesting` to avoid unknown-tag errors when the mod is absent. Mod developers can find tag and site-export extensions in [Developer Integration](Developer-Integration).
 
- exported site renders  теги який ship з GuideNH. mod whose теги є скомпільований by його власний
-`TagCompiler` registers renderer so його теги є exported as well, замість цього of showing up in  book і
-disappearing з  site:
+## Thaumcraft and AspectRecipeIndex
 
-```java
-public class MyModSiteTagRenderer implements GuideSiteTagRenderer {
+### Binding research pages
 
-    @Override
-    public Set<String> getTagNames() {
-        return Set.of("MyMachine");
-    }
+Thaumcraft research binding is optional. GuideNH supplies research tags, completion-aware presentation and native navigation. Holding the open-guide key (`G` by default) on a research tree node, entry title, or ARI NEI research icon opens every matching guide destination. Without a binding, the key does nothing. Item slots retain their normal item actions.
 
-    @Override
-    public String render(GuideSiteTagRenderContext context, MdxJsxElementFields element) {
-        String id = element.getAttributeString("id", "");
-        return "<div class=\"mymod-machine\">" + GuideSiteGraphRenderer.esc(id) + "</div>";
-    }
-}
-```
+### Finding and copying research IDs
 
-```java
-GuideNhIntegrationRegistry.global().registerSiteTagRenderer(new MyModSiteTagRenderer());
-Guide.builder(id).extension(GuideSiteTagRenderer.EXTENSION_POINT, new MyModSiteTagRenderer()).build();
-```
+Research ID display, discovery and copying belong to AspectRecipeIndex. `ARIConfig.showResearchId` defaults to `false` and controls only ID labels and shortcut hints. Copying works with this setting disabled. Hover a visible research tree entry, a research-page title, or an ARI NEI research widget and use NEI's configured **Copy identifier** shortcut (`copy.identifier`) with its control modifier. The clipboard receives the original ID. `showResearchKey` independently controls whether NEI shows its research widgets. Copying from a research page is limited to its title area, preserving item-copy actions in the body.
 
-зареєстрований renderers є asked до  built-in ones, і  перший один який повертає markup wins, so a
-renderer лише має до handle  теги it declares. Returning `null` leaves  element до  наступний renderer
-або до  built-in export. renderer який throws is reported in  log і skipped, so один broken plugin
-не може fail  export of a сторінка it не власний.
+### Exporting research IDs
 
- context carries  сторінка being exported і  shared export services: `defaultNamespace`,
-`currentPageId`, `templates`, `sceneResolver` і `compiler`,  той самий значення  built-in renderers працюють
-з. Markup you записувати is inserted до  сторінка as it is, so escape текст з
-`GuideSiteGraphRenderer.esc(...)`.
+In NEI Options → Tools → Data Dumps, select **Thaumcraft research IDs**, choose CSV or JSON and press Dump. The complete registry is written to `dumps/thaumcraftresearch.csv` or `dumps/thaumcraftresearch.json` below the game directory. The UTF-8 catalogue includes ID, category ID/name, title, description, normal/hidden parents, siblings, flags and item/texture icons. It includes research with no NEI recipe and excludes player progress. Export remains available with `showResearchId` disabled.
 
-Цей означає a посібник який targets BetterQuesting може be authored once і silently degrade in environments where BetterQuesting is не installed.
+### Progress and return navigation
+
+Research binding IDs preserve case. Reopen a guide to refresh progress; resource/world changes invalidate the research catalog. Native research browsing never unlocks or purchases research. Return from the research entry to its tree, then use Escape to return to the retained guide.

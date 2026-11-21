@@ -206,6 +206,63 @@ combines conditions, `,` combines rules in one term, `!` excludes a match, and `
 `minecraft:potion 0-16,20-36,!28` combines two metadata ranges and excludes `28`. Lookups try exact and wildcard
 mappings before evaluating expressions.
 
+### External content bindings
+
+`bindings` associates this guide page with content from another system. Write one mapping per line: `type` selects the system, `id` identifies its content, and optional `anchor` targets a section of **this guide page**. Omitting `anchor` opens the page top.
+
+One content ID can refer to several pages or anchors. Navigation uses the same destination selector as item bindings. Duplicate page/anchor entries merge, while distinct anchors remain separate choices.
+
+#### BetterQuesting quests
+
+Use type `betterquesting` and a canonical UUID or compact Base64 quest ID. Replace these examples with actual IDs from your pack:
+
+```yaml
+bindings:
+  - {type: "betterquesting", id: "01234567-89ab-cdef-0123-456789abcdef", anchor: "quest"}
+  - {type: "betterquesting", id: "AAAAAAAAAAAAAAAAAAAMug=="}
+```
+
+```mdx
+<QuestLink id="01234567-89ab-cdef-0123-456789abcdef" text="Stage quest" />
+<QuestCard id="01234567-89ab-cdef-0123-456789abcdef" title="Stage guide" />
+```
+
+Left click on a link or card title opens the BQ quest. Right click opens bound guides, falling back to BQ when none exist. Hold the open-guide key (`G` by default) over a BQ quest button to choose its guides; without a binding, the key does nothing. `QuestLink` and `QuestCard` require BetterQuesting.
+
+#### Thaumcraft research
+
+Use type `thaumcraft` and a registered ID such as `INFUSION` or `NITOR`, preserving case:
+
+```yaml
+bindings:
+  - {type: "thaumcraft", id: "INFUSION", anchor: "infusion"}
+  - {type: "thaumcraft", id: "INFUSION", anchor: "apparatus"}
+  - {type: "thaumcraft", id: "NITOR"}
+```
+
+For page-top bindings, `research_id: "INFUSION"` binds one ID and `research_ids` accepts a string list. Use `bindings` for anchors.
+
+```mdx
+<ResearchLink id="INFUSION" text="Infusion guide" />
+<ResearchLink id="INFUSION" text="Open the Thaumonomicon" target="native" />
+<ResearchCard id="INFUSION" showParents={true} />
+<ResearchIcon id="NITOR" />
+```
+
+Research links and card titles prefer bound guides by default. With `target="native"`, left click opens native research. Right click opens guides, falling back to the native screen when none exist. Icons supply tooltips and open-guide hotkey targets without click navigation. [Research & Bindings](research.md) demonstrates page-top, infusion and apparatus destinations.
+
+ARI supplies research ID display and copying. Hover a research tree entry, research-page title or NEI research widget and use NEI's Copy identifier shortcut with its Ctrl modifier. `showResearchId` only controls labels; copying works while it is disabled. NEI Options → Tools → Data Dumps exports the complete research ID catalogue.
+
+#### Other content types
+
+Once an integration registers another type, use the same `bindings` syntax and select it with `type` on `BindingLink`, `BindingCard` or `BindingIcon`:
+
+```mdx
+<BindingLink type="your_provider" id="chapter:stage_2" />
+```
+
+All three fields follow YAML string rules. In double quotes, escape a double quote as `\"` and a backslash as `\\`; in single quotes, write `''` for one single quote. Quoted commas, colons and `#` remain part of the value. Put every content type bound by a page in the same `bindings` list.
+
 ### `navigation.required_mod`, `navigation.required_mods`, `navigation.excluded_mod`, and `navigation.excluded_mods`
 
 Required fields keep a page visible only when their mod ids are loaded. Excluded fields hide a page when
@@ -267,3 +324,8 @@ date: 2025-01-01
 
 The Advanced IO Bus provides faster item transfer...
 ```
+
+
+## Research bindings
+
+[Research & Bindings](research.md) demonstrates research tags, generic YAML bindings, native navigation and multiple page/anchor destinations. Research ID display and copying are provided by ARI; copying does not require `showResearchId`.

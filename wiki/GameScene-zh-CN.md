@@ -29,7 +29,6 @@
 ## 方块统计框
 
 包含方块的场景默认会启用方块统计切换按钮。需要覆盖模式、位置、过滤器、可见性或尺寸时，再添加 `<BlockStats>` 子标签。
-列表只会在场景方块、思索时间线状态、StructureLib 选择或统计配置发生变化时重建；普通渲染帧会复用已经准备好的行数据。
 列表会受 `maxWidth` 和 `maxHeight` 限制；如果省略，它们取"固定的 `224` × `96` 像素"与"场景宽高的 40%"两者中较大的一个。内容过宽或过高时会出现可拖拽滚动条；鼠标在统计框上时滚轮会滚动列表，按住 Shift 可以横向滚动。
 
 自动模式会扫描场景中的非空气方块，并尽量解析成玩家通常看到的物品显示。一个坐标内包含多个可见组件的方块可以贡献多个物品，
@@ -189,7 +188,7 @@
 </GameScene>
 ````
 
-GregTech 控制器现在默认保持未成型，即使导入的多方块结构本身已经完整：
+GregTech 控制器默认保持未成型，即使导入的多方块结构本身已经完整：
 
 ````md
 <GameScene width="384" height="256" zoom={4} interactive={true}>
@@ -265,6 +264,19 @@ GuideNH 当前注册了以下场景子标签：
 
 提供 `x`、`y`、`z` 时，音量会从投影后的场景坐标到点击点或场景中心进行屏幕空间衰减。
 `radius` 默认是场景较短边的 75%，`minVolume` 默认是 `0.15`。
+
+## `<InputAnnotation>` 流体目标
+
+InputAnnotation 可以指定 `item` 或 `fluid`，不能同时填写。流体目标可选填 `amount`（非负整数）和 `nbt`（SNBT），这两个参数要求同时提供 `fluid`。位置、inputType、modifier 与 StructureLib 可见条件沿用现有规则。
+
+```mdx
+<GameScene width="180" height="120">
+  <Block x="0" y="0" z="0" id="minecraft:stone" />
+  <InputAnnotation pos="0.5 1.5 0.5" inputType="rmb" fluid="water" amount={1000} />
+</GameScene>
+```
+
+注解只显示操作图标和流体信息，不会填充容器或改变场景世界。编辑、保存、重载和导出需要保留注册名、数量与 NBT。可放置的流体方块仍须在 Block / PlaceBlock 中使用真实方块 ID。
 
 ## `<BlockStats>` 和 `<BlockStat>`
 
@@ -399,7 +411,6 @@ GuideNH 当前注册了以下场景子标签：
 - 控制器匹配支持 GTNH 风格 `modid:block:meta`
 - 当场景里有多个 StructureLib 导入，而且其他标签需要只针对其中一个结构状态时，请显式提供 `name`
 - `facing`、`rotation` 与 `flip` 使用和 StructureLib 导出一致的朝向词汇；若请求的组合不被控制器允许，GuideNH 会自动回退到第一个有效对齐
-- GregTech 控制器预览默认朝向现在会相对旧预览方向绕 Y 轴旋转 180 度，也就是默认显示为旧朝向的背面
 - 若希望导入后的 GregTech 控制器保持未成型，请设置 `formed={false}`；这比故意提供残缺 NBT 更稳定
 
 示例：
@@ -455,8 +466,7 @@ StructureLib 默认值也可以写成子标签。这些默认值会成为场景�
 | `<GregTechActiveController />` | 仅 GregTech：尽可能使用机器激活状态的控制器贴图。 |
 | `<GregTechPlaceHatches />` | 仅 GregTech：为仅允许仓室的位置放置真实 GT 仓室；省略时仍会使用 GT survival preview，但空仓室位置默认回退为外壳。 |
 
-对 GregTech 控制器，GuideNH 现在会使用与导出命令一致的 StructureLib survival preview 路径。
-这可以修复普通 `construct()` 无法填充的仓室专用位置，同时默认保留外壳 fallback 行为。
+GregTech 结构预览默认在空仓室位置放置外壳。添加 `<GregTechPlaceHatches />` 可改为放置真实仓室。
 
 ````md
 <GameScene width="384" height="256" zoom={4} interactive={true}>
@@ -521,9 +531,9 @@ StructureLib 默认值也可以写成子标签。这些默认值会成为场景�
 | 属性 | 必需 | 含义 |
 | --- | --- | --- |
 | `from` | 是 | 要匹配的来源方块，使用 `modid:block[:meta]` 格式 |
-| `from_nbt` | 否 | 部分 SNBT 复合标签；仅当方块的 TileEntity NBT 包含所有列出的键时才匹配 |
+| `fromNbt` | 否 | 部分 SNBT 复合标签；仅当方块的 TileEntity NBT 包含所有列出的键时才匹配 |
 | `to` | 是 | 替换目标方块，使用 `modid:block[:meta]` 格式 |
-| `to_nbt` | 否 | 应用于替换方块的 SNBT TileEntity 复合标签 |
+| `toNbt` | 否 | 应用于替换方块的 SNBT TileEntity 复合标签 |
 | `x` | 否 | 包围盒起始 X；只要 `x/y/z/dx/dy/dz` 中任意一个存在，就启用包围盒模式 |
 | `y` | 否 | 包围盒起始 Y |
 | `z` | 否 | 包围盒起始 Z |
@@ -535,7 +545,7 @@ StructureLib 默认值也可以写成子标签。这些默认值会成为场景�
 说明：
 
 - 若 `x/y/z/dx/dy/dz` 均未提供，则全局扫描所有已填充方块
-- `from_nbt` 为**部分**匹配：仅检查模式中列出的键，TileEntity 中额外的键将被忽略
+- `fromNbt` 为**部分**匹配：仅检查模式中列出的键，TileEntity 中额外的键将被忽略
 - 替换使用与 `<Block>` 相同的方块放置流程，支持 GregTech MetaTile 及 BartWorks 方块
 - 若替换结果放入了控制器，`formed={false}` 可让该控制器在预览中保持未成型
 

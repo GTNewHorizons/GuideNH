@@ -1,77 +1,98 @@
 # Примеры
 
-GuideNH уже содержит пример руководства по среде выполнения в `wiki/resourcepack/`. На этой странице важные файлы примеров сопоставлены с областями функций, которые они демонстрируют.
+Подробный справочник на этой странице приведён на английском языке. Названия тегов, атрибуты, идентификаторы и пути используются без перевода.
 
-## Основные примеры страниц
+GuideNH ships a runtime example guide in `wiki/resourcepack/`. This page maps the important example files to the feature areas they demonstrate.
 
-| Файл времени выполнения | Что он демонстрирует |
+## Core Example Pages
+
+These files are in `wiki/resourcepack/assets/guidenh/guidenh/_en_us/`.
+
+| File | Purpose |
 | --- | --- |
-| `.../_en_us/index.md` | заголовок, идентификаторы предметов, рецепты, изображения предметов/блоков, ссылки на команды, всплывающие подсказки, сцены, аннотации, `ImportStructureLib`, `RemoveBlocks`, `BlockAnnotationTemplate`, пример рекомендации на домашней странице. |
-| `.../_en_us/markdown.md` | простые функции markdown, таблицы и пример `recommend: 0`. |
-| `.../_en_us/rendering.md` | поведение рендеринга и макета на уровне блоков. |
-| `.../_en_us/scene-blocks.md` | примеры статических и интерактивных блочных сцен. |
-| `.../_en_us/japanese.md` | пример дочерней навигации |
-| `.../_en_us/navigation-guide.md` | пример навигации, ссылок и рекомендаций с высоким приоритетом. |
-| `wiki/resourcepack/assets/gregtech/guidenh/_en_us/index.md` | второй пример пространства имен для перекрестных ссылок и изолированных одноимённых страниц. |
+| `index.md` | Category overview |
+| `markdown.md` | Markdown syntax |
+| `markdown-table.md` | Tables and merged cells |
+| `rendering.md` | Block layout |
+| `images.md` | Images and cropped textures |
+| `tooltips.md` | Hover content |
+| `recipes.md` | Item/fluid recipes and filters |
+| `charts.md` | Charts, reference lines and fluid icons |
+| `function-graph.md` | Function plots |
+| `content-embed.md` | Embedding and text wrapping |
+| `ponder.md` | Animation timelines |
+| `scene-blocks.md` | Blocks and material lists |
+| `scene-import.md` | Structure imports and block edits |
+| `scene-entities.md` | Entity previews |
+| `scene-camera.md` | Camera controls |
+| `scene-annotations.md` | Scene annotations |
+| `scene-particles.md` | Particles and weather |
+| `navigation-guide.md` | Navigation, bindings and icons |
+| `page-lang-key.md` | Whole-page translations |
+| `templates-demo.md` | Templates and include control |
+| `debug.md` | Layout and interaction diagnostics |
+| `japanese.md` | Language and navigation example |
 
-## Примеры активов
+Template definitions are in `templates/`. `wiki/resourcepack/assets/gregtech/guidenh/` demonstrates another namespace and cross-guide links.
 
-| Файл времени выполнения | Назначение |
+## Asset Examples
+
+| Runtime file | Purpose |
 | --- | --- |
-| `wiki/resourcepack/assets/guidenh/guidenh/_en_us/test1.png` | пример изображения на локальной странице |
-| `wiki/resourcepack/assets/guidenh/guidenh/assets/example_structure.snbt` | актив корневой общей структуры для `<ImportStructure>` и `<RemoveBlocks>`. |
+| `wiki/resourcepack/assets/guidenh/guidenh/_en_us/test1.png` | page-local image example |
+| `wiki/resourcepack/assets/guidenh/guidenh/assets/example_structure.snbt` | rooted shared structure asset for `<ImportStructure>` and `<RemoveBlocks>` |
 
-## Примеры фрагментов
+## Example Snippets
 
-### Фронтальная часть + Навигация
+### Frontmatter + Navigation
 
 ```yaml
 item_ids:
   - minecraft:book
 navigation:
-  title: Корень
+  title: Root
   icon_texture: test1.png
   recommend: 3
 ```
 
-### Домашняя рекомендация
+### Home Recommendation
 
 ```yaml
 navigation:
-  title: Основы Markdown
+  title: Markdown Basics
   parent: index.md
   recommend: 0
 ```
 
 ```yaml
 navigation:
-  title: Навигация и индекс
+  title: Navigation & Index
   parent: index.md
   recommend: 5
 ```
 
-### относительное изображение
+### Relative Image
 
 ````md
-![Тестовое изображение](test1.png)
+![Test Image](test1.png)
 ````
 
-### Ссылки руководства в пространстве имен
+### Namespaced Guide Links
 
 ````md
-[То же пространство имён](guide.md)
-[То же пространство имён из корня](/guide.md)
-[Другое пространство имён](gregtech:guide.md)
-[Другое пространство имён из корня](gregtech:/guide.md)
+[Same namespace](guide.md)
+[Same namespace from root](/guide.md)
+[Other namespace](gregtech:guide.md)
+[Other namespace from root](gregtech:/guide.md)
 ````
 
-### Актив корневой структуры
+### Rooted Structure Asset
 
 ````md
 <ImportStructure src="/assets/example_structure.snbt" />
 ````
 
-### Импорт сцены StructureLib
+### StructureLib Scene Import
 
 ````md
 <GameScene width="384" height="256" zoom={4} interactive={true}>
@@ -87,9 +108,9 @@ navigation:
 </GameScene>
 ````
 
-дочерние теги устанавливают значения по умолчанию для сцены в StructureLib и восстанавливаются при сбросе вида сцены.
+The child tags set StructureLib defaults for the scene and are restored when the scene view is reset.
 
-### Очистка импортированной структуры
+### Imported Structure Cleanup
 
 ````md
 <GameScene width="384" height="256" zoom={4} interactive={true}>
@@ -98,43 +119,46 @@ navigation:
 </GameScene>
 ````
 
-### Подсказка к аннотациям сцены
+### Scene Annotation Tooltip
 
 ````md
-<DiamondAnnotation pos="0.5 2.2 0.5" color="#FFD24C">
-  ### Активированный маяк
-  <RecipeFor id="minecraft:furnace" />
-</DiamondAnnotation>
+<GameScene>
+  <DiamondAnnotation pos="0.5 2.2 0.5" color="#FFD24C">
+    ### Activated Beacon
+    <RecipeFor id="minecraft:furnace" />
+  </DiamondAnnotation>
+</GameScene>
 ````
 
-### Фильтр рецептов
+### Recipe Filter
 
 ````md
 <RecipesFor id="minecraft:redstone_torch" input="minecraft:stick&minecraft:redstone" limit="1" />
 ````
 
-## Когда какой пример использовать
+### Amount formatting
 
-- начните с `markdown.md`, если вы проверяете основы синтаксического анализатора.
-- используйте `index.md` при совместном тестировании смешанных функций среды выполнения, включая всплывающую подсказку StructureLib, выделение штриховки и поведение очистки.
-- используйте `scene-blocks.md`, если вам нужен только предварительный просмотр макета статического блока.
-- используйте `example_structure.snbt`, если вам нужен многократно используемый импортированный ресурс структуры.
-
-## Рекомендуемый порядок обучения
-
-1. [Начало работы](Guide-Page-Format)
-2. [Формат страницы руководства](Guide-Page-Format)
-3. [Справочник тегов](Tags-Reference)
-4. [GameScene](GameScene)
-5. [Аннотации](Annotations)
-6. [Рецепты](Recipes)
-
-### Форматирование количества
-
-Используйте `<Amount>` для количеств. Единицу можно не указывать: по умолчанию отображается только число; `fluid` следует настройке `mB`/`L` из GTNHLib.
+Use `<Amount>` for quantities. The unit is optional and defaults to a suffix-free number; `fluid` follows the GTNHLib `mB`/`L` preference.
 
 ````md
 <Amount value="250" />
-<Amount value="250" unit="fluid" /> L/s
+<Amount value="250" unit="fluid" />/s
 <Amount value="1200000" format="compact" /> items
 ````
+
+## When To Use Which Example
+
+- start with `markdown.md` for Markdown syntax
+- use `index.md` to browse examples by category
+- use `scene-blocks.md` when you only need static block layout previews
+- use `example_structure.snbt` when you need a reusable imported structure asset
+- use `templates-demo.md` with the `templates/` folder for reusable content, conditionals and include control. See [Templates](Templates)
+
+## Recommended Learning Order
+
+1. [Getting Started](Getting-Started)
+2. [Guide Page Format](Guide-Page-Format)
+3. [Tags Reference](Tags-Reference)
+4. [GameScene](GameScene)
+5. [Annotations](Annotations)
+6. [Recipes](Recipes)

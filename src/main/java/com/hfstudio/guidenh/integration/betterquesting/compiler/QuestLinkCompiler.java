@@ -12,7 +12,7 @@ import com.hfstudio.guidenh.integration.betterquesting.QuestIdParser;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 
 /**
- * Compiles {@code <QuestLink id="<uuid>" [text="<override>"] [show_tooltip="false"]/>} into an
+ * Compiles {@code <QuestLink id="<uuid>" [text="<override>"] [showTooltip="false"]/>} into an
  * inline BetterQuesting quest link. The displayed text and click behavior depend on the player's
  * progress at compile time.
  * <p/>

@@ -31,15 +31,23 @@ public interface ScriptContext {
 
     void submitTask(DeferredTask task);
 
-    /** Explicitly yield. Next tick onEvent will be called again. */
+    /**
+     * Explicitly yield. Next tick onEvent will be called again.
+     */
     void yield();
 
-    /** Whether time budget is exceeded. Pure check, no side effect. */
+    /**
+     * Whether time budget is exceeded. Pure check, no side effect.
+     */
     boolean timeToYield();
 
-    /** Mark this handler complete. No more onEvent calls needed. */
+    /**
+     * Mark this handler complete. No more onEvent calls needed.
+     */
     void markComplete();
 
-    /** Recursively dispatch MOUNT events into a detached subtree */
+    /**
+     * Recursively dispatch MOUNT events into a detached subtree
+     */
     void dispatchSubtree(LytNode root);
 }

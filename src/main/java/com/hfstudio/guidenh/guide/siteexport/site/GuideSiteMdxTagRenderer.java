@@ -40,11 +40,11 @@ import com.hfstudio.guidenh.guide.compiler.tags.CodeFenceRenderers;
 import com.hfstudio.guidenh.guide.compiler.tags.CommandLinkCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.CsvTableCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.DetailsContentExtractor;
-import com.hfstudio.guidenh.guide.compiler.tags.DetailsContentExtractor.DetailsContent;
 import com.hfstudio.guidenh.guide.compiler.tags.ItemImageCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.KeyBindTagCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.MdxAttrs;
 import com.hfstudio.guidenh.guide.compiler.tags.chart.ChartAttrParser;
+import com.hfstudio.guidenh.guide.compiler.tags.chart.ChartChildParser;
 import com.hfstudio.guidenh.guide.compiler.tags.functiongraph.FunctionGraphAttrs;
 import com.hfstudio.guidenh.guide.document.block.LytStructureView;
 import com.hfstudio.guidenh.guide.document.block.chart.ChartLabelPosition;
@@ -61,11 +61,11 @@ import com.hfstudio.guidenh.guide.document.interaction.TextTooltip;
 import com.hfstudio.guidenh.guide.indices.ItemIndex;
 import com.hfstudio.guidenh.guide.indices.OreIndex;
 import com.hfstudio.guidenh.guide.internal.GuidebookText;
+import com.hfstudio.guidenh.guide.internal.fluid.FluidStackSpec;
 import com.hfstudio.guidenh.guide.internal.markdown.FileTreeParser;
 import com.hfstudio.guidenh.guide.internal.markdown.FileTreeParser.FileTreeEntry;
 import com.hfstudio.guidenh.guide.internal.markdown.FileTreeParser.FileTreeIcon;
 import com.hfstudio.guidenh.guide.internal.markdown.FileTreeParser.FileTreeModel;
-import com.hfstudio.guidenh.guide.internal.markdown.FileTreeParser.SlotKind;
 import com.hfstudio.guidenh.guide.internal.markdown.MarkdownRuntimeBlocks;
 import com.hfstudio.guidenh.guide.internal.markdown.MarkdownRuntimeBlocks.QuoteIconSpec;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidDiagramType;
@@ -93,21 +93,20 @@ import com.hfstudio.guidenh.guide.mediawiki.MediaWikiSpecialPageResult;
 import com.hfstudio.guidenh.guide.navigation.NavigationNode;
 import com.hfstudio.guidenh.guide.navigation.NavigationTree;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
+import com.hfstudio.guidenh.guide.siteexport.site.GuideSiteGraphRenderer.PieInsetData;
+import com.hfstudio.guidenh.guide.siteexport.site.GuideSiteGraphRenderer.SliceData;
 import com.hfstudio.guidenh.guide.sound.GuideSoundSpec;
 import com.hfstudio.guidenh.guide.sound.GuideSoundTrigger;
 import com.hfstudio.guidenh.guide.units.AmountFormatter;
 import com.hfstudio.guidenh.guide.units.AmountUnitRegistry;
-import com.hfstudio.guidenh.integration.Mods;
 import com.hfstudio.guidenh.integration.api.GuideNhIntegrationRegistry;
-import com.hfstudio.guidenh.integration.betterquesting.BqHelpers;
-import com.hfstudio.guidenh.integration.betterquesting.QuestDisplay;
-import com.hfstudio.guidenh.integration.betterquesting.QuestIdParser;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxAttribute;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxAttributeNode;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxFlowElement;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstAnyContent;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstBreak;
+import com.hfstudio.guidenh.libs.mdast.model.MdAstFlowContent;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstLiteral;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstParent;
 
@@ -133,6 +132,7 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
     @Nullable
     private final MediaWikiListContext mediaWikiListContext;
     private final GuideSiteItemIconResolver itemIconResolver;
+    private final GuideSiteFluidTagRenderer fluidTagRenderer;
     @Nullable
     private Map<String, PageAnchor> itemAnchorsByItemId;
     @Nullable
@@ -180,7 +180,12 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         this.assetExportersByGuideId = assetExportersByGuideId;
         this.mediaWikiListContext = mediaWikiListContext;
         this.itemIconResolver = itemIconResolver != null ? itemIconResolver : GuideSiteItemIconResolver.NONE;
-        this.siteTagRenderers = GuideSiteTagRenderers.of(guide);
+        this.fluidTagRenderer = new GuideSiteFluidTagRenderer(
+            GuideSiteFluidIconResolver.from(this.itemIconResolver),
+            parsedPagesById);
+        var renderers = new ArrayList<>(GuideSiteTagRenderers.of(guide));
+        renderers.add(new GuideSiteBindingTagRenderer(guide, parsedPagesById, this.itemIconResolver, assetExporter));
+        this.siteTagRenderers = List.copyOf(renderers);
         // Cached for the same reason as the tag renderers: the export asks for this list once per fence, and
         // resolving it copies the registry each time.
         this.fenceRenderers = CodeFenceRenderers.of(guide);
@@ -215,6 +220,10 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             return contributed;
         }
         String name = element.name();
+        String fluidHtml = fluidTagRenderer.render(
+            new GuideSiteTagRenderContext(defaultNamespace, currentPageId, templates, sceneResolver, compiler),
+            element);
+        if (fluidHtml != null) return fluidHtml;
         if ("ItemImage".equals(name)) {
             return renderItemImage(element, defaultNamespace, currentPageId, templates, true);
         }
@@ -260,6 +269,9 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         if ("br".equals(name)) {
             return "<br>";
         }
+        if ("wbr".equals(name)) {
+            return "<wbr>";
+        }
         if ("PlayerName".equals(name)) {
             return escapeHtml(resolvePlayerName());
         }
@@ -274,6 +286,13 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         }
         if ("SoundLink".equals(name)) {
             return renderSoundLink(element, defaultNamespace, currentPageId, templates, sceneResolver, compiler);
+        }
+        if ("NeiRecipeLink".equals(name)) {
+            return GuideSiteNeiLinkRenderer.render(
+                element,
+                defaultNamespace,
+                compiler
+                    .compileFragment(element.children(), templates, defaultNamespace, sceneResolver, currentPageId));
         }
         if ("div".equals(name)) {
             return "<div>"
@@ -321,57 +340,24 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             return renderCsvTable(element, currentPageId);
         }
         if ("ColumnChart".equals(name)) {
-            return renderColumnChart(element);
+            return renderColumnChart(normalizeChartChildren(element, currentPageId));
         }
         if ("BarChart".equals(name)) {
-            return renderBarChart(element);
+            return renderBarChart(normalizeChartChildren(element, currentPageId));
         }
         if ("LineChart".equals(name)) {
-            return renderLineChart(element);
+            return renderLineChart(normalizeChartChildren(element, currentPageId));
         }
         if ("PieChart".equals(name)) {
-            return renderPieChart(element);
+            return renderPieChart(normalizeChartChildren(element, currentPageId));
         }
         if ("ScatterChart".equals(name)) {
-            return renderScatterChart(element);
+            return renderScatterChart(normalizeChartChildren(element, currentPageId));
         }
         if ("FunctionGraph".equals(name) || "Function".equals(name)) {
             return renderFunctionGraphTag(element, defaultNamespace, currentPageId, templates, sceneResolver, compiler);
         }
-        if ("QuestLink".equals(name)) {
-            return renderQuestLink(element);
-        }
-        if ("QuestCard".equals(name)) {
-            return renderQuestCard(element);
-        }
         return null;
-    }
-
-    private String renderQuestLink(MdxJsxElementFields element) {
-        String id = readOptional(element, "id");
-        if (id == null || id.trim()
-            .isEmpty()) {
-            return renderError("QuestLink requires an id");
-        }
-        String text = readOptional(element, "text");
-        String label = text != null && !text.trim()
-            .isEmpty() ? text : resolveQuestTitle(id);
-        return "<span class=\"guide-quest-link\" data-quest-id=\"" + escapeAttribute(id)
-            + "\">"
-            + escapeHtml(label)
-            + "</span>";
-    }
-
-    private String resolveQuestTitle(String id) {
-        if (Mods.BetterQuesting.isModLoaded()) {
-            QuestDisplay display = BqHelpers.resolveDisplay(QuestIdParser.parse(id), null, false);
-            String name = stripLegacyFormatting(display.getName());
-            if (!name.trim()
-                .isEmpty()) {
-                return name;
-            }
-        }
-        return "Quest " + id;
     }
 
     private String renderSoundLink(MdxJsxElementFields element, String defaultNamespace,
@@ -393,33 +379,6 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         html.append(">")
             .append(body)
             .append("</span>");
-        return html.toString();
-    }
-
-    private String renderQuestCard(MdxJsxElementFields element) {
-        String id = readOptional(element, "id");
-        if (id == null || id.trim()
-            .isEmpty()) {
-            return renderError("QuestCard requires an id");
-        }
-        boolean showDesc = readBoolean(element, "show_desc", true);
-        String title = readOptional(element, "title");
-        if (title == null || title.trim()
-            .isEmpty()) {
-            title = resolveQuestTitle(id);
-        }
-        StringBuilder html = new StringBuilder();
-        html.append("<div class=\"guide-quest-card\" data-quest-id=\"")
-            .append(escapeAttribute(id))
-            .append("\"><div class=\"guide-quest-card-title\">")
-            .append(escapeHtml(title))
-            .append("</div>");
-        if (showDesc) {
-            html.append("<div class=\"guide-quest-card-meta\">")
-                .append(escapeHtml(id))
-                .append("</div>");
-        }
-        html.append("</div>");
         return html.toString();
     }
 
@@ -824,91 +783,7 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
      * Markdown-style wrapping markers are converted to HTML inline elements.
      */
     private String buildLabelHtml(ItemStack stack, @Nullable String format) {
-        if (format == null) {
-            return "<em>" + escapeHtml(stack.getDisplayName()) + "</em>";
-        }
-        String template = stripFormatMarkersHtml(format);
-        String text = template.contains("%s") ? String.format(template, stack.getDisplayName()) : template;
-        return applyFormatMarkersHtml(format, escapeHtml(text));
-    }
-
-    private String stripFormatMarkersHtml(String s) {
-        boolean changed = true;
-        while (changed) {
-            changed = false;
-            if (isHtmlWrapped(s, "~~")) {
-                s = s.substring(2, s.length() - 2);
-                changed = true;
-            } else if (isHtmlWrapped(s, "**")) {
-                s = s.substring(2, s.length() - 2);
-                changed = true;
-            } else if (isHtmlWrapped(s, "__")) {
-                s = s.substring(2, s.length() - 2);
-                changed = true;
-            } else if (isHtmlWrapped(s, "^^")) {
-                s = s.substring(2, s.length() - 2);
-                changed = true;
-            } else if (isHtmlWrapped(s, "::")) {
-                s = s.substring(2, s.length() - 2);
-                changed = true;
-            } else if (isHtmlWrapped(s, "++")) {
-                s = s.substring(2, s.length() - 2);
-                changed = true;
-            } else if (isHtmlWrapped(s, "*")) {
-                s = s.substring(1, s.length() - 1);
-                changed = true;
-            } else if (isHtmlWrapped(s, "_")) {
-                s = s.substring(1, s.length() - 1);
-                changed = true;
-            }
-        }
-        return s;
-    }
-
-    private String applyFormatMarkersHtml(String format, String escapedText) {
-        StringBuilder open = new StringBuilder();
-        StringBuilder close = new StringBuilder();
-        String s = format;
-        boolean changed = true;
-        while (changed) {
-            changed = false;
-            if (isHtmlWrapped(s, "~~")) {
-                open.insert(0, "<s>");
-                close.append("</s>");
-                s = s.substring(2, s.length() - 2);
-                changed = true;
-            } else if (isHtmlWrapped(s, "**")) {
-                open.insert(0, "<strong>");
-                close.append("</strong>");
-                s = s.substring(2, s.length() - 2);
-                changed = true;
-            } else if (isHtmlWrapped(s, "__") || isHtmlWrapped(s, "++")) {
-                open.insert(0, "<u>");
-                close.append("</u>");
-                s = s.substring(2, s.length() - 2);
-                changed = true;
-            } else if (isHtmlWrapped(s, "^^")) {
-                open.insert(0, "<span style=\"text-decoration:underline wavy\">");
-                close.append("</span>");
-                s = s.substring(2, s.length() - 2);
-                changed = true;
-            } else if (isHtmlWrapped(s, "::")) {
-                open.insert(0, "<span style=\"text-decoration:underline dotted\">");
-                close.append("</span>");
-                s = s.substring(2, s.length() - 2);
-                changed = true;
-            } else if (isHtmlWrapped(s, "*") || isHtmlWrapped(s, "_")) {
-                open.insert(0, "<em>");
-                close.append("</em>");
-                s = s.substring(1, s.length() - 1);
-                changed = true;
-            }
-        }
-        return open + escapedText + close;
-    }
-
-    private static boolean isHtmlWrapped(String s, String marker) {
-        return s.length() > 2 * marker.length() && s.startsWith(marker) && s.endsWith(marker);
+        return GuideSiteLabelFormatter.render(stack.getDisplayName(), format);
     }
 
     private String renderBlockImage(MdxJsxElementFields element, String defaultNamespace,
@@ -1031,6 +906,15 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         html.append("<div class=\"guide-item-grid\">");
         for (var child : element.children()) {
             if (!(child instanceof MdxJsxElementFields itemChild) || !"ItemIcon".equals(itemChild.name())) {
+                if (child instanceof MdxJsxElementFields fluidChild && "FluidIcon".equals(fluidChild.name())) {
+                    try {
+                        html.append("<div class=\"ingredient-box\">")
+                            .append(fluidTagRenderer.renderIcon(fluidChild, templates, currentPageId))
+                            .append("</div>");
+                    } catch (IllegalArgumentException exception) {
+                        html.append(renderError(exception.getMessage()));
+                    }
+                }
                 continue;
             }
             String rawId = readOptional(itemChild, "id");
@@ -1127,6 +1011,14 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         }
         NavigationNode node = navigationTree.getNodeById(target.pageId());
         return GuideSiteHrefResolver.resolvePageAnchor(currentPageId, node != null ? node.guideId() : null, target);
+    }
+
+    public String resolveFluidHref(String fluid, ResourceLocation page) {
+        return fluidTagRenderer.resolveHref(fluid, page);
+    }
+
+    public List<Map<String, String>> resolveFluidTargets(String fluid, ResourceLocation page) {
+        return fluidTagRenderer.resolveTargets(fluid, page);
     }
 
     @Nullable
@@ -1361,75 +1253,54 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
     private DetailsRenderContent resolveDetailsRenderContent(MdxJsxElementFields element, String defaultNamespace,
         @Nullable ResourceLocation currentPageId, GuideSiteTemplateRegistry templates,
         GuideSiteHtmlCompiler.SceneResolver sceneResolver, GuideSiteHtmlCompiler compiler) {
-        DetailsContent sourceContent = extractDetailsSourceContent(element, currentPageId);
-        if (sourceContent != null) {
-            String summaryHtml = sourceContent.summaryMarkdown() != null ? compileInlineMarkdownFragment(
-                sourceContent.summaryMarkdown(),
+        ParsedGuidePage sourcePage = resolveFragmentSource(currentPageId);
+        String rawBody = sourcePage != null ? MdxBlockTagSourceExtractor.extractRawBody(element, sourcePage.getSource())
+            : null;
+        if (rawBody != null) {
+            ParsedGuidePage fragment = parseSiteFragment(
+                DetailsContentExtractor.dedent(rawBody),
                 defaultNamespace,
-                currentPageId,
-                templates,
-                sceneResolver,
-                compiler) : escapeHtml(GuidebookText.GuideEditorDetails.text());
-            String bodyHtml = compileBlockMarkdownFragment(
-                sourceContent.bodyMarkdown(),
-                defaultNamespace,
-                currentPageId,
-                templates,
-                sceneResolver,
-                compiler);
-            return new DetailsRenderContent(summaryHtml, bodyHtml);
+                currentPageId);
+            fragmentSources.push(fragment);
+            try {
+                return renderDetailsChildren(
+                    fragment.getAstRoot()
+                        .children(),
+                    defaultNamespace,
+                    currentPageId,
+                    templates,
+                    sceneResolver,
+                    compiler);
+            } finally {
+                fragmentSources.pop();
+            }
         }
 
-        List<? extends MdAstAnyContent> children = element.children();
-        int bodyStart = 0;
-        String summaryHtml = escapeHtml(GuidebookText.GuideEditorDetails.text());
-        if (!children.isEmpty() && children.getFirst() instanceof MdxJsxElementFields summaryEl
-            && "summary".equals(summaryEl.name())) {
-            summaryHtml = compiler
-                .compileInlineFragment(summaryEl.children(), templates, defaultNamespace, sceneResolver, currentPageId);
-            bodyStart = 1;
-        }
-        String bodyHtml = compiler.compileFragment(
-            children.subList(bodyStart, children.size()),
-            templates,
+        return renderDetailsChildren(
+            element.children(),
             defaultNamespace,
+            currentPageId,
+            templates,
             sceneResolver,
-            currentPageId);
-        return new DetailsRenderContent(summaryHtml, bodyHtml);
+            compiler);
     }
 
-    @Nullable
-    private DetailsContent extractDetailsSourceContent(MdxJsxElementFields element, @Nullable ResourceLocation pageId) {
-        ParsedGuidePage parsedPage = resolveFragmentSource(pageId);
-        if (parsedPage == null) {
-            return null;
-        }
-        String rawBody = MdxBlockTagSourceExtractor.extractRawBody(element, parsedPage.getSource());
-        if (rawBody == null) {
-            return null;
-        }
-        return DetailsContentExtractor.extract(DetailsContentExtractor.dedent(rawBody));
-    }
-
-    private String compileInlineMarkdownFragment(String source, String defaultNamespace,
-        @Nullable ResourceLocation currentPageId, GuideSiteTemplateRegistry templates,
+    private DetailsRenderContent renderDetailsChildren(List<? extends MdAstAnyContent> children,
+        String defaultNamespace, @Nullable ResourceLocation currentPageId, GuideSiteTemplateRegistry templates,
         GuideSiteHtmlCompiler.SceneResolver sceneResolver, GuideSiteHtmlCompiler compiler) {
-        if (source == null || source.isEmpty()) {
-            return "";
-        }
-        ParsedGuidePage parsed = parseSiteFragment(source, defaultNamespace, currentPageId);
-        fragmentSources.push(parsed);
-        try {
-            return compiler.compileInlineFragment(
-                parsed.getAstRoot()
-                    .children(),
+        var extracted = DetailsContentExtractor.extractChildren(children);
+        String summaryHtml = escapeHtml(GuidebookText.GuideEditorDetails.text());
+        if (extracted.summary() != null) {
+            summaryHtml = compiler.compileInlineFragment(
+                DetailsContentExtractor.summaryChildren(extracted.summary()),
                 templates,
                 defaultNamespace,
                 sceneResolver,
                 currentPageId);
-        } finally {
-            fragmentSources.pop();
         }
+        String bodyHtml = compiler
+            .compileFragment(extracted.body(), templates, defaultNamespace, sceneResolver, currentPageId);
+        return new DetailsRenderContent(summaryHtml, bodyHtml);
     }
 
     private String compileBlockMarkdownFragment(String source, String defaultNamespace,
@@ -1598,6 +1469,8 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             return "";
         }
         return switch (icon.kind()) {
+            case FLUID -> GuideSiteFluidHtml
+                .icon(new FluidStackSpec(value), GuideSiteFluidIconResolver.from(itemIconResolver), 0.75f, false);
             case PNG -> {
                 String resolved = assetExporter != null ? assetExporter.resolveImageSrc(value, currentPageId) : value;
                 if (resolved == null || resolved.isEmpty()) {
@@ -1650,19 +1523,48 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         GuideSiteHtmlCompiler.SceneResolver sceneResolver, GuideSiteHtmlCompiler compiler) {
         StringBuilder text = new StringBuilder();
         collectStructureText(text, element.children());
-        return renderFileTree(text.toString(), defaultNamespace, currentPageId, templates, sceneResolver, compiler);
+        int indent = readInt(element, "indent", 14);
+        int gap = Math.max(0, readInt(element, "gap", 0));
+        return renderFileTree(
+            text.toString(),
+            defaultNamespace,
+            currentPageId,
+            templates,
+            sceneResolver,
+            compiler,
+            indent > 0 ? indent : 14,
+            gap);
     }
 
     @Override
     public String renderFileTree(String source, String defaultNamespace, @Nullable ResourceLocation currentPageId,
         GuideSiteTemplateRegistry templates, GuideSiteHtmlCompiler.SceneResolver sceneResolver,
         GuideSiteHtmlCompiler compiler) {
+        return renderFileTree(source, defaultNamespace, currentPageId, templates, sceneResolver, compiler, 14, 0);
+    }
+
+    private String renderFileTree(String source, String defaultNamespace, @Nullable ResourceLocation currentPageId,
+        GuideSiteTemplateRegistry templates, GuideSiteHtmlCompiler.SceneResolver sceneResolver,
+        GuideSiteHtmlCompiler compiler, int indent, int gap) {
         FileTreeModel model = FileTreeParser.parse(source.trim());
         StringBuilder html = new StringBuilder();
-        html.append("<div class=\"guide-file-tree\">");
+        html.append("<div class=\"guide-file-tree\" style=\"--tree-max-depth:")
+            .append(
+                Math.max(
+                    1,
+                    model.entries()
+                        .stream()
+                        .mapToInt(FileTreeEntry::depth)
+                        .max()
+                        .orElse(1)))
+            .append(";--tree-indent:")
+            .append(indent)
+            .append("px;--tree-gap:")
+            .append(gap)
+            .append("px\">");
         for (FileTreeEntry entry : model.entries()) {
             html.append("<div class=\"guide-file-tree-row\">");
-            appendFileTreePrefix(html, entry.slots());
+            html.append(GuideSiteGraphRenderer.renderFileTreePrefix(entry.slots()));
             appendFileTreeIcon(html, entry.icon(), defaultNamespace, currentPageId, templates, sceneResolver);
             html.append("<span class=\"guide-file-tree-name\">")
                 .append(
@@ -1715,32 +1617,6 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         return "square".equalsIgnoreCase(wrap) || "tight".equalsIgnoreCase(wrap) || "through".equalsIgnoreCase(wrap);
     }
 
-    private void appendFileTreePrefix(StringBuilder html, List<SlotKind> slots) {
-        if (slots.isEmpty()) {
-            return;
-        }
-        StringBuilder prefix = new StringBuilder();
-        for (SlotKind slot : slots) {
-            switch (slot) {
-                case VERTICAL:
-                    prefix.append("|   ");
-                    break;
-                case BRANCH:
-                    prefix.append("|-- ");
-                    break;
-                case LAST_BRANCH:
-                    prefix.append("`-- ");
-                    break;
-                case EMPTY:
-                    prefix.append("    ");
-                    break;
-            }
-        }
-        html.append("<span class=\"guide-file-tree-prefix\">")
-            .append(escapeHtml(prefix.toString()))
-            .append("</span>");
-    }
-
     private void appendFileTreeIcon(StringBuilder html, @Nullable FileTreeIcon icon, String defaultNamespace,
         @Nullable ResourceLocation currentPageId, GuideSiteTemplateRegistry templates,
         GuideSiteHtmlCompiler.SceneResolver sceneResolver) {
@@ -1750,6 +1626,8 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             return;
         }
         String rendered = switch (icon.kind()) {
+            case FLUID -> GuideSiteFluidHtml
+                .icon(new FluidStackSpec(icon.value()), GuideSiteFluidIconResolver.from(itemIconResolver), 1, false);
             case TEXT -> escapeHtml(icon.value());
             case PNG -> "<img src=\"" + escapeAttribute(resolveFileTreeImage(icon.value(), currentPageId))
                 + "\" alt=\"\" decoding=\"async\">";
@@ -1888,8 +1766,11 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             if (nodeHtml.containsKey(node.getId()) || !shouldCompileMermaidRichLabel(node)) {
                 continue;
             }
-            ParsedGuidePage parsed = PageCompiler
-                .parse(resolveSourcePack(currentPageId), "en_us", currentPageId, node.getLabelSource());
+            ParsedGuidePage parsed = PageCompiler.parse(
+                resolveSourcePack(currentPageId),
+                "en_us",
+                currentPageId,
+                MermaidParser.normalizeMarkdownSource(node.getLabelSource()));
             nodeHtml.put(
                 node.getId(),
                 compiler.compileInlineFragment(
@@ -1944,7 +1825,7 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             }
             String labelSource = node.getLabelSource();
             if (labelSource == null) continue;
-            String normalized = MermaidParser.normalizeLabel(labelSource);
+            String normalized = MermaidParser.normalizeMarkdownSource(labelSource);
             String plain = MermaidParser.toPlainText(normalized);
             if (normalized.equals(plain)) continue;
             ParsedGuidePage parsed = PageCompiler
@@ -1972,7 +1853,9 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
     private boolean shouldCompileMermaidRichLabel(MindmapNode node) {
         String labelSource = node.getLabelSource();
         return labelSource != null && !labelSource.trim()
-            .isEmpty() && !labelSource.equals(node.getText());
+            .isEmpty()
+            && !MermaidParser.normalizeMarkdownSource(labelSource)
+                .equals(node.getText());
     }
 
     private String renderCsvTable(MdxJsxElementFields element, @Nullable ResourceLocation currentPageId) {
@@ -2002,10 +1885,8 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
     }
 
     /**
-     * Builds the presentation a chart shares from its attributes: size, frame, title, legend placement
-     * and value label style. The legend position comes from the in-game {@code legend} attribute; the
-     * export-only {@code showLegend} flag is still honoured when {@code legend} is absent, so pages
-     * written against it keep working.
+     * Parses shared chart presentation. The in-game {@code legend} attribute takes precedence over legacy
+     * export-only {@code showLegend}.
      */
     private GuideSiteGraphRenderer.ChartStyle resolveChartStyle(MdxJsxElementFields element) {
         return GuideSiteGraphRenderer.ChartStyle
@@ -2075,10 +1956,26 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         return readBoolean(element, "showLegend", true) ? ChartLegendPosition.TOP : ChartLegendPosition.NONE;
     }
 
+    private MdxJsxElementFields normalizeChartChildren(MdxJsxElementFields element,
+        @Nullable ResourceLocation currentPageId) {
+        ParsedGuidePage source = resolveFragmentSource(currentPageId);
+        String body = source != null ? MdxBlockTagSourceExtractor.extractRawBody(element, source.getSource()) : null;
+        if (body == null || body.isBlank()) return element;
+        ParsedGuidePage parsed = PageCompiler
+            .parse(source.getSourcePack(), source.getLanguage(), source.getId(), DetailsContentExtractor.dedent(body));
+        MdxJsxFlowElement normalized = new MdxJsxFlowElement(element.name(), new ArrayList<>(element.attributes()));
+        for (var child : parsed.getAstRoot()
+            .children()) {
+            if (child instanceof MdAstFlowContent flow) normalized.children()
+                .add(flow);
+        }
+        return normalized;
+    }
+
     private String renderColumnChart(MdxJsxElementFields element) {
         String yAxisUnit = readOptional(element, "yAxisUnit");
         List<GuideSiteGraphRenderer.SeriesData> series = parseSeriesChildren(element);
-        GuideSiteGraphRenderer.PieInsetData pieInset = parsePieInsetChildren(element);
+        PieInsetData pieInset = parsePieInsetChildren(element);
         return GuideSiteGraphRenderer.renderColumnChart(
             resolveChartStyle(element),
             ChartAttrParser.parseStringArray(readOptional(element, "categories")),
@@ -2091,7 +1988,8 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         return GuideSiteGraphRenderer.renderBarChart(
             resolveChartStyle(element),
             ChartAttrParser.parseStringArray(readOptional(element, "categories")),
-            parseSeriesChildren(element));
+            parseSeriesChildren(element),
+            parsePieInsetChildren(element));
     }
 
     private String renderLineChart(MdxJsxElementFields element) {
@@ -2123,7 +2021,7 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
     }
 
     private String renderPieChart(MdxJsxElementFields element) {
-        List<GuideSiteGraphRenderer.SliceData> slices = parseSliceChildren(element);
+        List<SliceData> slices = parseSliceChildren(element);
         return GuideSiteGraphRenderer.renderPieChart(resolveChartStyle(element), slices);
     }
 
@@ -2318,14 +2216,13 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         return separator >= 0 && range.indexOf("..", separator + 2) < 0 ? separator : -1;
     }
 
-    /** Parse {@code <Series name="..." data="1,2,3" color="...">} children for bar/column/line charts. */
+    /**
+     * Parse {@code <Series name="..." data="1,2,3" color="...">} children for bar/column/line charts.
+     */
     private List<GuideSiteGraphRenderer.SeriesData> parseSeriesChildren(MdxJsxElementFields element) {
         List<GuideSiteGraphRenderer.SeriesData> result = new ArrayList<>();
         int idx = 0;
-        for (MdAstAnyContent child : element.children()) {
-            if (!(child instanceof MdxJsxElementFields c)) {
-                continue;
-            }
+        for (var c : ChartChildParser.childElements(element)) {
             boolean isSeries = "Series".equals(c.name());
             boolean isLineSeries = "LineSeries".equals(c.name());
             if (!isSeries && !isLineSeries) {
@@ -2361,12 +2258,14 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         return result;
     }
 
-    /** Parse child {@code <Point x="..." y="..."/>} elements inside a {@code <Series>}. */
+    /**
+     * Parse child {@code <Point x="..." y="..."/>} elements inside a {@code <Series>}.
+     */
     private double[][] parseSeriesChildPoints(MdxJsxElementFields seriesEl) {
         List<Double> xs = new ArrayList<>();
         List<Double> ys = new ArrayList<>();
-        for (MdAstAnyContent child : seriesEl.children()) {
-            if (!(child instanceof MdxJsxElementFields pointEl) || !"Point".equals(pointEl.name())) {
+        for (var pointEl : ChartChildParser.childElements(seriesEl)) {
+            if (!"Point".equals(pointEl.name())) {
                 continue;
             }
             String xsStr = readOptional(pointEl, "x");
@@ -2375,8 +2274,12 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
                 continue;
             }
             try {
-                xs.add(Double.parseDouble(xsStr.trim()));
-                ys.add(Double.parseDouble(ysStr.trim()));
+                double x = Double.parseDouble(xsStr.trim());
+                double y = Double.parseDouble(ysStr.trim());
+                if (Double.isFinite(x) && Double.isFinite(y)) {
+                    xs.add(x);
+                    ys.add(y);
+                }
             } catch (NumberFormatException ignored) {}
         }
         double[] xArr = new double[xs.size()];
@@ -2393,31 +2296,37 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
      * Returns {@code null} if no such child is present.
      */
     @Nullable
-    private GuideSiteGraphRenderer.PieInsetData parsePieInsetChildren(MdxJsxElementFields element) {
-        for (MdAstAnyContent child : element.children()) {
-            if (!(child instanceof MdxJsxElementFields c)) {
-                continue;
-            }
+    private PieInsetData parsePieInsetChildren(MdxJsxElementFields element) {
+        for (var c : ChartChildParser.childElements(element)) {
             if (!"PieInset".equals(c.name())) {
                 continue;
             }
-            int size = readInt(c, "size", 80);
+            int size = readInt(c, "size", 60);
             String position = readOptional(c, "position");
             String insetTitle = readOptional(c, "title");
-            List<GuideSiteGraphRenderer.SliceData> slices = parseSliceChildren(c);
-            return new GuideSiteGraphRenderer.PieInsetData(slices, size, position, insetTitle);
+            List<SliceData> slices = parseSliceChildren(c);
+            String direction = readOptional(c, "direction");
+            if (direction != null) direction = direction.trim();
+            boolean clockwise = !"counterclockwise".equalsIgnoreCase(direction) && !"ccw".equalsIgnoreCase(direction);
+            return new PieInsetData(
+                slices,
+                size,
+                position,
+                insetTitle,
+                (float) parseDoubleAttr(c, "startAngleDeg", -90),
+                clockwise,
+                parseArgbAttr(c, "titleColor", ColorUtils.CHART_TITLE.getColor()));
         }
         return null;
     }
 
-    /** Parse {@code <Series points="x1:y1,x2:y2,...">} children for scatter chart. */
+    /**
+     * Parse {@code <Series points="x1:y1,x2:y2,...">} children for scatter chart.
+     */
     private List<GuideSiteGraphRenderer.SeriesData> parseScatterSeriesChildren(MdxJsxElementFields element) {
         List<GuideSiteGraphRenderer.SeriesData> result = new ArrayList<>();
         int idx = 0;
-        for (MdAstAnyContent child : element.children()) {
-            if (!(child instanceof MdxJsxElementFields c)) {
-                continue;
-            }
+        for (var c : ChartChildParser.childElements(element)) {
             if (!"Series".equals(c.name())) {
                 continue;
             }
@@ -2437,28 +2346,29 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         return result;
     }
 
-    /** Parse {@code <Slice name="..." value="0.5" color="...">} children for pie chart. */
-    private List<GuideSiteGraphRenderer.SliceData> parseSliceChildren(MdxJsxElementFields element) {
-        List<GuideSiteGraphRenderer.SliceData> result = new ArrayList<>();
+    /**
+     * Parse {@code <Slice name="..." value="0.5" color="...">} children for pie chart.
+     */
+    private List<SliceData> parseSliceChildren(MdxJsxElementFields element) {
+        List<SliceData> result = new ArrayList<>();
         int idx = 0;
-        for (MdAstAnyContent child : element.children()) {
-            if (!(child instanceof MdxJsxElementFields c)) {
-                continue;
-            }
+        for (var c : ChartChildParser.childElements(element)) {
             if (!"Slice".equals(c.name())) {
                 continue;
             }
             String label = readOptional(c, "name");
             if (label == null) label = "";
-            double value = parseDoubleAttr(c, "value", 1.0);
+            double value = parseDoubleAttr(c, "value", 0);
             int color = parseArgbAttr(c, "color", ChartAttrParser.paletteColor(idx));
-            result.add(new GuideSiteGraphRenderer.SliceData(label, value, color));
+            result.add(new SliceData(label, value, color, readOptional(c, "tooltip")));
             idx++;
         }
         return result;
     }
 
-    /** Parse {@code <Plot label="..." expr="...">} or {@code <Function label="..." expr="...">} children. */
+    /**
+     * Parse {@code <Plot label="..." expr="...">} or {@code <Function label="..." expr="...">} children.
+     */
     private List<FunctionPlot> parsePlotChildren(MdxJsxElementFields element, String defaultNamespace,
         @Nullable ResourceLocation currentPageId, GuideSiteTemplateRegistry templates,
         GuideSiteHtmlCompiler.SceneResolver sceneResolver, GuideSiteHtmlCompiler compiler) {
@@ -2520,7 +2430,9 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         return result;
     }
 
-    /** Parse {@code <Point x="" y=""/>} or {@code <Point plot="0" atX="..."/>} children. */
+    /**
+     * Parse {@code <Point x="" y=""/>} or {@code <Point plot="0" atX="..."/>} children.
+     */
     private List<MarkedPoint> parsePointChildren(MdxJsxElementFields element) {
         List<MarkedPoint> result = new ArrayList<>();
         for (MdAstAnyContent child : element.children()) {
@@ -2587,7 +2499,9 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         return result;
     }
 
-    /** Parse an ARGB color attribute (hex #rrggbb or #aarrggbb). */
+    /**
+     * Parse an ARGB color attribute (hex #rrggbb or #aarrggbb).
+     */
     private int parseArgbAttr(MdxJsxElementFields element, String attr, int def) {
         String val = readOptional(element, attr);
         if (val == null) {
@@ -2596,7 +2510,9 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         return ChartAttrParser.parseColor(val, def);
     }
 
-    /** Parse a double attribute, returning defaultValue on missing or invalid. */
+    /**
+     * Parse a double attribute, returning defaultValue on missing or invalid.
+     */
     private double parseDoubleAttr(MdxJsxElementFields element, String attr, double defaultValue) {
         String val = readOptional(element, attr);
         if (val == null || val.trim()
@@ -2978,6 +2894,10 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
     private void appendGuidePageIcon(StringBuilder html, @Nullable GuidePageIcon icon,
         @Nullable ResourceLocation guideId) {
         if (icon == null) {
+            return;
+        }
+        if (icon.isFluidIcon()) {
+            html.append(GuideSiteFluidHtml.pageIcon(icon, GuideSiteFluidIconResolver.from(itemIconResolver)));
             return;
         }
         if (icon.isItemIcon() && icon.resolveCurrentItemStack() != null) {

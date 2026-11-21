@@ -1,101 +1,106 @@
 package com.hfstudio.guidenh.integration.betterquesting;
 
-import java.util.ArrayList;
+import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
-
-import net.minecraft.util.ResourceLocation;
 
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.Nullable;
 
+import com.google.gson.stream.JsonWriter;
+import com.hfstudio.guidenh.guide.GuidePageChange;
 import com.hfstudio.guidenh.guide.PageAnchor;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
+import com.hfstudio.guidenh.guide.indices.GuideBindingIndex;
 import com.hfstudio.guidenh.guide.indices.UniqueIndex;
-import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
+import com.hfstudio.guidenh.guide.internal.binding.BindingFrontmatterParser;
+import com.hfstudio.guidenh.integration.api.binding.BindingKey;
 
 /**
- * An index of BetterQuesting quest ids to the main guidebook page describing them.
- * <p/>
- * The {@code quest_ids} frontmatter list accepts both canonical UUID strings and BetterQuesting's
- * compact Base64 quest-id encoding. When the player views a quest in the BetterQuesting GUI,
- * holding the open-guide hotkey will look up this index to navigate to the appropriate page.
- * <p/>
- * The index itself is independent of BetterQuesting: it only stores {@link UUID} keys and never
- * touches any BQ types. This keeps the class safe to load even when BetterQuesting is absent.
+ * Retains the UUID lookup contract while sharing the complete multi-page binding index.
  */
 public class QuestIndex extends UniqueIndex<UUID, PageAnchor> {
 
+    private final GuideBindingIndex bindings;
+    private final boolean ownsIndex;
+
     public QuestIndex() {
+        this(new GuideBindingIndex(), true);
+    }
+
+    public QuestIndex(GuideBindingIndex bindings) {
+        this(bindings, false);
+    }
+
+    private QuestIndex(GuideBindingIndex bindings, boolean ownsIndex) {
         super(
             "Quest Index",
             QuestIndex::getQuestAnchors,
             (writer, value) -> writer.value(value.toString()),
             (writer, value) -> writer.value(value.toString()));
+        this.bindings = bindings;
+        this.ownsIndex = ownsIndex;
     }
 
-    /**
-     * Returns the page anchor for the given quest UUID, or {@code null} if no page indexes it.
-     */
+    @Override
     @Nullable
-    public PageAnchor findByUuid(@Nullable UUID questId) {
-        if (questId == null) return null;
-        return get(questId);
+    public PageAnchor get(UUID id) {
+        var pages = findAllByUuid(id);
+        return pages.isEmpty() ? null : pages.getFirst();
     }
 
-    /**
-     * Convenience overload that parses supported BetterQuesting quest-id formats.
-     */
     @Nullable
-    public PageAnchor findByUuidString(@Nullable String questId) {
-        UUID parsed = QuestIdParser.parse(questId);
-        if (parsed == null) {
-            return null;
+    public PageAnchor findByUuid(@Nullable UUID id) {
+        return id == null ? null : get(id);
+    }
+
+    @Nullable
+    public PageAnchor findByUuidString(@Nullable String id) {
+        return findByUuid(QuestIdParser.parse(id));
+    }
+
+    public List<PageAnchor> findAllByUuid(@Nullable UUID id) {
+        return id == null ? List.of() : bindings.findAll(new BindingKey("betterquesting", id.toString()));
+    }
+
+    @Override
+    public void rebuild(List<ParsedGuidePage> pages) {
+        if (ownsIndex) bindings.rebuild(pages);
+    }
+
+    @Override
+    public void update(List<ParsedGuidePage> pages, List<GuidePageChange> changes) {
+        if (ownsIndex) bindings.update(pages, changes);
+    }
+
+    @Override
+    public void export(JsonWriter writer) throws IOException {
+        writer.beginArray();
+        for (var key : bindings.keys()) {
+            if (!"betterquesting".equals(key.type())) continue;
+            var pages = bindings.findAll(key);
+            if (pages.isEmpty()) continue;
+            writer.value(key.id());
+            writer.value(
+                pages.getFirst()
+                    .toString());
         }
-        return get(parsed);
+        writer.endArray();
     }
 
     public static List<Pair<UUID, PageAnchor>> getQuestAnchors(ParsedGuidePage page) {
-        var questIdsNode = page.getFrontmatter()
-            .additionalProperties()
-            .get("quest_ids");
-        if (questIdsNode == null) {
-            return List.of();
-        }
-
-        if (!(questIdsNode instanceof List<?>questIdList)) {
-            GuideDebugLog.warn("[GuideNH] [QuestIndex] Page {} contains malformed quest_ids frontmatter", page.getId());
-            return List.of();
-        }
-
-        ResourceLocation pageId = page.getId();
-        var anchors = new ArrayList<Pair<UUID, PageAnchor>>();
-
-        for (var listEntry : questIdList) {
-            if (listEntry instanceof String questIdStr) {
-                String trimmed = questIdStr.trim();
-                if (trimmed.isEmpty()) {
-                    GuideDebugLog
-                        .warn("[GuideNH] [QuestIndex] Page {} contains an empty quest_ids frontmatter entry", pageId);
-                    continue;
-                }
-                UUID parsed = QuestIdParser.parse(trimmed);
-                if (parsed == null) {
-                    GuideDebugLog.warn(
-                        "[GuideNH] [QuestIndex] Page {} contains a malformed quest_ids frontmatter entry: {}",
-                        pageId,
-                        trimmed);
-                    continue;
-                }
-                anchors.add(Pair.of(parsed, new PageAnchor(pageId, null)));
-            } else {
-                GuideDebugLog.warn(
-                    "[GuideNH] [QuestIndex] Page {} contains a malformed quest_ids frontmatter entry: {}",
-                    pageId,
-                    listEntry);
-            }
-        }
-
-        return anchors;
+        return BindingFrontmatterParser.read(page)
+            .stream()
+            .filter(
+                entry -> "betterquesting".equals(
+                    entry.getKey()
+                        .type()))
+            .map(
+                entry -> Pair.of(
+                    UUID.fromString(
+                        entry.getKey()
+                            .id()),
+                    entry.getValue()))
+            .toList();
     }
 }

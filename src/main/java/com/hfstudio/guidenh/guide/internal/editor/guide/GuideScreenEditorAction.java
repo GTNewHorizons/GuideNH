@@ -24,15 +24,19 @@ public enum GuideScreenEditorAction {
     MARK(GuidebookText.GuideEditorMark),
     COMMENT(GuidebookText.GuideEditorComment),
     ITEM_IMAGE(GuidebookText.GuideEditorItemImage),
+    FLUID_IMAGE(GuidebookText.GuideEditorFluidImage),
     BLOCK_IMAGE(GuidebookText.GuideEditorBlockImage),
     ITEM_LINK(GuidebookText.GuideEditorItemLink),
+    FLUID_LINK(GuidebookText.GuideEditorFluidLink),
     LATEX(GuidebookText.GuideEditorLatex),
     CSV_TABLE(GuidebookText.GuideEditorCsvTable),
     COMMAND_LINK(GuidebookText.GuideEditorCommandLink),
     SOUND_LINK(GuidebookText.GuideEditorSoundLink),
     RECIPE(GuidebookText.GuideEditorRecipe),
     RECIPE_FOR(GuidebookText.GuideEditorRecipeFor),
+    FLUID_RECIPE(GuidebookText.GuideEditorFluidRecipe),
     RECIPES_FOR(GuidebookText.GuideEditorRecipesFor),
+    FLUID_USAGE(GuidebookText.GuideEditorFluidUsage),
     FLOATING_IMAGE(GuidebookText.GuideEditorFloatingImage),
     MERMAID(GuidebookText.GuideEditorMermaid),
     FILE_TREE(GuidebookText.GuideEditorFileTree),
@@ -74,6 +78,7 @@ public enum GuideScreenEditorAction {
     LINE_ANNOTATION(GuidebookText.GuideEditorLineAnnotation),
     DIAMOND_ANNOTATION(GuidebookText.GuideEditorDiamondAnnotation),
     TEXT_ANNOTATION(GuidebookText.GuideEditorTextAnnotation),
+    FLUID_INPUT_ANNOTATION(GuidebookText.GuideEditorFluidInputAnnotation),
     BLOCK_ANNOTATION_TEMPLATE(GuidebookText.GuideEditorBlockAnnotationTemplate),
     IMPORT_STRUCTURE(GuidebookText.GuideEditorImportStructure),
     IMPORT_STRUCTURE_LIB(GuidebookText.GuideEditorImportStructureLib),
@@ -86,17 +91,21 @@ public enum GuideScreenEditorAction {
     QUEST_IDS(GuidebookText.GuideEditorQuestIds),
     NAV_POSITION(GuidebookText.GuideEditorNavPosition),
     NAV_ICON(GuidebookText.GuideEditorNavIcon),
+    NAV_FLUID_ICON(GuidebookText.GuideEditorNavFluidIcon),
     NAV_ICON_TEXTURE(GuidebookText.GuideEditorNavIconTexture),
     NAV_ICONS(GuidebookText.GuideEditorNavIcons),
+    NAV_FLUID_ICONS(GuidebookText.GuideEditorNavFluidIcons),
     NAV_ICON_TEXTURES(GuidebookText.GuideEditorNavIconTextures),
     NAV_REQUIRED_MODS(GuidebookText.GuideEditorNavRequiredMods),
     PAGE_CATEGORIES(GuidebookText.GuideEditorPageCategories),
     PAGE_ITEM_IDS(GuidebookText.GuideEditorPageItemIds),
+    PAGE_FLUID_IDS(GuidebookText.GuideEditorPageFluidIds),
     PAGE_ORE_IDS(GuidebookText.GuideEditorPageOreIds),
     PAGE_METADATA(GuidebookText.GuideEditorPageMetadata),
     QUOTE_CALLOUT(GuidebookText.GuideEditorQuoteCallout),
     QUOTE_ICON_TEXT(GuidebookText.GuideEditorQuoteIconText),
     QUOTE_ICON_ITEM(GuidebookText.GuideEditorQuoteIconItem),
+    QUOTE_ICON_FLUID(GuidebookText.GuideEditorQuoteIconFluid),
     QUOTE_ICON_PNG(GuidebookText.GuideEditorQuoteIconPng),
     LATEX_SHORTHAND(GuidebookText.GuideEditorLatexShorthand),
     LINK(GuidebookText.GuideEditorLink),
@@ -162,15 +171,19 @@ public enum GuideScreenEditorAction {
             case MARK -> GuideIconButton.Role.GUIDE_EDITOR_MARK;
             case COMMENT -> GuideIconButton.Role.GUIDE_EDITOR_COMMENT;
             case ITEM_IMAGE -> GuideIconButton.Role.GUIDE_EDITOR_ITEM_IMAGE;
+            case FLUID_IMAGE -> GuideIconButton.Role.GUIDE_EDITOR_ITEM_IMAGE;
             case BLOCK_IMAGE -> GuideIconButton.Role.GUIDE_EDITOR_BLOCK_IMAGE;
             case ITEM_LINK -> GuideIconButton.Role.GUIDE_EDITOR_ITEM_LINK;
+            case FLUID_LINK -> GuideIconButton.Role.GUIDE_EDITOR_ITEM_LINK;
             case LATEX -> GuideIconButton.Role.GUIDE_EDITOR_LATEX;
             case CSV_TABLE -> GuideIconButton.Role.GUIDE_EDITOR_CSV_TABLE;
             case COMMAND_LINK -> GuideIconButton.Role.GUIDE_EDITOR_COMMAND_LINK;
             case SOUND_LINK -> GuideIconButton.Role.GUIDE_EDITOR_SOUND_LINK;
             case RECIPE -> GuideIconButton.Role.GUIDE_EDITOR_RECIPE;
             case RECIPE_FOR -> GuideIconButton.Role.GUIDE_EDITOR_RECIPE_FOR;
+            case FLUID_RECIPE -> GuideIconButton.Role.GUIDE_EDITOR_RECIPE_FOR;
             case RECIPES_FOR -> GuideIconButton.Role.GUIDE_EDITOR_RECIPES_FOR;
+            case FLUID_USAGE -> GuideIconButton.Role.GUIDE_EDITOR_RECIPES_FOR;
             case FLOATING_IMAGE -> GuideIconButton.Role.GUIDE_EDITOR_FLOATING_IMAGE;
             case MERMAID -> GuideIconButton.Role.GUIDE_EDITOR_MERMAID;
             case FILE_TREE -> GuideIconButton.Role.GUIDE_EDITOR_FILE_TREE;
@@ -212,6 +225,7 @@ public enum GuideScreenEditorAction {
             case LINE_ANNOTATION -> GuideIconButton.Role.GUIDE_EDITOR_LINE_ANNOTATION;
             case DIAMOND_ANNOTATION -> GuideIconButton.Role.GUIDE_EDITOR_DIAMOND_ANNOTATION;
             case TEXT_ANNOTATION -> GuideIconButton.Role.GUIDE_EDITOR_TEXT_ANNOTATION;
+            case FLUID_INPUT_ANNOTATION -> GuideIconButton.Role.GUIDE_EDITOR_TEXT_ANNOTATION;
             case BLOCK_ANNOTATION_TEMPLATE -> GuideIconButton.Role.GUIDE_EDITOR_BLOCK_ANNOTATION_TEMPLATE;
             case IMPORT_STRUCTURE -> GuideIconButton.Role.GUIDE_EDITOR_IMPORT_STRUCTURE;
             case IMPORT_STRUCTURE_LIB -> GuideIconButton.Role.GUIDE_EDITOR_IMPORT_STRUCTURE_LIB;
@@ -224,17 +238,21 @@ public enum GuideScreenEditorAction {
             case QUEST_IDS -> GuideIconButton.Role.GUIDE_EDITOR_QUEST_IDS;
             case NAV_POSITION -> GuideIconButton.Role.GUIDE_EDITOR_NAV_POSITION;
             case NAV_ICON -> GuideIconButton.Role.GUIDE_EDITOR_NAV_ICON;
+            case NAV_FLUID_ICON -> GuideIconButton.Role.GUIDE_EDITOR_NAV_ICON;
             case NAV_ICON_TEXTURE -> GuideIconButton.Role.GUIDE_EDITOR_NAV_ICON_TEXTURE;
             case NAV_ICONS -> GuideIconButton.Role.GUIDE_EDITOR_NAV_ICONS;
+            case NAV_FLUID_ICONS -> GuideIconButton.Role.GUIDE_EDITOR_NAV_ICONS;
             case NAV_ICON_TEXTURES -> GuideIconButton.Role.GUIDE_EDITOR_NAV_ICON_TEXTURES;
             case NAV_REQUIRED_MODS -> GuideIconButton.Role.GUIDE_EDITOR_NAV_REQUIRED_MODS;
             case PAGE_CATEGORIES -> GuideIconButton.Role.GUIDE_EDITOR_PAGE_CATEGORIES;
             case PAGE_ITEM_IDS -> GuideIconButton.Role.GUIDE_EDITOR_PAGE_ITEM_IDS;
+            case PAGE_FLUID_IDS -> GuideIconButton.Role.GUIDE_EDITOR_PAGE_ITEM_IDS;
             case PAGE_ORE_IDS -> GuideIconButton.Role.GUIDE_EDITOR_PAGE_ORE_IDS;
             case PAGE_METADATA -> GuideIconButton.Role.GUIDE_EDITOR_PAGE_METADATA;
             case QUOTE_CALLOUT -> GuideIconButton.Role.GUIDE_EDITOR_QUOTE_CALLOUT;
             case QUOTE_ICON_TEXT -> GuideIconButton.Role.GUIDE_EDITOR_QUOTE_ICON_TEXT;
             case QUOTE_ICON_ITEM -> GuideIconButton.Role.GUIDE_EDITOR_QUOTE_ICON_ITEM;
+            case QUOTE_ICON_FLUID -> GuideIconButton.Role.GUIDE_EDITOR_QUOTE_ICON_ITEM;
             case QUOTE_ICON_PNG -> GuideIconButton.Role.GUIDE_EDITOR_QUOTE_ICON_PNG;
             case LATEX_SHORTHAND -> GuideIconButton.Role.GUIDE_EDITOR_LATEX_SHORTHAND;
             case LINK -> GuideIconButton.Role.GUIDE_EDITOR_LINK;

@@ -7,6 +7,8 @@ export function escapeHtml(value) {
     .replaceAll("'", "&#39;");
 }
 
+export const DUPLICATE_ATTRIBUTES = Symbol("duplicateAttributes");
+
 export function parseAttributes(source) {
   const attributes = {};
   const text = String(source || "");
@@ -18,12 +20,17 @@ export function parseAttributes(source) {
     while (index < text.length && /[:@\w-]/.test(text[index])) index += 1;
     if (nameStart === index) { index += 1; continue; }
     const name = text.slice(nameStart, index);
+    if (Object.hasOwn(attributes, name)) {
+      if (!attributes[DUPLICATE_ATTRIBUTES]) Object.defineProperty(attributes, DUPLICATE_ATTRIBUTES, { value: [] });
+      attributes[DUPLICATE_ATTRIBUTES].push(name);
+    }
     while (index < text.length && /\s/.test(text[index])) index += 1;
     if (text[index] !== "=") { attributes[name] = true; continue; }
     index += 1;
     while (index < text.length && /\s/.test(text[index])) index += 1;
+    const quoted = text[index] === '"' || text[index] === "'";
     const value = readAttributeValue(text, index);
-    attributes[name] = normalizeAttributeValue(value.value);
+    attributes[name] = normalizeAttributeValue(value.value, quoted);
     index = value.end;
   }
   return attributes;
@@ -64,12 +71,12 @@ function readAttributeValue(source, startIndex) {
   return { value: source.slice(start, index), end: index };
 }
 
-function normalizeAttributeValue(value) {
+function normalizeAttributeValue(value, preserveWhitespace = false) {
   const text = String(value).trim();
   if (text === "true") return true;
   if (text === "false") return false;
   if (/^-?(?:\d+\.?\d*|\.\d+)$/.test(text)) return Number(text);
-  return text;
+  return preserveWhitespace ? String(value) : text;
 }
 
 export function attr(attributes, ...names) {
@@ -93,8 +100,10 @@ export function numberAttr(attributes, fallback, ...names) {
 
 export function colorValue(value, fallback = "#6ec6d7") {
   const text = String(value ?? "").trim();
-  if (/^(?:#[0-9a-f]{3,8}|rgba?\(|hsla?\(|transparent$)/i.test(text)) return text;
-  if (/^0x[0-9a-f]{6,8}$/i.test(text)) return `#${text.slice(2)}`;
+  if (/^#[0-9a-f]{8}$/i.test(text)) return `#${text.slice(3)}${text.slice(1, 3)}`;
+  if (/^(?:#(?:[0-9a-f]{3,4}|[0-9a-f]{6})|transparent)$/i.test(text)) return text;
+  if (/^(?:rgba?|hsla?)\([\d\s.,%+/-]+(?:(?:deg|grad|rad|turn)[\d\s.,%+/-]*)?\)$/i.test(text)) return text;
+  if (/^0x(?:[0-9a-f]{6}|[0-9a-f]{8})$/i.test(text)) return colorValue(`#${text.slice(2)}`, fallback);
   return fallback;
 }
 

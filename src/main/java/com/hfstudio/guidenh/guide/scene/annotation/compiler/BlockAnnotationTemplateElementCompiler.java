@@ -167,6 +167,7 @@ public class BlockAnnotationTemplateElementCompiler implements SceneElementTagCo
         registerTemplateCompiler(compilers, new BoxAnnotationElementCompiler());
         registerTemplateCompiler(compilers, new LineAnnotationElementCompiler());
         registerTemplateCompiler(compilers, new DiamondAnnotationElementCompiler());
+        registerTemplateCompiler(compilers, new OutlineAnnotationElementCompiler());
         return Map.copyOf(compilers);
     }
 

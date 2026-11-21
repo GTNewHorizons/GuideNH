@@ -1,10 +1,12 @@
+import { readBindings } from "./modules/binding-presentation.js";
 import { addPage, createDirectory, createFile, createSampleProject, filesToProject, findFile, isExportSiteFiles, movePath, normalizeProject, renamePath, serializeProject, stripCommonRoot, updateFile } from "./modules/exportsite-adapter.js";
-import { renderMarkdown } from "./modules/markdown-renderer.js";
+import { renderMarkdown, parseFrontmatter } from "./modules/markdown-renderer.js";
 import { loadProject, saveProject, clearProject } from "./modules/project-store.js";
 import { zipToFiles } from "./modules/zip-reader.js";
 import { browserLanguages, collectProjectLanguages, detectLanguage, languageLabel, localizedPagePath, normalizeLanguage, preferredUiLanguage, projectLanguageFor, translatedString, uiLanguageFor, UI_LANGUAGES } from "./modules/language.js";
 import { createSyntaxReference } from "./modules/syntax-reference.js";
 import { createScrollSync } from "./modules/scroll-sync.js";
+import { installChartCursors } from "./modules/chart-cursor.js";
 
 const savedSiteLanguage = localStorage.getItem("guidenh-site-language");
 const state = { project: null, filter: "", dirty: false, saveTimer: null, collapsedTreePaths: new Set(), selectedDirectory: "", theme: localStorage.getItem("guidenh-theme") || "dark", syncScroll: localStorage.getItem("guidenh-sync-scroll") === "true", locale: localStorage.getItem("guidenh-locale") ? uiLanguageFor(localStorage.getItem("guidenh-locale")) : preferredUiLanguage(browserLanguages()), siteLanguage: normalizeLanguage(savedSiteLanguage || browserLanguages()[0]) };
@@ -241,9 +243,31 @@ function renderPreview() {
     scrollSync.refresh(file.content, false);
     return;
   }
-  elements.preview.innerHTML = `<article class="guide-page">${renderMarkdown(file.content, { pagePath: file.path, resolveAsset: resolvePreviewAsset, resolveText: resolvePreviewText, locale: state.locale })}</article>`;
+  elements.preview.innerHTML = `<article class="guide-page">${renderMarkdown(file.content, { pagePath: file.path, resolveAsset: resolvePreviewAsset, resolveText: resolvePreviewText, resolveBindingTargets: createPreviewBindingTargetResolver(), locale: state.locale })}</article>`;
   installPreviewInteractions();
   scrollSync.refresh(file.content, true);
+}
+
+const previewBindingPages = new WeakMap();
+
+function createPreviewBindingTargetResolver() {
+  const targets = new Map();
+  const currentLanguage = detectLanguage(state.project.selectedPath);
+  for (const file of state.project.files) {
+    if (file.kind !== "markdown" || currentLanguage && detectLanguage(file.path) && detectLanguage(file.path) !== currentLanguage) continue;
+    let page = previewBindingPages.get(file);
+    if (!page || page.content !== file.content) {
+      const frontmatter = parseFrontmatter(file.content).attributes;
+      page = { content: file.content, bindings: readBindings(frontmatter), title: frontmatter.navigation?.title };
+      previewBindingPages.set(file, page);
+    }
+    for (const binding of page.bindings) {
+      const key = JSON.stringify([binding.type, binding.id]);
+      if (!targets.has(key)) targets.set(key, []);
+      targets.get(key).push({ path: file.path, anchor: binding.anchor, title: page.title || file.path });
+    }
+  }
+  return spec => targets.get(JSON.stringify([spec.type, spec.id])) || [];
 }
 
 function resolvePreviewAsset(source, pagePath) {
@@ -381,6 +405,7 @@ function installRichTooltipInteractions() {
 }
 
 function installPreviewInteractions() {
+  installChartCursors(elements.preview);
   installRichTooltipInteractions();
   for (const tabs of elements.preview.querySelectorAll("[data-guide-tabs]")) {
     for (const button of tabs.querySelectorAll("[data-guide-tab]")) button.addEventListener("click", () => {
@@ -453,6 +478,11 @@ function installPreviewInteractions() {
     if (!file || (file.kind !== "markdown" && file.kind !== "html")) return;
     event.preventDefault();
     selectFile(file.path);
+    if (href.includes("#")) {
+      let anchor = href.slice(href.indexOf("#") + 1);
+      try { anchor = decodeURIComponent(anchor); } catch (_) {}
+      elements.preview.querySelector(`[id="${CSS.escape(anchor)}"]`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
   });
 }
 

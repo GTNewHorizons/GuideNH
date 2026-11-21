@@ -2,12 +2,13 @@
 
 # 标签参考
 
-本页列出由 `DefaultExtensions` 注册的内置运行时标签。
+本页说明指南作者可使用的内置标签。
 
 ## 使用规则
 
 - 标签可以出现在块级上下文或行内上下文，具体取决于对应编译器。
 - 页面内容支持使用 `{/* ... */}` 形式的 MDX 注释，运行时解析器会忽略这些注释。
+- MDX 属性统一使用驼峰，例如 `showTooltip`、`showDesc` 和 `fromNbt`。
 - 无效标签或无效属性不会静默失败，而是以内联指南错误的形式显示。
 - 配方和 3D 场景这类大型功能标签会在独立页面中说明：
   - [配方](Recipes)
@@ -20,21 +21,27 @@
 | --- | --- | --- |
 | `<a>` | 内部/外部链接，以及可选锚点名 | `href`, `title`, `name` |
 | `<br>` | 换行 | `clear="none\|left\|right\|all"` |
+| `<wbr>` | 词内可选换行点 | 无 |
 | `<kbd>` | 键位风格行内强调 | 无 |
 | `<sub>` | 较小的下标风格行内文本 | 无 |
 | `<sup>` | 较小的上标风格行内文本 | 无 |
 | `<Color>` | 彩色行内文本 | `id` 或 `color` |
+| `<Amount>` | 格式化数字与单位 | `value`, `unit`, `format`, `decimals` |
 | `<Spoiler>` | 悬停后显示的行内黑幕文本 | 无 |
 | `<Tooltip>` | 带 Markdown/标签子内容的富悬浮提示 | `label` |
 | `<SoundLink>` | 可点击的富文本音效触发器 | `sound` 或 `src`，`volume`，`pitch`，`cooldown` |
+| `<NeiRecipeLink>` | NEI 行内配方链接 | `id`、`handlerId`、`mode`、`title` |
 | `<mark>` | 行内高亮文本；等价于 `==text==`，并可自定义颜色 | `color` |
 | `<PlayerName>` | 插入当前玩家用户名 | 无 |
 | `<KeyBind>` | 插入按键绑定显示名 | `id` 或 `action` |
-| `<ItemImage>` | 行内物品图标 | `id` 或 `ore`，`scale`，`noTooltip`，`showTooltip`，`showIcon`，`label`，`format`，`yOffset`，`labelYOffset` |
+| `<ItemImage>` | 行内物品图标 | `id`, `ore`, `nbt`, `scale`, `noTooltip`, `showTooltip`, `showIcon`, `label`, `format`, `yOffset`, `labelYOffset` |
 | `<ItemLink>` | 物品 tooltip + 可选导航链接 | `id` 或 `ore`，`linksTo`，`showTooltip`，`noTooltip`，`showIcon` |
+| `<FluidImage>` / `<FluidLink>` | 原生流体图标与页面导航 | `id`, `amount`, `nbt`, `scale`, `showTooltip`, `noTooltip`, `showIcon`, `label`, `linksTo` |
+| `<ResearchLink>` / `<BindingLink>` | 研究或自定义内容链接 | `id`, `type`（通用标签）, `text`, `target`, `showTooltip` |
+| `<ResearchIcon>` / `<BindingIcon>` | 研究或自定义内容图标，也可用于块级上下文 | `id`, `type`（通用标签）, `scale`, `showTooltip` |
 | `<CommandLink>` | 可点击的聊天命令链接 | `command`, `title`, `close` |
 | `<Latex>` | LaTeX 数学公式；在流式上下文中行内渲染，在块级上下文中居中显示为独立公式块 | `formula`, `color`, `scale`, `sourceScale`, `tooltip`, `showTooltip` |
-| `<QuestLink>` | BetterQuesting 任务链接，按任务状态自动调整样式（兼容标签，仅当 BetterQuesting 已加载时注册） | `id`, `text`, `show_tooltip` |
+| `<QuestLink>` | BetterQuesting 任务链接，按任务状态自动调整样式（兼容标签，仅当 BetterQuesting 已加载时注册） | `id`, `text`, `showTooltip` |
 
 行内 Markdown 也支持音效动作链接：
 
@@ -48,21 +55,21 @@
 | 标签 | 用途 | 关键属性 |
 | --- | --- | --- |
 | `<div>` | 透传块包装器 | 无 |
-| `<ContentTabs>` | 将可替代的富内容分组到独立标签页中 | `title`、`color`、`background`、`icon`、`iconPng`、`icon_png`、`iconItem`、`icon_item`、`default`、`defaultIndex` |
+| `<ContentTabs>` | 将可替代的富内容分组到独立标签页中 | `title`、`color`、`background`、`icon`、`iconPng`、`iconItem`, `iconFluid`、`default`、`defaultIndex` |
 | `<Tab>` | `<ContentTabs>` 内的单个内容面板 | `title` |
 | `<details>` | 可折叠运行时块 | `open`、`width`、`height`、`wrap`、`align` |
 | `<FileTree>` | 目录树式大纲（带连接线） | `indent`、`gap` |
 | `<Row>` | 横向 flex 布局 | `gap`, `alignItems`, `fullWidth`, `width` |
 | `<Column>` | 纵向 flex 布局 | `gap`, `alignItems`, `fullWidth`, `width` |
 | `<FootnoteList>` | 运行时 Markdown 脚注使用的限宽脚注容器 | `width` |
-| `<ItemGrid>` | 紧凑物品图标网格 | 子元素必须是 `<ItemIcon id="..."/>` 或 `<ItemIcon ore="..."/>` |
-| `<BlockImage>` | 非交互式的 3D 单方块预览 | `id` 或 `ore`，可选 `scale`（默认 `4`），`float`，`perspective`，`nbt` |
+| `<ItemGrid>` | 物品与流体图标的紧凑网格 | 支持 `<ItemIcon id="..."/>`、`<ItemIcon ore="..."/>` 和 `<FluidIcon id="..."/>` 混排 |
+| `<BlockImage>` | 非交互式的 3D 单方块预览 | `id`, `ore`, `meta`, `nbt`, `scale`, `width`, `height`, `perspective`, `wrap`, `align` |
 | `<FloatingImage>` | 支持浮动或真正行内放置的裁剪图片块 | `src`, `x`, `y`, `width` / `w`, `height` / `h`, `scaleX`, `scaleY`, `displayWidth`, `displayHeight`, `wrap`, `align`, `title` |
 | `<SubPages>` | 导航子页面列表 | `id`, `alphabetical` |
 | `<Category>` | 分类页面列表 | `name`, `rows` |
 | `<Special>` | 内置 MediaWiki 特殊页面列表 | `name`, `rows` |
 | `<Structure>` | 2.5D 等轴方块布局预览 | `width`, `height` |
-| `<Mermaid>` | 运行时 Mermaid 图导入/内联 | `src`, `width`, `height` |
+| `<Mermaid>` | 运行时 Mermaid 图导入/内联 | `src` |
 | `<CsvTable>` | 运行时 CSV 文件导入表格 | `src`, `header`, `widths` |
 | `<ColumnChart>` | 簇状柱形图 | `categories`, `barWidthRatio`, `xAxis*`, `yAxis*`, `legend`, `labelPosition` |
 | `<BarChart>` | 横向条形图 | 同 `<ColumnChart>` |
@@ -73,7 +80,8 @@
 | `<Function>` | 单曲线简写，等价于只含一个 `<Plot>` 的 `<FunctionGraph>` | `expr`，及全部 `<FunctionGraph>` 面板属性 |
 | `<Recipe>`, `<RecipeFor>`, `<RecipesFor>` | 配方渲染器 | 详见 [配方](Recipes) |
 | `<GameScene>`, `<Scene>` | 3D 指南游戏场景 | 详见 [游戏场景](GameScene) |
-| `<QuestCard>` | 块级 BetterQuesting 任务摘要卡片（兼容标签，仅当 BetterQuesting 已加载时注册） | `id`, `show_desc`, `show_tooltip` |
+| `<ResearchCard>` / `<BindingCard>` | 研究或自定义内容摘要卡片 | `id`, `type`（通用标签）, `title`, `target`, `showDesc`, `showIcon`, `showParents` |
+| `<QuestCard>` | 块级 BetterQuesting 任务摘要卡片（兼容标签，仅当 BetterQuesting 已加载时注册） | `id`, `title`, `showDesc`, `showTooltip` |
 
 `<ImportStructureLib>` 是 `<GameScene>` 的子标签。它支持 `controller`、`piece`、`facing`、
 `rotation`、`flip`、`tier`、`channel`、`channelName`、`value`、`locked` 属性，也支持用于设置 StructureLib 默认值的子标签：
@@ -111,6 +119,18 @@ Text before.<br clear="all" />Text after.
 - `right`
 - `all`
 
+### `<wbr>`
+
+在单词内部标记一个可选的换行位置，作用与 HTML 的 `<wbr>` 元素相同。它不显示任何内容，也不占宽度；只有整个单词放不下时才会在这里换行，例如低分辨率下窄表格单元格里的长名称或长数字。
+
+````md
+| Block | Rate |
+| --- | --- |
+| Cobble<wbr>stone/s | 11,<wbr>520 |
+````
+
+`<wbr>` 和 `<wbr />` 两种写法都可以，标签不接受属性。与插入空格不同，单词放得下时不会留下任何间隙。Site Export 和 Web Editor 会输出原生的 `<wbr>`。
+
 ### `<kbd>`、`<sub>` 与 `<sup>`
 
 GuideNH 运行时支持一小组常见的小写文档标签：
@@ -123,6 +143,8 @@ Water is H<sub>2</sub>O and x<sup>2</sup> is a square.
 ### `<details>`
 
 用于创建可折叠的运行时内容块。`<summary>` 行支持常规行内 Markdown/标签内容，正文则可以放普通文本与任意块级标签，例如 `<BlockImage>`、`<FloatingImage>`、`<GameScene>`、表格、图表或布局容器。设置 `height` 时，只有正文区域滚动，标题行和外框保持固定。
+
+`<summary>`、正文和 `</details>` 之间的空行不是必需的。请使用复数标签 `<details>`，不支持 `<detail>`。标题和正文都支持行内 Markdown、`<ItemLink>`、`<ItemImage>` 等行内标签。连续的 `<details>` 块各自独立，不会吞掉后续内容。
 
 ````md
 <details open width="220" height="140" wrap="square" align="right">
@@ -168,14 +190,16 @@ Water is H<sub>2</sub>O and x<sup>2</sup> is a square.
 - `default` 会匹配第一个 `title` 完全相同的标签页
 - `defaultIndex` 使用从 `0` 开始的下标，并且在同时出现时优先级高于 `default`
 - `color` 可选，用 `#RRGGBB` 或 `#AARRGGBB` 覆盖左侧强调线与选中标签的高亮颜色
-- background — 可选，用 #RRGGBB、#AARRGGBB 或 transparent 覆盖标签容器背景；省略时保留默认灰色背景
+- `background` 可选，用 `#RRGGBB`、`#AARRGGBB` 或 `transparent` 覆盖标签容器背景；省略时保留默认灰色引用块背景
 - `title` 会在标签栏上方增加一个可选的纯文本标题
-- `icon`、`iconPng` / `icon_png`、`iconItem` / `icon_item` 与 Markdown 标记/引用块标题的图标语义完全一致
+- `icon`、`iconPng` / `iconPng`、`iconItem` / `iconItem` 与 Markdown 标记/引用块标题的图标语义完全一致
 - 非法子节点或非法默认值会渲染为面向作者的可见错误
 
 ### `<FileTree>`
 
 渲染目录树式大纲，并依据每行前缀符号绘制真实的连接线。前缀同时支持 Unicode 框线（`│ ├ └ ─`）与 ASCII 形式（`| +-- \-- ` / 4 个空格），可任意混用。每行的文本部分支持常规行内 Markdown（链接、**加粗**、`代码` 等），这些链接在游戏内和内置站点导出中都可以点击。等价语法是 ` ```tree ` / ` ```filetree ` 围栏代码块。
+
+窄栏中会自动压缩层级缩进，为文本保留可读宽度。长路径优先在 `/`、`\`、`_`、`-` 后换行，连续长文件名可在字符间换行；续行与名称起点对齐，图标和分支连接线对齐首行。
 
 ````md
 <FileTree indent="14" gap="0">
@@ -207,32 +231,6 @@ world
 
 - `indent` — 每层缩进像素数（默认 `14`）
 - `gap` — 行间额外像素数（默认 `0`）
-
-### 运行时引用块
-
-普通 Markdown 引用块在运行时会显示左侧强调线，并支持 GitHub 提示语法：
-
-````md
-> [!NOTE]
-> 提示内容
-````
-
-也支持仅运行时使用的自定义指令，必须写在引用块的第一行：
-
-````md
-> {: title="自定义引用" color="#638ef1" icon="i" }
-> 正文
-````
-
-支持的指令键：
-
-- `title`
-- `color`
-- `icon`：普通文本符号
-- `iconItem`：物品堆 ID
-- `iconPng`：指南资源中的 PNG 路径
-
-三种图标来源只能选择一种。
 
 ### `<Color>`
 
@@ -295,6 +293,45 @@ world
 - `cooldown` 是重复播放的间隔毫秒数，默认 `250`
 - `radius` 和 `minVolume` 用于场景中的屏幕空间衰减
 
+### `<NeiRecipeLink>`
+
+`<NeiRecipeLink>` 从行内文字打开 NEI。纯文本标签可使用 `&[文字](nei:...)`，富文本使用标签形式。
+
+| 属性 | 默认值 | 用途 |
+| --- | --- | --- |
+| `id` | 省略 | 目标物品，可包含元数据和 SNBT |
+| `handlerId` | 省略 | NEI 的 overlay identifier 或 handler ID，忽略大小写精确匹配 |
+| `mode` | 有 `id` 时为 `recipes`，否则为 `handler` | `handler`、`recipes` 或 `usage` |
+| `title` | 省略 | 可选悬停文字 |
+
+```md
+<NeiRecipeLink id="minecraft:iron_ingot">查看**合成配方**</NeiRecipeLink>
+<NeiRecipeLink handlerId="gt.recipe.cokeoven">查看 NEI</NeiRecipeLink>
+```
+
+`handler` 必须填写 `handlerId` 且禁止 `id`；`recipes` 和 `usage` 必须填写 `id`，可选填 `handlerId`。必须提供可见的行内子内容。浏览器预览显示为不可点击的文字。
+
+动作语法、物品 ID、转义和示例见[配方](Recipes.md#行内-nei-配方链接)。
+
+### `<Amount>`
+
+`<Amount>` 用于格式化数字数量。省略 `unit`（或使用 `unit="none"`）时只显示数字；`unit="item"` 也不会添加后缀。`unit="fluid"` 遵循 GTNHLib 的流体单位偏好，显示 `mB` 或 `L`。`format` 支持 `default`、`plain`、`compact` 和 `scientific`；`decimals` 用于限制小数位数。速率后缀如 `/s` 请写在标签外。
+
+| 属性 | 含义 |
+| --- | --- |
+| `value` | 必填的有限十进制数值 |
+| `unit` | 可选值 `none`、`item` 或 `fluid`，默认 `none` |
+| `format` | 可选数字格式，默认 `default` |
+| `decimals` | 可选的非负小数位上限 |
+
+示例：
+
+````md
+<Amount value="250" />
+<Amount value="250" unit="fluid" />/s
+<Amount value="1200000" format="compact" /> 个物品
+````
+
 ### `<PlayerName>`
 
 插入当前 Minecraft 会话用户名：
@@ -324,7 +361,7 @@ Press <KeyBind id="key.jump" /> to jump.
 GuideNH 会忽略页面内容里的 MDX 注释：
 
 ````md
-可见文本。{/* 隐藏的行内注释 */}
+Visible text. {/* hidden inline comment */}
 
 {/*
 multiline comment
@@ -345,8 +382,8 @@ GuideNH 也会忽略显式 `<Comment>` 标签：
 
 | 属性 | 含义 |
 | --- | --- |
-| `ore` | 矿辞名；默认取第一个匹配结果 |
-| `id` | 当未提供 `ore` 时使用的物品引用 |
+| `ore` | 可选矿物词典选择器；同时提供 `id` |
+| `id` | 必需的物品引用；使用 `ore` 时也必须提供 |
 | `nbt` | 可选的物品 SNBT；会合并到 `id` 的内联 SNBT 之上 |
 | `scale` | float，默认 `1` |
 | `noTooltip` | 传入真值字符串或空属性时禁用 tooltip（旧写法，推荐改用 `showTooltip`） |
@@ -354,8 +391,8 @@ GuideNH 也会忽略显式 `<Comment>` 标签：
 | `showIcon` | boolean，默认 `true`；`false` 时不渲染图标图形 |
 | `label` | `left` 或 `right`——在图标左侧或右侧以文字显示物品名称；省略时不显示文字 |
 | `format` | 标签文字的格式模式；支持 Markdown 风格的包裹标记（`**粗体**`、`*斜体*`、`~~删除线~~`、`__下划线__`、`^^波浪__`、`::点状::`），可包含 `%s` 占位符代替物品名；默认（不写本属性）以斜体渲染物品名 |
-| `yOffset` | scale 为 `1` 时**图标**的像素偏移覆盖值；不影响标签文字 |
-| `labelYOffset` | scale 为 `1` 时**标签文字**的像素偏移覆盖值；不影响图标 |
+| `yOffset` | 行内整体垂直偏移，以 `scale=1` 的像素计；默认 `0`，正值向下 |
+| `labelYOffset` | 仅标签文字的垂直偏移，以 `scale=1` 的像素计；默认 `0` |
 
 说明：
 
@@ -369,7 +406,7 @@ GuideNH 也会忽略显式 `<Comment>` 标签：
 
 ````md
 <ItemImage id="minecraft:diamond" scale="2" />
-<ItemImage ore="ingotIron" />
+<ItemImage id="minecraft:iron_ingot" ore="ingotIron" />
 <ItemImage id="minecraft:diamond_sword" noTooltip="true" />
 <ItemImage id="minecraft:diamond" label="right" />
 <ItemImage id="minecraft:iron_ingot" label="left" format="**%s**" />
@@ -379,7 +416,7 @@ GuideNH 也会忽略显式 `<Comment>` 标签：
 <ItemImage
   id="minecraft:chest"
   scale="2"
-  nbt='{id:"Chest",Items:[{Slot:0b,id:"minecraft:diamond",Count:1b,Damage:0s}]}'
+  nbt='{display:{Name:"Storage Chest"}}'
 />
 ````
 
@@ -408,6 +445,208 @@ GuideNH 也会忽略显式 `<Comment>` 标签：
 <ItemLink id="minecraft:compass" linksTo="#usage" />
 ````
 
+### `<FluidImage>`、`<FluidLink>` 与 `<FluidIcon>`
+
+原生流体图标通过完整的 Forge 流体注册名查找，例如 `water`、`steam`、`molten.iron`。文档必须保存注册名，不能保存数字流体 ID 或 NEI 展示物品的元数据。渲染直接使用 Forge 流体纹理与染色，不依赖 NEI。
+
+默认悬停提示显示流体名称、开尔文温度和气体/液体状态。显式填写 `amount`（包括零）时才显示数量，单位遵循 L/mB 设置；省略数量不会添加数量行。高级提示还显示注册名。加载 GregTech 后，化学式等材料信息遵循 GT 的提示设置。游戏内提示、已连接的运行时预览与 ExportSite 共用这些信息；未连接的 Web 预览只能显示已有名称和数量。不依赖 NEI。
+
+ExportSite 的物品数量和流体数量使用网站自带的 Pixeloid Mono 字体，以网页文字覆盖在图标上；物品耐久条保留在图标图片中。
+
+| 属性 | 规则 |
+| --- | --- |
+| `id` | 必填的完整流体注册名，不补命名空间，也不解析物品元数据 |
+| `amount` | 可选整数数量，按流体单位设置显示|
+| `nbt` | 可选 SNBT，应用到独立的 FluidStack 标签 |
+| `showTooltip`、`noTooltip` | 提示可见性优先级与物品图标相同；关闭提示不会关闭 G 导航 |
+| `scale`、`showIcon`、`label`、`format`、`yOffset`、`labelYOffset` | FluidImage 沿用 ItemImage 的显示参数；缩放必须有限且大于零 |
+| `showIcon`、`showText`、`linksTo` | FluidLink 沿用 ItemLink 的标签、图标位置和显式页面/锚点规则 |
+
+`FluidIcon` 只能作为 ItemGrid 子标签，接受 `id`、`amount`、`nbt`、`showTooltip`、`noTooltip`。同一个 ItemGrid 可以按原始顺序混排 ItemIcon 与 FluidIcon，不存在独立的 FluidGrid。`ore` 与物品元数据不能用于选择流体。
+
+```mdx
+<FluidImage id="water" amount={1000} scale="2" label="right" />
+<FluidLink id="steam" showIcon="left">蒸汽</FluidLink>
+<ItemGrid>
+  <ItemIcon id="minecraft:bucket" />
+  <FluidIcon id="water" amount={1000} />
+  <FluidIcon id="steam" />
+</ItemGrid>
+```
+
+页面通过 `fluid_id` / `fluid_ids` 绑定。鼠标停在原生流体图标或支持的容器/展示对象上，长按可改键的打开指南快捷键（默认 G）；单个目标直接打开，多个目标显示选择列表，先列流体页面，再列容器页面。数量和 NBT 影响显示实例，页面绑定只匹配注册名。空容器保留普通物品导航；没有悬停数据接口的流体 GUI 需要注册适配器。
+
+导航使用 `navigation.icon_fluid` / `icon_fluids` 设置静态/轮换页面图标；ContentTabs、FileTree 指令、引用指令和图表 Series / LineSeries / Slice 使用 `iconFluid`。流体图标不能与物品、PNG 或文本图标同时配置。六种 Recipe/Usage 标签支持 `fluid`、`inputFluid`、`outputFluid`；InputAnnotation 支持 `fluid`、`amount`、`nbt`。完整规则见配方、页面格式和注解文档。
+
+### 任务内容（BetterQuesting）
+
+`<QuestLink>` 与 `<QuestCard>` 仅在 BetterQuesting 模组已加载时才会被注册。详细说明位于 [模组兼容](Mod-Compatibility) 页面，下面给出常用用法摘要。
+
+#### `<QuestLink>`
+
+左键打开 BetterQuesting 任务界面。右键打开绑定的指南页；没有绑定指南时，右键也打开 BetterQuesting。多个页面使用与物品相同的目标选择界面，不同正文锚点保留为独立目标。
+
+| 属性 | 含义 |
+| --- | --- |
+| `id` | 必填，BetterQuesting 任务 id；支持标准 UUID 字符串和紧凑 Base64 id |
+| `text` | 可选，覆盖显示文本 |
+| `showTooltip` | 可选布尔值，默认 `true`；设为 `false` 可关闭任务描述 tooltip |
+
+按玩家进度在页面挂载时决定外观：
+
+- 已可见 / 已完成的任务渲染为可点击链接（已完成的会被染为绿色并追加 `✓`）
+- 已锁定但未隐藏的任务仍会渲染为可点击任务链接，因此仍可打开 BetterQuesting 任务界面或对应的索引指南页
+- 隐藏 / 机密的任务渲染为更深的斜体占位符，使用 `guidenh.binding.state.hidden`
+- 未知任务 id 渲染为红色占位符，使用 `guidenh.binding.state.missing`
+
+示例：
+
+````md
+下一步请参考 <QuestLink id="01234567-89ab-cdef-0123-456789abcdef" />。
+<QuestLink id="01234567-89ab-cdef-0123-456789abcdef" text="第二阶段任务" />
+<QuestLink id="01234567-89ab-cdef-0123-456789abcdef" showTooltip="false" />
+然后再看 <QuestLink id="AAAAAAAAAAAAAAAAAAAMug==" text="紧凑 quest id 示例" />。
+````
+
+#### `<QuestCard>`
+
+块级任务摘要卡片。标题使用与 `<QuestLink>` 相同的状态相关样式；当任务对当前玩家可见时，会附带任务描述作为正文段落。
+
+| 属性 | 含义 |
+| --- | --- |
+| `id` | 必填，BetterQuesting 任务 id；支持标准 UUID 字符串和紧凑 Base64 id |
+| `title` | 可选，覆盖卡片标题 |
+| `showDesc` | 可选布尔，默认 `true`；设为 `false` 可隐藏描述正文 |
+| `showTooltip` | 可选布尔值，默认 `true`；设为 `false` 可关闭可点击标题上的任务描述 tooltip |
+
+卡片边框颜色随任务状态变化：已完成绿色、锁定 / 隐藏灰色、缺失红色、可见时使用标准链接色。标题在可见、已完成以及锁定但未隐藏时都会保持可点击。
+
+示例：
+
+````md
+<QuestCard id="01234567-89ab-cdef-0123-456789abcdef" />
+<QuestCard id="01234567-89ab-cdef-0123-456789abcdef" showDesc="false" />
+<QuestCard id="01234567-89ab-cdef-0123-456789abcdef" showTooltip="false" />
+<QuestCard id="AAAAAAAAAAAAAAAAAAAMug==" />
+````
+
+### 研究与自定义内容
+
+研究标签对应 Thaumcraft；通用标签由 `type` 指定内容系统。绑定页面的写法见 [Frontmatter](Guide-Page-Format-zh-CN#外部内容绑定)。
+
+#### 导航规则
+
+以下规则用于 ResearchLink/Card 和 BindingLink/Card 的链接或卡片标题文本。
+
+| `target` | 左键 | 右键 |
+| --- | --- | --- |
+| `auto` | 优先打开指南，无绑定时打开原生界面 | 打开指南，无绑定时打开原生界面 |
+| `native` | 打开原生界面 | 打开指南，无绑定时打开原生界面 |
+| `guide` | 只打开指南，无绑定时给出提示 | 打开指南，无绑定时打开原生界面 |
+
+原生跳转打开研究树并定位到对应图标，无论研究是否完成，都不会自动解锁。隐藏研究不显示名称、简介或图标。多个指南目标会显示选择界面。
+
+#### `<ResearchLink>`
+
+行内内容链接。
+
+| 属性 | 说明 |
+| --- | --- |
+| `id` | 必填，原始内容 ID；研究 ID 区分大小写 |
+| `text` / `title` | 可选，覆盖链接文字 |
+| `target` | `auto`、`native` 或 `guide`，默认 `auto`，规则见上表 |
+| `showTooltip` | 显示提示，默认 `true` |
+
+```mdx
+<ResearchLink id="INFUSION" text="查看研究" target="native" />
+```
+
+#### `<ResearchCard>`
+
+块级内容摘要卡片。左键点击标题跳转，右键点击标题打开绑定指南。
+
+| 属性 | 说明 |
+| --- | --- |
+| `id` | 必填，原始内容 ID；研究 ID 区分大小写 |
+| `title` | 可选，覆盖卡片标题 |
+| `showDesc` | 显示内容简介；默认 `true` |
+| `showIcon` | 显示图标；默认 `true` |
+| `showParents` | 显示可见前置内容；默认 `false` |
+| `target` | `auto`、`native` 或 `guide`，默认 `native`，规则见上表 |
+| `showTooltip` | 显示提示，默认 `true` |
+
+```mdx
+<ResearchCard id="INFUSION" title="注魔研究" showParents={true} />
+```
+
+#### `<ResearchIcon>`
+
+内容图标及 tooltip；悬停时按住打开指南键可查看指南，点击不打开原生内容。
+
+| 属性 | 说明 |
+| --- | --- |
+| `id` | 必填，原始内容 ID；研究 ID 区分大小写 |
+| `scale` | 有限正数，默认 `1` |
+| `showTooltip` | 显示提示，默认 `true` |
+
+```mdx
+<ResearchIcon id="INFUSION" scale={1.5} />
+```
+
+#### `<BindingLink>`
+
+行内内容链接。
+
+| 属性 | 说明 |
+| --- | --- |
+| `type` | 必填，已注册内容类型，如 `thaumcraft`、`betterquesting` |
+| `id` | 必填，原始内容 ID；研究 ID 区分大小写 |
+| `text` / `title` | 可选，覆盖链接文字 |
+| `target` | `auto`、`native` 或 `guide`，默认 `auto`，规则见上表 |
+| `showTooltip` | 显示提示，默认 `true` |
+
+```mdx
+<BindingLink type="thaumcraft" id="INFUSION" text="查看研究" target="native" />
+```
+
+#### `<BindingCard>`
+
+块级内容摘要卡片。左键点击标题跳转，右键点击标题打开绑定指南。
+
+| 属性 | 说明 |
+| --- | --- |
+| `type` | 必填，已注册内容类型，如 `thaumcraft`、`betterquesting` |
+| `id` | 必填，原始内容 ID；研究 ID 区分大小写 |
+| `title` | 可选，覆盖卡片标题 |
+| `showDesc` | 显示内容简介；默认 `true` |
+| `showIcon` | 显示图标；默认 `true` |
+| `showParents` | 显示可见前置内容；默认 `false` |
+| `target` | `auto`、`native` 或 `guide`，默认 `native`，规则见上表 |
+| `showTooltip` | 显示提示，默认 `true` |
+
+```mdx
+<BindingCard type="thaumcraft" id="INFUSION" title="注魔研究" showParents={true} />
+```
+
+#### `<BindingIcon>`
+
+内容图标及 tooltip；悬停时按住打开指南键可查看指南，点击不打开原生内容。
+
+| 属性 | 说明 |
+| --- | --- |
+| `type` | 必填，已注册内容类型，如 `thaumcraft`、`betterquesting` |
+| `id` | 必填，原始内容 ID；研究 ID 区分大小写 |
+| `scale` | 有限正数，默认 `1` |
+| `showTooltip` | 显示提示，默认 `true` |
+
+```mdx
+<BindingIcon type="thaumcraft" id="INFUSION" scale={1.5} />
+```
+
+#### 导出与预览
+
+网站导出和浏览器预览不读取导出者的研究进度。绑定指南显示为链接或多目标列表；原生界面动作显示游戏内操作说明。未安装内容模组时，Research 与 Binding 标签显示集成不可用占位。Quest 标签仅在 BetterQuesting 已加载时注册。
+
 ### `<CommandLink>`
 
 点击后发送聊天命令。
@@ -421,7 +660,7 @@ GuideNH 也会忽略显式 `<Comment>` 标签：
 示例：
 
 ````md
-<CommandLink command="/tp @s 0 90 0" title="Teleport">Teleport!</CommandLink>
+<CommandLink command="/tp @p 0 90 0" title="Teleport">Teleport!</CommandLink>
 ````
 
 ### `<Row>` 与 `<Column>`
@@ -466,7 +705,7 @@ GuideNH 会在运行时 Markdown 脚注展开后内部使用这个块标签。�
 
 ### `<ItemGrid>`
 
-渲染紧凑的物品图标网格。其子元素必须是原始 `<ItemIcon>` 元素，由网格编译器直接解析。每个子元素都可以使用 `id` 或 `ore`。
+渲染紧凑图标网格。网格编译器直接解析 ItemIcon 与 FluidIcon，并保留混排顺序；物品选择使用 `id` 或 `ore`，流体选择使用注册名 `id`，可选数量与 NBT。
 
 ````md
 <ItemGrid>
@@ -488,6 +727,10 @@ GuideNH 会在运行时 Markdown 脚注展开后内部使用这个块标签。�
 | `id` | 方块 id；支持常规 `modid:block[:meta][:{snbt}]` 写法 |
 | `ore` | 矿辞查询；使用第一个匹配到的方块物品 |
 | `scale` | 相机缩放倍率，默认 `4` |
+| `meta` | 方块元数据，覆盖 `id` 内的元数据 |
+| `width` / `height` | 预览视口像素尺寸，宽高分别默认 `128` |
+| `wrap` | 文字环绕模式，默认 `inline` |
+| `align` | 水平对齐：`left`（默认）、`center` 或 `right` |
 | `float` | 旧版流式浮动支持：`left` 或 `right` |
 | `perspective` | `isometric-north-east`（默认）、`isometric-north-west` 或 `up` |
 | `nbt` | 可选的 TileEntity SNBT；会合并到 `id` 内联 SNBT 之上 |
@@ -513,15 +756,11 @@ GuideNH 会在运行时 Markdown 脚注展开后内部使用这个块标签。�
 
 完整行为请参见 [图片与资源](Images-And-Assets)。
 
-快速规则：
+```mdx
+<FloatingImage src="test1.png" displayWidth="128" wrap="inline" />
 
-- `src` 支持相对路径、根路径，以及显式 `modid:path` 纹理 id
-- `x`、`y`、`width` / `w`、`height` / `h` 用于描述原图上的裁剪区域，且必须全部提供
-- `scaleX` 与 `scaleY` 用于缩放裁剪结果，并支持横向 / 纵向独立拉伸
-- `displayWidth` 与 `displayHeight` 以像素指定最终尺寸；只提供一个值时保持裁剪区域比例，两个值都提供时可拉伸
-- `displayWidth` / `displayHeight` 不能与 `scaleX` / `scaleY` 同时使用
-- `wrap="inline"` 会让图片真正作为行内内容插入文本流；此时 `align` 会被忽略
-- 旧内容如果把 `width` / `height` 当成最终显示尺寸，需要手动迁移
+<FloatingImage src="test1.png" x="8" y="8" width="16" height="16" displayWidth="128" wrap="inline" />
+```
 
 ### `<SubPages>`、`<Category>` 与 `<Special>`
 
@@ -530,31 +769,6 @@ GuideNH 会在运行时 Markdown 脚注展开后内部使用这个块标签。�
 ### `<Structure>`
 
 当你在静态结构预览和完整 3D 游戏场景之间做选择时，可结合 [示例](Examples) 和 [游戏场景](GameScene) 参考。
-
-### `<Mermaid>`
-
-用于运行时 Mermaid 内容。目前运行时重点支持 `mindmap`，既可以直接内嵌，也可以通过相对于页面的 `src` 导入：
-
-````md
-<Mermaid src="./markdown-mindmap.mmd" />
-
-<Mermaid width="340" height="240">
-mindmap
-  root["**GuideNH** [索引](./index.md)"]
-    runtime["运行时方块"]
-
-<NodeContent id="runtime">
-运行时节点可以嵌入普通方块。
-
-<ItemImage id="minecraft:diamond" />
-</NodeContent>
-</Mermaid>
-````
-
-- `width` 和 `height` 约束运行时视口尺寸
-- 在视口内拖动可平移，滚轮可缩放
-- 带引号的 Mermaid 标签可以使用 `**粗体**` 和页面链接等富行内 Markdown
-- 可以在 `<Mermaid>` 内加入 `<NodeContent id="...">...</NodeContent>`，用任意运行时方块替换节点正文
 
 ### `<CsvTable>`
 
@@ -590,6 +804,19 @@ gold,17
 ```
 ````
 
+### HTML `<table>`
+
+GuideNH 页面支持原生 HTML 表格标签。使用 `<caption>`、`<colgroup>` / `<col>` 以及 `<thead>` / `<tbody>` / `<tfoot>` 描述表格结构。单元格支持 `colspan`、`rowspan`、`align`、`valign`；表头单元格还支持 `scope`、`abbr` 和 `headers`。表格 `align` 包含逗号时（例如 `left,center,right`）表示逐列对齐；单独的 `left`、`center` 或 `right` 会调整整个表格的位置。游戏内渲染和站点导出都支持 `width`、`border`、`cellpadding` 和 `cellspacing`。Markdown 表格仍支持 `{: widths="130,70,150" }` 这类 kramdown 元数据。
+
+````md
+<table width="100%" cellpadding="2">
+  <caption>燃料速率</caption>
+  <colgroup><col width="40%" /><col width="60%" /></colgroup>
+  <thead><tr><th scope="col">燃料</th><th scope="col">速率</th></tr></thead>
+  <tbody><tr><td>煤炭</td><td align="right">42</td></tr></tbody>
+</table>
+````
+
 ### `<Latex>`
 
 使用 jlatexmath 渲染 LaTeX 数学公式。在行内（段落或文本流中）使用时，渲染为自动缩放的字形，并将所在行的行高扩展以适应公式高度。独立成段（块级上下文）使用时，居中渲染为展示式公式块。
@@ -599,7 +826,7 @@ gold,17
 | `formula` | 字符串 | *（必填）* | LaTeX 源字符串 |
 | `color` | `#RRGGBB` 或 `#AARRGGBB` | `#FFFFFF` | 字形填充颜色 |
 | `scale` | float | `1.0` | 在自动行高缩放的基础上额外叠加的显示大小倍率 |
-| `sourceScale` | float | `100.0` | jlatexmath 内部渲染分辨率；数值越高，在较大尺寸下渲染越清晰 |
+| `sourceScale` | float | `100.0` | jlatexmath 排版尺寸（测量基准）。游戏内公式始终按实际屏幕分辨率光栅化；站点导出时决定 PNG 分辨率 |
 | `tooltip` | 字符串 | *无* | 鼠标悬停时显示的普通文本 tooltip |
 | `showTooltip` | boolean | `false` | 鼠标悬停时以 tooltip 展示原始 LaTeX 源文本 |
 | `valign` | `baseline` / `top` / `center` / `bottom` | `baseline` | 仅限行内公式。行内垂直对齐方式：`baseline`（默认）使公式数学基线与文字基线对齐；`top` 使公式顶部与行顶对齐；`center` 将公式垂直居中于文字行高；`bottom` 使公式底部与文字底部对齐 |
@@ -663,7 +890,7 @@ $$\begin{pmatrix} a & b \\ c & d \end{pmatrix}$$
 - 公式高度以当前行文字高度为基准自动校准。简单公式与文字等高；含分数、求和、积分等高度较大的公式会自动扩展所在行的行高。
 - `valign` 仅对行内公式生效。块级（展示式）公式始终水平居中；如需垂直方向调整，请使用 `offsetY`。
 - `color` 默认为白色（`#FFFFFF`）。如需半透明填充，使用 `#AARRGGBB` 格式。
-- `sourceScale` 仅影响渲染清晰度，不改变显示大小。低于 `16` 的值会被截断为 `16`。
+- `sourceScale` 不改变显示大小。游戏内公式会按屏幕实际像素尺寸（考虑 GUI 缩放）光栅化，因此分数线、减号等细笔画在低分辨率屏幕上也不会丢失；`sourceScale` 只影响站点导出 PNG 的分辨率。低于 `16` 的值会被截断为 `16`。
 - tooltip 优先级为：标签体富文本 Markdown、`tooltip="..."`、最后才是 `showTooltip={true}` 的原始源码回退。
 - 标签体 tooltip 会按普通指南 Markdown 编译，因此可以包含粗体、列表、链接、物品标签和嵌套 `<Latex>` 公式。
 - `$$公式$$` 简写语法始终使用默认参数。如需自定义颜色、比例、对齐或悬停提示，请使用 `<Latex>` 标签。
@@ -677,7 +904,12 @@ $$\begin{pmatrix} a & b \\ c & d \end{pmatrix}$$
 | `<ImportStructure>` | 导入外部 SNBT/NBT 结构资源 | `src`, `x`, `y`, `z`, `offsetX`, `offsetY`, `offsetZ`, `formed` |
 | `<ImportStructureLib>` | 通过控制器 id 导入 StructureLib 多方块 | `controller`, `name`, `piece`, `facing`, `rotation`, `flip`, `tier`, `channel`, `channelName`, `value`, `locked`, `offsetX`, `offsetY`, `offsetZ`, `formed` |
 | `<RemoveBlocks>` | 移除已放置且匹配指定方块匹配器的方块 | `id` |
+| `<BlockAnnotation>` | 高亮单个方块 | `pos`, `color`, `colorMode`, `colorPeriod`, `thickness`, `alwaysOnTop` |
+| `<BoxAnnotation>` | 高亮任意轴对齐包围盒 | `min`, `max`, `color`, `colorMode`, `colorPeriod`, `thickness`, `alwaysOnTop` |
+| `<OutlineAnnotation>` | 沿方块或实体的实际渲染剪影描边 | `pos`, `min`, `max`, `entity`, `target`, `mode`, `color`, `colorMode`, `colorPeriod`, `thickness`, `alwaysOnTop`, `pulse`, `pulsePeriod` |
 | `<BlockAnnotationTemplate>` | 把同一组子注解扩展到场景中所有匹配方块上 | `id` |
+
+`colorMode`: `solid`（默认）或 `rainbow`；彩虹围绕注解投影中心旋转 360°，替换 RGB 并保留 `color` 的透明度. `colorPeriod`: 彩虹循环周期，单位秒，必须为正且有限，默认 `2.4`；非法值会报告页面错误. 游戏和 Site Export 使用相同的彩虹渐变规则与循环周期。
 
 关于场景导入/移除行为，请参见 [游戏场景](GameScene)；关于注解模板规则，请参见 [注解](Annotations)。
 
@@ -700,11 +932,16 @@ $$\begin{pmatrix} a & b \\ c & d \end{pmatrix}$$
 
 笛卡尔系图表（柱形/条形/折线/散点）支持坐标轴属性 `xAxisLabel`、`xAxisMin`、`xAxisMax`、`xAxisStep`、`xAxisUnit`、`xAxisTickFormat`，以及对应的 `yAxis*`，外加 `showXGrid={true}` 与 `showYGrid={true}` 控制网格线。
 
+无效或过大的刻度格式会回退为自动数字格式。格式字符串最多 256 个字符，字段宽度最多 128，精度最多 20。 数值刻度文字拥挤时会自动省略部分标签，其对应的网格线保持不变。
+
+`ColumnChart`、`LineChart` 和 `ScatterChart` 在鼠标进入绘图区后显示金色水平辅助虚线，空白处也生效，左侧坐标轴高亮当前 Y 值。`BarChart` 使用竖向辅助线，并在底部高亮 X 值。数值遵循对应轴的刻度格式和单位；虚线上不放文字，移出绘图区后隐藏。两轴网格采用淡而稀疏的虚线，通过 `showXGrid`、`showYGrid` 分别控制。极小的正刻度步长会自动合并，避免渲染工作量失控。
+
 子元素：
 
 * `<Series name="..." color="#..." data="10,20,30"/>` — 用于按类别取值的图表（柱形/条形/类别 X 折线）。
 * `<Series name="..." color="#..." points="x:y,x:y,..."/>` — 用于数值 X（折线 `numericX={true}`、散点）。
 * `<Slice name="..." value="..." color="#..."/>` — 仅 `<PieChart>` 使用。
+* `<ReferenceLine y="100"/>` — 在 `ColumnChart`、`LineChart`、`ScatterChart` 的指定 Y 值绘制固定水平虚线；`BarChart` 使用 `<ReferenceLine x="100"/>` 绘制固定竖线，也兼容 `y` 写法。坐标必须是有限数值。可添加多条，默认半透明灰色，可用 `color` 修改；可选 `label` 显示在绘图区内，避免与坐标刻度重叠。参考线独立于网格开关，不扩展自动坐标范围，范围外不显示；`PieChart` 不支持此标签。
 
 未指定 `color` 时按内置 16 色调色板循环分配。
 
@@ -733,6 +970,8 @@ $$\begin{pmatrix} a & b \\ c & d \end{pmatrix}$$
 
 - `<LineSeries name="…" data="v1,v2,…" color="#rrggbb" icon="…"/>` — 在柱簇上方再叠加一条折线。每个折点位于对应类别簇中心，与宿主图共享数值轴；可同时声明多条 `<LineSeries>`。
 - `<PieInset size="60" position="topRight" title="…" startAngleDeg="-90" direction="clockwise" titleColor="#rrggbb">` — 在绘图区四角之一（`topRight`/`topLeft`/`bottomRight`/`bottomLeft`）绘制小型饼图，内部 `<Slice>` 子元素与 `<PieChart>` 一致。
+
+`PieInset` 扇区优先于底层柱条和折线响应悬停：提示包含名称、数值、占比及 `tooltip` 附加说明；游戏内有物品图标时保留物品提示。悬停扇区时隐藏主图辅助线。仅使用第一个内嵌饼图；`position="rightOutside"` 在右侧预留独立区域。支持 `startAngleDeg="0"`、`direction="counterclockwise"` 和单扇区完整圆形。
 
 ```mdx
 <ColumnChart title="季度产量" categories="Q1,Q2,Q3,Q4">
@@ -793,73 +1032,3 @@ $$\begin{pmatrix} a & b \\ c & d \end{pmatrix}$$
 - 可选 `color`、`label`。
 
 交互：鼠标悬停曲线会高亮该曲线；按住可沿曲线滑动一个标记点。若提供 `label`，提示框最上方先显示函数名，之后默认显示函数式和实时 `(x, y)` 值；可用对应开关关闭。提示框默认锚定在该点正上方，顶部空间不足时自动翻到下方。
-
-## BetterQuesting 兼容标签
-
-`<QuestLink>` 与 `<QuestCard>` 仅在 BetterQuesting 模组已加载时才会被注册。详细说明位于 [模组兼容](Mod-Compatibility) 页面，下面给出常用用法摘要。
-
-### `<QuestLink>`
-
-指向 BetterQuesting 任务的行内链接。点击时默认打开 BetterQuesting 任务 GUI；若该任务 id 出现在某个指南页的 `quest_ids` 前言中，则改为跳转到该页面。
-
-| 属性 | 含义 |
-| --- | --- |
-| `id` | 必填，BetterQuesting 任务 id；支持标准 UUID 字符串和紧凑 Base64 id |
-| `text` | 可选，覆盖显示文本 |
-| `show_tooltip` | 可选布尔值，默认 `true`；设为 `false` 可关闭任务描述 tooltip。也接受别名 `showTooltip` |
-
-按玩家进度在编译时决定外观：
-
-- 已可见 / 已完成的任务渲染为可点击链接（已完成的会被染为绿色并追加 `✓`）
-- 已锁定但未隐藏的任务仍会渲染为可点击任务链接，因此仍可打开 BetterQuesting 任务界面或对应的索引指南页
-- 隐藏 / 机密的任务渲染为更深的斜体占位符，使用 `guidenh.compat.bq.hidden`
-- 未知任务 id 渲染为红色占位符，使用 `guidenh.compat.bq.missing`
-
-示例：
-
-````md
-下一步请参考 <QuestLink id="01234567-89ab-cdef-0123-456789abcdef" />。
-<QuestLink id="01234567-89ab-cdef-0123-456789abcdef" text="第二阶段任务" />
-<QuestLink id="01234567-89ab-cdef-0123-456789abcdef" show_tooltip="false" />
-然后再看 <QuestLink id="AAAAAAAAAAAAAAAAAAAMug==" text="紧凑 quest id 示例" />。
-````
-
-### `<QuestCard>`
-
-块级任务摘要卡片。标题使用与 `<QuestLink>` 相同的状态相关样式；当任务对当前玩家可见时，会附带任务描述作为正文段落。
-
-| 属性 | 含义 |
-| --- | --- |
-| `id` | 必填，BetterQuesting 任务 id；支持标准 UUID 字符串和紧凑 Base64 id |
-| `show_desc` | 可选布尔，默认 `true`；设为 `false` 可隐藏描述正文 |
-| `show_tooltip` | 可选布尔值，默认 `true`；设为 `false` 可关闭可点击标题上的任务描述 tooltip。也接受别名 `showTooltip` |
-
-卡片边框颜色随任务状态变化：已完成绿色、锁定 / 隐藏灰色、缺失红色、可见时使用标准链接色。标题在可见、已完成以及锁定但未隐藏时都会保持可点击。
-
-示例：
-
-````md
-<QuestCard id="01234567-89ab-cdef-0123-456789abcdef" />
-<QuestCard id="01234567-89ab-cdef-0123-456789abcdef" show_desc="false" />
-<QuestCard id="01234567-89ab-cdef-0123-456789abcdef" show_tooltip="false" />
-<QuestCard id="AAAAAAAAAAAAAAAAAAAMug==" />
-````
-
-### `<Amount>`
-
-`<Amount>` 用于格式化数字数量。省略 `unit`（或使用 `unit="none"`）时只显示数字；`unit="item"` 也不会添加后缀。`unit="fluid"` 遵循 GTNHLib 的流体单位偏好，显示 `mB` 或 `L`。`format` 支持 `default`、`plain`、`compact` 和 `scientific`；`decimals` 用于限制小数位数。速率如 `L/s` 请写在标签外。
-
-| 属性 | 含义 |
-| --- | --- |
-| `value` | 必填的有限十进制数值 |
-| `unit` | 可选值 `none`、`item` 或 `fluid`，默认 `none` |
-| `format` | 可选数字格式，默认 `default` |
-| `decimals` | 可选的非负小数位上限 |
-
-示例：
-
-````md
-<Amount value="250" />
-<Amount value="250" unit="fluid" /> L/s
-<Amount value="1200000" format="compact" /> 个物品
-````

@@ -1,5 +1,3 @@
-[English](Annotations)
-
 # 注解
 
 GuideNH 的场景注解是放在游戏场景（`<GameScene>` / `<Scene>`）内部的子标签。它们在世界空间中渲染，并且可以包含子 Markdown/标签内容，后者会成为富 tooltip。
@@ -11,6 +9,7 @@ GuideNH 的场景注解是放在游戏场景（`<GameScene>` / `<Scene>`）内�
 - 注解可通过场景 UI 开关隐藏
 - `alwaysOnTop` 会在对应注解类型支持时，让注解绘制在场景几何体之上
 - 当场景使用 `<ImportStructureLib>` 时，所有场景注解还支持 `showWhenStructure`、`showWhenTier` 和 `showWhenChannels`
+- 游戏和 Site Export 使用相同的彩虹渐变规则与循环周期。
 
 ## 支持的注解标签
 
@@ -18,7 +17,9 @@ GuideNH 的场景注解是放在游戏场景（`<GameScene>` / `<Scene>`）内�
 - `<BoxAnnotation>`
 - `<LineAnnotation>`
 - `<DiamondAnnotation>`
+- `<OutlineAnnotation>`
 - `<TextAnnotation>`
+- `<InputAnnotation>`
 
 GuideNH 还支持 `<BlockAnnotationTemplate>`，它会把自己的子注解应用到当前场景里所有已经存在且匹配的方块上。
 
@@ -65,15 +66,19 @@ GuideNH 还支持 `<BlockAnnotationTemplate>`，它会把自己的子注解应�
 | --- | --- | --- |
 | `pos` | 是 | `x y z` 向量 |
 | `color` | 否 | `#RRGGBB`、`#AARRGGBB` 或 `transparent` |
+| `colorMode` | 否 | `solid`（默认）或 `rainbow`；彩虹围绕注解投影中心旋转 360°，替换 RGB 并保留 `color` 的透明度 |
+| `colorPeriod` | 否 | 彩虹循环周期，单位秒，必须为正且有限，默认 `2.4`；非法值会报告页面错误 |
 | `thickness` | 否 | 线宽，float |
 | `alwaysOnTop` | 否 | boolean expression |
+
 
 示例：
 
 ````md
 <BlockAnnotation pos="2 0 2" color="#33DDEE" alwaysOnTop={true}>
-  高亮控制器方块。
+  Highlights the controller block.
 </BlockAnnotation>
+<BlockAnnotation pos="4 0 2" color="#80FFFFFF" colorMode="rainbow" colorPeriod="4.8" />
 ````
 
 ## `<BoxAnnotation>`
@@ -85,8 +90,11 @@ GuideNH 还支持 `<BlockAnnotationTemplate>`，它会把自己的子注解应�
 | `min` | 是 | `x y z` 最小向量 |
 | `max` | 是 | `x y z` 最大向量 |
 | `color` | 否 | 注解颜色 |
+| `colorMode` | 否 | `solid`（默认）或 `rainbow`；彩虹围绕注解投影中心旋转 360°，替换 RGB 并保留 `color` 的透明度 |
+| `colorPeriod` | 否 | 彩虹循环周期，单位秒，必须为正且有限，默认 `2.4`；非法值会报告页面错误 |
 | `thickness` | 否 | 线宽，float |
 | `alwaysOnTop` | 否 | boolean expression |
+
 
 GuideNH 会在每个轴上自动交换反向提供的 min/max 坐标。
 
@@ -94,8 +102,9 @@ GuideNH 会在每个轴上自动交换反向提供的 min/max 坐标。
 
 ````md
 <BoxAnnotation min="0 1 0" max="1 1.6 0.6" color="#EE3333" thickness="0.04">
-  半高区域高亮。
+  Half-height area highlight.
 </BoxAnnotation>
+<BoxAnnotation min="2 0 0" max="4 1.5 0.5" color="#80FFFFFF" colorMode="rainbow" colorPeriod="2.4" />
 ````
 
 ## `<LineAnnotation>`
@@ -123,7 +132,7 @@ GuideNH 会在每个轴上自动交换反向提供的 min/max 坐标。
 
 ````md
 <LineAnnotation from="0.5 1.2 0.5" to="2.5 1.2 2.5" color="#FFD24C" thickness="0.08">
-  信号路径。
+  Signal path.
 </LineAnnotation>
 ````
 
@@ -138,7 +147,7 @@ GuideNH 会在每个轴上自动交换反向提供的 min/max 坐标。
 >
   <LinePoint index="0" show color="#66CCFF" />
   <LinePoint index="1" show color="#FF8844" size="0.12" />
-  穿过弯折处的信号路径。
+  Signal path through a bend.
 </LineAnnotation>
 ````
 
@@ -158,6 +167,67 @@ GuideNH 会在每个轴上自动交换反向提供的 min/max 坐标。
   ### Activated Beacon
   Hover for rich content.
 </DiamondAnnotation>
+````
+
+## `<OutlineAnnotation>`
+
+在方块和实体周围绘制类似发光效果的轮廓描边。轮廓贴合每个目标实际渲染出的形状，即使被前方的方块或实体遮挡也依然可见，相互接触的轮廓会合并成一个整体。
+
+| 属性 | 必需 | 含义 |
+| --- | --- | --- |
+| `pos` | 否 | 要描边的方块 `x y z`；默认 `0 0 0`，在 `<BlockAnnotationTemplate>` 内即为匹配到的方块 |
+| `min` / `max` | 否 | 区域的方块角坐标（包含两端），区域内的每个方块都会被描边 |
+| `entity` | 否 | 要描边的 `<Entity>` 的 `sceneEntityId` |
+| `target` | 否 | `blocks`（默认）、`entities` 或 `all`：区域内描边哪些内容；没有区域时 `entities` 会描边场景中的所有实体 |
+| `mode` | 否 | `auto`（默认）、`geometry`、`cutout` 或 `bounds` |
+| `color` | 否 | 轮廓颜色；省略时为白色，实体则使用其计分板队伍颜色 |
+| `colorMode` | 否 | `solid`（默认）或 `rainbow`；彩虹围绕注解投影中心旋转 360°，替换 RGB 并保留 `color` 的透明度 |
+| `colorPeriod` | 否 | 彩虹循环周期，单位秒，必须为正且有限，默认 `2.4`；非法值会报告页面错误 |
+| `thickness` | 否 | 轮廓宽度，单位为 GUI 像素，范围 `0.25` 到 `8`，默认 `1` |
+| `alwaysOnTop` | 否 | boolean expression；被遮挡的部分保持完整亮度而不会变暗 |
+| `pulse` | 否 | boolean expression；开启呼吸灯效果 |
+| `pulsePeriod` | 否 | 呼吸周期，单位秒，默认 `2` |
+
+
+轮廓模式：
+
+- `auto` 按目标自动选择。封闭模型（完整方块、玻璃、冰、流体、玻璃板、多部件与线缆方块、OBJ 和 TESR 模型）使用几何体轮廓，因此玻璃这类透明纹理会描出整个方块的立方体轮廓，而不是玻璃边框的纹理边界。贴图式渲染（花、树苗、作物、火把、铁轨、梯子、藤蔓、红石）和实体使用纹理透明度，轮廓贴合画出的形状而不是四边形面片。不渲染任何内容的方块使用其选择框。
+- `geometry` 始终使用渲染出的几何体。
+- `cutout` 始终使用纹理透明度。
+- `bounds` 描边方块的选择框和实体的碰撞箱。
+
+规则：
+
+- 只在轮廓外侧绘制描边，不会给目标本身着色
+- 被其他方块或实体遮挡的部分依然可见，并像其他被遮挡的注解一样变暗；`alwaysOnTop` 会让它们保持完整亮度
+- 隐身的实体同样会被描边
+- 相互接触或重叠的轮廓会合并为一条轮廓线，不同注解之间也会合并
+- 半透明颜色和柔和边缘会与场景正确混合，边缘不会变黑
+- 子内容会成为 tooltip；悬停任意被描边的方块或实体即可显示
+- 在 `<BlockAnnotationTemplate>` 内，`pos` 相对于每个匹配到的方块，所有匹配方块的轮廓会合并成一个整体
+- 导出的网站会用 WebGL 绘制相同的轮廓
+
+示例：
+
+````md
+<GameScene zoom={3} interactive={true}>
+  <Block id="minecraft:glass" />
+  <Block id="minecraft:red_flower" x="2" />
+  <Entity id="minecraft:sheep" sceneEntityId="sheep" x="1.5" z="2.5" />
+  <OutlineAnnotation pos="0 0 0" color="#55FFFF">
+    玻璃会被描成完整的立方体轮廓。
+  </OutlineAnnotation>
+  <OutlineAnnotation pos="2 0 0" color="#80FFFFFF" colorMode="rainbow" colorPeriod="2.4" thickness="1.5" />
+  <OutlineAnnotation entity="sheep" color="#FFAA00" alwaysOnTop={true} pulse={true} />
+</GameScene>
+````
+
+描边结构中所有匹配的方块：
+
+````md
+<BlockAnnotationTemplate id="minecraft:glass">
+  <OutlineAnnotation color="#AAFFFF" />
+</BlockAnnotationTemplate>
 ````
 
 ## `<TextAnnotation>`
@@ -226,6 +296,21 @@ GuideNH 会在每个轴上自动交换反向提供的 min/max 坐标。
 </DiamondAnnotation>
 ````
 
+## `<InputAnnotation>` 流体目标
+
+InputAnnotation 可以指定 `item` 或 `fluid`，不能同时填写。流体目标可选填 `amount`（非负整数）和 `nbt`（SNBT），这两个参数要求同时提供 `fluid`。位置、inputType、modifier 与 StructureLib 可见条件沿用现有规则。
+
+流体悬停信息包含名称、温度和气体/液体状态，加载 GregTech 时还会显示按 GT 设置生成的材料提示。显式数量遵循 L/mB 单位设置。ExportSite 的输入标注保留相同文字作为浏览器悬停提示，并保留格式化后的数量。
+
+```mdx
+<GameScene width="180" height="120">
+  <Block x="0" y="0" z="0" id="minecraft:stone" />
+  <InputAnnotation pos="0.5 1.5 0.5" inputType="rmb" fluid="water" amount={1000} />
+</GameScene>
+```
+
+注解只显示操作图标和流体信息，不会填充容器或改变场景世界。编辑、保存、重载和导出需要保留注册名、数量与 NBT。可放置的流体方块仍须在 Block / PlaceBlock 中使用真实方块 ID。
+
 ## `<BlockAnnotationTemplate>`
 
 当你希望把同一种注解盖到所有匹配方块上时使用它。
@@ -247,7 +332,7 @@ GuideNH 会在每个轴上自动交换反向提供的 min/max 坐标。
   <ImportStructure src="/assets/example_structure.snbt" />
   <BlockAnnotationTemplate id="minecraft:log">
     <DiamondAnnotation pos="0.5 0.5 0.5" color="#ff0000">
-      模板生成的工具提示
+      Template-generated tooltip
     </DiamondAnnotation>
   </BlockAnnotationTemplate>
 </GameScene>

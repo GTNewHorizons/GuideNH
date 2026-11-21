@@ -6,7 +6,9 @@ import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstAnyContent;
 
-/** Produces an independent, transclusion-filtered template body for one call. */
+/**
+ * Produces an independent, transclusion-filtered template body for one call.
+ */
 public final class TemplateBodyResolver {
 
     private TemplateBodyResolver() {}

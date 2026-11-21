@@ -1,0 +1,8 @@
+{
+  "guide": {
+    "group": "serverutilities:info",
+    "icon": "guidenh:textures/items/guide.png",
+    "x": 150,
+    "click": "custom:guidenh:open_guide"
+  }
+}

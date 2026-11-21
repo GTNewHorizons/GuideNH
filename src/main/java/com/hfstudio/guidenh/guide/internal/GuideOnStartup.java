@@ -3,7 +3,6 @@ package com.hfstudio.guidenh.guide.internal;
 import java.util.Set;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiMainMenu;
 import net.minecraft.util.ResourceLocation;
 
 import com.hfstudio.guidenh.guide.PageAnchor;
@@ -58,7 +57,7 @@ public class GuideOnStartup {
         }
 
         Minecraft minecraft = Minecraft.getMinecraft();
-        if (!(minecraft.currentScreen instanceof GuiMainMenu)) {
+        if (minecraft.currentScreen == null || minecraft.theWorld != null) {
             return;
         }
         if (!triggerState.tryMarkTriggered()) {

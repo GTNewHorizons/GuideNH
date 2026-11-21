@@ -1,52 +1,51 @@
 # Recepten
 
-Deze documentatie beschrijft de GuideNH-syntaxis en runtimefuncties. Code, tags, paden, ID's en attribuutwaarden blijven ongewijzigd.
+De uitgebreide naslag op deze pagina is beschikbaar in het Engels. Namen van tags, attributen, ID’s en paden worden zonder vertaling gebruikt.
 
+Use recipe tags to show how an item or fluid is produced or consumed. Machine recipes depend on the installed recipe integrations; vanilla crafting is available without NEI.
 
-GuideNH kan renderen crafting en NEI-backed Recepten directly binnen gids pages.
+## Choosing a tag
 
-## Supported tags
+| Tag | Query | Default result count |
+| --- | --- | --- |
+| `<Recipe>` / `<RecipeFor>` | Produces the target | One |
+| `<Usage>` / `<RecipeUsage>` | Consumes the target | One |
+| `<RecipesFor>` | Produces the target | All matches |
+| `<RecipesUsage>` | Consumes the target | All matches |
 
-- `<Recipe>`
-- `<Usage>`
-- `<RecipeFor>`
-- `<RecipeUsage>`
-- `<RecipesFor>`
-- `<RecipesUsage>`
+All six tags accept the same attributes. Use `limit` to cap the result count and `recipeIndex` to select a specific recipe.
 
-alle three share De zelfde compiler en Attribuut Stel in.
+## Attributes
 
-## tag Semantics
+Provide exactly one target: `id` for an item or `fluid` for a fluid. Fluid names are exact, case-sensitive Forge registry names such as `water` or `steam`; use registered names rather than temporary numeric display IDs.
 
-| tag              | Behavior                                               |
-|------------------|--------------------------------------------------------|
-| `<Recipe>`       | renderen Een enkele recipe voor De target item             |
-| `<Usage>`        | renderen Een enkele recipe using De target item           |
-| `<RecipeFor>`    | zelfde enkele-recipe behavior, more author-friendly naam |
-| `<RecipeUsage>`  | zelfde enkele-recipe behavior, more author-friendly naam |
-| `<RecipesFor>`   | renderen meerdere matching Recepten                       |
-| `<RecipesUsage>` | renderen meerdere matching Recepten                       |
+| Attribute | Meaning |
+| --- | --- |
+| `id` | Target item reference; mutually exclusive with `fluid` |
+| `fluid` | Target fluid registry name; mutually exclusive with `id` |
+| `fallbackText` | Text displayed when no usable recipe is found |
+| `handlerName` | Case-insensitive substring of the recipe handler's display name |
+| `handlerId` | Exact overlay/handler ID, case-insensitive; also accepts a substring of the handler's simple class name |
+| `handlerBlacklist` | Comma-separated handlers to exclude |
+| `handlerWhitelist` | Comma-separated handlers to retain despite a blacklist; does not narrow results by itself |
+| `handlerOrder` | Nonnegative, zero-based index into the filtered handler list |
+| `recipeIndex` | Nonnegative, zero-based recipe index |
+| `input` / `output` | Item ingredient/result filter expressions |
+| `inputFluid` / `outputFluid` | Fluid ingredient/result filter expressions |
+| `limit` | Positive integer maximum result count |
 
-Als meerdere Recepten exist en you gebruiken De enkele-recipe forms, GuideNH renders alleen one result unless filters narrow it further.
+```md
+<RecipeFor id="minecraft:crafting_table" />
+<RecipesFor id="minecraft:torch" limit="3" />
+<RecipeFor fluid="steam" fallbackText="No steam recipe is available." />
+<RecipesUsage fluid="water" inputFluid="water&!lava" limit="3" />
+```
 
-## algemene attributen
+If an optional recipe integration is unavailable, `fallbackText` is displayed; without it, the page shows an authoring error. Filled containers remain item ingredients.
 
-| Attribuut      | Vereist | Betekenis                                           |
-|----------------|----------|---------------------------------------------------|
-| `id`           | yes      | target item reference                             |
-| `fallbackText` | no       | tekst getoond wanneer no usable recipe is found         |
-| `handlerName`  | no       | case-insensitive substring filter on handler naam |
-| `handlerId`    | no       | exact overlay/handler id filter, case-insensitive |
-| `handlerBlacklist` | no   | comma-separated handlers naar drop van De results |
-| `handlerWhitelist` | no   | comma-separated handlers naar Behoud, even Als blacklisted |
-| `handlerOrder` | no       | 0-based index na handler filtering             |
-| `input`        | no       | ingredient filter expressie                      |
-| `output`       | no       | result filter expressie                          |
-| `limit`        | no       | positive geheel getal max getal of gerenderd Recepten   |
+## Item references
 
-## item Id syntaxis
-
-De `id`, `input`, en `output` attributen alle gebruiken De GuideNH extended item reference format:
+`id`, `input` and `output` accept these forms:
 
 ```text
 modid:name
@@ -54,143 +53,79 @@ modid:name:meta
 modid:name:meta:{snbt}
 ```
 
-Wildcard meta waarden:
-
-- `*`
-- `32767`
-- uppercase tokens such as `ANY`
-
-## filter expressie syntaxis
-
-De `input` en `output` filters ondersteuning:
-
-- `,` voor of
-- `&` voor en
-- `!` voor niet
-
-Voorbeelden:
-
-```text
-minecraft:planks:*
-minecraft:stick&minecraft:redstone
-!minecraft:planks:0
-minecraft:planks:*,minecraft:log:*
-```
-
-NBT kan be combined met alle three item-reference attributen. Commas en ampersands binnen an
-SNBT compound/lijst are kept binnen De reference; alleen top-level separators split De filter:
+Wildcard metadata may be written as `*`, `32767` or an uppercase token such as `ANY`.
 
 ```md
 <RecipeFor id='minecraft:written_book:0:{title:TestBook,author:GuideNH}' />
-<RecipesFor
-  id='minecraft:stone:3:{display:{Name:"Special Stone"}}'
-  input='minecraft:chest:0:{Items:[{id:"minecraft:diamond",Count:1b}]}'
-  output='minecraft:diamond:0:{display:{Name:"Reward"}}'
-/>
+<RecipesFor id="minecraft:stick" input="minecraft:planks:*" limit="3" />
 ```
 
-## Rendering Order
+## Ingredient filters
 
-GuideNH tries Recepten in Deze order:
+Both item and fluid filters support `,` for OR, `&` for AND and `!` for NOT. Every supplied input/output filter must match. Commas and ampersands inside an item's SNBT compound or list stay within that reference.
 
-1. NEI native handler rendering
-2. NEI slot-data fallback
-3. built-in vanilla crafting fallback
+```md
+<RecipesFor id="minecraft:redstone_torch" input="minecraft:stick&minecraft:redstone" limit="1" />
+<RecipesFor id="minecraft:iron_ingot" outputFluid="steam,water" />
+<RecipesUsage fluid="water" inputFluid="water&!lava" limit="3" />
+```
 
-Als nothing matches:
+Fluid filters match registry names, including fluids in auxiliary output slots. They do not match amounts or NBT. Invalid filter syntax produces an authoring error.
 
-- `fallbackText` is gebruikt wanneer present
-- otherwise Een inline authoring error is getoond
+## Handler selection
 
-## Voorbeelden
+Use `handlerId` for a known recipe handler, `handlerName` for a display-name match or `handlerOrder` to choose from the filtered list. `recipeIndex` selects a recipe within the query.
 
-### enkele recipe
-
-````md
-<RecipeFor id="minecraft:crafting_table" />
-````
-
-### meerdere Recepten
-
-````md
-<RecipesFor id="minecraft:torch" />
-````
-
-### Handler filtering
-
-````md
+```md
 <RecipesFor id="minecraft:iron_pickaxe" handlerId="repair" />
-<RecipesFor id="minecraft:fire_charge" handlerName="shapeless" />
-````
+<RecipesFor id="minecraft:fire_charge" handlerName="shapeless" limit="3" />
+<RecipeFor id="minecraft:torch" recipeIndex="0" />
+```
 
-### Handler blacklist en whitelist
+Blacklist and whitelist entries match handler IDs, overlay IDs and class names as case-insensitive substrings. Page blacklists add to `recipeHandlerBlacklist` in `config/guidenh/guidenh.cfg`. Explicit `handlerId` or `handlerWhitelist` selection can retain a blacklisted handler.
 
-`handlerBlacklist` drops handlers van De results, `handlerWhitelist` puts them back. Both take a
-**comma-separated lijst**, en Een entry matches De handler id, its overlay id of its class naam,
-case-insensitively en as Een substring — so one entry kan naam Een enkele handler of Een whole package.
+```md
+<RecipesFor id="minecraft:planks" handlerBlacklist="fuel,repair" limit="6" />
+<RecipeFor id="minecraft:chest" handlerWhitelist="GTNEIMultiblockHandler,StructureCompatNEIHandler" fallbackText="Multiblock preview unavailable." />
+```
 
-Een handler is dropped wanneer it is named by Een blacklist **unless** De tag asks voor it: `handlerId`,
-`handlerWhitelist` en Een lowercased class-naam match alle Behoud it.
-
-**Een lijst, because one handler id rarely appears alone.** Planks are both Een crafting material en Een fuel, so
-lijst De handler ids you do niet want:
-
-````md
-<RecipesFor id="minecraft:planks" handlerBlacklist="fuel,repair" />
-````
-
-**Een package in one entry.** Een entry is Een substring of De class naam too, so Een mod id covers iedere handler
-that mod registers — handy wanneer one mod's handlers are alle noise voor Deze item:
-
-````md
-<RecipesFor id="minecraft:chest" handlerBlacklist="gregtech,ic2,railcraft" limit="6" />
-````
-
-**Whitelist, naar undo Een blacklist voor one pagina.** De configuration hides two multiblock handlers on iedere
-pagina. Een whitelist naming them brings them back here, en Een lijst works De zelfde way:
-
-````md
-<Recipe id="minecraft:chest" handlerWhitelist="GTNEIMultiblockHandler,StructureCompatNEIHandler" fallbackText="Multiblock preview unavailable." />
-````
-
-**Whitelist doet niet filter on its own.** It alleen rescues handlers Een blacklist would drop; gebruiken
-`handlerId` / `handlerName` / `handlerOrder` naar narrow De result naar one handler, en `limit` naar cap how
-many are drawn.
-
-De configuration bestand `config/guidenh/guidenh.cfg` holds `recipeHandlerBlacklist`, which applies naar iedere
-pagina en by Standaard bevat:
+The following multiblock handlers are excluded by default because they render a whole structure:
 
 - `blockrenderer6343.integration.gregtech.GTNEIMultiblockHandler`
 - `blockrenderer6343.integration.structurelib.StructureCompatNEIHandler`
 
-Een pagina's own lijst is **added** naar De configured one, so Een pagina kan verbergen more but niet fewer. Editing De
-configuration wijzigingen iedere pagina; naming Een handler on Een tag wijzigingen alleen that pagina.
+Use a whitelist to include them on a page. Use `limit` for broad queries to keep pages readable.
 
-### Input/output filtering
+## NEI-receptlinks in lopende tekst
 
-````md
-<RecipesFor id="minecraft:stick" input="minecraft:planks:*" limit="3" />
-<RecipesFor id="minecraft:stick" output="minecraft:torch" limit="2" />
-<RecipesFor id="minecraft:redstone_torch" input="minecraft:stick&minecraft:redstone" limit="1" />
-````
+Gebruik `&[tekst](nei:...)` of `<NeiRecipeLink>` om NEI vanuit de tekst te openen. Actielabels zijn gewone tekst; de tag ondersteunt opgemaakte inhoud.
 
-### fallback tekst
+```md
+&[Alle cokesovenrecepten bekijken](nei:handler?handlerId=gt.recipe.cokeoven)
+&[Recepten bekijken](nei:recipes?id=minecraft:iron_ingot)
+&[Toepassingen bekijken](nei:usage?id=gregtech:gt.blockmachines:236&handlerId=gt.recipe.cokeoven)
 
-````md
-<Recipe id="missingrecipe" fallbackText="This recipe is disabled." />
-````
+<NeiRecipeLink handlerId="gt.recipe.cokeoven">Alle cokesovenrecepten bekijken</NeiRecipeLink>
+<NeiRecipeLink id="minecraft:iron_ingot">**Recepten** bekijken</NeiRecipeLink>
+<NeiRecipeLink mode="usage" id="gregtech:gt.blockmachines:236" handlerId="gt.recipe.cokeoven" title="NEI">Toepassingen bekijken</NeiRecipeLink>
 
-## Best Practices
+&[Boekrecepten met SNBT bekijken](nei:recipes?id=minecraft:written_book:0:%7Btitle:%22Guide%2BNEI%22%2Cauthor:GuideNH%7D)
+```
 
-- gebruiken `fallbackText` voor optioneel-mod integrations
-- gebruiken `handlerId` wanneer you know De exact NEI handler you want
-- gebruiken `handlerBlacklist` wanneer one blok is produced by many handlers en alleen some are worth showing
-- De two handlers below are verborgen by Standaard in `config/guidenh/guidenh.cfg` because they renderen Een whole multiblock; naam one met `handlerId` of `handlerWhitelist` naar tonen it
-  - `blockrenderer6343.integration.gregtech.GTNEIMultiblockHandler`
-  - `blockrenderer6343.integration.structurelib.StructureCompatNEIHandler`
-- gebruiken `limit` wanneer Een tag could expand into many Recepten
-- Behoud complex filter logic in comments near De tag voor maintainability
+`handler` vereist `handlerId`, staat geen `id` toe en opent alle recepten van de gekozen handler. `recipes` vereist `id` en opent recepten die dat voorwerp produceren. `usage` vereist `id` en opent toepassingen, inclusief gebruik als katalysator, ongeacht de Ctrl-toets. De laatste twee modi ondersteunen een optioneel filter via `handlerId`.
 
-## Live runtime Example
+`handlerId` moet exact overeenkomen met de NEI-overlay-ID of handler-ID, zonder onderscheid tussen hoofdletters en kleine letters. Java-klassenamen en gedeeltelijke ID's worden niet geaccepteerd.
 
-See `wiki/resourcepack/assets/guidenh/guidenh/_en_us/index.md` voor extensive recipe samples, including handler filters en wildcard/NBT item ids.
+Voorwerp-ID's zonder naamruimte gebruiken de naamruimte van de huidige pagina. De schrijfwijze van de registratienaam, metadata en SNBT blijven behouden. Jokertekens voor metadata volgen de bestaande regels voor concrete voorwerpstapels en selecteren niet alle varianten.
+
+URI-waarden worden precies één keer als strikte UTF-8 gedecodeerd; een letterlijk `+` blijft `+`. Gebruik procentcodering voor SNBT en gereserveerde tekens zoals `&`, `#`, `%`, `?` en `)`.
+
+Dubbele of onbekende parameters, ongeldige escapes, fragmenten, niet-ondersteunde modi, tegenstrijdige attributen en ontbrekende doelen veroorzaken schrijffouten. Alleen acties met `&` en `<NeiRecipeLink>` openen NEI; gewone links, referentielinks, HTML-ankers en `nei://` zijn geen alternatieve schrijfwijzen.
+
+Als NEI ontbreekt of geen recepten overeenkomen, blijft de gids open en verschijnt een melding. Browser- en IDE-voorbeelden tonen niet-aanklikbare tekst. Open de pagina in GuideNH om de link te gebruiken.
+
+## Related references
+
+- [Tags Reference](Tags-Reference)
+- [Mod Compatibility](Mod-Compatibility)
+- [Examples](Examples)

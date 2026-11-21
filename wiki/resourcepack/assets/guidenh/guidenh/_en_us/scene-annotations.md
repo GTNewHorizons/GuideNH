@@ -11,6 +11,13 @@ categories:
 
 All annotation kinds live in world space and can be toggled with the scene's *Show/Hide annotations* button.
 
+## Native fluid input annotation
+
+<GameScene width="180" height="120">
+  <Block x="0" y="0" z="0" id="minecraft:stone" />
+  <InputAnnotation pos="0.5 1.5 0.5" inputType="rmb" fluid="water" amount={1000} />
+</GameScene>
+
 ## DiamondAnnotation
 
 Place a **diamond marker** at any world coordinate. The diamond always faces the screen; hovering shows a semi-transparent white overlay while its compiled child content is rendered as a rich tooltip.
@@ -58,6 +65,8 @@ Activated beacon - 3x3 diamond block base, beacon on top; marker tooltip contain
 All three support `color="#AARRGGBB" or "#RRGGBB"`, `thickness` in pixel units (default `1`), and `alwaysOnTop` to draw above other geometry. Children are used as a rich-text hover tooltip.
 `LineAnnotation` can also render a 3D arrow at `arrow="start"` or `arrow="end"`. Point cubes are hidden by default; enable all of them with `showPoints={true}`, or configure individual points with `<LinePoint index="..." show color="#RRGGBB" size="..."/>`.
 
+`BoxAnnotation` and `BlockAnnotation` also accept `colorMode="solid"` (default) or `colorMode="rainbow"`. Rainbow rotates through 360° around the projected center, replacing RGB while preserving the alpha of `color`. `colorPeriod` is a positive finite period in seconds, default `2.4`. Game and Site Export use the same rule.
+
 <GameScene width="384" height="224" zoom={4} interactive={true}>
   <Block id="minecraft:iron_block" />
   <Block id="minecraft:iron_block" x="1" />
@@ -84,7 +93,7 @@ All three support `color="#AARRGGBB" or "#RRGGBB"`, `thickness` in pixel units (
   <LineAnnotation color="#ffd24c" from="0.5 1.2 0.5" to="2.5 1.2 2.5" thickness="0.08">
     **Line annotation**: a slightly thicker line (`thickness=0.08`). Tooltips can embed a 3D preview:
 
-    <GameScene width="160" height="96" zoom={5} perspective="isometric_north_east" interactive={false}>
+    <GameScene width="160" height="96" zoom={5} perspective="isometric-north-east" interactive={false}>
       <Block id="minecraft:iron_block" />
       <Block id="minecraft:gold_block" x="1" />
       <DiamondAnnotation pos="0.5 1.2 0.5" color="#ffd24c">Endpoint A</DiamondAnnotation>
@@ -102,6 +111,115 @@ All three support `color="#AARRGGBB" or "#RRGGBB"`, `thickness` in pixel units (
     <LinePoint index="1" show color="#ff8844" size="0.12" />
     **Polyline annotation**: the end arrow is a 3D arrowhead, and individual points can be shown as cubes.
   </LineAnnotation>
+</GameScene>
+
+Compare a translucent wide, shallow box with a full block; their cycle periods are `2.4` and `4.8` seconds:
+
+```mdx
+<GameScene width="384" height="224" zoom={3} interactive={true}>
+  <Block id="minecraft:iron_block" />
+  <Block id="minecraft:glass" x="3" />
+  <BoxAnnotation min="0 1 0" max="2 1.5 0.5" color="#80FFFFFF" colorMode="rainbow" colorPeriod="2.4" thickness="2" />
+  <BlockAnnotation pos="3 0 0" colorMode="rainbow" colorPeriod="4.8" />
+</GameScene>
+```
+
+<GameScene width="384" height="224" zoom={3} interactive={true}>
+  <Block id="minecraft:iron_block" />
+  <Block id="minecraft:glass" x="3" />
+  <BoxAnnotation min="0 1 0" max="2 1.5 0.5" color="#80FFFFFF" colorMode="rainbow" colorPeriod="2.4" thickness="2" />
+  <BlockAnnotation pos="3 0 0" colorMode="rainbow" colorPeriod="4.8" />
+</GameScene>
+
+## Outline Annotation
+
+`<OutlineAnnotation>` draws a glow-style contour around blocks and entities. The contour follows the rendered silhouette, stays visible through anything in front of it, and merges with touching outlines into one shape. Target a block with `pos`, a block region with inclusive `min` / `max` corners, or an entity with `entity="sceneEntityId"`; `target="entities"` or `target="all"` also outlines the entities inside a region.
+
+Attributes: `color` (white by default, team color for entities), `thickness` in GUI pixels (default `1`), `alwaysOnTop`, `pulse={true}` with an optional `pulsePeriod` in seconds, and `mode` (`auto`, `geometry`, `cutout`, `bounds`). Child content becomes the hover tooltip.
+
+`OutlineAnnotation` accepts the same `colorMode` and `colorPeriod` settings above. Color rotation is independent of `pulse` and works with block, region, entity, and template targets.
+
+With the default `mode="auto"`, closed models use their geometry and sprite-like renders use texture alpha:
+
+<GameScene width="384" height="224" zoom={4} interactive={true}>
+  <Block id="minecraft:glass" />
+  <Block id="minecraft:stained_glass" meta="14" x="2" />
+  <Block id="minecraft:red_flower" x="4" />
+  <Block id="minecraft:sapling" z="2" />
+  <Block id="minecraft:torch" meta="5" x="2" z="2" />
+  <Block id="minecraft:chest" x="4" z="2" />
+  <OutlineAnnotation pos="0 0 0" color="#55FFFF">
+    **Glass**: outlined as a full cube instead of along the transparent frame texture.
+  </OutlineAnnotation>
+  <OutlineAnnotation pos="2 0 0" color="#FF5555">
+    **Stained glass**: translucent blocks keep their geometry as well.
+  </OutlineAnnotation>
+  <OutlineAnnotation pos="4 0 0" color="#80FFFFFF" colorMode="rainbow" colorPeriod="2.4">
+    **Flower**: crossed sprites follow their texture alpha, not the two quads.
+  </OutlineAnnotation>
+  <OutlineAnnotation pos="0 0 2" color="#55FF55" />
+  <OutlineAnnotation pos="2 0 2" color="#FFAA00" />
+  <OutlineAnnotation pos="4 0 2" color="#FF55FF">
+    **Chest**: tile entity renderers are outlined from their model.
+  </OutlineAnnotation>
+</GameScene>
+
+Regions and templates merge into one contour; the template outline breathes:
+
+<GameScene width="384" height="224" zoom={4} interactive={true}>
+  <Block id="minecraft:iron_block" />
+  <Block id="minecraft:iron_block" x="1" />
+  <Block id="minecraft:iron_block" x="2" />
+  <Block id="minecraft:iron_block" z="1" />
+  <Block id="minecraft:iron_block" x="1" z="1" />
+  <Block id="minecraft:iron_block" x="2" z="1" />
+  <Block id="minecraft:diamond_block" x="4" />
+  <Block id="minecraft:diamond_block" x="4" z="2" />
+  <OutlineAnnotation min="0 0 0" max="2 0 1" color="#55FFFF" thickness="1.5">
+    **Region**: `min` / `max` outlines all six blocks as one shape.
+  </OutlineAnnotation>
+  <BlockAnnotationTemplate id="minecraft:diamond_block">
+    <OutlineAnnotation color="#80FFFFFF" colorMode="rainbow" colorPeriod="4.8" pulse={true}>
+      **Template**: every diamond block gets a breathing outline.
+    </OutlineAnnotation>
+  </BlockAnnotationTemplate>
+</GameScene>
+
+Hidden targets stay visible through walls. Without `alwaysOnTop` the hidden part is dimmed:
+
+<GameScene width="384" height="224" zoom={4} interactive={true}>
+  <Block id="minecraft:gold_block" />
+  <Block id="minecraft:stone" x="-1" />
+  <Block id="minecraft:stone" x="1" />
+  <Block id="minecraft:stone" z="-1" />
+  <Block id="minecraft:stone" z="1" />
+  <Block id="minecraft:stone" y="1" />
+  <Block id="minecraft:gold_block" x="4" />
+  <Block id="minecraft:stone" x="3" />
+  <Block id="minecraft:stone" x="5" />
+  <Block id="minecraft:stone" x="4" z="-1" />
+  <Block id="minecraft:stone" x="4" z="1" />
+  <Block id="minecraft:stone" x="4" y="1" />
+  <OutlineAnnotation pos="0 0 0" color="#FFAA00">
+    **Hidden**: the occluded outline is dimmed.
+  </OutlineAnnotation>
+  <OutlineAnnotation pos="4 0 0" color="#FFAA00" alwaysOnTop={true}>
+    **alwaysOnTop**: the occluded outline keeps full brightness.
+  </OutlineAnnotation>
+</GameScene>
+
+Entities are outlined from their model and skin, including invisible ones:
+
+<GameScene width="320" height="192" zoom={4} interactive={true}>
+  <Block id="minecraft:grass" />
+  <Block id="minecraft:grass" x="1" />
+  <Block id="minecraft:grass" x="2" />
+  <Entity id="minecraft:sheep" sceneEntityId="sheep" x="0.5" y="1" z="0.5" />
+  <Entity id="minecraft:zombie" sceneEntityId="zombie" x="2.5" y="1" z="0.5" />
+  <OutlineAnnotation entity="sheep">
+    Entities default to white, or to their scoreboard team color.
+  </OutlineAnnotation>
+  <OutlineAnnotation entity="zombie" color="#FF5555" thickness="2" alwaysOnTop={true} />
 </GameScene>
 
 ## Text Annotation

@@ -19,7 +19,9 @@ import com.hfstudio.guidenh.libs.mdast.model.MdAstNode;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstParent;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstText;
 
-/** Copies template AST nodes so each call site can safely substitute its own arguments. */
+/**
+ * Copies template AST nodes so each call site can safely substitute its own arguments.
+ */
 public final class MediaWikiTemplateAst {
 
     private static final Map<MdAstNode, JsonObject> SHELL_CACHE = Collections.synchronizedMap(new WeakHashMap<>());

@@ -17,9 +17,7 @@ import com.hfstudio.guidenh.integration.api.GuideNhIntegrationRegistry;
 import com.hfstudio.guidenh.integration.api.RecipeSlot;
 
 /**
- * Invokes registered recipe handlers to render a recipe in-place. Relies on provider-side
- * drawBackground/drawForeground/drawExtras calls being independent of GUI state. All calls are
- * wrapped in try-catch so a misbehaving third-party handler cannot crash the guide UI.
+ * Renders recipe backgrounds before slots and provider foregrounds afterward.
  */
 public class NeiHandlerRenderer {
 
@@ -28,9 +26,7 @@ public class NeiHandlerRenderer {
     private NeiHandlerRenderer() {}
 
     /**
-     * Render the background / foreground / extras for {@code handler} at screen offset
-     * {@code (screenX, screenY)} and draw every positioned stack as a 16x16 item on top. Returns
-     * the stack under {@code (mouseX, mouseY)} if any, else {@code null}.
+     * Renders {@code handler} at {@code (screenX, screenY)} and returns the hovered item, if any.
      */
     public static @Nullable ItemStack render(Object handler, int recipeIndex, int screenX, int screenY, int clipX,
         int clipY, int clipWidth, int clipHeight, int mouseX, int mouseY) {
@@ -81,12 +77,13 @@ public class NeiHandlerRenderer {
         GuideNhIntegrationRegistry registry = GuideNhIntegrationRegistry.global();
         if (handler == null || !registry.canRenderRecipeHandler(handler)) return null;
 
-        // DiagramGroup is rendered from LytNeiRecipeBox with absolute-GUI scissors (tooltip-safe).
+        List<RecipeSlot> ingredients = cachedIngredients != null ? cachedIngredients
+            : registry.readRecipeIngredientSlots(handler, recipeIndex);
+        List<RecipeSlot> others = skipForeground ? List.of()
+            : cachedOthers != null ? cachedOthers : registry.readRecipeOtherSlots(handler, recipeIndex);
+        RecipeSlot result = cachedResultAvailable ? cachedResult : registry.readRecipeResultSlot(handler, recipeIndex);
+        ItemStack hovered;
 
-        // Phase 1: NEI-native background + foreground + extras at translated origin.
-        // drawForeground and drawExtras are skipped when getOtherStacks is broken, because
-        // GTNH-NEI calls getOtherStacks inside its own safe-wrapper from those methods, which
-        // would log errors on every render frame.
         GL11.glPushAttrib(
             GL11.GL_ENABLE_BIT | GL11.GL_COLOR_BUFFER_BIT
                 | GL11.GL_CURRENT_BIT
@@ -99,8 +96,10 @@ public class NeiHandlerRenderer {
         try {
             GL11.glTranslatef(screenX, screenY, 0f);
             ColorUtils.applyGlColor(ColorUtils.WHITE.getColor());
-            registry.renderRecipeHandler(handler, recipeIndex, skipForeground);
-        } catch (Throwable ignored) {} finally {
+            registry.renderRecipeHandlerBackground(handler, recipeIndex, skipForeground);
+            hovered = drawSlotBatch(ingredients, others, result, 0, 0, mouseX - screenX, mouseY - screenY);
+            registry.renderRecipeHandlerForeground(handler, recipeIndex, skipForeground);
+        } finally {
             GL11.glPopMatrix();
             GL11.glPopAttrib();
             ColorUtils.applyGlColor(ColorUtils.WHITE.getColor());
@@ -110,13 +109,7 @@ public class NeiHandlerRenderer {
             GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
         }
 
-        // Phase 2: draw every positioned stack on top.
-        List<RecipeSlot> ingredients = cachedIngredients != null ? cachedIngredients
-            : registry.readRecipeIngredientSlots(handler, recipeIndex);
-        List<RecipeSlot> others = skipForeground ? List.of()
-            : cachedOthers != null ? cachedOthers : registry.readRecipeOtherSlots(handler, recipeIndex);
-        RecipeSlot result = cachedResultAvailable ? cachedResult : registry.readRecipeResultSlot(handler, recipeIndex);
-        return drawSlotBatch(ingredients, others, result, screenX, screenY, mouseX, mouseY);
+        return hovered;
     }
 
     private static @Nullable ItemStack drawSlotBatch(List<RecipeSlot> ingredients, List<RecipeSlot> others,
@@ -166,6 +159,9 @@ public class NeiHandlerRenderer {
 
     private static @Nullable ItemStack drawSlotBatchSlot(RecipeSlot slot, int screenX, int screenY, int mouseX,
         int mouseY, Minecraft mc, @Nullable ItemStack currentHovered) {
+        if (FluidRecipeRenderer.draw(slot, screenX + slot.x(), screenY + slot.y(), 16)) {
+            return currentHovered;
+        }
         ItemStack shown = pickVisibleStack(slot);
         if (shown == null) return currentHovered;
         try {
@@ -223,7 +219,9 @@ public class NeiHandlerRenderer {
         drawItemInternal(stack, x, y, true);
     }
 
-    /** Draws item icon + count overlay only when count > 0; icon-only for count=0 items. */
+    /**
+     * Draws item icon + count overlay only when count > 0; icon-only for count=0 items.
+     */
     public static void drawStackWithCount(ItemStack stack, int x, int y) {
         drawItemInternal(stack, x, y, stack.stackSize > 0);
     }

@@ -47,9 +47,13 @@ public class GuidebookFakeWorld extends WorldClient implements GuidebookPreviewW
     public static volatile boolean gregTechDummyWorldRegistrationAttempted;
 
     private final GuidebookLevel level;
-    /** Stable read-only chunk views; renderer/CTM asks for the same coordinates repeatedly. */
+    /**
+     * Stable read-only chunk views; renderer/CTM asks for the same coordinates repeatedly.
+     */
     private final Long2ObjectOpenHashMap<GuidebookFakeChunk> chunkViews = new Long2ObjectOpenHashMap<>();
-    private final Long2ObjectOpenHashMap<TileEntity> trackedTileEntities = new Long2ObjectOpenHashMap<>();
+    private final GuidebookBlockPosMap<TileEntity> trackedTileEntities = new GuidebookBlockPosMap<>();
+    @Nullable
+    private GuidebookFakeChunk cachedChunkView;
     @Nullable
     private Set<TileEntity> markBlockForUpdateGuard;
     private final Set<Long> neighborUpdateGuard = new HashSet<>();
@@ -64,6 +68,11 @@ public class GuidebookFakeWorld extends WorldClient implements GuidebookPreviewW
         this.level = level;
         this.isRemote = true;
         registerOptionalDummyWorldIntegrations();
+    }
+
+    @Override
+    public long getPreviewStructureRevision() {
+        return level.getSpatialRevision();
     }
 
     public static NetHandlerPlayClient resolveNetHandler() {
@@ -109,6 +118,7 @@ public class GuidebookFakeWorld extends WorldClient implements GuidebookPreviewW
         playerEntities.clear();
         weatherEffects.clear();
         chunkViews.clear();
+        cachedChunkView = null;
         trackedTileEntities.clear();
         markBlockForUpdateGuard = null;
         neighborUpdateGuard.clear();
@@ -138,8 +148,7 @@ public class GuidebookFakeWorld extends WorldClient implements GuidebookPreviewW
 
     @Override
     public int getBlockMetadata(int x, int y, int z) {
-        if (level == null) return 0;
-        return level.getBlockMetadata(x, y, z);
+        return level != null ? level.getBlockMetadata(x, y, z) : 0;
     }
 
     @Override
@@ -164,12 +173,17 @@ public class GuidebookFakeWorld extends WorldClient implements GuidebookPreviewW
             // Still inside the World constructor; the views need the level.
             return super.getChunkFromChunkCoords(chunkX, chunkZ);
         }
+        GuidebookFakeChunk cached = cachedChunkView;
+        if (cached != null && cached.xPosition == chunkX && cached.zPosition == chunkZ) {
+            return cached;
+        }
         long key = ChunkCoordIntPair.chunkXZ2Int(chunkX, chunkZ);
         GuidebookFakeChunk chunk = chunkViews.get(key);
         if (chunk == null) {
             chunk = new GuidebookFakeChunk(this, chunkX, chunkZ);
             chunkViews.put(key, chunk);
         }
+        cachedChunkView = chunk;
         return chunk;
     }
 
@@ -407,39 +421,35 @@ public class GuidebookFakeWorld extends WorldClient implements GuidebookPreviewW
     }
 
     public void syncTileEntityAt(int x, int y, int z) {
-        long key = GuidebookLevel.packPos(x, y, z);
         TileEntity current = level.getTileEntity(x, y, z);
-        TileEntity previous = trackedTileEntities.get(key);
+        TileEntity previous = trackedTileEntities.get(x, y, z);
         if (previous == current) {
             return;
         }
         if (previous != null) {
             unregisterTrackedTileEntity(x, y, z, previous);
         }
-        trackedTileEntities.remove(key);
+        trackedTileEntities.remove(x, y, z);
         if (current != null && !current.isInvalid()) {
             current.setWorldObj(this);
             current.validate();
             addTileEntity(current);
-            trackedTileEntities.put(key, current);
+            trackedTileEntities.put(x, y, z, current);
         }
     }
 
     @Override
     public void setTileEntity(int x, int y, int z, TileEntity tileEntityIn) {
-        unregisterTrackedTileEntity(x, y, z, null);
-        level.setTileEntity(x, y, z, tileEntityIn);
         if (tileEntityIn != null) {
             tileEntityIn.validate();
-            addTileEntity(tileEntityIn);
-            trackedTileEntities.put(GuidebookLevel.packPos(x, y, z), tileEntityIn);
         }
+        // The level owns replacement and synchronizes registration exactly once.
+        level.setTileEntity(x, y, z, tileEntityIn);
     }
 
     @Override
     public void removeTileEntity(int x, int y, int z) {
         TileEntity existing = level.getTileEntity(x, y, z);
-        unregisterTrackedTileEntity(x, y, z, existing);
         level.setTileEntity(x, y, z, null);
         if (existing != null) {
             existing.invalidate();
@@ -507,8 +517,7 @@ public class GuidebookFakeWorld extends WorldClient implements GuidebookPreviewW
                 continue;
             }
             addTileEntity(tileEntity);
-            trackedTileEntities
-                .put(GuidebookLevel.packPos(tileEntity.xCoord, tileEntity.yCoord, tileEntity.zCoord), tileEntity);
+            trackedTileEntities.put(tileEntity.xCoord, tileEntity.yCoord, tileEntity.zCoord, tileEntity);
         }
     }
 
@@ -528,7 +537,6 @@ public class GuidebookFakeWorld extends WorldClient implements GuidebookPreviewW
     }
 
     private void unregisterTrackedTileEntity(int x, int y, int z, TileEntity exactTileEntity) {
-        long key = GuidebookLevel.packPos(x, y, z);
         Iterator<TileEntity> iterator = loadedTileEntityList.iterator();
         while (iterator.hasNext()) {
             TileEntity tracked = iterator.next();
@@ -541,9 +549,9 @@ public class GuidebookFakeWorld extends WorldClient implements GuidebookPreviewW
                 iterator.remove();
             }
         }
-        TileEntity tracked = trackedTileEntities.get(key);
+        TileEntity tracked = trackedTileEntities.get(x, y, z);
         if (exactTileEntity == null || tracked == exactTileEntity) {
-            trackedTileEntities.remove(key);
+            trackedTileEntities.remove(x, y, z);
         }
     }
 

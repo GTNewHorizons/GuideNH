@@ -58,6 +58,7 @@ public class GuidebookPreviewBlockPlacer {
         @Nullable NBTTagCompound structureBlockCompound) {
         NBTTagCompound previewTileTag = sanitizeGregTechInitTag(tileTag);
         PlacementData placementData = resolvePlacementData(block, meta, previewTileTag);
+        boolean requiresTileEntity = previewTileTag != null || block.hasTileEntity(placementData.blockMeta);
         logPlacementRequest(x, y, z, block, meta, previewTileTag, explicitBlockId, placementData);
         World previewWorld = null;
         World effectiveWorld = null;
@@ -67,7 +68,7 @@ public class GuidebookPreviewBlockPlacer {
 
         TileEntity tileEntity = null;
         NBTTagCompound tileSnapshot = null;
-        if (previewTileTag != null || block.hasTileEntity(placementData.blockMeta)) {
+        if (requiresTileEntity) {
             try {
                 previewWorld = level.getOrCreateFakeWorld();
                 effectiveWorld = previewWorld;
@@ -96,7 +97,7 @@ public class GuidebookPreviewBlockPlacer {
             residentTile = finalizeSpecialPreviewTile(level, x, y, z, residentTile);
             tileSnapshot = captureTileSnapshot(residentTile);
             logLoadedTile("resident", x, y, z, residentTile, placementData.metaTileId, previewTileTag);
-        } else if (shouldLogPlacement(block, placementData)) {
+        } else if (requiresTileEntity && shouldLogPlacement(block, placementData)) {
             GregTechHelpers.logInfoOnce(
                 "preview-place-missing-tile:" + x + ":" + y + ":" + z + ":" + GregTechHelpers.describeBlock(block),
                 "Preview tile load produced no TileEntity at {} for block={} explicitId={} blockMeta={} metaTileId={} tileTag=[{}]",

@@ -13,10 +13,16 @@ import org.jetbrains.annotations.Nullable;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.hfstudio.guidenh.guide.compiler.ActionLinkResolver;
+import com.hfstudio.guidenh.guide.compiler.tags.FluidTagAttributes;
 import com.hfstudio.guidenh.guide.compiler.tags.MdxAttrs;
+import com.hfstudio.guidenh.guide.extensions.ExtensionCollection;
+import com.hfstudio.guidenh.guide.internal.extensions.DefaultExtensions;
+import com.hfstudio.guidenh.guide.internal.fluid.FluidStackSpec;
 import com.hfstudio.guidenh.guide.internal.localization.GuideLanguageIndex;
 import com.hfstudio.guidenh.guide.internal.util.LangUtil;
 import com.hfstudio.guidenh.guide.scene.StructureLibSceneCondition;
+import com.hfstudio.guidenh.guide.scene.annotation.AnnotationColorStyle;
 import com.hfstudio.guidenh.guide.scene.annotation.InWorldBoxAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.InWorldLineAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.PonderInputAnnotation;
@@ -83,15 +89,38 @@ public class GuideSiteSceneTagRenderer implements GuideSiteHtmlCompiler.SceneTag
         GuideSiteHtmlCompiler.ImageResolver imageResolver, GuideSiteHtmlCompiler.MdxTagRenderer mdxTagRenderer,
         GuideSiteLatexExporter latexExporter, @Nullable GuideSitePageAssetExporter assetExporter,
         GuideSiteItemIconResolver itemIconResolver) {
+        this(
+            recipeTagRenderer,
+            imageResolver,
+            mdxTagRenderer,
+            latexExporter,
+            assetExporter,
+            itemIconResolver,
+            defaultActionExtensions());
+    }
+
+    public GuideSiteSceneTagRenderer(GuideSiteHtmlCompiler.RecipeTagRenderer recipeTagRenderer,
+        GuideSiteHtmlCompiler.ImageResolver imageResolver, GuideSiteHtmlCompiler.MdxTagRenderer mdxTagRenderer,
+        GuideSiteLatexExporter latexExporter, @Nullable GuideSitePageAssetExporter assetExporter,
+        GuideSiteItemIconResolver itemIconResolver, ExtensionCollection extensions) {
         this.fragmentCompiler = new GuideSiteHtmlCompiler(
             recipeTagRenderer,
             (element, defaultNamespace, currentPageId, templates, exportedScene) -> "",
             imageResolver,
             mdxTagRenderer != null ? mdxTagRenderer : noopMdxTagRenderer(),
             latexExporter,
-            assetExporter);
+            assetExporter,
+            extensions);
         this.assetExporter = assetExporter;
         this.itemIconResolver = itemIconResolver != null ? itemIconResolver : GuideSiteItemIconResolver.NONE;
+    }
+
+    private static ExtensionCollection defaultActionExtensions() {
+        var builder = ExtensionCollection.builder();
+        for (var resolver : DefaultExtensions.actionLinkResolvers()) {
+            builder.add(ActionLinkResolver.EXTENSION_POINT, resolver);
+        }
+        return builder.build();
     }
 
     @Override
@@ -465,6 +494,7 @@ public class GuideSiteSceneTagRenderer implements GuideSiteHtmlCompiler.SceneTag
                         createTemplateId(flowElement, defaultNamespace, currentPageId, templates),
                         readBooleanValue(flowElement, "alwaysOnTop", false),
                         parseStructureLibCondition(flowElement)));
+                appendColorStyle(inWorld.getLast(), flowElement);
                 continue;
             }
 
@@ -484,6 +514,7 @@ public class GuideSiteSceneTagRenderer implements GuideSiteHtmlCompiler.SceneTag
                         createTemplateId(flowElement, defaultNamespace, currentPageId, templates),
                         readBooleanValue(flowElement, "alwaysOnTop", false),
                         parseStructureLibCondition(flowElement)));
+                appendColorStyle(inWorld.getLast(), flowElement);
                 continue;
             }
 
@@ -567,6 +598,17 @@ public class GuideSiteSceneTagRenderer implements GuideSiteHtmlCompiler.SceneTag
         return new AnnotationPayload(GSON.toJson(inWorld), GSON.toJson(overlay));
     }
 
+    private static void appendColorStyle(Map<String, Object> annotation, MdxJsxFlowElement element) {
+        AnnotationColorStyle style = AnnotationColorStyle.parse(
+            MdxAttrs.getString(element, "colorMode", "solid"),
+            MdxAttrs.getFloat(element, "colorPeriod", AnnotationColorStyle.DEFAULT_PERIOD));
+        annotation.put(
+            "colorMode",
+            style.mode()
+                .serializedName());
+        annotation.put("colorPeriod", style.period());
+    }
+
     private Map<String, Object> buildTextAnnotationData(MdxJsxElementFields flowElement, String defaultNamespace,
         ResourceLocation currentPageId, GuideSiteTemplateRegistry templates) {
         Map<String, Object> data = new LinkedHashMap<>();
@@ -598,6 +640,16 @@ public class GuideSiteSceneTagRenderer implements GuideSiteHtmlCompiler.SceneTag
         String modifier = normalizeOptionalText(readOptional(flowElement, "modifier"));
         if (modifier != null) {
             data.put("modifier", modifier);
+        }
+        String fluid = readOptional(flowElement, "fluid");
+        if (fluid != null) {
+            if (readOptional(flowElement, "item") != null)
+                throw new IllegalArgumentException("InputAnnotation cannot combine item and fluid");
+            var spec = new FluidStackSpec(
+                fluid,
+                FluidTagAttributes.integer(flowElement, "amount"),
+                readOptional(flowElement, "nbt"));
+            data.put("fluid", GuideSiteFluidHtml.exportedData(spec, GuideSiteFluidIconResolver.from(itemIconResolver)));
         }
         GuideSiteExportedItem item = resolveExportedInputItem(readOptional(flowElement, "item"));
         if (item != null && !item.isEmpty()) {

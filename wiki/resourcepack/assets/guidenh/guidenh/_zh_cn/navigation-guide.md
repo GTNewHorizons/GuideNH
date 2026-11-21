@@ -201,6 +201,63 @@ item_ids:
 `!` 用于排除匹配项，`|` 用于分隔备选表达式。`minecraft:potion 0-16,20-36,!28` 将两个 meta 范围组合并排除
 `28`。查找会先尝试精确和通配映射，再计算表达式。
 
+### 外部内容绑定
+
+`bindings` 将当前指南页关联到其他系统的内容。每条记录写在一行：`type` 指定系统，`id` 指定原始内容 ID，可选的 `anchor` 指向**当前指南页**的章节；省略时打开页面顶部。
+
+同一内容可以绑定多个页面或锚点，打开时使用与物品相同的目标选择界面。相同页面和锚点的重复记录会合并，不同锚点仍可单独跳转。
+
+#### BetterQuesting 任务
+
+任务类型为 `betterquesting`，ID 支持标准 UUID 和紧凑 Base64。将示例 ID 换成整合包中的真实任务 ID：
+
+```yaml
+bindings:
+  - {type: "betterquesting", id: "01234567-89ab-cdef-0123-456789abcdef", anchor: "quest"}
+  - {type: "betterquesting", id: "AAAAAAAAAAAAAAAAAAAMug=="}
+```
+
+```mdx
+<QuestLink id="01234567-89ab-cdef-0123-456789abcdef" text="阶段任务" />
+<QuestCard id="01234567-89ab-cdef-0123-456789abcdef" title="阶段指南" />
+```
+
+链接和卡片标题左键打开 BQ 任务，右键打开绑定指南；没有绑定指南时右键也打开 BQ。在 BQ 任务按钮上按住打开指南键（默认 `G`），可选择绑定指南，没有绑定时快捷键不执行操作。`QuestLink` 和 `QuestCard` 需要安装 BetterQuesting。
+
+#### Thaumcraft 研究
+
+研究类型为 `thaumcraft`，ID 填写 `INFUSION`、`NITOR` 等注册名，保留大小写：
+
+```yaml
+bindings:
+  - {type: "thaumcraft", id: "INFUSION", anchor: "infusion"}
+  - {type: "thaumcraft", id: "INFUSION", anchor: "apparatus"}
+  - {type: "thaumcraft", id: "NITOR"}
+```
+
+仅绑定页面顶部时，也可使用 `research_id: "INFUSION"` 或 `research_ids` 字符串列表；需要锚点时使用 `bindings`。
+
+```mdx
+<ResearchLink id="INFUSION" text="注魔指南" />
+<ResearchLink id="INFUSION" text="查看魔导手册" target="native" />
+<ResearchCard id="INFUSION" showParents={true} />
+<ResearchIcon id="NITOR" />
+```
+
+研究链接和卡片默认优先打开指南；`target="native"` 左键打开原生界面。右键打开绑定指南，没有绑定时打开原生界面。图标用于提示和打开指南快捷键，不执行点击跳转。[研究与绑定](research.md)提供页面顶部、注魔章节和装置章节三个目标的完整示例。
+
+研究 ID 的显示和复制由 ARI 提供：悬停研究树条目、研究页标题或 NEI 研究组件，使用 NEI 的“复制标识符”快捷键及 Ctrl 修饰键。`showResearchId` 只控制显示，关闭时仍可复制；NEI 设置 → 工具 → 数据转储可以导出完整研究 ID 目录。
+
+#### 其他内容类型
+
+扩展集成注册新类型后，沿用同一 `bindings` 写法，并用 `BindingLink`、`BindingCard` 或 `BindingIcon` 的 `type` 属性选择该类型：
+
+```mdx
+<BindingLink type="your_provider" id="chapter:stage_2" />
+```
+
+三个字段遵循相同的 YAML 字符串规则：双引号内用 `\"` 表示双引号、`\\` 表示反斜杠；单引号内用 `''` 表示单引号。引号内的逗号、冒号和 `#` 保留在字段值中。一个页面绑定多种内容时，将它们写在同一个 `bindings` 列表中。
+
 ### `navigation.required_mod`、`navigation.required_mods`、`navigation.excluded_mod` 与 `navigation.excluded_mods`
 
 required 字段要求指定模组已加载；excluded 字段会在单个排除模组或排除列表中的任一模组加载时隐藏页面。
@@ -261,3 +318,8 @@ date: 2025-01-01
 
 高级 IO 总线提供更快的物品传输...
 ```
+
+
+## 研究绑定
+
+[研究与绑定](research.md)演示研究标签、通用 YAML 绑定、原生跳转以及多个页面和锚点。研究 ID 显示与复制由 ARI 提供，复制不需要开启 `showResearchId`。

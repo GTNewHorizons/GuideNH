@@ -1,18 +1,14 @@
 # Navigatie
 
-Deze documentatie beschrijft de GuideNH-syntaxis en runtimefuncties. Code, tags, paden, ID's en attribuutwaarden blijven ongewijzigd.
+De uitgebreide naslag op deze pagina is beschikbaar in het Engels. Namen van tags, attributen, ID’s en paden worden zonder vertaling gebruikt.
 
+GuideNH builds its navigation tree from page frontmatter.
 
-GuideNH builds its Navigatie tree van pagina frontmatter.
+Expanded ancestors stay pinned while their child pages scroll beneath them. Multiple levels can remain visible until their descendants leave the visible area.
 
-In De in-game sidebar, expanded ancestor pages stay pinned at De top terwijl their still-zichtbaar
-descendants scrollen underneath. meerdere expanded ancestor levels kan stack at once, en elke sticky
-rij is pushed away alleen wanneer its entire zichtbaar subtree scrolls out, similar naar De VSCode bestand
-explorer.
+## Navigation Frontmatter
 
-## Navigatie-frontmatter
-
-De `navigation` map controls whether Een pagina appears in De gids tree.
+The `navigation` map controls whether a page appears in the guide tree.
 
 ```yaml
 navigation:
@@ -22,40 +18,42 @@ navigation:
   icon: minecraft:diamond_block
 ```
 
-### Veldreferentie
+### Field Reference
 
 | Field | Description |
 | --- | --- |
-| `title` | Vereist weergeven title |
-| `keyword` | optioneel enkele zoeken keyword of alias |
-| `keywords` | optioneel lijst of Zoekwoorden of aliases |
-| `parent` | optioneel bovenliggend pagina-ID, opgelost like Een gids­pagina link |
-| `position` | optioneel sibling ordering hint |
-| `recommend` | optioneel home-pagina recommendation priority; absent betekent De pagina is niet getoond in De Recommended panel |
-| `priority` | optioneel Laadprioriteit voor zelfde-pad pagina overrides; Standaard `0` |
-| `icon` | optioneel enkele item icon; ondersteunt inline `mod:item:meta:{snbt}` tails |
-| `icons` | optioneel cycling item icons lijst; entries kan be plain item ids met optioneel inline `:{snbt}` of `{id, meta?, nbt?}` maps |
-| `icon_texture` | optioneel texture icon opgelost van gids assets |
-| `icon_textures` | optioneel cycling texture icon lijst |
-| `required_mod` | optioneel enkele mod id; pagina is verborgen wanneer Deze mod is niet loaded |
-| `required_mods` | optioneel lijst of mod ids; pagina is verborgen unless alle listed mods are loaded |
-| `excluded_mod` | optioneel enkele mod id; pagina is verborgen wanneer Deze mod is loaded |
-| `excluded_mods` | optioneel lijst of mod ids; pagina is verborgen wanneer any listed mod is loaded |
+| `title` | Required display title |
+| `keyword` | Optional single search keyword or alias |
+| `keywords` | Optional list of search keywords or aliases |
+| `parent` | Optional parent page id, resolved like a guide page link |
+| `position` | Optional sibling ordering hint |
+| `recommend` | Optional home-page recommendation priority; absent means the page is not shown in the Recommended panel |
+| `priority` | Optional load priority for same-path page overrides; default `0` |
+| `icon` | Optional single item icon; supports inline `mod:item:meta:{snbt}` tails |
+| `icons` | Optional cycling item icons list; entries may be plain item ids with optional inline `:{snbt}` or `{id, meta?, nbt?}` maps |
+| `icon_texture` | Optional texture icon resolved from guide assets |
+| `icon_textures` | Optional cycling texture icon list |
+| `icon_fluid` | Optional single fluid registry name; excludes `icon_fluids` and item/texture sources |
+| `icon_fluids` | Optional nonempty fluid registry-name list cycling once per second; excludes `icon_fluid` and item/texture sources |
+| `required_mod` | Optional single mod id; page is hidden when this mod is not loaded |
+| `required_mods` | Optional list of mod ids; page is hidden unless all listed mods are loaded |
+| `excluded_mod` | Optional single mod id; page is hidden when this mod is loaded |
+| `excluded_mods` | Optional list of mod ids; page is hidden when any listed mod is loaded |
 
 ### `navigation.position`
 
-`navigation.position` is Een optioneel geheel getal gebruikt naar order sibling pages in De Navigatie tree.
+`navigation.position` is an optional integer used to order sibling pages in the navigation tree.
 
-- Missing `position` defaults naar `0`.
-- Larger waarden appear earlier.
-- Als two pages have De zelfde waarde, they are sorted by title alphabetically.
+- Missing `position` defaults to `0`.
+- Larger values appear earlier.
+- If two pages have the same value, they are sorted by title alphabetically.
 
-### Zoekwoorden
+### Search Keywords
 
-`navigation.keyword` adds one zoeken alias. `navigation.keywords` adds Een lijst of aliases. Both fields
-kan be gebruikt together; waarden are trimmed en duplicate waarden are ignored. Keyword matches gebruiken De zelfde
-taal analyzer en prefix matching as title en pagina inhoud searches, terwijl results continue naar tonen
-De normal Navigatie title.
+`navigation.keyword` adds one search alias. `navigation.keywords` adds a list of aliases. Both fields
+can be used together; values are trimmed and duplicate values are ignored. Keyword matches use the same
+language analyzer and prefix matching as title and page content searches, while results continue to show
+the normal navigation title.
 
 ```yaml
 navigation:
@@ -66,17 +64,17 @@ navigation:
     - autocrafting machine
 ```
 
-## Aanbevelingen op de startpagina
+## Home Page Recommendations
 
 ### `navigation.recommend`
 
-`navigation.recommend` is Een optioneel geheel getal gebruikt by De home pagina Recommended panel.
+`navigation.recommend` is an optional integer used by the home page Recommended panel.
 
-- Pages alleen appear in De Recommended panel wanneer Deze field is present.
+- Pages only appear in the Recommended panel when this field is present.
 - `0` is valid.
-- Larger waarden appear earlier.
-- Als two pages have De zelfde waarde, they are sorted by title alphabetically.
-- De panel works at De `GuidePage` level, so elke recommended pagina entry jumps directly naar that pagina.
+- Larger values appear earlier.
+- If two pages have the same value, they are sorted by title alphabetically.
+- Each recommendation opens its page directly.
 
 ```yaml
 navigation:
@@ -85,12 +83,12 @@ navigation:
   recommend: 0
 ```
 
-## Modvereisten
+## Mod Requirements
 
-gebruiken `required_mod` of `required_mods` naar require one of more loaded mods. gebruiken `excluded_mod` of
-`excluded_mods` naar verbergen Een pagina wanneer one of more incompatible mods are loaded. wanneer Een voorwaarde is niet
-met, De pagina is excluded van De Navigatie tree en alle pagina indices (item, category, etc.) so it
-kan niet be found through Navigatie of zoeken.
+Use `required_mod` or `required_mods` to require one or more loaded mods. Use `excluded_mod` or
+`excluded_mods` to hide a page when one or more incompatible mods are loaded. When a condition is not
+met, the page is excluded from the navigation tree and all page indices (item, category, etc.) so it
+cannot be found through navigation or search.
 
 ```yaml
 navigation:
@@ -106,10 +104,10 @@ navigation:
     - appliedenergistics2
 ```
 
-Both keys kan be combined; De pagina is alleen getoond wanneer iedere listed mod is present.
+Both keys may be combined; the page is only shown when every listed mod is present.
 
-Vereist en excluded voorwaarden kan ook be combined. alle Vereist mods moet be loaded en none of De
-excluded mods kan be loaded.
+Required and excluded conditions can also be combined. All required mods must be loaded and none of the
+excluded mods may be loaded.
 
 ```yaml
 navigation:
@@ -121,10 +119,10 @@ navigation:
     - legacy_addon
 ```
 
-## Laadprioriteit
+## Load Priority
 
-wanneer several loaded resource packs bieden De zelfde gids­pagina pad, GuideNH reads De pagina
-frontmatter first en chooses De candidate met De highest `navigation.priority`.
+When several loaded resource packs provide the same guide page path, GuideNH reads the page
+frontmatter first and chooses the candidate with the highest `navigation.priority`.
 
 ```yaml
 navigation:
@@ -133,48 +131,50 @@ navigation:
   priority: 100
 ```
 
-Regels:
+Rules:
 
 - missing `priority` is `0`
-- waarden are signed Java integers up naar `2147483647`
+- values are integers
 - higher priority wins
-- Als priorities are equal, De later processed resourcepack entry wins, matching Minecraft resource-pack override order
-- priority alleen decides between candidates voor De zelfde pagina pad en taal/fallback layer
+- if priorities are equal, the later processed resource pack entry wins, matching Minecraft resource-pack override order
+- priority only decides between candidates for the same page path and language/fallback layer
 
-Deze is useful wanneer Een mod ships Een baseline gids­pagina en Een pack wants naar vervangen it zonder relying alleen on
+This is useful when a mod ships a baseline guide page and a pack wants to replace it without relying only on
 resource-pack ordering.
 
-## Pictogrambronnen
+## Icon Sources
 
-GuideNH chooses Navigatie/zoeken icons in Deze order:
+Choose `icon_fluid` or `icon_fluids` for fluid icons. The two fields are mutually exclusive and cannot accompany item or texture sources. Icons do not create fluid navigation bindings; add page-level `fluid_id` / `fluid_ids` separately.
 
-1. `icon_textures` Als at least one texture entry is configured
-2. `icon_texture` Als De texture bestand laadt successfully
-3. `icons` Als at least one configured item resolves successfully
-4. `icon` Als De item exists
-5. no icon Als neither is usable
+When no fluid icon is configured, GuideNH chooses item and texture icons in this order:
 
-Texture icons are read van runtime assets, so relative pagina-lokale files such as `test1.png` work.
+1. `icon_textures` if at least one texture entry is configured
+2. `icon_texture` if the texture file loads successfully
+3. `icons` if at least one configured item resolves successfully
+4. `icon` if the item exists
+5. no icon if neither is usable
 
-## Bovenliggende en hoofdknooppunten
+Texture icons are read from runtime assets, so relative page-local files such as `test1.png` work.
 
-- Omit `parent` naar maken Een root node.
-- Stel in `parent: index.md` of any other pagina-ID naar maken Een kind node.
-- De bovenliggend pagina moet exist in De zelfde gids Navigatie tree.
+## Parent And Root Nodes
 
-`navigation.parent` uses De zelfde namespace Regels as Markdown pagina links:
+- Omit `parent` to create a root node.
+- Set `parent: index.md` or any other page id to create a child node.
+- The parent page must exist in the same guide navigation tree.
 
-- `parent: index.md` en `parent: ./index.md` oplossen binnen De huidige pagina namespace.
-- `parent: /index.md` resolves van De huidige pagina namespace root.
-- `parent: gregtech:index.md` of `parent: gregtech:/index.md` explicitly targets another namespace.
+`navigation.parent` uses the same namespace rules as Markdown page links:
 
-Data-driven gidsen are isolated by namespace. Pages under `assets/guidenh/guidenh/_en_us/...` belong naar
-`guidenh:guidenh`; pages under `assets/gregtech/guidenh/_en_us/...` belong naar `gregtech:guidenh`.
-Relative parents en links never fall through naar another mod's zelfde-named pagina.
+- `parent: index.md` and `parent: ./index.md` resolve inside the current page namespace.
+- `parent: /index.md` resolves from the current page namespace root.
+- `parent: gregtech:index.md` or `parent: gregtech:/index.md` explicitly targets another namespace.
 
-## Categoriepagina's
+Data-driven guides are isolated by namespace. Pages under `assets/guidenh/guidenh/_en_us/...` belong to
+`guidenh:guidenh`; pages under `assets/gregtech/guidenh/_en_us/...` belong to `gregtech:guidenh`.
+Relative parents and links never fall through to another mod's same-named page.
 
-Pages kan join one of more named categories using frontmatter:
+## Category Pages
+
+Pages can join one or more named categories using frontmatter:
 
 ```yaml
 categories:
@@ -182,14 +182,14 @@ categories:
   - machines|Arc Furnace
 ```
 
-elke entry kan be either Een category naam of `category|sort key`.
+Each entry can be either a category name or `category|sort key`.
 
-Those categories are queryable through De built-in `<Category name="machines" rows="3" />` tag en ook auto-maken verborgen searchable pages such as `Category:machines`.
-GuideNH ook auto-creates De verborgen searchable special pages `Special:AllPages` en `Special:Categories`.
+Those categories are queryable through the built-in `<Category name="machines" rows="3" />` tag and also auto-create hidden searchable pages such as `Category:machines`.
+GuideNH also auto-creates the hidden searchable special pages `Special:AllPages` and `Special:Categories`.
 
-## Item-geïndexeerde pagina's
+## Item-Indexed Pages
 
-Pages kan register item-naar-pagina mappings using `item_id` (one waarde) of `item_ids` (Een lijst):
+Pages can register item-to-page mappings using `item_id` (one value) or `item_ids` (a list):
 
 ```yaml
 item_id: "minecraft:potion 16384-16462,!16386 | ae2:white_paint_ball:*"
@@ -200,52 +200,83 @@ item_ids:
   - minecraft:iron_ore#crafting
 ```
 
-Deze mappings are gebruikt by `<ItemLink>`. `item_id` is one NEI-style expressie en elke `item_ids`
-entry is De zelfde kind of expressie. voor example, `minecraft:potion 16384-16462,!16386` matches a
-metadata range except voor `16386`, terwijl `minecraft:potion 0-16,20-36,!28` combines two metadata ranges en
-excludes `28`. `ae2:white_paint_ball:*` is Een compatible strict alle-meta mapping.
+These mappings are used by `<ItemLink>`. `item_id` is one NEI-style expression and each `item_ids`
+entry is the same kind of expression. For example, `minecraft:potion 16384-16462,!16386` matches a
+metadata range except for `16386`, while `minecraft:potion 0-16,20-36,!28` combines two metadata ranges and
+excludes `28`. `ae2:white_paint_ball:*` is a compatible strict all-meta mapping.
 
-Een optioneel `#anchor` suffix scrolls naar Een specific heading wanneer De link is clicked.
-De anchor is formed by lowercasing De heading tekst en replacing spaces met hyphens
+An optional `#anchor` suffix scrolls to a specific heading when the link is clicked.
+The anchor is formed by lowercasing the heading text and replacing spaces with hyphens
 (e.g. `## Crafting Recipe` → `#crafting-recipe`).
 
 Lookup behavior:
 
 1. exact item + exact meta
-2. wildcard-meta fallback Als present
-3. matching item expressie
+2. wildcard-meta fallback if present
+3. matching item expression
 
-## Ankerlinks voor koppen
+## Fluid-indexed pages
 
-GuideNH ondersteunt heading anchor Navigatie in Markdown links en `<a>` tags.
-Anchors are derived van heading tekst by lowercasing en replacing spaces met hyphens.
+Use `fluid_id` for one fluid or `fluid_ids` for a list; both fields may coexist. Bindings match exact registry names independently of amount and NBT. Append `#anchor` to open a section:
 
-**zelfde-pagina anchor:**
+```yaml
+fluid_id: water
+fluid_ids:
+  - steam#uses
+navigation:
+  title: Fluid handling
+  icon_fluid: water
+```
+
+Bindings serve `<FluidLink>` and the hover-and-hold `G` shortcut. Recognized NEI fluid displays and filled containers are supported; empty containers retain item navigation. Multiple targets open a chooser with fluid pages before container-item pages.
+
+## External content pages
+
+Use `bindings` to index this page by a BetterQuesting quest, Thaumcraft research or another registered content type:
+
+```yaml
+bindings:
+  - {type: "thaumcraft", id: "INFUSION", anchor: "apparatus"}
+  - {type: "betterquesting", id: "01234567-89ab-cdef-0123-456789abcdef", anchor: "quest"}
+```
+
+When several pages or sections reference the same content, GuideNH opens the destination selector used for items. Identical page/anchor pairs merge; different anchors remain selectable. An omitted `anchor` means the top of the page. Full field and quoting rules are in [Frontmatter](Guide-Page-Format#external-content-bindings).
+
+`QuestLink` and `QuestCard` titles open BetterQuesting on left click. Right click opens bound guide destinations and falls back to BetterQuesting when none exist. Research and generic links/cards default to opening bound guides first; their `target` attribute selects the left-click action. See [Tags Reference](Tags-Reference#research-and-custom-content).
+
+Hold the open-guide key (default `G`) while hovering a supported quest button, research entry or content icon to select its bound guides. With no binding, that hotkey does nothing. Mod-specific hover areas and return navigation are described in [Mod Compatibility](Mod-Compatibility).
+
+## Heading Anchor Links
+
+GuideNH supports heading anchor navigation in Markdown links and `<a>` tags.
+Anchors are derived from heading text by lowercasing and replacing spaces with hyphens.
+
+**Same-page anchor:**
 
 ```md
 [Jump to Installation](#installation)
 [Jump to Crafting Recipe](#crafting-recipe)
 ```
 
-**Cross-pagina anchor:**
+**Cross-page anchor:**
 
 ```md
-[See Getting Started](./Guide-Page-Format#installation)
+[See Getting Started](./getting-started.md#installation)
 [Another guide](other-guide.md#usage)
 ```
 
-**Absolute pad anchor** (using De gids namespace, avoids relative pad ambiguity in subdirectories):
+**Absolute path anchor** (using the guide namespace, avoids relative path ambiguity in subdirectories):
 
 ```md
 [Absolute link](guidenh:other-guide.md#usage)
 [Any namespace](mymods:crafting/iron.md#smelting)
 ```
 
-De `namespace:path` format resolves naar De gids­pagina whose id matches `namespace:path`.
-Deze is identical naar what relative paths oplossen naar, but avoids `../` Navigatie.
-De pagina moet exist in De zelfde gids as De link source.
+The `namespace:path` format resolves to the guide page whose id matches `namespace:path`.
+This is identical to what relative paths resolve to, but avoids `../` navigation.
+The target page must be loaded.
 
-**Named inline anchors** kan ook be placed met `<a name="...">` in MDX:
+**Named inline anchors** can also be placed with `<a name="...">` in MDX:
 
 ```md
 <a name="custom-anchor" />
@@ -255,20 +286,20 @@ De pagina moet exist in De zelfde gids as De link source.
 [Jump here](#custom-anchor)
 ```
 
-Navigating naar Een link met Een anchor scrolls De gids naar De target heading of named anchor.
+Navigating to a link with an anchor scrolls the guide to the target heading or named anchor.
 
 ## `<SubPages>`
 
-`<SubPages>` renders links naar Navigatie kinderen.
+`<SubPages>` renders links to navigation children.
 
-### attributen
+### Attributes
 
-| Attribuut | Type | Standaard | Betekenis |
+| Attribute | Type | Default | Meaning |
 | --- | --- | --- | --- |
-| `id` | pagina-ID of empty tekenreeks | huidige pagina | pagina whose kinderen zou moeten be listed |
-| `alphabetical` | boolean expressie | `false` | Sort kinderen by title instead of Navigatie order |
+| `id` | page id or empty string | current page | Page whose children should be listed |
+| `alphabetical` | boolean expression | `false` | Sort children by title instead of navigation order |
 
-### Voorbeelden
+### Examples
 
 ````md
 <SubPages />
@@ -276,54 +307,58 @@ Navigating naar Een link met Een anchor scrolls De gids naar De target heading o
 <SubPages id="" alphabetical={true} />
 ````
 
-Special case: `id=""` lists root Navigatie nodes.
+Special case: `id=""` lists root navigation nodes.
 
 ## `<Category>`
 
-`<Category>` renders links naar iedere pagina in Een named category.
+`<Category>` renders links to every page in a named category.
 
-### attributen
+### Attributes
 
-| Attribuut | Type | Standaard | Betekenis |
+| Attribute | Type | Default | Meaning |
 | --- | --- | --- | --- |
-| `name` | tekenreeks | none | Category naam naar renderen |
-| `rows` | positive geheel getal | `3` | getal of weergeven columns in De MediaWiki-style layout |
+| `name` | string | none | Category name to render |
+| `rows` | positive integer | `3` | Number of display columns in the MediaWiki-style layout |
 
 ````md
 <Category name="machines" rows="3" />
 ````
 
-Als De category is missing, GuideNH renders Een inline error.
+If the category is missing, GuideNH renders an inline error.
 
-De zelfde category ook has Een auto-generated verborgen searchable pagina at `Category:machines`.
+The same category also has an auto-generated hidden searchable page at `Category:machines`.
 
 ## `<Special>`
 
-`<Special>` renders one of De built-in MediaWiki-style special pagina listings.
+`<Special>` renders one of the built-in MediaWiki-style special page listings.
 
-### attributen
+### Attributes
 
-| Attribuut | Type | Standaard | Betekenis |
+| Attribute | Type | Default | Meaning |
 | --- | --- | --- | --- |
-| `name` | tekenreeks | none | Supported waarden: `AllPages`, `Categories` |
-| `rows` | positive geheel getal | `3` | getal of weergeven columns in De MediaWiki-style layout |
+| `name` | string | none | Special page name; use `SpecialPages` for the catalog, including `AllPages`, `Categories` and `Templates` |
+| `rows` | positive integer | `3` | Number of display columns in the MediaWiki-style layout |
+| `page` | page id | none | Page target for special lists that require one |
+| `prefix` | string | none | Title/page-ID prefix for `AllPagesWithPrefix` |
+| `language` | string | none | Language filter for translation lists |
+| `query` | string | none | List search text |
 
 ````md
 <Special name="AllPages" rows="4" />
 <Special name="Categories" rows="3" />
 ````
 
-De zelfde inhoud is ook available through De verborgen searchable pages `Special:AllPages` en `Special:Categories`.
+The same content is also available through the hidden searchable pages `Special:AllPages` and `Special:Categories`.
 
-## Titels van zoekresultaten
+## Search Result Titles
 
-zoeken titles are derived in Deze order:
+Search titles are derived in this order:
 
 1. `navigation.title`
 2. first level-1 heading (`# Heading`)
-3. raw pagina-ID
+3. raw page id
 
-## Gerelateerde pagina's
+## Related Pages
 
 - [Guide Page Format](Guide-Page-Format)
 - [Search](Search)

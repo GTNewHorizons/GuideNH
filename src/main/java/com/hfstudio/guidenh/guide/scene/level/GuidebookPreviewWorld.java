@@ -7,7 +7,16 @@ import net.minecraft.tileentity.TileEntity;
 
 public interface GuidebookPreviewWorld {
 
-    /** Releases client renderer/player back-references before the owning level is discarded. */
+    /**
+     * Monotonic structure mutation revision, or zero when the world does not expose one.
+     */
+    default long getPreviewStructureRevision() {
+        return 0L;
+    }
+
+    /**
+     * Releases client renderer/player back-references before the owning level is discarded.
+     */
     void closePreviewWorld();
 
     void syncLoadedTileEntities(Collection<TileEntity> tileEntities);

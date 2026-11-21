@@ -72,7 +72,6 @@ import com.hfstudio.guidenh.guide.mediawiki.template.MediaWikiTemplateEditorPrev
 import com.hfstudio.guidenh.guide.mediawiki.template.MediaWikiTemplateName;
 import com.hfstudio.guidenh.guide.mediawiki.template.MediaWikiTemplatePageIds;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
-import com.hfstudio.guidenh.guide.sound.GuideSoundParsers;
 import com.hfstudio.guidenh.guide.style.TextAlignment;
 import com.hfstudio.guidenh.guide.style.WhiteSpaceMode;
 import com.hfstudio.guidenh.libs.mdast.MdAst;
@@ -121,16 +120,13 @@ public class PageCompiler {
     private final String sourcePack;
     @Getter
     private final String language;
-    /**
-     * -- GETTER --
-     * Get the current page id.
-     */
     @Getter
     private final ResourceLocation pageId;
     private final String pageContent;
     private final Map<String, MdAstDefinition> definitions = new HashMap<>();
 
     private final Map<String, TagCompiler> tagCompilers = new HashMap<>();
+    private final Map<String, ActionLinkResolver> actionLinkResolvers;
 
     // Data associated with the current page being compiled, this is used by
     // compilers to communicate with each other within the current page.
@@ -141,7 +137,9 @@ public class PageCompiler {
     // One per page compile, so the documented per-page inclusion budget is a real page-wide limit.
     private MediaWikiTemplateContext templateContext;
 
-    /** The template state for this page, created on first use. */
+    /**
+     * The template state for this page, created on first use.
+     */
     public MediaWikiTemplateContext templateContext() {
         if (templateContext == null) {
             templateContext = new MediaWikiTemplateContext(sourcePack, language, pageId);
@@ -168,8 +166,8 @@ public class PageCompiler {
         this.language = language;
         this.pageId = pageId;
         this.pageContent = pageContent;
+        this.actionLinkResolvers = MarkdownActionLink.indexResolvers(extensions);
 
-        // Index available tag-compilers
         for (var tagCompiler : extensions.get(TagCompiler.EXTENSION_POINT)) {
             for (String tagName : publishedTagNames(tagCompiler)) {
                 tagCompilers.put(tagName, tagCompiler);
@@ -178,8 +176,8 @@ public class PageCompiler {
     }
 
     /**
-     * The tags a compiler publishes. A compiler of another mod that cannot answer is reported and skipped,
-     * because one broken plugin must not keep every page from compiling.
+     * Reads contributed tag names. A failing contributor is reported and skipped without aborting page
+     * compilation.
      */
     private static Collection<String> publishedTagNames(TagCompiler compiler) {
         Collection<String> tagNames;
@@ -284,14 +282,8 @@ public class PageCompiler {
     }
 
     /**
-     * Lightweight parse that extracts only YAML frontmatter from the raw source,
-     * deferring the full Micromark → mdast pipeline to first call of
-     * {@link ParsedGuidePage#getAstRoot()}.
-     *
-     * <p>
-     * F3+T reload uses this path so that index/navigation rebuilds —
-     * which only need frontmatter — complete without paying Micromark cost.
-     * </p>
+     * Parses frontmatter for index and navigation rebuilds. The body is parsed lazily by {@link
+     * ParsedGuidePage#getAstRoot()}.
      */
     public static ParsedGuidePage parseFrontmatterOnly(String sourcePack, String language, ResourceLocation id,
         String pageContent) {
@@ -299,16 +291,7 @@ public class PageCompiler {
         pageContent = normalizeLineEndings(pageContent);
         var sourceFrontmatter = parseFrontmatterFromSource(id, pageContent);
 
-        return new ParsedGuidePage(
-            sourcePack,
-            id,
-            pageContent,
-            null, // astRoot — triggers lazy parse on first getAstRoot()
-            sourceFrontmatter,
-            language,
-            null,
-            null,
-            null);
+        return new ParsedGuidePage(sourcePack, id, pageContent, null, sourceFrontmatter, language, null, null, null);
     }
 
     public static String normalizeLineEndings(String pageContent) {
@@ -380,7 +363,6 @@ public class PageCompiler {
 
     private static GuidePage compile(PageCollection pages, ExtensionCollection extensions, ParsedGuidePage parsedPage,
         boolean templateEditorPreview) {
-        // Translate page tree over to layout pages
         var compiler = new PageCompiler(
             pages,
             extensions,
@@ -453,8 +435,7 @@ public class PageCompiler {
     }
 
     /**
-     * Warns once per page that still writes the old brace syntax. Braces are ordinary text now, so a
-     * leftover call renders literally rather than failing, and this is the only signal an author would get.
+     * Warns once per page about legacy brace syntax, which now renders as literal text.
      */
     private void warnAboutLegacyTemplateSyntax() {
         List<String> samples = MediaWikiTemplateDiagnostics.findLegacySyntax(pageContent, 3);
@@ -597,7 +578,7 @@ public class PageCompiler {
         }
         ParsedGuidePage parsed = inlineMarkdownParseCache.get(source);
         if (parsed == null) {
-            parsed = parse(sourcePack, "en_us", pageId, source);
+            parsed = parse(sourcePack, language, pageId, source);
             inlineMarkdownParseCache.put(source, parsed);
         }
         compileInlineFragment(
@@ -715,7 +696,10 @@ public class PageCompiler {
                         layoutChild = createErrorBlock("Unhandled MDX element in block context: " + el.name(), child);
                     } else {
                         layoutChild = null;
-                        compiler.compileBlockContext(this, layoutParent, el);
+                        compiler.compileBlockContext(this, block -> {
+                            if (block.getSourceNode() == null) block.setSourceNode(el);
+                            layoutParent.append(block);
+                        }, el);
                     }
                 }
             } else if (child instanceof MdxJsxTextElement el) {
@@ -833,7 +817,6 @@ public class PageCompiler {
                         .setPreferredWidth(widthHints.get(i));
                 }
                 var cell = row.appendCell();
-                // Apply alignment
                 if (astTable.align != null && i < astTable.align.size()) {
                     switch (astTable.align.get(i)) {
                         case CENTER -> cell.modifyStyle(style -> style.alignment(TextAlignment.CENTER));
@@ -896,7 +879,11 @@ public class PageCompiler {
         LytFlowContent layoutChild;
 
         if (content instanceof MdAstText astText) {
-            if (compileActionLinks(layoutParent, astText.value)) {
+            if (MarkdownActionLink.isPlainLabel(astText)) {
+                var text = new LytFlowText();
+                text.setText(astText.value);
+                layoutChild = text;
+            } else if (compileActionLinks(layoutParent, astText)) {
                 layoutChild = null;
             } else if (compileLiteralAutolinks(layoutParent, astText.value)) {
                 layoutChild = null;
@@ -940,42 +927,33 @@ public class PageCompiler {
         }
     }
 
-    private boolean compileActionLinks(LytFlowParent layoutParent, String text) {
-        if (!MarkdownActionLink.mayContain(text)) {
+    private boolean compileActionLinks(LytFlowParent layoutParent, MdAstText source) {
+        if (!MarkdownActionLink.mayContain(source.value)) {
             return false;
         }
-
-        List<MarkdownActionLink.Segment> segments = MarkdownActionLink.split(text);
-        ArrayList<LytFlowContent> rendered = new ArrayList<>(segments.size());
-        boolean foundSoundLink = false;
-        for (var segment : segments) {
+        List<MarkdownActionLink.Segment> segments = MarkdownActionLink.split(source.value);
+        if (segments.stream()
+            .noneMatch(MarkdownActionLink.Segment::isLink)) return false;
+        for (MarkdownActionLink.Segment segment : segments) {
             if (!segment.isLink()) {
-                if (!segment.text()
-                    .isEmpty()) {
-                    rendered.add(LytFlowText.of(segment.text()));
+                MdAstText text = new MdAstText();
+                text.value = segment.text();
+                text.position = source.position;
+                compileFlowContent(layoutParent, text);
+                continue;
+            }
+            try {
+                MdxJsxTextElement expanded = MarkdownActionLink
+                    .expand(segment.text(), segment.href(), pageId.getResourceDomain(), actionLinkResolvers);
+                if (expanded == null) {
+                    layoutParent.appendText(segment.source());
+                } else {
+                    expanded.position = source.position;
+                    compileFlowContent(layoutParent, expanded);
                 }
-                continue;
+            } catch (IllegalArgumentException exception) {
+                layoutParent.appendError(this, exception.getMessage(), source);
             }
-
-            var sound = GuideSoundParsers.parseActionUri(this, segment.href());
-            if (sound == null) {
-                rendered.add(LytFlowText.of("&[" + segment.text() + "](" + segment.href() + ")"));
-                continue;
-            }
-
-            var link = new LytFlowLink();
-            link.setClickSoundSpec(sound);
-            link.setClickCallback(uiHost -> {});
-            link.appendText(segment.text());
-            rendered.add(link);
-            foundSoundLink = true;
-        }
-        if (!foundSoundLink) {
-            return false;
-        }
-
-        for (var content : rendered) {
-            layoutParent.append(content);
         }
         return true;
     }
@@ -1159,7 +1137,6 @@ public class PageCompiler {
             style -> style.color(ColorUtils.ERROR_TEXT)
                 .whiteSpace(WhiteSpaceMode.PRE));
 
-        // Find the position in the source
         var position = child.position();
         if (position != null) {
             var pos = position.start();

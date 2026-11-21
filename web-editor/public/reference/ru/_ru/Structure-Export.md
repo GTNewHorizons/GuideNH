@@ -1,12 +1,13 @@
-# Экспорт структуры
+# Экспорт структур
 
-## английский
+Подробный справочник на этой странице приведён на английском языке. Названия тегов, атрибуты, идентификаторы и пути используются без перевода.
 
-`/exportStructure` экспортирует скриншоты PNG из предварительных просмотров StructureLib или загруженных блоков GuideNH GameScene. Команда является клиентской. Подкоманда `structureLib` доступна только при загрузке StructureLib.
 
-Экспортер использует орфографическую визуализацию. Размер вывода может меняться в зависимости от структуры или размера сцены, в то время как настроенный масштаб блока остается стабильным. Масштаб по умолчанию составляет 128 пикселей на блок.
+`/exportStructure` exports PNG screenshots from either StructureLib previews or loaded GuideNH GameScene blocks. The command is client-side. The `structureLib` subcommand is available only when StructureLib is loaded.
 
-### Формы команд
+The exporter uses orthographic rendering. Output size may change with the structure or scene size, while the configured block scale stays stable. The default scale is 128 pixels per block.
+
+## Command Forms
 
 ```text
 /exportStructure structureLib [controller] [options...]
@@ -18,53 +19,53 @@
 /exportStructure gameScene --config file.json
 ```
 
-для `structureLib` `controller` использует `modid:name` или `modid:name:meta`. Если этот параметр опущен, экспортер пытается обнаружить все контроллеры StructureLib.
+For `structureLib`, `controller` uses `modid:name` or `modid:name:meta`. When omitted, the exporter attempts to discover all StructureLib controllers.
 
-Для `gameScene` позиционный селектор не используется. Он экспортирует каждую GameScene, скомпилированную из загруженных в данный момент руководств.
+For `gameScene`, no positional selector is used. It exports every GameScene compiled from the currently loaded guides.
 
-### Общие параметры
+## Shared Parameters
 
-| Параметр | Описание |
+| Parameter | Description |
 | --- | --- |
-| `--out <dir>` | Выходной каталог. По умолчанию — `screenshots/structurelib/<timestamp>/` или `screenshots/gameScene/<timestamp>/`. |
-| `--pixelsPerBlock <int>` | Плотность пикселей на блок мира. По умолчанию: `128`. |
-| `--scale <float>` | умножает `pixelsPerBlock`. |
-| `--layers <expr\|each\|all>` | Видимость слоя. По умолчанию: `all`. |
-| `--view <preset>` | предустановка камеры. По умолчанию в StructureLib: `isometric-south-east`. GameScene по умолчанию: собственная камера сцены. |
-| `--yaw <deg>` / `--pitch <deg>` / `--roll <deg>` | Точная настройка камеры. В режиме GameScene любая явная опция просмотра/поворота переключается с камеры сцены на встроенную экспортную камеру. |
-| `--rotateX <deg>` / `--rotateY <deg>` / `--rotateZ <deg>` | псевдонимы совместимости для переопределения камеры. |
-| `--background transparent\|dark\|#RRGGBB\|#AARRGGBB` | фон PNG. По умолчанию: `transparent`. |
-| `--maxPixels <long>` | Максимальное количество пикселей для одного изображения. По умолчанию: `655360000`. Используйте `-1` для отсутствия ограничений. |
-| `--batchSize <int>` | Сбрасывает `manifest.json` после такого большого количества завершенных результатов. По умолчанию: `16`. |
-| `--force` | позволяет создавать более 256 снимков экрана. |
-| `--dry-run` | строит план и манифест без записи файлов PNG. |
-| `--config <file>` / `@file.json` | загружает конфигурацию JSON. |
+| `--out <dir>` | Output directory. Defaults to `screenshots/structurelib/<timestamp>/` or `screenshots/gameScene/<timestamp>/`. |
+| `--pixelsPerBlock <int>` | Pixel density per world block. Default: `128`. |
+| `--scale <float>` | Multiplies `pixelsPerBlock`. |
+| `--layers <expr\|each\|all>` | Layer visibility. Default: `all`. |
+| `--view <preset>` | Camera preset. StructureLib default: `isometric-south-east`. GameScene default: the scene's own camera. |
+| `--yaw <deg>` / `--pitch <deg>` / `--roll <deg>` | Fine camera override. In GameScene mode, any explicit view/rotation option switches from the scene camera to fitted export camera. |
+| `--rotateX <deg>` / `--rotateY <deg>` / `--rotateZ <deg>` | Compatibility aliases for camera override. |
+| `--background transparent\|dark\|#RRGGBB\|#AARRGGBB` | PNG background. Default: `transparent`. |
+| `--maxPixels <long>` | Maximum pixel count for one image. Default: `655360000`. Use `-1` for no limit. |
+| `--batchSize <int>` | Flushes `manifest.json` after this many completed results. Default: `16`. |
+| `--force` | Allows more than 256 generated screenshots. |
+| `--dry-run` | Builds the plan and manifest without writing PNG files. |
+| `--config <file>` / `@file.json` | Loads JSON configuration. |
 
-### StructureLib Parameters
+## StructureLib Parameters
 
-| Параметр | Описание |
+| Parameter | Description |
 | --- | --- |
-| `--tier <expr>` | Значения основного уровня. |
-| `--channel <name=expr>` | значения именованных каналов StructureLib. Можно повторить. |
-| `--facing <list>` | Значения лицевых сторон для массового экспорта ориентации. |
-| `--rotation <list>` | значения поворота для массового экспорта ориентации. |
-| `--flip <list>` | переверните значения для массового экспорта ориентации. |
-| `--orientation <facing:rotation:flip,...>` | Явные комбинации ориентации. |
-| `--gt-active-controller` | Только GregTech. По возможности визуализирует контроллер с его активной текстурой машины. |
-| `--gt-place-hatches` | Только GregTech. Включает обычное размещение канала GT Hatch для позиций предварительного просмотра только для Hatch; Резервный регистр остается значением по умолчанию, если он опущен. |
+| `--tier <expr>` | Master tier values. |
+| `--channel <name=expr>` | Named StructureLib channel values. Can be repeated. |
+| `--facing <list>` | Facing values for bulk orientation export. |
+| `--rotation <list>` | Rotation values for bulk orientation export. |
+| `--flip <list>` | Flip values for bulk orientation export. |
+| `--orientation <facing:rotation:flip,...>` | Explicit orientation combinations. |
+| `--gt-active-controller` | GregTech only. Renders the controller with its active machine texture when possible. |
+| `--gt-place-hatches` | GregTech only. Enables normal GT Hatch channel placement for Hatch-only preview positions; fallback casing remains the default when omitted. |
 
-### Параметры GameScene
+## GameScene Parameters
 
-| Параметр | Описание |
+| Parameter | Description |
 | --- | --- |
-| `--show-annotations` | отображает аннотации сцены, включая аннотации внутри мира и наложения. По умолчанию: `false`. |
-| `--show-grid` | отображает сетку пола сцены. По умолчанию: `false`. |
+| `--show-annotations` | Renders scene annotations, including in-world and overlay annotations. Default: `false`. |
+| `--show-grid` | Renders the scene floor grid. Default: `false`. |
 
-Режим GameScene по умолчанию учитывает настроенную камеру каждой сцены. Используйте `--view`, `--yaw`, `--pitch`, `--roll`, `--rotateX`, `--rotateY` или `--rotateZ`, если вместо этого вам нужно подходящее экспортное представление.
+GameScene mode respects each scene's own configured camera by default. Use `--view`, `--yaw`, `--pitch`, `--roll`, `--rotateX`, `--rotateY`, or `--rotateZ` when you want a fitted export view instead.
 
-### Числовые фильтры
+## Numeric Filters
 
-Числовые фильтры используются `--tier`, `--channel` и `--layers`.
+Numeric filters are used by `--tier`, `--channel`, and `--layers`.
 
 ```text
 0
@@ -73,57 +74,57 @@
 !0,1
 ```
 
-`0` соответствует одному значению. `0-12` соответствует включающему диапазону. `!` исключает значения. Запятые объединяют токены.
+`0` matches one value. `0-12` matches an inclusive range. `!` excludes values. Commas combine tokens.
 
-### Слои
+## Layers
 
-`--layers all` экспортирует полную структуру или сцену в одно изображение.
+`--layers all` exports the full structure or scene in one image.
 
-`--layers 0-12,!5` экспортирует одно изображение, на котором видны только совпадающие слои.
+`--layers 0-12,!5` exports one image where only matching layers are visible.
 
-`--layers each` экспортирует одно изображение для каждого фактического слоя Y.
+`--layers each` exports one image for every actual Y layer.
 
-Рендеринг с фильтрацией слоев приводит к принудительному рендерингу открытых граней блока, чтобы скрытые соседние слои не оставляли недостающие грани.
+Layer-filtered rendering forces exposed block faces to render so hidden neighboring layers do not leave missing faces.
 
-### Уровни и каналы StructureLib
+## StructureLib Tiers And Channels
 
-если `--tier` и `--channel` опущены, экспортер проверяет контроллер и экспортирует один снимок экрана для каждого доступного унифицированного уровня. То же значение уровня применяется к основному уровню и каждому обнаруженному каналу StructureLib. Автоматический экспорт унифицированного уровня ограничен 100 снимками экрана на каждый контроллер/ориентацию.
+When `--tier` and `--channel` are omitted, the exporter inspects the controller and exports one screenshot for each available unified tier. The same tier value is applied to the master tier and every discovered StructureLib channel. Automatic unified tier export is capped at 100 screenshots per controller/orientation.
 
-Если указан `--tier` и опущен `--channel`, каждый запрошенный уровень также управляет каждым обнаруженным каналом с одним и тем же значением, ограниченным поддерживаемым диапазоном каждого канала.
+When `--tier` is provided and `--channel` is omitted, each requested tier also drives every discovered channel with the same value, clamped to each channel's supported range.
 
-Если указана одна или несколько опций `--channel`, используются эти явные значения канала. Несколько явных значений уровня и канала объединяются в декартово произведение.
+When one or more `--channel` options are provided, those explicit channel values are used. Multiple explicit tier and channel values are combined as a Cartesian product.
 
 ```text
 /exportStructure structureLib gregtech:gt.blockmachines:1234 --tier 1,2 --channel coil=1-4 --channel casing=1,2
 ```
 
-### Опционы GregTech
+## GregTech Options
 
-Интеграция GregTech по умолчанию сохраняет дополнительные позиции с возможностью штриховки в качестве обычного резервного варианта. Элементы принудительной штриховки, такие как положение глушителя, по-прежнему отображаются как запрошенная штриховка.
+GregTech integration keeps optional Hatch-capable positions as their normal fallback casing by default. Forced Hatch elements, such as a Muffler position, still render as the requested Hatch.
 
-используйте `--gt-place-hatches`, если вы хотите, чтобы обычная логика канала штриховки StructureLib GT размещала необходимые штриховки для снимков экрана только для предварительного просмотра. Например, элемент, объявленный с помощью `atLeast(InputHatch, OutputHatch, InputBus, OutputBus, Maintenance, Energy).buildAndChain(casing)`, может размещать необходимые предварительные изображения штриховки и обновлять их текстуры вместо отображения только резервного регистра.
+Use `--gt-place-hatches` when you want GT's normal StructureLib Hatch channel logic to place required Hatches for preview-only screenshots. For example, an element declared with `atLeast(InputHatch, OutputHatch, InputBus, OutputBus, Maintenance, Energy).buildAndChain(casing)` can place the required Hatch previews and update their textures instead of showing only the fallback casing.
 
-используйте `--gt-active-controller`, когда контроллер должен отображать активную текстуру. Экспортер по-прежнему выполняет синхронизацию состояния предварительного просмотра, не рассматривая неудачную проверку компьютера как ошибку экспорта.
+Use `--gt-active-controller` when a controller should render with its active texture. The exporter still performs preview state synchronization without treating a failed machine check as an export failure.
 
-### Ориентация
+## Orientation
 
-Массовый синтаксис:
+Bulk syntax:
 
 ```text
 --facing north,south --rotation normal,clockwise --flip none
 ```
 
-Явный синтаксис:
+Explicit syntax:
 
 ```text
 --orientation north:normal:none,south:clockwise:none
 ```
 
-Обе формы можно использовать вместе. Недопустимые комбинации пропускаются, если ограничения выравнивания StructureLib отклоняют их. Если ориентация не указана, используется контроллер по умолчанию.
+Both forms can be used together. Invalid combinations are skipped when StructureLib alignment limits reject them. If no orientation is specified, the controller default is used.
 
-### Просмотры
+## Views
 
-Поддерживаемые пресеты включают:
+Supported presets include:
 
 ```text
 isometric-north-east
@@ -132,15 +133,15 @@ isometric-north-west
 top
 ```
 
-Вы можете уточнить любую предустановку:
+You can refine any preset:
 
 ```text
 --view isometric-south-east --yaw 315 --pitch 30 --roll 0
 ```
 
-### Конфигурация JSON
+## JSON Config
 
-Пример StructureLib:
+StructureLib example:
 
 ```json
 {
@@ -166,7 +167,7 @@ top
 }
 ```
 
-Пример GameScene:
+GameScene example:
 
 ```json
 {
@@ -184,29 +185,29 @@ top
 }
 ```
 
-Запустите конфигурации с помощью:
+Run configs with:
 
 ```text
 /exportStructure structureLib @my_structurelib_export.json
 /exportStructure gameScene @my_gamescene_export.json
 ```
 
-Относительные пути конфигурации ищутся из текущего рабочего каталога и `config/guidenh/structure_exports/`.
+Relative config paths are searched from the current working directory and `config/guidenh/structure_exports/`.
 
-### Вывод и манифест
+## Output And Manifest
 
-Каждый каталог экспорта содержит файлы PNG и `manifest.json`.
+Each export directory contains PNG files and `manifest.json`.
 
-Имена изображений StructureLib начинаются с отображаемого имени элемента контроллера. Варианты суффиксов включают уровень, каналы, слои, ориентацию и вид.
+StructureLib image names start with the controller item display name. Variant suffixes include tier, channels, layers, orientation, and view.
 
-Имена изображений GameScene включают идентификатор руководства, идентификатор страницы, индекс сцены, слои, режим камеры и дополнительные суффиксы аннотаций/сетки.
+GameScene image names include guide ID, page ID, scene index, layers, camera mode, and optional annotation/grid suffixes.
 
-Имена очищаются в соответствии с правилами имен файлов Windows. В манифесте записан путь вывода, размер изображения, выбранные варианты, предупреждения и ошибки.
+Names are sanitized for Windows filename rules. The manifest records output path, image size, selected variants, warnings, and errors.
 
-### Производительность
+## Performance
 
-команда отклоняет планы, содержащие более 256 снимков экрана, если не присутствует `--force`.
+The command refuses plans over 256 screenshots unless `--force` is present.
 
-по умолчанию размер одного изображения не может превышать `655360000` пикселей. Размер по умолчанию соответствует размеру машины класса 200x100x200 с бюджетом 128 пикселей на проецируемый блок. Если гигантской конструкции по-прежнему требуется больше места, опустите `--pixelsPerBlock` или `--scale`, обрежьте с помощью `--layers`, поднимите `--maxPixels` или используйте `--maxPixels -1`, чтобы отключить ограничение пикселей.
+By default, one image cannot exceed `655360000` pixels. If a giant structure still needs more room, lower `--pixelsPerBlock` or `--scale`, crop with `--layers`, raise `--maxPixels`, or use `--maxPixels -1` to disable the pixel limit.
 
-Для больших изображений используется мозаичная отрисовка кадрового буфера, если они превышают размер текстуры графического процессора.
+Large images use tiled framebuffer rendering when they exceed the GPU texture size.

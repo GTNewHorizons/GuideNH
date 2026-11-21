@@ -51,11 +51,17 @@ public class LytLatexBlock extends LytBlock implements InteractiveElement {
     @Getter
     private final int offsetY;
 
-    /** Formula display width in GUI pixels, recomputed each layout pass. */
+    /**
+     * Formula display width in GUI pixels, recomputed each layout pass.
+     */
     private int formulaDisplayW;
-    /** Formula display height in GUI pixels, recomputed each layout pass. */
+    /**
+     * Formula display height in GUI pixels, recomputed each layout pass.
+     */
     private int formulaDisplayH;
-    /** Vertical pixel offset inside the layout bounds, recomputed each layout pass. */
+    /**
+     * Vertical pixel offset inside the layout bounds, recomputed each layout pass.
+     */
     private int renderYOffset;
     private boolean sourceMetricsResolved;
     private int sourceWidthPx;
@@ -143,13 +149,14 @@ public class LytLatexBlock extends LytBlock implements InteractiveElement {
             return;
         }
 
-        int[] tex = GuideLatexRenderer.INSTANCE.getOrCreateTexture(formula, fillColorArgb, sourceScale);
-        if (tex == null) {
-            return;
-        }
-
-        GuideLatexRenderer.INSTANCE
-            .renderLatex(bounds.x() + offsetX, bounds.y() + renderYOffset, formulaDisplayW, formulaDisplayH, tex[0]);
+        GuideLatexRenderer.INSTANCE.drawLatex(
+            formula,
+            fillColorArgb,
+            sourceScale,
+            bounds.x() + offsetX,
+            bounds.y() + renderYOffset,
+            formulaDisplayW,
+            formulaDisplayH);
     }
 
     @Override

@@ -1,4 +1,7 @@
 {
+  "nei": {
+    "inGame": "Ouvrez ce guide dans GuideNH pour consulter les recettes NEI."
+  },
   "scene": {
     "hideAnnotations": "Masquer les annotations",
     "showAnnotations": "Afficher les annotations",
@@ -22,8 +25,11 @@
   "navigation": {
     "open": "Navigation",
     "close": "Fermer la navigation",
-    "holdToOpenGuide": "Maintenez G pour ouvrir le guide"
+    "holdToOpenGuide": "Maintenez G pour ouvrir le guide",
+    "chooseGuide": "Choisir une page du guide",
+    "closeChooser": "Fermer le choix des pages"
   },
+  "binding.nativeSite": "Ouvrez ce guide dans GuideNH pour consulter le contenu dans le jeu.",
   "sceneLoading": {
     "error": "La scène 3D n’a pas pu être chargée.",
     "retry": "Réessayer",

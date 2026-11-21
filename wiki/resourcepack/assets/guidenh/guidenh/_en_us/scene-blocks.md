@@ -101,7 +101,7 @@ Use `formed={false}` when a placed controller should stay visibly unformed in pr
 for single-block placement as well as multi-block placement tags such as `<PlaceBlock>`,
 `<ReplaceBlock>`, `<ImportStructure>`, and `<ImportStructureLib>`.
 
-`formed` now defaults to `false`, so controller previews stay unformed unless a scene explicitly
+`formed` defaults to `false`, so controller previews stay unformed unless a scene explicitly
 asks to auto-form them. GregTech controllers are the primary built-in example today.
 
 ```mdx
@@ -209,8 +209,6 @@ For 3D region parameters, GuideNH keeps the field names `dx`/`dy`/`dz`, but the 
 Automatic mode groups by `item:meta`, sorts by count, and resolves common multipart-style blocks
 into the items players expect to see. This includes AE2 cable-bus parts and facades,
 ForgeMultipart parts, and Carpenters' Blocks covers or overlays when those mods are present.
-Statistics are cached and rebuilt only when scene blocks, Ponder timeline state, StructureLib
-selection, or statistics settings change.
 
 ## Docked Automatic Statistics
 
@@ -380,4 +378,3 @@ column rules as the Ponder weather runtime.
 - `x` and `z` accept either one value or endpoint arrays.
 - Weather ignores `y`; the runtime derives vertical range from scene bounds and precipitation blockers.
 - The same `x/z` column never stacks multiple weather effects at the same time.
-

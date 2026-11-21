@@ -37,9 +37,7 @@ public class FilePathValueSource implements SyntaxValueSource, SyntaxEnvironment
     private List<String> candidatePaths;
     private NameSnapshot snapshot = new NameSnapshot(List::of);
     /**
-     * The guide the scan was made for. A guide is replaced when the pack is reloaded and the editor can be
-     * pointed at another one, so this cannot be a plain "already scanned" flag: that would keep suggesting
-     * the first guide's files for the rest of the session.
+     * Guide identity for the cached scan. Reloads and guide switches invalidate file suggestions.
      */
     @Nullable
     private Object scannedGuide;
