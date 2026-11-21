@@ -187,7 +187,6 @@ public class GuideSceneStructureSnapshot implements Serializable {
                 Integer metaTileId = GregTechHelpers.resolveMetaTileIdFromBlock(block, entry.meta, tag);
                 GuidebookPreviewBlockPlacer.initializeGregTechMetaTile(tileEntity, metaTileId, tag);
                 GuidebookPreviewBlockPlacer.applyGregTechDefaultFacing(tileEntity, tag);
-                GregTechHelpers.applyBartWorksGeneratedBlockMeta(tileEntity, block, entry.meta);
                 level.restoreTileEntityFast(entry.x, entry.y, entry.z, tileEntity);
                 GuidebookPreviewBlockPlacer.finalizeSpecialPreviewTile(level, entry.x, entry.y, entry.z, tileEntity);
             }
