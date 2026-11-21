@@ -28,6 +28,7 @@ This page describes the built-in tags available to guide authors.
 | `<Spoiler>` | hidden inline text revealed on hover | none |
 | `<Tooltip>` | rich hover tooltip with markdown/tag children | `label` |
 | `<SoundLink>` | clickable rich-text sound trigger | `sound` or `src`, `volume`, `pitch`, `cooldown` |
+| `<NeiRecipeLink>` | NEI inline recipe link | `id`, `handlerId`, `mode`, `title` |
 | `<mark>` | inline highlighted text; equivalent to `==text==` with optional color control | `color` |
 | `<PlayerName>` | inserts current player username | none |
 | `<KeyBind>` | inserts keybinding display name | `id` or `action` |
@@ -318,6 +319,26 @@ Sound attributes:
 - `pitch` defaults to `1.0`
 - `cooldown` is milliseconds between repeated plays, default `250`
 - `radius` and `minVolume` control screen-space attenuation when used in scenes
+
+### `<NeiRecipeLink>`
+
+`<NeiRecipeLink>` opens NEI from inline text. Use `&[label](nei:...)` for plain labels or the tag for formatted children.
+
+| Attribute | Default | Purpose |
+| --- | --- | --- |
+| `id` | omitted | Target item, including optional metadata and SNBT |
+| `handlerId` | omitted | Exact NEI overlay identifier or handler ID, ignoring case |
+| `mode` | `recipes` with `id`, otherwise `handler` | `handler`, `recipes`, or `usage` |
+| `title` | omitted | Optional hover text |
+
+```md
+<NeiRecipeLink id="minecraft:iron_ingot">Check **recipes**</NeiRecipeLink>
+<NeiRecipeLink handlerId="gt.recipe.cokeoven">Check NEI</NeiRecipeLink>
+```
+
+`handler` requires `handlerId` and forbids `id`; `recipes` and `usage` require `id` and accept an optional `handlerId`. Visible inline children are required. Browser previews display an inactive link.
+
+See [Recipes](Recipes#inline-nei-recipe-links) for action syntax, item IDs, escaping, and examples.
 
 ### `<Amount>`
 

@@ -52,6 +52,12 @@ bindings:
 
 The game editor reads IDs from the loaded mod. Both IDE plugins also suggest IDs already used in workspace pages; connecting to the running game adds its registered IDs. Research IDs retain their original case. To find or copy an ID, see [Thaumcraft compatibility](Mod-Compatibility#finding-and-copying-research-ids).
 
+### NEI action links
+
+The insert menu and `&[` completion provide handler, recipe and usage action templates, plus `<NeiRecipeLink>`. Both the game editor and IDE plugins complete `id`, `handlerId`, `mode` and NEI URI parameters. Handler IDs come from registered handlers in the running game; connect the IDE runtime bridge to obtain them. URI completion escapes values, replaces the entire current value and preserves other parameters. Handler mode only offers `handlerId`; parameters already present are not offered again. Ordinary links and code blocks do not trigger NEI completion.
+
+See [Recipes](Recipes#inline-nei-recipe-links) for syntax and examples.
+
 ## Multiline text and templates
 
 Candidate rows use short previews. The visible `\n` and `\t` markers stand for line breaks and tabs; accepting a candidate inserts the actual text. Multiline insertion follows the current indentation and places the cursor where typing should continue.

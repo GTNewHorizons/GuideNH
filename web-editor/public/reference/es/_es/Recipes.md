@@ -96,6 +96,34 @@ The following multiblock handlers are excluded by default because they render a 
 
 Use a whitelist to include them on a page. Use `limit` for broad queries to keep pages readable.
 
+## Enlaces de recetas de NEI en línea
+
+Usa `&[texto](nei:...)` o `<NeiRecipeLink>` para abrir NEI desde el texto. Las etiquetas de acción usan texto sin formato; la etiqueta admite contenido con formato.
+
+```md
+&[Ver todas las recetas del horno de coque](nei:handler?handlerId=gt.recipe.cokeoven)
+&[Ver recetas](nei:recipes?id=minecraft:iron_ingot)
+&[Ver usos](nei:usage?id=gregtech:gt.blockmachines:236&handlerId=gt.recipe.cokeoven)
+
+<NeiRecipeLink handlerId="gt.recipe.cokeoven">Ver todas las recetas del horno de coque</NeiRecipeLink>
+<NeiRecipeLink id="minecraft:iron_ingot">Ver **recetas**</NeiRecipeLink>
+<NeiRecipeLink mode="usage" id="gregtech:gt.blockmachines:236" handlerId="gt.recipe.cokeoven" title="NEI">Ver usos</NeiRecipeLink>
+
+&[Ver recetas de libros con SNBT](nei:recipes?id=minecraft:written_book:0:%7Btitle:%22Guide%2BNEI%22%2Cauthor:GuideNH%7D)
+```
+
+`handler` requiere `handlerId`, prohíbe `id` y abre todas las recetas del manejador elegido. `recipes` requiere `id` y abre recetas que producen ese objeto. `usage` requiere `id` y abre sus usos, incluidos los catalizadores, independientemente de la tecla Ctrl. Los dos últimos modos admiten un filtro opcional mediante `handlerId`.
+
+`handlerId` coincide exactamente con el identificador de superposición o de manejador de NEI, sin distinguir mayúsculas. No admite nombres de clases Java ni identificadores parciales.
+
+Los ID de objetos sin espacio de nombres usan el de la página actual. Se conservan las mayúsculas del nombre de registro, los metadatos y SNBT. Los comodines de metadatos siguen las reglas existentes para pilas concretas y no seleccionan todas las variantes.
+
+Los valores URI se decodifican una sola vez como UTF-8 estricto; un `+` literal sigue siendo `+`. Codifica SNBT y los caracteres reservados como `&`, `#`, `%`, `?` y `)` con escapes porcentuales.
+
+Los parámetros duplicados o desconocidos, escapes inválidos, fragmentos, modos no admitidos, atributos contradictorios y destinos ausentes generan errores de escritura. Solo las acciones con `&` y `<NeiRecipeLink>` abren NEI; los enlaces normales, de referencia, anclas HTML y `nei://` no son formas alternativas.
+
+Si NEI no está disponible o no hay recetas coincidentes, la guía permanece abierta y muestra un mensaje. Las vistas previas del navegador y del IDE muestran texto sin enlace activo. Abre la página en GuideNH para usarlo.
+
 ## Related references
 
 - [Tags Reference](Tags-Reference)

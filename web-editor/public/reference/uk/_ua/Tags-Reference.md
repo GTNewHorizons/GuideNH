@@ -30,6 +30,7 @@ This page describes the built-in tags available to guide authors.
 | `<Spoiler>` | hidden inline text revealed on hover | none |
 | `<Tooltip>` | rich hover tooltip with markdown/tag children | `label` |
 | `<SoundLink>` | clickable rich-text sound trigger | `sound` or `src`, `volume`, `pitch`, `cooldown` |
+| `<NeiRecipeLink>` | Посилання на рецепти NEI в тексті | `id`, `handlerId`, `mode`, `title` |
 | `<mark>` | inline highlighted text; equivalent to `==text==` with optional color control | `color` |
 | `<PlayerName>` | inserts current player username | none |
 | `<KeyBind>` | inserts keybinding display name | `id` or `action` |
@@ -320,6 +321,26 @@ Sound attributes:
 - `pitch` defaults to `1.0`
 - `cooldown` is milliseconds between repeated plays, default `250`
 - `radius` and `minVolume` control screen-space attenuation when used in scenes
+
+### `<NeiRecipeLink>`
+
+Використовуйте `&[текст](nei:...)` або `<NeiRecipeLink>`, щоб відкрити NEI з тексту. Підписи дій є звичайним текстом; тег підтримує форматування вмісту.
+
+| Атрибут | Типове значення | Призначення |
+| --- | --- | --- |
+| `id` | не задано | Цільовий предмет із необов’язковими метаданими та SNBT |
+| `handlerId` | не задано | Точний ідентифікатор накладення або обробника NEI без урахування регістру |
+| `mode` | `recipes` за наявності `id`, інакше `handler` | `handler`, `recipes`, `usage` |
+| `title` | не задано | Необов’язковий текст при наведенні |
+
+```md
+<NeiRecipeLink id="minecraft:iron_ingot">Показати **рецепти**</NeiRecipeLink>
+<NeiRecipeLink handlerId="gt.recipe.cokeoven">Показати всі рецепти коксової печі</NeiRecipeLink>
+```
+
+`handler` потребує `handlerId` і забороняє `id`; `recipes` та `usage` потребують `id` і дозволяють необов’язковий `handlerId`. Без `mode` застосовується типове значення з таблиці. Видимий вміст у тексті обов’язковий. Попередній перегляд у браузері показує неактивне посилання.
+
+Див. [Рецепти](Recipes.md#посилання-на-рецепти-nei-в-тексті): синтаксис дій, ідентифікатори предметів, екранування та приклади.
 
 ### `<Amount>`
 

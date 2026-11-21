@@ -31,6 +31,8 @@ Item and fluid tags remain inline content. Registry-backed values, recipe data a
 
 Author references live in `../wiki/` and `public/reference/<language>/<region>/`. Keep matching Wiki and Web pages synchronized. Complete translations remain localized; pages with a localized overview and an English detailed reference identify that fallback explicitly.
 
+Translate new and revised guidance into every applicable reference language, including headings, table descriptions, link labels and visible example text. Preserve syntax tokens and target IDs. Insert each addition in its owning topic before related references; completion pages describe editor behavior, tag pages document attributes, and developer integration pages document Java registration. Existing English fallback notices do not waive translation of new content. Live examples belong beside related examples, and the in-game reference is packaged from `public/reference/`.
+
 After adding or removing locale/reference files, run:
 
 ```powershell

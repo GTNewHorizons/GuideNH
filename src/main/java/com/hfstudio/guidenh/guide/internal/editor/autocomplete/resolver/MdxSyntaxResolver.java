@@ -1,9 +1,11 @@
 package com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver;
 
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -25,6 +27,7 @@ import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxFlowElement;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxTextElement;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstCode;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstImage;
+import com.hfstudio.guidenh.libs.mdast.model.MdAstInlineCode;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstLink;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstParent;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstResource;
@@ -40,6 +43,8 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
     private String cachedText;
     @Nullable
     private MdAstRoot cachedRoot;
+    private List<UnistPosition> cachedCodePositions = List.of();
+    private List<UnistPosition> cachedInlineCodePositions = List.of();
 
     @Override
     @Nullable
@@ -56,14 +61,26 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
 
         MdAstRoot root = parsedRoot(text);
         if (root != null) {
-            MdAstCode code = findEnclosingNode(root, cursorIndex, MdAstCode.class);
+            UnistPosition code = enclosingPosition(cachedCodePositions, cursorIndex);
             if (code != null) {
-                if (code.lang != null && !code.lang.isEmpty()) {
-                    TextSyntaxContext result = resolveFenceLanguage(code, text, cursorIndex);
+                int firstLineEnd = text.indexOf(
+                    '\n',
+                    code.start()
+                        .offset());
+                if (firstLineEnd < 0 || cursorIndex <= firstLineEnd) {
+                    TextSyntaxContext result = resolveFenceLanguageLine(text, cursorIndex);
                     if (result != null) return result;
                 }
                 return resolvePlainTextWord(text, cursorIndex);
             }
+            if (enclosingPosition(cachedInlineCodePositions, cursorIndex) != null)
+                return resolvePlainTextWord(text, cursorIndex);
+            NeiActionContext action = NeiActionContext.resolve(text, cursorIndex);
+            if (action != null) return new TextSyntaxContext(
+                SyntaxElementType.MARKDOWN_SYNTAX,
+                action.replaceStart(),
+                action.replaceEnd(),
+                action);
             TextSyntaxContext fromAst = resolveFromAst(root, text, cursorIndex);
             if (fromAst != null) {
                 return fromAst;
@@ -147,8 +164,11 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
             return cachedRoot;
         }
         MdAstRoot root;
+        cachedCodePositions = new ArrayList<>();
+        cachedInlineCodePositions = new ArrayList<>();
         try {
             root = MdAst.fromMarkdown(text, PARSE_OPTIONS);
+            collectCodePositions(root);
             MdAstToMdxConverter.convert(root, Collections.emptyMap());
         } catch (RuntimeException e) {
             cachedText = text;
@@ -158,6 +178,28 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
         cachedText = text;
         cachedRoot = root;
         return root;
+    }
+
+    private void collectCodePositions(UnistNode node) {
+        if (node.position() != null) {
+            if (node instanceof MdAstCode) cachedCodePositions.add(node.position());
+            if (node instanceof MdAstInlineCode) cachedInlineCodePositions.add(node.position());
+        }
+        if (node instanceof MdAstParent<?>parent) {
+            for (UnistNode child : parent.children()) collectCodePositions(child);
+        }
+    }
+
+    @Nullable
+    private static UnistPosition enclosingPosition(List<UnistPosition> positions, int offset) {
+        for (UnistPosition position : positions) {
+            if (offset >= position.start()
+                .offset() && offset
+                    < position.end()
+                        .offset())
+                return position;
+        }
+        return null;
     }
 
     /**

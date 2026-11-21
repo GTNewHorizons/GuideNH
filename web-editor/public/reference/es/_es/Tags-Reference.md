@@ -30,6 +30,7 @@ This page describes the built-in tags available to guide authors.
 | `<Spoiler>` | hidden inline text revealed on hover | none |
 | `<Tooltip>` | rich hover tooltip with markdown/tag children | `label` |
 | `<SoundLink>` | clickable rich-text sound trigger | `sound` or `src`, `volume`, `pitch`, `cooldown` |
+| `<NeiRecipeLink>` | Enlace de recetas de NEI en línea | `id`, `handlerId`, `mode`, `title` |
 | `<mark>` | inline highlighted text; equivalent to `==text==` with optional color control | `color` |
 | `<PlayerName>` | inserts current player username | none |
 | `<KeyBind>` | inserts keybinding display name | `id` or `action` |
@@ -320,6 +321,26 @@ Sound attributes:
 - `pitch` defaults to `1.0`
 - `cooldown` is milliseconds between repeated plays, default `250`
 - `radius` and `minVolume` control screen-space attenuation when used in scenes
+
+### `<NeiRecipeLink>`
+
+Usa `&[texto](nei:...)` o `<NeiRecipeLink>` para abrir NEI desde el texto. Las etiquetas de acción usan texto sin formato; la etiqueta admite contenido con formato.
+
+| Atributo | Valor predeterminado | Función |
+| --- | --- | --- |
+| `id` | sin definir | Objeto de destino, con metadatos y SNBT opcionales |
+| `handlerId` | sin definir | Identificador exacto de superposición o de manejador de NEI, sin distinguir mayúsculas |
+| `mode` | `recipes` con `id`; en otro caso, `handler` | `handler`, `recipes`, `usage` |
+| `title` | sin definir | Texto opcional al pasar el cursor |
+
+```md
+<NeiRecipeLink id="minecraft:iron_ingot">Ver **recetas**</NeiRecipeLink>
+<NeiRecipeLink handlerId="gt.recipe.cokeoven">Ver todas las recetas del horno de coque</NeiRecipeLink>
+```
+
+`handler` requiere `handlerId` y prohíbe `id`; `recipes` y `usage` requieren `id` y admiten `handlerId` opcional. Si se omite `mode`, se aplica el valor indicado arriba. Es obligatorio incluir contenido visible en línea. Las vistas previas del navegador muestran un enlace inactivo.
+
+Consulta [Recetas](Recipes.md#enlaces-de-recetas-de-nei-en-línea) para la sintaxis de acciones, los ID de objetos, los escapes y los ejemplos.
 
 ### `<Amount>`
 
