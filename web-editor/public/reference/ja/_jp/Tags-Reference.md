@@ -30,6 +30,7 @@ This page describes the built-in tags available to guide authors.
 | `<Spoiler>` | hidden inline text revealed on hover | none |
 | `<Tooltip>` | rich hover tooltip with markdown/tag children | `label` |
 | `<SoundLink>` | clickable rich-text sound trigger | `sound` or `src`, `volume`, `pitch`, `cooldown` |
+| `<NeiRecipeLink>` | インライン NEI レシピリンク | `id`, `handlerId`, `mode`, `title` |
 | `<mark>` | inline highlighted text; equivalent to `==text==` with optional color control | `color` |
 | `<PlayerName>` | inserts current player username | none |
 | `<KeyBind>` | inserts keybinding display name | `id` or `action` |
@@ -320,6 +321,26 @@ Sound attributes:
 - `pitch` defaults to `1.0`
 - `cooldown` is milliseconds between repeated plays, default `250`
 - `radius` and `minVolume` control screen-space attenuation when used in scenes
+
+### `<NeiRecipeLink>`
+
+`&[テキスト](nei:...)` または `<NeiRecipeLink>` を使うと、本文から NEI を開けます。アクションのラベルはプレーンテキストで、タグの子要素には文字の装飾を使用できます。
+
+| 属性 | 既定値 | 用途 |
+| --- | --- | --- |
+| `id` | 未指定 | 対象アイテム。任意のメタデータと SNBT を含む |
+| `handlerId` | 未指定 | NEI のオーバーレイ識別子またはハンドラー ID。大文字と小文字を区別せず完全一致 |
+| `mode` | `id` があれば `recipes`、なければ `handler` | `handler`, `recipes`, `usage` |
+| `title` | 未指定 | 任意のホバーテキスト |
+
+```md
+<NeiRecipeLink id="minecraft:iron_ingot">**レシピ**を表示</NeiRecipeLink>
+<NeiRecipeLink handlerId="gt.recipe.cokeoven">コークス炉の全レシピを表示</NeiRecipeLink>
+```
+
+`handler` は `handlerId` が必須で、`id` は使用できません。`recipes` と `usage` は `id` が必須で、任意の `handlerId` を指定できます。`mode` を省略すると上記の既定値が使われます。表示可能なインラインの子要素が必須です。ブラウザーのプレビューではリンクが無効になります。
+
+アクション構文、アイテム ID、エスケープと例については [レシピ](Recipes.md#インライン-nei-レシピリンク)を参照してください。
 
 ### `<Amount>`
 

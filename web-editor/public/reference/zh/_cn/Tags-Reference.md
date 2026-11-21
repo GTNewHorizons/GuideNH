@@ -30,6 +30,7 @@
 | `<Spoiler>` | 悬停后显示的行内黑幕文本 | 无 |
 | `<Tooltip>` | 带 Markdown/标签子内容的富悬浮提示 | `label` |
 | `<SoundLink>` | 可点击的富文本音效触发器 | `sound` 或 `src`，`volume`，`pitch`，`cooldown` |
+| `<NeiRecipeLink>` | NEI 行内配方链接 | `id`、`handlerId`、`mode`、`title` |
 | `<mark>` | 行内高亮文本；等价于 `==text==`，并可自定义颜色 | `color` |
 | `<PlayerName>` | 插入当前玩家用户名 | 无 |
 | `<KeyBind>` | 插入按键绑定显示名 | `id` 或 `action` |
@@ -291,6 +292,26 @@ world
 - `pitch` 默认 `1.0`
 - `cooldown` 是重复播放的间隔毫秒数，默认 `250`
 - `radius` 和 `minVolume` 用于场景中的屏幕空间衰减
+
+### `<NeiRecipeLink>`
+
+`<NeiRecipeLink>` 从行内文字打开 NEI。纯文本标签可使用 `&[文字](nei:...)`，富文本使用标签形式。
+
+| 属性 | 默认值 | 用途 |
+| --- | --- | --- |
+| `id` | 省略 | 目标物品，可包含元数据和 SNBT |
+| `handlerId` | 省略 | NEI 的 overlay identifier 或 handler ID，忽略大小写精确匹配 |
+| `mode` | 有 `id` 时为 `recipes`，否则为 `handler` | `handler`、`recipes` 或 `usage` |
+| `title` | 省略 | 可选悬停文字 |
+
+```md
+<NeiRecipeLink id="minecraft:iron_ingot">查看**合成配方**</NeiRecipeLink>
+<NeiRecipeLink handlerId="gt.recipe.cokeoven">查看 NEI</NeiRecipeLink>
+```
+
+`handler` 必须填写 `handlerId` 且禁止 `id`；`recipes` 和 `usage` 必须填写 `id`，可选填 `handlerId`。必须提供可见的行内子内容。浏览器预览显示为不可点击的文字。
+
+动作语法、物品 ID、转义和示例见[配方](Recipes.md#行内-nei-配方链接)。
 
 ### `<Amount>`
 

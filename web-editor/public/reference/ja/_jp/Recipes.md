@@ -68,4 +68,34 @@
 <RecipeFor id="minecraft:chest" handlerWhitelist="GTNEIMultiblockHandler,StructureCompatNEIHandler" fallbackText="マルチブロックを表示できません。" />
 ```
 
+## インライン NEI レシピリンク
+
+`&[テキスト](nei:...)` または `<NeiRecipeLink>` を使うと、本文から NEI を開けます。アクションのラベルはプレーンテキストで、タグの子要素には文字の装飾を使用できます。
+
+```md
+&[コークス炉の全レシピを表示](nei:handler?handlerId=gt.recipe.cokeoven)
+&[レシピを表示](nei:recipes?id=minecraft:iron_ingot)
+&[用途を表示](nei:usage?id=gregtech:gt.blockmachines:236&handlerId=gt.recipe.cokeoven)
+
+<NeiRecipeLink handlerId="gt.recipe.cokeoven">コークス炉の全レシピを表示</NeiRecipeLink>
+<NeiRecipeLink id="minecraft:iron_ingot">**レシピ**を表示</NeiRecipeLink>
+<NeiRecipeLink mode="usage" id="gregtech:gt.blockmachines:236" handlerId="gt.recipe.cokeoven" title="NEI">用途を表示</NeiRecipeLink>
+
+&[SNBT 付きの本のレシピを表示](nei:recipes?id=minecraft:written_book:0:%7Btitle:%22Guide%2BNEI%22%2Cauthor:GuideNH%7D)
+```
+
+`handler` は `handlerId` が必須で、`id` は指定できません。指定したハンドラーの全レシピを開きます。`recipes` は `id` が必須で、そのアイテムを生産するレシピを開きます。`usage` は `id` が必須で、Ctrl キーの状態に関係なく、触媒としての使用も含めた用途を開きます。後者の 2 モードには任意の `handlerId` フィルターを指定できます。
+
+`handlerId` は NEI のオーバーレイ識別子またはハンドラー ID と、大文字と小文字を区別せず完全一致する必要があります。Java のクラス名や識別子の一部分は使用できません。
+
+名前空間を省略したアイテム ID には、現在のページの名前空間が使われます。登録名の大文字と小文字、メタデータ、SNBT は保持されます。メタデータのワイルドカードは既存の具体的なアイテムスタックの規則に従い、すべての派生アイテムを検索する指定にはなりません。
+
+URI の値は厳密な UTF-8 として一度だけデコードされ、リテラルの `+` は `+` のままです。SNBT と `&`、`#`、`%`、`?`、`)` などの予約文字はパーセントエンコードしてください。
+
+重複または未知のパラメーター、不正なエスケープ、フラグメント、未対応のモード、矛盾する属性、対象の欠落は記述エラーになります。NEI を開く記法は `&` 付きのアクションと `<NeiRecipeLink>` だけです。通常のリンク、参照リンク、HTML アンカー、`nei://` は代替記法として使用できません。
+
+NEI が利用できない場合や一致するレシピがない場合、ガイドは開いたままメッセージを表示します。ブラウザーと IDE のプレビューではクリックできないテキストになります。リンクを使用するには GuideNH でページを開いてください。
+
+## 関連リファレンス
+
 広い検索には `limit` を指定してください。[タグリファレンス](Tags-Reference)、[Mod 互換性](Mod-Compatibility)、[例](Examples)も参照してください。

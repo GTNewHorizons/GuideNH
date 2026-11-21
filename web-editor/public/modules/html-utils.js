@@ -7,6 +7,8 @@ export function escapeHtml(value) {
     .replaceAll("'", "&#39;");
 }
 
+export const DUPLICATE_ATTRIBUTES = Symbol("duplicateAttributes");
+
 export function parseAttributes(source) {
   const attributes = {};
   const text = String(source || "");
@@ -18,6 +20,10 @@ export function parseAttributes(source) {
     while (index < text.length && /[:@\w-]/.test(text[index])) index += 1;
     if (nameStart === index) { index += 1; continue; }
     const name = text.slice(nameStart, index);
+    if (Object.hasOwn(attributes, name)) {
+      if (!attributes[DUPLICATE_ATTRIBUTES]) Object.defineProperty(attributes, DUPLICATE_ATTRIBUTES, { value: [] });
+      attributes[DUPLICATE_ATTRIBUTES].push(name);
+    }
     while (index < text.length && /\s/.test(text[index])) index += 1;
     if (text[index] !== "=") { attributes[name] = true; continue; }
     index += 1;

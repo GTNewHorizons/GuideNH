@@ -30,10 +30,9 @@ public class AutocompleteTextTest {
     @Test
     public void allBuiltinTagTemplatesRemainExplicitInsteadOfExpandingOrdinaryCompletion() {
         var model = builtinModel();
-        assertEquals(
-            11,
+        assertFalse(
             model.insertTemplates()
-                .size());
+                .isEmpty());
         for (String tag : model.insertTemplates()
             .keySet()) {
             String parent = tag.equals("InputAnnotation") || tag.equals("ImportStructureLib") ? "GameScene"

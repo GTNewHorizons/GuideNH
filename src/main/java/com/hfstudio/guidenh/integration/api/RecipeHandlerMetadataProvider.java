@@ -1,10 +1,17 @@
 package com.hfstudio.guidenh.integration.api;
 
+import java.util.List;
+
 import net.minecraft.item.ItemStack;
 
 import org.jetbrains.annotations.Nullable;
 
 public interface RecipeHandlerMetadataProvider {
+
+    /** Returns registered identifiers without loading recipe contents. */
+    default List<RecipeHandlerDescriptor> handlerDescriptors() {
+        return List.of();
+    }
 
     @Nullable
     String lookupHandlerName(Object handler);

@@ -96,6 +96,34 @@ The following multiblock handlers are excluded by default because they render a 
 
 Use a whitelist to include them on a page. Use `limit` for broad queries to keep pages readable.
 
+## Odnośniki do receptur NEI w tekście
+
+Użyj `&[tekst](nei:...)` lub `<NeiRecipeLink>`, aby otworzyć NEI z tekstu. Etykiety akcji są zwykłym tekstem; tag obsługuje formatowanie zawartości.
+
+```md
+&[Pokaż wszystkie receptury pieca koksowniczego](nei:handler?handlerId=gt.recipe.cokeoven)
+&[Pokaż receptury](nei:recipes?id=minecraft:iron_ingot)
+&[Pokaż zastosowania](nei:usage?id=gregtech:gt.blockmachines:236&handlerId=gt.recipe.cokeoven)
+
+<NeiRecipeLink handlerId="gt.recipe.cokeoven">Pokaż wszystkie receptury pieca koksowniczego</NeiRecipeLink>
+<NeiRecipeLink id="minecraft:iron_ingot">Pokaż **receptury**</NeiRecipeLink>
+<NeiRecipeLink mode="usage" id="gregtech:gt.blockmachines:236" handlerId="gt.recipe.cokeoven" title="NEI">Pokaż zastosowania</NeiRecipeLink>
+
+&[Pokaż receptury książek z SNBT](nei:recipes?id=minecraft:written_book:0:%7Btitle:%22Guide%2BNEI%22%2Cauthor:GuideNH%7D)
+```
+
+`handler` wymaga `handlerId`, zabrania `id` i otwiera wszystkie receptury wybranego modułu obsługi. `recipes` wymaga `id` i otwiera receptury wytwarzające ten przedmiot. `usage` wymaga `id` i otwiera zastosowania, w tym użycie jako katalizatora, niezależnie od klawisza Ctrl. Dwa ostatnie tryby pozwalają na opcjonalny filtr `handlerId`.
+
+`handlerId` musi dokładnie odpowiadać identyfikatorowi nakładki lub modułu obsługi NEI, bez rozróżniania wielkości liter. Nazwy klas Java i częściowe identyfikatory nie są akceptowane.
+
+Identyfikatory przedmiotów bez przestrzeni nazw używają przestrzeni nazw bieżącej strony. Wielkość liter nazwy rejestru, metadane i SNBT są zachowywane. Symbole wieloznaczne metadanych stosują istniejące reguły konkretnych stosów przedmiotów i nie wybierają wszystkich wariantów.
+
+Wartości URI są dekodowane dokładnie raz jako ścisłe UTF-8; dosłowny znak `+` pozostaje `+`. SNBT i znaki zastrzeżone, takie jak `&`, `#`, `%`, `?` i `)`, należy kodować procentowo.
+
+Powtórzone lub nieznane parametry, błędne sekwencje ucieczki, fragmenty, nieobsługiwane tryby, sprzeczne atrybuty i brakujące cele powodują błędy tworzenia strony. NEI otwierają tylko akcje z `&` i `<NeiRecipeLink>`; zwykłe odnośniki, odnośniki referencyjne, kotwice HTML i `nei://` nie są alternatywną składnią.
+
+Jeśli NEI jest niedostępne lub nie ma pasujących receptur, poradnik pozostaje otwarty i wyświetla komunikat. Podglądy w przeglądarce i IDE pokazują tekst, którego nie można kliknąć. Otwórz stronę w GuideNH, aby użyć odnośnika.
+
 ## Related references
 
 - [Tags Reference](Tags-Reference)

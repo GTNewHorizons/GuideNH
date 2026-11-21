@@ -15,6 +15,43 @@ Guide.builder(new ResourceLocation("yourmod", "guidenh")).build();
 
 页面放入 `assets/yourmod/guidenh/`，语言目录以下划线开头。语言回退规则见 [本地化](Localization-zh-CN)。
 
+## 运行时动作解析器注册
+
+自定义 `&[文字](scheme:payload)` 使用现有每指南 `ExtensionCollection` 中的 `ActionLinkResolver.EXTENSION_POINT`。`DefaultExtensions` 注册 `sound`、`sound-src` 和 `nei`。编译器只建立一次忽略大小写的 scheme 索引，拒绝重复注册，将动作展开成 AST 标签；未知 scheme 保留原始文本，已注册动作格式错误则产生编写诊断。直接站点导出接收所属指南的扩展，并向 tooltip 编译器传递同一快照。
+
+```java
+import java.util.ArrayList;
+import java.util.Set;
+
+import com.hfstudio.guidenh.guide.Guide;
+import com.hfstudio.guidenh.guide.compiler.ActionLinkResolver;
+import com.hfstudio.guidenh.guide.internal.markdown.MarkdownActionLink;
+import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxTextElement;
+
+public class MyActionResolver implements ActionLinkResolver {
+    @Override
+    public Set<String> getSchemes() {
+        return Set.of("inspect");
+    }
+
+    @Override
+    public MdxJsxTextElement resolve(String label, String destination, String defaultNamespace) {
+        MdxJsxTextElement element = new MdxJsxTextElement("MyActionLink", new ArrayList<>());
+        element.addAttribute("target", destination.substring(destination.indexOf(':') + 1));
+        element.addChild(MarkdownActionLink.plainLabel(label));
+        return element;
+    }
+}
+```
+
+将解析器与 `MyActionLink` 的标签编译器一起注册到指南构建器：
+
+```java
+Guide.builder(id).extension(ActionLinkResolver.EXTENSION_POINT, new MyActionResolver()).build();
+```
+
+解析器负责语法展开，标签编译器负责布局与延迟执行；不要在解析器中查询游戏注册表。`SyntaxContributor` 负责属性和插入片段，`SyntaxSlot` 负责自定义语法的编辑器补全、替换和选择；注册槽位并不会注册运行时动作。这些都是现有基础设施中的不同扩展点，不是另一套全局注册表。需要导出表现时另行注册站点标签渲染器。Web Editor 用小型 scheme 到标签的映射处理受支持动作，不执行 Java 扩展。
+
 ## 内容绑定提供者
 
 任务、研究和后续自定义内容使用同一套接口。注册提供者后，作者即可使用 `BindingLink`、`BindingCard`、`BindingIcon` 和 `bindings`，无需新增专属标签。
@@ -71,6 +108,8 @@ Guide.builder(id).extension(GuideSiteTagRenderer.EXTENSION_POINT, renderer).buil
 渲染上下文提供 `defaultNamespace`、`currentPageId`、`templates`、`sceneResolver`、`compiler`，用于页面相对资源与共享导出服务。
 
 ## 绘制嵌入配方
+
+要为补全提供已注册的处理器 ID，覆盖 `RecipeHandlerMetadataProvider.handlerDescriptors()`，并调用 `GuideNhIntegrationRegistry.global().registerRecipeHandlerMetadataProvider(provider)` 注册提供者。为支持的 overlay 或处理器标识返回 `RecipeHandlerDescriptor(String id, String name)`。共享目录去重时保留原始拼写，游戏内编辑器与 `neiHandlers` runtime 语义查询使用同一份条目。只读取注册元数据，不要加载配方内容；现有提供者的默认方法返回空列表。
 
 实现 `RecipeHandlerRenderProvider`，在客户端初始化时调用 `GuideNhIntegrationRegistry.global().registerRecipeHandlerRenderProvider(provider)` 注册。`canRenderRecipeHandler(Object)` 判断提供者支持哪些处理器。
 
