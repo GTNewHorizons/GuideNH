@@ -1,17 +1,20 @@
 package com.hfstudio.guidenh.client.capture.api;
 
-public record CaptureViewport(int logicalWidth, int logicalHeight, int pixelWidth, int pixelHeight) {
+public record CaptureViewport(int logicalWidth, int logicalHeight, int pixelWidth, int pixelHeight, double scaleX,
+    double scaleY) {
 
-    public double scaleX() {
-        return (double) pixelWidth / logicalWidth;
-    }
-
-    public double scaleY() {
-        return (double) pixelHeight / logicalHeight;
+    public CaptureViewport(int logicalWidth, int logicalHeight, int pixelWidth, int pixelHeight) {
+        this(
+            logicalWidth,
+            logicalHeight,
+            pixelWidth,
+            pixelHeight,
+            (double) pixelWidth / logicalWidth,
+            (double) pixelHeight / logicalHeight);
     }
 
     public CaptureRect bounds() {
-        return new CaptureRect(0, 0, logicalWidth, logicalHeight);
+        return new CaptureRect(0, 0, pixelWidth / scaleX, pixelHeight / scaleY);
     }
 
     public CaptureRect pixels(CaptureRect logical) {

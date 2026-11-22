@@ -8,7 +8,7 @@ public class CaptureTextureRenderer {
 
     private CaptureTextureRenderer() {}
 
-    public static void draw(int texture, int width, int height, boolean flipped, boolean premultiplied) {
+    public static void draw(int texture, double width, double height, boolean flipped, boolean premultiplied) {
         GL11.glEnable(GL11.GL_TEXTURE_2D);
         GL11.glDisable(GL11.GL_DEPTH_TEST);
         GL11.glDisable(GL11.GL_ALPHA_TEST);

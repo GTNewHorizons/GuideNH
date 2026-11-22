@@ -5,9 +5,13 @@ import net.minecraftforge.common.MinecraftForge;
 import com.hfstudio.guidenh.client.hotkey.OpenGuiCaptureHotkey;
 import com.hfstudio.guidenh.integration.Mods;
 import com.hfstudio.guidenh.integration.capture.GuideCaptureGeometryProvider;
+import com.hfstudio.guidenh.integration.capture.GuidePageBatchProvider;
 import com.hfstudio.guidenh.integration.lwjgl3ify.capture.LwjglCaptureInputBridge;
 import com.hfstudio.guidenh.integration.mui.capture.MuiCaptureGeometryProvider;
 import com.hfstudio.guidenh.integration.mui2.capture.Mui2CaptureGeometryProvider;
+import com.hfstudio.guidenh.integration.mui2.capture.Mui2PageBatchProvider;
+import com.hfstudio.guidenh.integration.nei.capture.NeiCaptureGeometryProvider;
+import com.hfstudio.guidenh.integration.nei.capture.NeiPageBatchProvider;
 
 import cpw.mods.fml.common.FMLCommonHandler;
 
@@ -25,15 +29,23 @@ public class GuiCaptureBootstrap {
         runtime.initialize();
         runtime.registry()
             .registerGeometry(new GuideCaptureGeometryProvider());
+        runtime.registry()
+            .registerBatch(new GuidePageBatchProvider());
         if (Mods.ModularUI.isModLoaded()) runtime.registry()
             .registerGeometry(new MuiCaptureGeometryProvider());
         if (Mods.ModularUI2.isModLoaded()) runtime.registry()
             .registerGeometry(new Mui2CaptureGeometryProvider());
+        if (Mods.ModularUI2.isModLoaded()) runtime.registry()
+            .registerBatch(new Mui2PageBatchProvider());
+        if (Mods.NotEnoughItems.isModLoaded()) runtime.registry()
+            .registerGeometry(new NeiCaptureGeometryProvider());
         if (Mods.Lwjgl3ify.isModLoaded()) {
             runtime.useNativeKeyboard();
             runtime.registry()
                 .registerLifecycle(new LwjglCaptureInputBridge());
         }
+        if (Mods.NotEnoughItems.isModLoaded()) runtime.registry()
+            .registerBatch(new NeiPageBatchProvider());
         MinecraftForge.EVENT_BUS.register(runtime);
         FMLCommonHandler.instance()
             .bus()

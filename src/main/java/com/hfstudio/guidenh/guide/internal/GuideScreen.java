@@ -218,6 +218,7 @@ public class GuideScreen extends GuiContainer
     @Nullable
     private LytDocument document;
     private boolean pageLoadInProgress;
+    private boolean temporaryNavigation;
     private int pageLoadRequestId;
     private int pendingPageLoadRequestId;
 
@@ -738,6 +739,75 @@ public class GuideScreen extends GuiContainer
     public boolean isShowingGuide(ResourceLocation guideId) {
         return guide != null && guide.getId()
             .equals(guideId);
+    }
+
+    public List<Guide> captureGuides(boolean all) {
+        if (all && localGuide == null) return new ArrayList<>(GuideRegistry.getAll());
+        return guide == null ? List.of() : List.of(guide);
+    }
+
+    public boolean canPreviewNavigation() {
+        return !isGuideEditorActive();
+    }
+
+    public NavigationPreview beginNavigationPreview() {
+        return new NavigationPreview();
+    }
+
+    public class NavigationPreview implements AutoCloseable {
+
+        private final GuideScreenViewState original = captureCurrentViewState();
+        private final boolean previous = temporaryNavigation;
+
+        public NavigationPreview() {
+            temporaryNavigation = true;
+        }
+
+        public void show(ResourceLocation guideId, ResourceLocation page, int offset) {
+            GuideScreenRoute route = GuideScreenRoute.content(guideId, PageAnchor.page(page));
+            if (route.equals(currentRoute)) {
+                scrollY = Math.min(offset, getMaxScroll());
+                snapVisualScrollToTarget();
+            } else restoreViewState(GuideScreenViewState.of(route, offset));
+        }
+
+        public boolean ready(ResourceLocation page, int offset) {
+            LytDocument active = getActiveDocument();
+            return !pageLoadInProgress && Objects.equals(getCurrentPageId(), page)
+                && active != null
+                && layoutDocument == active
+                && scrollY == Math.min(offset, getMaxScroll());
+        }
+
+        public int maximumScroll() {
+            return getMaxScroll();
+        }
+
+        public int scrollStep() {
+            return Math.max(1, getDocumentViewportHeight());
+        }
+
+        public LytRect viewport() {
+            return new LytRect(contentX, getDocumentViewportY(), contentW, contentH);
+        }
+
+        public void restore() {
+            restoreViewState(original);
+        }
+
+        public boolean restored() {
+            if (pageLoadInProgress || !original.route()
+                .equals(currentRoute)) return false;
+            if (!currentRoute.isContent()) return true;
+            LytDocument active = getActiveDocument();
+            return active != null && layoutDocument == active
+                && scrollY == Math.min(original.scrollY(), getMaxScroll());
+        }
+
+        @Override
+        public void close() {
+            temporaryNavigation = previous;
+        }
     }
 
     public void reloadPage() {
@@ -8090,6 +8160,7 @@ public class GuideScreen extends GuiContainer
     }
 
     private void recordHomeHistoryIfEligible() {
+        if (temporaryNavigation) return;
         if (localGuide != null || currentRoute == null
             || !currentRoute.isContent()
             || currentAnchor == null

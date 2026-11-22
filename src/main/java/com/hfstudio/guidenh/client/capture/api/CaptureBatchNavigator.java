@@ -10,7 +10,14 @@ public interface CaptureBatchNavigator extends AutoCloseable {
 
     List<CaptureRect> regions(CaptureBatchContext context);
 
+    default List<CaptureTargetDescriptor> additionalTargets(CaptureTargetDescriptor target,
+        CaptureBatchContext context) {
+        return List.of();
+    }
+
     void restore();
+
+    CaptureBatchReadiness restorationReadiness(CaptureBatchContext context);
 
     @Override
     default void close() {}

@@ -20,6 +20,10 @@ public class GuiTileCaptureSource implements AutoCloseable {
     public static final int GUARD = 2;
     private Framebuffer framebuffer;
 
+    public void bindCurrent(boolean viewport) {
+        framebuffer.bindFramebuffer(viewport);
+    }
+
     public int tileLimit(int requested, long memoryBudget) {
         IntBuffer dimensions = BufferUtils.createIntBuffer(16);
         GL11.glGetInteger(GL11.GL_MAX_VIEWPORT_DIMS, dimensions);

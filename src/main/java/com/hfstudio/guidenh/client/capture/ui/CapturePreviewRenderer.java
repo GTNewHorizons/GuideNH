@@ -1,9 +1,7 @@
 package com.hfstudio.guidenh.client.capture.ui;
 
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.texture.DynamicTexture;
-import net.minecraft.util.ResourceLocation;
 
 import org.lwjgl.opengl.GL11;
 
@@ -13,16 +11,12 @@ import com.hfstudio.guidenh.client.capture.render.CaptureTextureRenderer;
 
 public class CapturePreviewRenderer implements AutoCloseable {
 
-    private final Minecraft minecraft;
     private DynamicTexture texture;
-    private ResourceLocation location;
     private long version = -1;
     private int textureWidth;
     private int textureHeight;
 
-    public CapturePreviewRenderer(Minecraft minecraft) {
-        this.minecraft = minecraft;
-    }
+    public CapturePreviewRenderer() {}
 
     public void draw(CaptureFrame frame, long frameVersion, CaptureViewport viewport, int backgroundArgb) {
         checkerboard(viewport.logicalWidth(), viewport.logicalHeight(), backgroundArgb);
@@ -32,8 +26,6 @@ public class CapturePreviewRenderer implements AutoCloseable {
             textureWidth = frame.width();
             textureHeight = frame.height();
             texture = new DynamicTexture(frame.width(), frame.height());
-            location = minecraft.getTextureManager()
-                .getDynamicTextureLocation("gui_capture_preview", texture);
         }
         if (version != frameVersion) {
             int[] pixels = texture.getTextureData();
@@ -41,8 +33,14 @@ public class CapturePreviewRenderer implements AutoCloseable {
             texture.updateDynamicTexture();
             version = frameVersion;
         }
-        CaptureTextureRenderer
-            .draw(texture.getGlTextureId(), viewport.logicalWidth(), viewport.logicalHeight(), false, false);
+        CaptureTextureRenderer.draw(
+            texture.getGlTextureId(),
+            viewport.bounds()
+                .width(),
+            viewport.bounds()
+                .height(),
+            false,
+            false);
     }
 
     private static void checkerboard(int width, int height, int background) {
@@ -69,10 +67,8 @@ public class CapturePreviewRenderer implements AutoCloseable {
 
     @Override
     public void close() {
-        if (location != null) minecraft.getTextureManager()
-            .deleteTexture(location);
+        if (texture != null) texture.deleteGlTexture();
         texture = null;
-        location = null;
         version = -1;
     }
 }

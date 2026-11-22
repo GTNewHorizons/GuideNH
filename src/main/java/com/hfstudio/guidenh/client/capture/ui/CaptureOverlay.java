@@ -65,7 +65,7 @@ public class CaptureOverlay implements AutoCloseable {
         this.closeAction = actions.close();
         this.saveAction = actions.save();
         this.input = input;
-        preview = new CapturePreviewRenderer(minecraft);
+        preview = new CapturePreviewRenderer();
         settings = new CaptureSettingsPanel(minecraft, session);
         add(CaptureIcons.SAVE, "save", this::save);
         add(CaptureIcons.CAPTURE_ALL, "all_visible", () -> {

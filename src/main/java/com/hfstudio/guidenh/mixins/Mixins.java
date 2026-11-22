@@ -20,7 +20,8 @@ public enum Mixins implements IMixins {
         "minecraft.MixinTessellatorSceneExportCapture", "minecraft.MixinModelRendererSceneExportCapture",
         "minecraft.AccessorGuiCaptureScreen", "minecraft.AccessorGuiCaptureContainer", "minecraft.MixinGuiCaptureInput",
         "minecraft.MixinGuiCaptureRender", "minecraft.MixinGuiCaptureLayer", "minecraft.MixinGuiCaptureBackground",
-        "minecraft.MixinGuiCaptureAlpha", "minecraft.MixinGuiCaptureButtonAlpha"),
+        "minecraft.MixinGuiCaptureAlpha", "minecraft.MixinGuiCaptureButtonAlpha",
+        "minecraft.MixinGuiCaptureFramebuffer", "minecraft.MixinGuiCaptureMainMenu"),
 
     AE2_EXTERNAL_CABLE_PARTS(Side.CLIENT, Phase.LATE, Mods.AE2, "compat.ae2.MixinPartQuartzFiber",
         "compat.ae2.MixinPartP2PTunnelME", "compat.ae2.MixinPartToggleBus"),
@@ -29,6 +30,10 @@ public enum Mixins implements IMixins {
         "compat.lwjgl3ify.AccessorCaptureTextInput"),
 
     MUI_CAPTURE_GEOMETRY(Side.CLIENT, Phase.LATE, Mods.ModularUI, "compat.mui.AccessorCaptureModularWindow"),
+
+    NEI_CAPTURE_GUI(Side.CLIENT, Phase.LATE, Mods.NotEnoughItems, "compat.nei.AccessorCaptureNeiLayout",
+        "compat.nei.AccessorCaptureNeiRecipe", "compat.nei.AccessorCaptureNeiTask", "compat.nei.AccessorCaptureNeiText",
+        "compat.nei.MixinCaptureNeiLayers"),
 
     ANGELICA_SCENE_EXPORT(Side.CLIENT, Phase.LATE, Mods.Angelica,
         "compat.angelica.MixinVanillaModelMeshesSceneExportCapture"),

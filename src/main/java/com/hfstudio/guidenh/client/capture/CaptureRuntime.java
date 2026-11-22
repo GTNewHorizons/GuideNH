@@ -11,6 +11,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.resources.I18n;
+import net.minecraft.client.shader.Framebuffer;
 import net.minecraftforge.client.event.GuiOpenEvent;
 
 import org.lwjgl.input.Keyboard;
@@ -21,6 +22,7 @@ import com.hfstudio.guidenh.client.capture.api.CaptureBatchContext;
 import com.hfstudio.guidenh.client.capture.api.CaptureBatchHost;
 import com.hfstudio.guidenh.client.capture.api.CaptureBatchManifest;
 import com.hfstudio.guidenh.client.capture.api.CaptureBatchOptions;
+import com.hfstudio.guidenh.client.capture.api.CaptureClientGuiFactory;
 import com.hfstudio.guidenh.client.capture.api.CaptureContentOptions;
 import com.hfstudio.guidenh.client.capture.api.CaptureContext;
 import com.hfstudio.guidenh.client.capture.api.CaptureExportRequest;
@@ -52,8 +54,10 @@ import com.hfstudio.guidenh.client.capture.session.CaptureSession;
 import com.hfstudio.guidenh.client.capture.ui.CaptureOverlay;
 import com.hfstudio.guidenh.client.capture.ui.CaptureOverlayActions;
 import com.hfstudio.guidenh.client.hotkey.OpenGuiCaptureHotkey;
+import com.hfstudio.guidenh.integration.capture.ClientGuiBatchProvider;
 import com.hfstudio.guidenh.integration.capture.VanillaCaptureGeometryProvider;
 import com.hfstudio.guidenh.integration.capture.VanillaCaptureGuiRenderer;
+import com.hfstudio.guidenh.integration.capture.VanillaClientGuiFactories;
 import com.hfstudio.guidenh.integration.capture.VisibleGuiBatchProvider;
 
 import cpw.mods.fml.common.eventhandler.EventPriority;
@@ -88,6 +92,7 @@ public class CaptureRuntime {
     private CaptureOutputArtifact openedArtifact;
     private CaptureBatchEngine batch;
     private final RuntimeBatchHost batchHost = new RuntimeBatchHost();
+    private final ClientGuiBatchProvider clientGuis = new ClientGuiBatchProvider();
     private CaptureRecording batchRecording;
     private CaptureGeometry geometry;
     private CaptureSelectionSnapshot batchSelections;
@@ -107,6 +112,8 @@ public class CaptureRuntime {
         registry.registerGeometry(new VanillaCaptureGeometryProvider());
         registry.registerRenderer(new VanillaCaptureGuiRenderer());
         registry.registerBatch(new VisibleGuiBatchProvider());
+        registry.registerBatch(clientGuis);
+        VanillaClientGuiFactories.register(clientGuis);
         guiAvailable = Minecraft.getMinecraft().currentScreen != null;
     }
 
@@ -116,6 +123,10 @@ public class CaptureRuntime {
 
     public boolean guiAvailable() {
         return guiAvailable;
+    }
+
+    public void registerClientGui(CaptureClientGuiFactory factory) {
+        clientGuis.register(factory);
     }
 
     public boolean inputCaptured() {
@@ -203,7 +214,14 @@ public class CaptureRuntime {
         session.updateViewport(viewport);
         if (batch.needsFrame()) session.requestRefresh();
         long sampleTime = System.nanoTime();
-        if (batchRecording != null) batchRecording.tick(sampleTime);
+        if (batchRecording != null) {
+            batchRecording.tick(sampleTime);
+            if (!batchRecording.finished() && !batchRecording.paused()
+                && !viewport.equals(
+                    batchRecording.request()
+                        .viewport()))
+                batchRecording.togglePause(sampleTime);
+        }
         frameRequested = session.wantsFrame(sampleTime)
             || batchRecording != null && batchRecording.needsFrame(sampleTime);
         if (frameRequested && session.previewRequested()) {
@@ -234,6 +252,24 @@ public class CaptureRuntime {
         if (drawingTile) return !highResolution.content()
             .includeDebug();
         return session != null && (guiLayer.drawing() || drawingTile) && !content().includeDebug();
+    }
+
+    public boolean bindMainFramebuffer(Framebuffer target, boolean viewport) {
+        if (session == null || target != Minecraft.getMinecraft()
+            .getFramebuffer()) return false;
+        if (drawingTile) {
+            tileSource.bindCurrent(viewport);
+            return true;
+        }
+        if (guiLayer.drawing() && guiLayer.available()) {
+            guiLayer.bindCurrent(viewport);
+            return true;
+        }
+        return false;
+    }
+
+    public boolean hideNei() {
+        return session != null && guiLayer.drawing() && !content().includeNei();
     }
 
     public void frameReady() {
@@ -341,6 +377,7 @@ public class CaptureRuntime {
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public void onGuiOpen(GuiOpenEvent event) {
         guiAvailable = event.gui != null;
+        if (event.gui != null) clientGuis.observe(event.gui);
         sourceVisible = session != null && event.gui == session.sourceScreen();
     }
 
@@ -481,7 +518,11 @@ public class CaptureRuntime {
 
     private void unavailableSource() {
         sourceVisible = false;
-        if (batch != null && batch.busy()) return;
+        if (batch != null && batch.busy()) {
+            if (batchRecording != null && !batchRecording.finished() && !batchRecording.paused())
+                batchRecording.togglePause(System.nanoTime());
+            return;
+        }
         CaptureRecording recording = session.recording();
         if (recording != null && !recording.finished()) {
             if (!recording.paused()) session.pauseRecording();

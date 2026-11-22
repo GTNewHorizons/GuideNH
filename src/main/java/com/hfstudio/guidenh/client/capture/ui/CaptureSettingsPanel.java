@@ -103,6 +103,7 @@ public class CaptureSettingsPanel {
         toggle("refresh_before_save", () -> config.refreshBeforeSave, value -> config.refreshBeforeSave = value, false);
         toggle("open_folder", () -> config.openFolderAfterSave, value -> config.openFolderAfterSave = value, false);
         toggle("debug", () -> config.includeDebug, value -> config.includeDebug = value, true);
+        toggle("nei", () -> config.includeNei, value -> config.includeNei = value, true);
         integer("mask_opacity", () -> config.maskOpacity, value -> config.maskOpacity = value, 0, 90);
         integer("snap_distance", () -> config.snapDistance, value -> config.snapDistance = value, 1, 32);
         integer("snap_release", () -> config.snapReleaseDistance, value -> config.snapReleaseDistance = value, 1, 64);

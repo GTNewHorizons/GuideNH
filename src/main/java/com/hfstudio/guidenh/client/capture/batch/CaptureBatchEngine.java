@@ -4,9 +4,9 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -35,19 +35,22 @@ import com.hfstudio.guidenh.client.capture.export.CaptureOutputPaths;
 
 public class CaptureBatchEngine implements CaptureBatchController, AutoCloseable {
 
-    public enum Stage {
-        IDLE,
-        SELECTING,
-        WAITING,
-        SAVING,
-        RESTORING,
-        REPORTING,
-        COMPLETE
+    public record Stage(String id) {
+
+        public static final Stage IDLE = new Stage("idle");
+        public static final Stage SELECTING = new Stage("selecting");
+        public static final Stage WAITING = new Stage("waiting");
+        public static final Stage SAVING = new Stage("saving");
+        public static final Stage RESTORING = new Stage("restoring");
+        public static final Stage RESTORE_WAIT = new Stage("restore_wait");
+        public static final Stage REPORTING = new Stage("reporting");
+        public static final Stage COMPLETE = new Stage("complete");
     }
 
     private final CaptureRegistry registry;
     private final CaptureBatchHost host;
     private final Map<String, CaptureBatchNavigator> navigators = new LinkedHashMap<>();
+    private final Set<String> expanded = new HashSet<>();
     private final Map<String, CaptureBatchResult> results = new LinkedHashMap<>();
     private CaptureBatchCatalog catalog;
     private List<CaptureTargetDescriptor> selected = List.of();
@@ -100,6 +103,7 @@ public class CaptureBatchEngine implements CaptureBatchController, AutoCloseable
         }
         close();
         results.clear();
+        expanded.clear();
         selected = catalog.targets()
             .stream()
             .filter(target -> targetIds.contains(target.id()))
@@ -164,14 +168,13 @@ public class CaptureBatchEngine implements CaptureBatchController, AutoCloseable
     }
 
     public boolean needsFrame() {
-        return stage == Stage.WAITING;
+        return stage == Stage.WAITING || stage == Stage.RESTORE_WAIT;
     }
 
     @Override
     public CaptureBatchProgress progress() {
         return new CaptureBatchProgress(
-            stage.name()
-                .toLowerCase(Locale.ROOT),
+            stage.id(),
             nextTarget,
             selected.size(),
             current == null ? "" : current.label(),
@@ -205,9 +208,9 @@ public class CaptureBatchEngine implements CaptureBatchController, AutoCloseable
 
     public void tick(long now) {
         if (!busy()) return;
-        switch (stage) {
-            case SELECTING -> selectNext(now);
-            case WAITING -> {
+        switch (stage.id()) {
+            case "selecting" -> selectNext(now);
+            case "waiting" -> {
                 host.adoptScreen();
                 if (cancelRequested) {
                     result(current, "cancelled", "Batch cancelled", null);
@@ -217,7 +220,7 @@ public class CaptureBatchEngine implements CaptureBatchController, AutoCloseable
                     stage = Stage.SELECTING;
                 }
             }
-            case SAVING -> {
+            case "saving" -> {
                 if (capture.isDone()) {
                     try {
                         result(current, "success", "", capture.join());
@@ -235,8 +238,16 @@ public class CaptureBatchEngine implements CaptureBatchController, AutoCloseable
                     stage = Stage.SELECTING;
                 }
             }
-            case RESTORING -> restore();
-            case REPORTING -> {
+            case "restoring" -> restore(now);
+            case "restore_wait" -> {
+                host.adoptScreen();
+                if (now >= deadline) {
+                    restoration = "failed";
+                    restorationReason += "Navigation restoration timed out\n";
+                    finishRestoration();
+                }
+            }
+            case "reporting" -> {
                 if (report.isDone()) {
                     try {
                         reason = report.join()
@@ -286,6 +297,21 @@ public class CaptureBatchEngine implements CaptureBatchController, AutoCloseable
     }
 
     public void frameReady(CaptureBatchContext context) {
+        if (stage == Stage.RESTORE_WAIT) {
+            boolean ready = true;
+            for (CaptureBatchNavigator navigator : navigators.values()) {
+                try {
+                    CaptureBatchReadiness state = navigator.restorationReadiness(context);
+                    ready &= state.ready();
+                    if (!state.ready()) reason = state.reason();
+                } catch (RuntimeException error) {
+                    restoration = "failed";
+                    restorationReason += error.toString() + "\n";
+                }
+            }
+            if (ready) finishRestoration();
+            return;
+        }
         if (stage != Stage.WAITING || cancelRequested
             || context.capture()
                 .frameId() == lastFrame)
@@ -305,6 +331,24 @@ public class CaptureBatchEngine implements CaptureBatchController, AutoCloseable
             lastRevision = readiness.revision();
             if (stableFrames < catalog.options()
                 .stableFrames()) return;
+            if (expanded.add(current.id())) {
+                List<CaptureTargetDescriptor> additional = navigator.additionalTargets(current, context);
+                if (!additional.isEmpty()) {
+                    List<CaptureTargetDescriptor> all = new ArrayList<>(catalog.targets());
+                    List<CaptureTargetDescriptor> pending = new ArrayList<>(selected);
+                    Set<String> known = new HashSet<>();
+                    for (CaptureTargetDescriptor target : all) known.add(target.id());
+                    for (CaptureTargetDescriptor target : additional) {
+                        if (known.add(target.id())) {
+                            all.add(target);
+                            pending.add(target);
+                            if (!target.available()) result(target, target.availability(), target.reason(), null);
+                        }
+                    }
+                    catalog = new CaptureBatchCatalog(catalog.context(), catalog.options(), all);
+                    selected = List.copyOf(pending);
+                }
+            }
             List<CaptureRect> rectangles = navigator.regions(context);
             if (rectangles.isEmpty()) {
                 result(current, "unavailable", "The target has no visible capture area", null);
@@ -358,10 +402,11 @@ public class CaptureBatchEngine implements CaptureBatchController, AutoCloseable
                 artifact == null ? 0 : artifact.width(),
                 artifact == null ? 0 : artifact.height(),
                 artifact == null ? 0 : artifact.frameCount(),
-                detail));
+                detail,
+                target.data()));
     }
 
-    private void restore() {
+    private void restore(long now) {
         List<CaptureBatchNavigator> reverse = new ArrayList<>(navigators.values());
         if (catalog.options()
             .restoreOriginal()) {
@@ -376,7 +421,17 @@ public class CaptureBatchEngine implements CaptureBatchController, AutoCloseable
                 }
             }
         }
-        for (CaptureBatchNavigator navigator : reverse) {
+        host.adoptScreen();
+        if (catalog.options()
+            .restoreOriginal() && !restoration.equals("failed")) {
+            deadline = now + catalog.options()
+                .timeoutSeconds() * 1_000_000_000L;
+            stage = Stage.RESTORE_WAIT;
+        } else finishRestoration();
+    }
+
+    private void finishRestoration() {
+        for (CaptureBatchNavigator navigator : navigators.values()) {
             try {
                 navigator.close();
             } catch (RuntimeException error) {

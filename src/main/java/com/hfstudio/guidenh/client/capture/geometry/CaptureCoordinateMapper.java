@@ -15,6 +15,8 @@ public class CaptureCoordinateMapper {
             resolution.getScaledWidth(),
             resolution.getScaledHeight(),
             minecraft.displayWidth,
-            minecraft.displayHeight);
+            minecraft.displayHeight,
+            resolution.getScaleFactor(),
+            resolution.getScaleFactor());
     }
 }
