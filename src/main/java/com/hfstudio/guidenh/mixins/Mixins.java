@@ -17,7 +17,8 @@ public enum Mixins implements IMixins {
         "minecraft.AccessorSimpleReloadableResourceManager", "minecraft.MixinResourcePackReload",
         "forge.AccessorShapedOreRecipe", "forge.AccessorShapelessOreRecipe", "minecraft.AccessorTextureManager",
         "minecraft.AccessorTextureMap", "minecraft.AccessorTextureAtlasSprite",
-        "minecraft.MixinTessellatorSceneExportCapture", "minecraft.MixinModelRendererSceneExportCapture"),
+        "minecraft.MixinTessellatorSceneExportCapture", "minecraft.MixinModelRendererSceneExportCapture",
+        "minecraft.AccessorGuiCaptureScreen", "minecraft.AccessorGuiCaptureContainer"),
 
     AE2_EXTERNAL_CABLE_PARTS(Side.CLIENT, Phase.LATE, Mods.AE2, "compat.ae2.MixinPartQuartzFiber",
         "compat.ae2.MixinPartP2PTunnelME", "compat.ae2.MixinPartToggleBus"),
