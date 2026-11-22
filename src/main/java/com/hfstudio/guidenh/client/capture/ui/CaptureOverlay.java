@@ -15,6 +15,7 @@ import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
 
 import com.hfstudio.guidenh.client.capture.api.CaptureGeometry;
+import com.hfstudio.guidenh.client.capture.api.CaptureInputOptions;
 import com.hfstudio.guidenh.client.capture.api.CaptureRect;
 import com.hfstudio.guidenh.client.capture.api.CaptureTarget;
 import com.hfstudio.guidenh.client.capture.api.CaptureViewport;
@@ -43,16 +44,16 @@ public class CaptureOverlay implements AutoCloseable {
     private boolean draggingToolbar;
     private boolean additive;
     private int candidateOffset;
-    private final int activationKey;
+    private final CaptureInputOptions input;
     private boolean activationHeld = true;
 
-    public CaptureOverlay(Minecraft minecraft, CaptureSession session, CaptureExportWorker worker, int activationKey,
-        Runnable closeAction) {
+    public CaptureOverlay(Minecraft minecraft, CaptureSession session, CaptureExportWorker worker,
+        CaptureInputOptions input, Runnable closeAction) {
         this.minecraft = minecraft;
         this.session = session;
         this.worker = worker;
         this.closeAction = closeAction;
-        this.activationKey = activationKey;
+        this.input = input;
         preview = new CapturePreviewRenderer(minecraft);
         settings = new CaptureSettingsPanel(minecraft, session);
         add(CaptureIcons.SAVE, "save", this::save);
@@ -220,11 +221,11 @@ public class CaptureOverlay implements AutoCloseable {
         if (Mouse.isCreated()) while (Mouse.next()) mouse();
         if (Keyboard.isCreated()) while (Keyboard.next()) {
             int code = Keyboard.getEventKey();
-            if (activationHeld && code == activationKey) {
+            if (activationHeld && code == input.activationKey()) {
                 if (!Keyboard.getEventKeyState()) activationHeld = false;
                 continue;
             }
-            if (Keyboard.getEventKeyState()) key(Keyboard.getEventCharacter(), code);
+            if (!input.nativeKeyboard() && Keyboard.getEventKeyState()) key(Keyboard.getEventCharacter(), code);
         }
     }
 
@@ -238,7 +239,7 @@ public class CaptureOverlay implements AutoCloseable {
             else candidateOffset += Integer.signum(wheel);
         }
         int button = Mouse.getEventButton();
-        if (activationHeld && button >= 0 && button - 100 == activationKey) {
+        if (activationHeld && button >= 0 && button - 100 == input.activationKey()) {
             if (!Mouse.getEventButtonState()) activationHeld = false;
             return;
         }
@@ -296,8 +297,11 @@ public class CaptureOverlay implements AutoCloseable {
     }
 
     public void key(char character, int key) {
+        key(character, key, GuiScreen.isCtrlKeyDown(), GuiScreen.isShiftKeyDown());
+    }
+
+    private void key(char character, int key, boolean control, boolean shift) {
         if (settings.key(character, key)) return;
-        boolean control = GuiScreen.isCtrlKeyDown();
         if (key == Keyboard.KEY_ESCAPE) {
             if (settings.isOpen()) settings.close();
             else if (session.selections()
@@ -320,12 +324,32 @@ public class CaptureOverlay implements AutoCloseable {
         else if (control && key == Keyboard.KEY_D) session.selections()
             .duplicateActive();
         else {
-            int step = GuiScreen.isShiftKeyDown() ? 10 : 1;
+            int step = shift ? 10 : 1;
             int dx = key == Keyboard.KEY_LEFT ? -step : key == Keyboard.KEY_RIGHT ? step : 0;
             int dy = key == Keyboard.KEY_UP ? -step : key == Keyboard.KEY_DOWN ? step : 0;
             if (dx != 0 || dy != 0) session.selections()
                 .nudge(dx, dy, control);
         }
+    }
+
+    public void nativeKey(int code, boolean pressed, boolean control, boolean shift) {
+        if (activationHeld && code == input.activationKey()) {
+            if (!pressed) activationHeld = false;
+            return;
+        }
+        if (!pressed) return;
+        char character = (char) (control ? switch (code) {
+            case Keyboard.KEY_A -> 1;
+            case Keyboard.KEY_C -> 3;
+            case Keyboard.KEY_V -> 22;
+            case Keyboard.KEY_X -> 24;
+            default -> 0;
+        } : 0);
+        key(character, code, control, shift);
+    }
+
+    public void text(String text) {
+        settings.text(text);
     }
 
     private void save() {
@@ -364,6 +388,7 @@ public class CaptureOverlay implements AutoCloseable {
 
     @Override
     public void close() {
+        settings.close();
         preview.close();
     }
 }

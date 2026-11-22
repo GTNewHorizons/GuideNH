@@ -113,15 +113,13 @@ public class CaptureSettingsPanel {
     }
 
     public void toggle() {
-        open = !open;
-        editing = -1;
-        editor = null;
+        if (open) close();
+        else open = true;
     }
 
     public void close() {
         open = false;
-        editing = -1;
-        editor = null;
+        endEdit();
     }
 
     public boolean contains(int x, int y) {
@@ -217,9 +215,7 @@ public class CaptureSettingsPanel {
         if (key == Keyboard.KEY_RETURN || key == Keyboard.KEY_NUMPADENTER) {
             applyEdit();
         } else if (key == Keyboard.KEY_ESCAPE) {
-            editing = -1;
-            editor = null;
-            validation = "";
+            endEdit();
         } else {
             editor.textboxKeyTyped(character, key);
         }
@@ -232,13 +228,22 @@ public class CaptureSettingsPanel {
             setting.update()
                 .accept(editor.getText());
             if (setting.recapture()) session.requestRefresh();
-            editing = -1;
-            editor = null;
-            validation = "";
+            endEdit();
             return true;
         } catch (IllegalArgumentException error) {
             validation = I18n.format("guidenh.capture.invalid_value", error.getMessage());
             return false;
         }
+    }
+
+    public void text(String text) {
+        if (editor != null) editor.writeText(text);
+    }
+
+    private void endEdit() {
+        if (editor != null) editor.setFocused(false);
+        editing = -1;
+        editor = null;
+        validation = "";
     }
 }

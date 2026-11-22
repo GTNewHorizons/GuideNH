@@ -8,11 +8,25 @@ import java.util.Map;
 import com.hfstudio.guidenh.client.capture.api.CaptureContext;
 import com.hfstudio.guidenh.client.capture.api.CaptureGeometry;
 import com.hfstudio.guidenh.client.capture.api.CaptureGeometryProvider;
+import com.hfstudio.guidenh.client.capture.api.CaptureLifecycleListener;
 import com.hfstudio.guidenh.client.capture.api.CaptureTarget;
 
 public class CaptureRegistry {
 
     private final List<CaptureGeometryProvider> geometryProviders = new ArrayList<>();
+    private final List<CaptureLifecycleListener> lifecycleListeners = new ArrayList<>();
+
+    public void registerLifecycle(CaptureLifecycleListener listener) {
+        lifecycleListeners.add(listener);
+    }
+
+    public void opened(CaptureContext context) {
+        for (CaptureLifecycleListener listener : lifecycleListeners) listener.opened(context);
+    }
+
+    public void closed(CaptureContext context) {
+        for (CaptureLifecycleListener listener : lifecycleListeners) listener.closed(context);
+    }
 
     public void registerGeometry(CaptureGeometryProvider provider) {
         geometryProviders.removeIf(

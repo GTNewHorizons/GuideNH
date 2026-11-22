@@ -1,13 +1,19 @@
 package com.hfstudio.guidenh.client.capture;
 
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
+
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.resources.I18n;
+import net.minecraftforge.client.event.GuiOpenEvent;
 
 import org.lwjgl.input.Keyboard;
 
 import com.hfstudio.guidenh.client.capture.api.CaptureContext;
 import com.hfstudio.guidenh.client.capture.api.CaptureFrame;
+import com.hfstudio.guidenh.client.capture.api.CaptureInputEvent;
+import com.hfstudio.guidenh.client.capture.api.CaptureInputOptions;
 import com.hfstudio.guidenh.client.capture.api.CaptureSessionState;
 import com.hfstudio.guidenh.client.capture.api.CaptureViewport;
 import com.hfstudio.guidenh.client.capture.export.CaptureExportWorker;
@@ -20,6 +26,7 @@ import com.hfstudio.guidenh.client.capture.ui.CaptureOverlay;
 import com.hfstudio.guidenh.client.hotkey.OpenGuiCaptureHotkey;
 import com.hfstudio.guidenh.integration.capture.VanillaCaptureGeometryProvider;
 
+import cpw.mods.fml.common.eventhandler.EventPriority;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
 
@@ -30,12 +37,16 @@ public class CaptureRuntime {
     private final GuiLayerCaptureSource guiLayer = new GuiLayerCaptureSource();
     private final GlCapturePixelReader pixels = new GlCapturePixelReader();
     private final CaptureExportWorker exporter = new CaptureExportWorker();
-    private CaptureSession session;
+    private volatile CaptureSession session;
     private CaptureOverlay overlay;
     private long frameId;
     private float partialTicks;
     private long geometryTime;
     private boolean previousKeyRepeat;
+    private final Queue<CaptureInputEvent> inputEvents = new ConcurrentLinkedQueue<>();
+    private volatile boolean activationRequested;
+    private volatile boolean guiAvailable;
+    private boolean nativeKeyboard;
 
     public static CaptureRuntime instance() {
         return INSTANCE;
@@ -47,6 +58,27 @@ public class CaptureRuntime {
 
     public void initialize() {
         registry.registerGeometry(new VanillaCaptureGeometryProvider());
+        guiAvailable = Minecraft.getMinecraft().currentScreen != null;
+    }
+
+    public void useNativeKeyboard() {
+        nativeKeyboard = true;
+    }
+
+    public boolean guiAvailable() {
+        return guiAvailable;
+    }
+
+    public boolean inputCaptured() {
+        return session != null || activationRequested;
+    }
+
+    public void requestOpen() {
+        activationRequested = true;
+    }
+
+    public void queueInput(CaptureInputEvent event) {
+        inputEvents.add(event);
     }
 
     public boolean active() {
@@ -63,16 +95,40 @@ public class CaptureRuntime {
             minecraft,
             session,
             exporter,
-            OpenGuiCaptureHotkey.getHotkey()
-                .getKeyCode(),
+            new CaptureInputOptions(
+                OpenGuiCaptureHotkey.getHotkey()
+                    .getKeyCode(),
+                nativeKeyboard),
             this::close);
         geometryTime = 0;
+        registry.opened(new CaptureContext(session.sourceScreen(), session.viewport(), frameId, partialTicks));
     }
 
     public void routeInput(GuiScreen screen) {
+        guiAvailable = true;
+        activateRequested();
         OpenGuiCaptureHotkey.poll();
         if (session == null) screen.handleInput();
-        else overlay.handleInput();
+        else {
+            overlay.handleInput();
+            processInputEvents();
+        }
+    }
+
+    private void activateRequested() {
+        if (!activationRequested) return;
+        activationRequested = false;
+        open();
+        if (session == null) inputEvents.clear();
+    }
+
+    private void processInputEvents() {
+        CaptureInputEvent event;
+        while ((event = inputEvents.poll()) != null) {
+            if (session == null) continue;
+            if (event.text() != null) overlay.text(event.text());
+            else overlay.nativeKey(event.key(), event.pressed(), event.control(), event.shift());
+        }
     }
 
     public void beginGui(float partial) {
@@ -151,6 +207,8 @@ public class CaptureRuntime {
     @SubscribeEvent
     public void onClientTick(TickEvent.ClientTickEvent event) {
         if (event.phase != TickEvent.Phase.END) return;
+        guiAvailable = Minecraft.getMinecraft().currentScreen != null;
+        activateRequested();
         OpenGuiCaptureHotkey.poll();
         if (session == null) return;
         session.pollExport();
@@ -158,15 +216,23 @@ public class CaptureRuntime {
             .equals(CaptureSessionState.CLOSED)) close();
     }
 
+    @SubscribeEvent(priority = EventPriority.LOWEST)
+    public void onGuiOpen(GuiOpenEvent event) {
+        guiAvailable = event.gui != null;
+    }
+
     public void close() {
         if (session == null) return;
         overlay.close();
+        registry.closed(new CaptureContext(session.sourceScreen(), session.viewport(), frameId, partialTicks));
         guiLayer.close();
         pixels.release();
         session.close();
         Keyboard.enableRepeatEvents(previousKeyRepeat);
         overlay = null;
         session = null;
+        activationRequested = false;
+        inputEvents.clear();
     }
 
     public void shutdown() {
