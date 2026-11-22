@@ -1,7 +1,11 @@
 package com.hfstudio.guidenh.client.capture;
 
 import java.io.IOException;
+import java.nio.file.Path;
+import java.util.List;
 import java.util.Queue;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import net.minecraft.client.Minecraft;
@@ -13,18 +17,25 @@ import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.Display;
 
+import com.hfstudio.guidenh.client.capture.api.CaptureBatchContext;
+import com.hfstudio.guidenh.client.capture.api.CaptureBatchHost;
+import com.hfstudio.guidenh.client.capture.api.CaptureBatchManifest;
+import com.hfstudio.guidenh.client.capture.api.CaptureBatchOptions;
 import com.hfstudio.guidenh.client.capture.api.CaptureContentOptions;
 import com.hfstudio.guidenh.client.capture.api.CaptureContext;
 import com.hfstudio.guidenh.client.capture.api.CaptureExportRequest;
 import com.hfstudio.guidenh.client.capture.api.CaptureFrame;
+import com.hfstudio.guidenh.client.capture.api.CaptureGeometry;
 import com.hfstudio.guidenh.client.capture.api.CaptureGuiRenderer;
 import com.hfstudio.guidenh.client.capture.api.CaptureInputEvent;
 import com.hfstudio.guidenh.client.capture.api.CaptureInputOptions;
 import com.hfstudio.guidenh.client.capture.api.CaptureOutputArtifact;
 import com.hfstudio.guidenh.client.capture.api.CaptureOutputSize;
 import com.hfstudio.guidenh.client.capture.api.CaptureRenderSnapshot;
+import com.hfstudio.guidenh.client.capture.api.CaptureRows;
 import com.hfstudio.guidenh.client.capture.api.CaptureSessionState;
 import com.hfstudio.guidenh.client.capture.api.CaptureViewport;
+import com.hfstudio.guidenh.client.capture.batch.CaptureBatchEngine;
 import com.hfstudio.guidenh.client.capture.export.CaptureComposition;
 import com.hfstudio.guidenh.client.capture.export.CaptureExportWorker;
 import com.hfstudio.guidenh.client.capture.export.CaptureRowComposer;
@@ -36,12 +47,14 @@ import com.hfstudio.guidenh.client.capture.render.GlCapturePixelReader;
 import com.hfstudio.guidenh.client.capture.render.GuiLayerCaptureSource;
 import com.hfstudio.guidenh.client.capture.render.GuiTileCaptureSource;
 import com.hfstudio.guidenh.client.capture.session.CaptureSchedule;
+import com.hfstudio.guidenh.client.capture.session.CaptureSelectionSnapshot;
 import com.hfstudio.guidenh.client.capture.session.CaptureSession;
 import com.hfstudio.guidenh.client.capture.ui.CaptureOverlay;
 import com.hfstudio.guidenh.client.capture.ui.CaptureOverlayActions;
 import com.hfstudio.guidenh.client.hotkey.OpenGuiCaptureHotkey;
 import com.hfstudio.guidenh.integration.capture.VanillaCaptureGeometryProvider;
 import com.hfstudio.guidenh.integration.capture.VanillaCaptureGuiRenderer;
+import com.hfstudio.guidenh.integration.capture.VisibleGuiBatchProvider;
 
 import cpw.mods.fml.common.eventhandler.EventPriority;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
@@ -73,6 +86,14 @@ public class CaptureRuntime {
     private CaptureSchedule schedule;
     private volatile boolean sourceVisible;
     private CaptureOutputArtifact openedArtifact;
+    private CaptureBatchEngine batch;
+    private final RuntimeBatchHost batchHost = new RuntimeBatchHost();
+    private CaptureRecording batchRecording;
+    private CaptureGeometry geometry;
+    private CaptureSelectionSnapshot batchSelections;
+    private GuiScreen batchOrigin;
+    private CompletableFuture<CaptureOutputArtifact> highResolutionCompletion;
+    private boolean closeAfterBatch;
 
     public static CaptureRuntime instance() {
         return INSTANCE;
@@ -85,6 +106,7 @@ public class CaptureRuntime {
     public void initialize() {
         registry.registerGeometry(new VanillaCaptureGeometryProvider());
         registry.registerRenderer(new VanillaCaptureGuiRenderer());
+        registry.registerBatch(new VisibleGuiBatchProvider());
         guiAvailable = Minecraft.getMinecraft().currentScreen != null;
     }
 
@@ -120,6 +142,7 @@ public class CaptureRuntime {
         Keyboard.enableRepeatEvents(true);
         session = new CaptureSession(minecraft.currentScreen, CaptureCoordinateMapper.current(minecraft));
         sourceVisible = true;
+        batch = new CaptureBatchEngine(registry, batchHost);
         overlay = new CaptureOverlay(
             minecraft,
             session,
@@ -134,7 +157,8 @@ public class CaptureRuntime {
                 session::stopRecording,
                 this::toggleSchedule,
                 this::close,
-                () -> schedule != null));
+                () -> schedule != null),
+            batch);
         frameRequested = true;
         registry.opened(new CaptureContext(session.sourceScreen(), session.viewport(), frameId, partialTicks));
     }
@@ -177,7 +201,11 @@ public class CaptureRuntime {
         partialTicks = partial;
         CaptureViewport viewport = CaptureCoordinateMapper.current(minecraft);
         session.updateViewport(viewport);
-        frameRequested = session.wantsFrame(System.nanoTime());
+        if (batch.needsFrame()) session.requestRefresh();
+        long sampleTime = System.nanoTime();
+        if (batchRecording != null) batchRecording.tick(sampleTime);
+        frameRequested = session.wantsFrame(sampleTime)
+            || batchRecording != null && batchRecording.needsFrame(sampleTime);
         if (frameRequested && session.previewRequested()) {
             sourceMouseX = Mouse.getX() * viewport.logicalWidth() / viewport.pixelWidth();
             sourceMouseY = viewport.logicalHeight() - Mouse.getY() * viewport.logicalHeight() / viewport.pixelHeight()
@@ -228,14 +256,18 @@ public class CaptureRuntime {
                     frame = null;
                     session.notify(I18n.format("guidenh.capture.requires_framebuffer"));
                 }
-                if (frame != null) session.acceptFrame(frame);
+                if (frame != null) {
+                    if (batchRecording != null) batchRecording.offer(frame, now);
+                    session.acceptFrame(frame);
+                }
             }
             if (frameRequested && session.previewRequested()) {
-                overlay.updateGeometry(
-                    registry.collect(
-                        new CaptureContext(session.sourceScreen(), session.viewport(), frameId, partialTicks)));
+                geometry = registry
+                    .collect(new CaptureContext(session.sourceScreen(), session.viewport(), frameId, partialTicks));
+                overlay.updateGeometry(geometry);
             }
             frameRequested = false;
+            if (batch.busy()) batch.frameReady(batchHost.context());
             if (pendingSave) {
                 pendingSave = false;
                 saveNow();
@@ -243,7 +275,15 @@ public class CaptureRuntime {
             if (highResolution != null) {
                 try {
                     drawingTile = true;
-                    if (highResolution.step(tileSource, pixels, session, exporter)) {
+                    if (highResolution.step(tileSource, pixels)) {
+                        CaptureRows rows = highResolution.takeRows();
+                        CompletableFuture<CaptureOutputArtifact> completion = highResolutionCompletion;
+                        exporter.submitRows(highResolution.request(), rows)
+                            .whenComplete((artifact, error) -> {
+                                if (error == null) completion.complete(artifact);
+                                else completion.completeExceptionally(error);
+                            });
+                        highResolutionCompletion = null;
                         highResolution.close();
                         highResolution = null;
                         tileSource.close();
@@ -253,7 +293,7 @@ public class CaptureRuntime {
                             highResolution.completedTiles(),
                             highResolution.tileCount()));
                 } catch (IOException | RuntimeException error) {
-                    session.outputFailed(error);
+                    if (highResolutionCompletion != null) highResolutionCompletion.completeExceptionally(error);
                     releaseHighResolution();
                 } finally {
                     drawingTile = false;
@@ -272,6 +312,17 @@ public class CaptureRuntime {
         OpenGuiCaptureHotkey.poll();
         if (session == null) return;
         sourceVisible = Minecraft.getMinecraft().currentScreen == session.sourceScreen();
+        if (batchRecording != null) {
+            batchRecording.tick(System.nanoTime());
+            if (batchRecording.completion()
+                .isDone()) batchRecording = null;
+        }
+        batch.tick(System.nanoTime());
+        if (closeAfterBatch && !batch.busy()) {
+            closeAfterBatch = false;
+            close();
+            return;
+        }
         session.pollExport();
         if (session.lastArtifact() != null && session.lastArtifact() != openedArtifact) {
             openedArtifact = session.lastArtifact();
@@ -295,6 +346,13 @@ public class CaptureRuntime {
 
     public void close() {
         if (session == null) return;
+        if (batch != null && batch.busy()) {
+            batch.cancel();
+            closeAfterBatch = true;
+            return;
+        }
+        if (batch != null) batch.close();
+        batch = null;
         releaseHighResolution();
         pendingSave = false;
         schedule = null;
@@ -327,6 +385,10 @@ public class CaptureRuntime {
     }
 
     private CaptureContentOptions content() {
+        if (batch != null && batch.busy()) return batch.catalog()
+            .options()
+            .output()
+            .content();
         CaptureRecording recording = session.recording();
         if (recording != null && !recording.finished()) return recording.request()
             .options()
@@ -419,6 +481,7 @@ public class CaptureRuntime {
 
     private void unavailableSource() {
         sourceVisible = false;
+        if (batch != null && batch.busy()) return;
         CaptureRecording recording = session.recording();
         if (recording != null && !recording.finished()) {
             if (!recording.paused()) session.pauseRecording();
@@ -428,76 +491,214 @@ public class CaptureRuntime {
 
     private void saveNow() {
         if (!session.canSave()) return;
-        Minecraft minecraft = Minecraft.getMinecraft();
         try {
-            CaptureExportRequest request = session.request(minecraft.mcDataDir.toPath());
-            CaptureComposition composition = CaptureRowComposer.compose(request);
-            CaptureOutputSize output = request.options()
-                .resolution()
-                .resolve(
-                    composition.size()
-                        .width(),
-                    composition.size()
-                        .height());
-            boolean enlarged = output.width() > composition.size()
-                .width() || output.height()
-                    > composition.size()
-                        .height();
-            String quality = request.options()
-                .resolution()
-                .qualityPolicy();
-            if (enlarged && !quality.equals("compatible")) {
-                CaptureContext context = new CaptureContext(
-                    session.sourceScreen(),
-                    session.viewport(),
-                    frameId,
-                    partialTicks);
-                CaptureGuiRenderer renderer = registry.renderer(context);
-                if (renderer != null && !request.options()
-                    .content()
-                    .includeWorld()
-                    && session.settings()
-                        .config().format.equals("png")
-                    && guiLayer.available()) {
-                    int tileSize = tileSource.tileLimit(
-                        session.settings()
-                            .config().tileSize,
-                        (long) session.settings()
-                            .config().memoryBudgetMiB << 20);
-                    CaptureRenderSnapshot snapshot = renderer.snapshot(
-                        context,
-                        sourceMouseX,
-                        sourceMouseY,
-                        request.options()
-                            .content()
-                            .includeGuiBackdrop());
-                    try {
-                        highResolution = new CaptureHighResolutionJob(
-                            request,
-                            snapshot,
-                            tileSize,
-                            session.preview()
-                                .timestampNanos());
-                    } catch (IOException | RuntimeException error) {
-                        snapshot.close();
-                        throw error;
-                    }
-                    session.preparingOutput();
-                    session.outputQuality("redrawn");
-                    return;
-                }
-                if (quality.equals("strict"))
-                    throw new IllegalArgumentException(I18n.format("guidenh.capture.no_high_resolution"));
-            }
-            session.save(exporter, minecraft.mcDataDir.toPath());
-            session.outputQuality(enlarged ? "resampled" : "native");
-            if (enlarged) session.notify(I18n.format("guidenh.capture.compatible_scaling"));
+            CaptureExportRequest request = session.request(Minecraft.getMinecraft().mcDataDir.toPath());
+            session.beginExport(
+                captureFrame(
+                    request,
+                    session.preview(),
+                    session.settings()
+                        .config().tileSize,
+                    (long) session.settings()
+                        .config().memoryBudgetMiB << 20));
         } catch (IOException | RuntimeException error) {
             session.outputFailed(error);
         }
     }
 
+    private CompletableFuture<CaptureOutputArtifact> captureFrame(CaptureExportRequest request, CaptureFrame frame,
+        int tileSize, long memoryBudget) throws IOException {
+        CaptureComposition composition = CaptureRowComposer.compose(request);
+        CaptureOutputSize output = request.options()
+            .resolution()
+            .resolve(
+                composition.size()
+                    .width(),
+                composition.size()
+                    .height());
+        boolean enlarged = output.width() > composition.size()
+            .width() || output.height()
+                > composition.size()
+                    .height();
+        String quality = request.options()
+            .resolution()
+            .qualityPolicy();
+        if (enlarged && !quality.equals("compatible")) {
+            CaptureContext context = new CaptureContext(
+                session.sourceScreen(),
+                session.viewport(),
+                frameId,
+                partialTicks);
+            CaptureGuiRenderer renderer = registry.renderer(context);
+            if (renderer != null && !request.options()
+                .content()
+                .includeWorld()
+                && guiLayer.available()
+                && request.viewport()
+                    .equals(session.viewport())) {
+                CaptureRenderSnapshot snapshot = renderer.snapshot(
+                    context,
+                    sourceMouseX,
+                    sourceMouseY,
+                    request.options()
+                        .content()
+                        .includeGuiBackdrop());
+                try {
+                    highResolution = new CaptureHighResolutionJob(
+                        request,
+                        snapshot,
+                        tileSource.tileLimit(tileSize, memoryBudget),
+                        frame.timestampNanos());
+                } catch (IOException | RuntimeException error) {
+                    snapshot.close();
+                    throw error;
+                }
+                highResolutionCompletion = new CompletableFuture<>();
+                session.outputQuality("redrawn");
+                return highResolutionCompletion;
+            }
+            if (quality.equals("strict"))
+                throw new IllegalArgumentException(I18n.format("guidenh.capture.no_high_resolution"));
+        }
+        session.outputQuality(enlarged ? "resampled" : "native");
+        return exporter.submit(request, frame, "png");
+    }
+
+    public class RuntimeBatchHost implements CaptureBatchHost {
+
+        @Override
+        public CaptureBatchContext context() {
+            Minecraft minecraft = Minecraft.getMinecraft();
+            CaptureViewport viewport = CaptureCoordinateMapper.current(minecraft);
+            CaptureGeometry current = geometry == null || !geometry.viewport()
+                .equals(viewport) ? new CaptureGeometry(0, viewport, List.of()) : geometry;
+            return new CaptureBatchContext(
+                new CaptureContext(minecraft.currentScreen, viewport, frameId, partialTicks),
+                current);
+        }
+
+        @Override
+        public CaptureBatchOptions options() {
+            return session.settings()
+                .batch(Minecraft.getMinecraft().mcDataDir.toPath());
+        }
+
+        @Override
+        public CaptureFrame frame() {
+            return session.preview();
+        }
+
+        @Override
+        public boolean readyForBatch() {
+            return !session.busy() && !pendingSave && highResolution == null;
+        }
+
+        @Override
+        public void beginBatch() {
+            batchSelections = session.selections()
+                .snapshot();
+            batchOrigin = session.sourceScreen();
+            schedule = null;
+            session.keepOpenAfterSave(true);
+        }
+
+        @Override
+        public void endBatch() {
+            if (session.sourceScreen() == batchOrigin) session.selections()
+                .restore(batchSelections);
+            session.keepOpenAfterSave(false);
+            batchSelections = null;
+            batchOrigin = null;
+            session.requestRefresh();
+        }
+
+        @Override
+        public void adoptScreen() {
+            Minecraft minecraft = Minecraft.getMinecraft();
+            if (minecraft.currentScreen == null || minecraft.currentScreen == session.sourceScreen()) return;
+            registry.closed(new CaptureContext(session.sourceScreen(), session.viewport(), frameId, partialTicks));
+            session.adoptScreen(minecraft.currentScreen, CaptureCoordinateMapper.current(minecraft));
+            geometry = null;
+            sourceVisible = true;
+            inputEvents.clear();
+            registry.opened(new CaptureContext(session.sourceScreen(), session.viewport(), frameId, partialTicks));
+        }
+
+        @Override
+        public CompletableFuture<CaptureOutputArtifact> capture(CaptureExportRequest request,
+            CaptureBatchOptions options, CaptureFrame frame) {
+            try {
+                if (options.recording() != null) {
+                    CaptureComposition composition = CaptureRowComposer.compose(request);
+                    CaptureOutputSize size = request.options()
+                        .resolution()
+                        .resolve(
+                            composition.size()
+                                .width(),
+                            composition.size()
+                                .height());
+                    if (request.options()
+                        .resolution()
+                        .qualityPolicy()
+                        .equals("strict")
+                        && (size.width() > composition.size()
+                            .width() || size.height()
+                                > composition.size()
+                                    .height())) {
+                        throw new IllegalArgumentException(I18n.format("guidenh.capture.no_high_resolution"));
+                    }
+                    CaptureRecording created = new CaptureRecording(request, options.recording(), System.nanoTime());
+                    try {
+                        exporter.startRecording(created);
+                    } catch (RuntimeException error) {
+                        created.close();
+                        throw error;
+                    }
+                    batchRecording = created;
+                    return batchRecording.completion();
+                }
+                return captureFrame(request, frame, options.tileSize(), options.memoryBudgetBytes());
+            } catch (IOException | RuntimeException error) {
+                return CompletableFuture.failedFuture(error);
+            }
+        }
+
+        @Override
+        public boolean recordingActive() {
+            return batchRecording != null && !batchRecording.finished();
+        }
+
+        @Override
+        public boolean recordingPaused() {
+            return recordingActive() && batchRecording.paused();
+        }
+
+        @Override
+        public void pauseCapture() {
+            if (recordingActive()) batchRecording.togglePause(System.nanoTime());
+        }
+
+        @Override
+        public void stopCapture() {
+            if (recordingActive()) batchRecording.stop(System.nanoTime());
+        }
+
+        @Override
+        public void cancelCapture() {
+            if (batchRecording != null) batchRecording.close();
+            releaseHighResolution();
+        }
+
+        @Override
+        public CompletableFuture<Path> writeManifest(CaptureBatchManifest manifest, Path directory) {
+            return exporter.writeManifest(manifest, directory);
+        }
+    }
+
     private void releaseHighResolution() {
+        if (highResolutionCompletion != null)
+            highResolutionCompletion.completeExceptionally(new CancellationException("Capture cancelled"));
+        highResolutionCompletion = null;
         try {
             if (highResolution != null) highResolution.close();
         } catch (IOException error) {
@@ -513,6 +714,9 @@ public class CaptureRuntime {
     }
 
     public void shutdown() {
+        if (batch != null) batch.close();
+        batch = null;
+        if (batchRecording != null) batchRecording.close();
         close();
         exporter.close();
     }

@@ -381,6 +381,7 @@ public enum GuidebookText implements LocalizationEnum {
     CommandStructureImportCanceled,
     CommandStructureImportSuccess,
     CommandStructureImportFailure,
+    CommandStructureUploadConfirm,
     CommandStructurePlacedAll,
     CommandStructureNoMemory,
     CommandStructureServerRequired,

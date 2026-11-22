@@ -2,6 +2,8 @@ package com.hfstudio.guidenh.client.capture.export;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.io.Writer;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Comparator;
@@ -12,8 +14,10 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import com.google.gson.GsonBuilder;
 import com.hfstudio.guidenh.client.capture.api.CaptureAnimationExporter;
 import com.hfstudio.guidenh.client.capture.api.CaptureAnimationWriter;
+import com.hfstudio.guidenh.client.capture.api.CaptureBatchManifest;
 import com.hfstudio.guidenh.client.capture.api.CaptureExportRequest;
 import com.hfstudio.guidenh.client.capture.api.CaptureExporter;
 import com.hfstudio.guidenh.client.capture.api.CaptureFrame;
@@ -45,6 +49,33 @@ public class CaptureExportWorker implements AutoCloseable {
 
     public void registerAnimation(CaptureAnimationExporter exporter) {
         animationExporters.put(exporter.format(), exporter);
+    }
+
+    public CompletableFuture<Path> writeManifest(CaptureBatchManifest manifest, Path directory) {
+        return CompletableFuture.supplyAsync(() -> {
+            Path temporary = null;
+            try {
+                temporary = Files.createTempFile(directory, ".guidenh_manifest_", ".part");
+                try (Writer writer = Files.newBufferedWriter(temporary, StandardCharsets.UTF_8)) {
+                    new GsonBuilder().setPrettyPrinting()
+                        .create()
+                        .toJson(manifest, writer);
+                }
+                Path target = directory.resolve("batch.json");
+                Files.move(temporary, target);
+                return target;
+            } catch (IOException error) {
+                throw new UncheckedIOException(error);
+            } finally {
+                if (temporary != null) {
+                    try {
+                        Files.deleteIfExists(temporary);
+                    } catch (IOException error) {
+                        throw new UncheckedIOException(error);
+                    }
+                }
+            }
+        }, executor);
     }
 
     public void startRecording(CaptureRecording recording) {

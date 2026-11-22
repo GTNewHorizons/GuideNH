@@ -140,6 +140,33 @@ public class CaptureSettingsPanel {
         integer("queue_frames", () -> config.queueFrames, value -> config.queueFrames = value, 1, 16);
         integer("disk_budget", () -> config.temporaryBudgetMiB, value -> config.temporaryBudgetMiB = value, 128, 65536);
         toggle("strict_queue", () -> config.strictRecordingQueue, value -> config.strictRecordingQueue = value, false);
+        toggle("batch_visible", () -> config.captureVisibleLayers, value -> config.captureVisibleLayers = value, false);
+        toggle("batch_pages", () -> config.capturePages, value -> config.capturePages = value, false);
+        toggle(
+            "batch_reachable",
+            () -> config.captureReachableGuis,
+            value -> config.captureReachableGuis = value,
+            false);
+        toggle("batch_popups", () -> config.includePopups, value -> config.includePopups = value, false);
+        toggle("batch_variants", () -> config.includeVariants, value -> config.includeVariants = value, false);
+        toggle("batch_restore", () -> config.restoreOriginal, value -> config.restoreOriginal = value, false);
+        integer("stable_frames", () -> config.stableFrames, value -> config.stableFrames = value, 1, 60);
+        integer("timeout", () -> config.timeoutSeconds, value -> config.timeoutSeconds = value, 1, 60);
+        integer("target_limit", () -> config.maxTargets, value -> config.maxTargets = value, 1, 100000);
+        settings.add(
+            new CaptureSetting(
+                "batch_layers",
+                () -> config.batchVisibleMode,
+                value -> config.batchVisibleMode = value,
+                List.of("composite", "windows"),
+                false));
+        settings.add(
+            new CaptureSetting(
+                "batch_providers",
+                () -> config.batchProviders,
+                value -> config.batchProviders = value,
+                List.of(),
+                false));
         settings.add(
             new CaptureSetting(
                 "background",

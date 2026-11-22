@@ -9,11 +9,10 @@ import com.hfstudio.guidenh.client.capture.api.CaptureFrame;
 import com.hfstudio.guidenh.client.capture.api.CaptureOptions;
 import com.hfstudio.guidenh.client.capture.api.CaptureOutputSize;
 import com.hfstudio.guidenh.client.capture.api.CaptureRenderSnapshot;
+import com.hfstudio.guidenh.client.capture.api.CaptureRows;
 import com.hfstudio.guidenh.client.capture.api.CaptureTile;
 import com.hfstudio.guidenh.client.capture.export.CaptureComposition;
-import com.hfstudio.guidenh.client.capture.export.CaptureExportWorker;
 import com.hfstudio.guidenh.client.capture.export.CaptureRowComposer;
-import com.hfstudio.guidenh.client.capture.session.CaptureSession;
 
 public class CaptureHighResolutionJob implements AutoCloseable {
 
@@ -76,8 +75,7 @@ public class CaptureHighResolutionJob implements AutoCloseable {
             .content();
     }
 
-    public boolean step(GuiTileCaptureSource source, GlCapturePixelReader reader, CaptureSession session,
-        CaptureExportWorker worker) throws IOException {
+    public boolean step(GuiTileCaptureSource source, GlCapturePixelReader reader) throws IOException {
         CaptureTile tile = tiles.get(nextTile);
         try (CaptureFrame frame = source.render(
             tile,
@@ -90,10 +88,17 @@ public class CaptureHighResolutionJob implements AutoCloseable {
             store.put(tile, frame, GuiTileCaptureSource.GUARD);
         }
         nextTile++;
-        if (nextTile < tiles.size()) return false;
-        session.beginExport(worker.submitRows(request, store));
+        return nextTile == tiles.size();
+    }
+
+    public CaptureExportRequest request() {
+        return request;
+    }
+
+    public CaptureRows takeRows() {
+        CaptureRows result = store;
         store = null;
-        return true;
+        return result;
     }
 
     @Override

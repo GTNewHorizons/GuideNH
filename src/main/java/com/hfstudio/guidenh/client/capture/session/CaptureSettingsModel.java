@@ -1,9 +1,12 @@
 package com.hfstudio.guidenh.client.capture.session;
 
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.stream.Collectors;
 
+import com.hfstudio.guidenh.client.capture.api.CaptureBatchOptions;
 import com.hfstudio.guidenh.client.capture.api.CaptureContentOptions;
 import com.hfstudio.guidenh.client.capture.api.CaptureLayoutOptions;
 import com.hfstudio.guidenh.client.capture.api.CaptureOptions;
@@ -84,6 +87,31 @@ public class CaptureSettingsModel {
             config.includeDebug,
             config.includeNei,
             config.backgroundArgb);
+    }
+
+    public CaptureBatchOptions batch(Path gameDirectory) {
+        Set<String> scopes = new HashSet<>();
+        if (config.captureVisibleLayers) scopes.add(CaptureBatchOptions.VISIBLE);
+        if (config.capturePages) scopes.add(CaptureBatchOptions.PAGES);
+        if (config.captureReachableGuis) scopes.add(CaptureBatchOptions.REACHABLE);
+        Set<String> providers = Arrays.stream(config.batchProviders.split(","))
+            .map(String::trim)
+            .filter(value -> !value.isEmpty())
+            .collect(Collectors.toSet());
+        return new CaptureBatchOptions(
+            scopes,
+            providers,
+            config.batchVisibleMode,
+            config.includePopups,
+            config.includeVariants,
+            config.stableFrames,
+            config.timeoutSeconds,
+            config.maxTargets,
+            config.restoreOriginal,
+            config.tileSize,
+            (long) config.memoryBudgetMiB << 20,
+            snapshot(gameDirectory),
+            config.format.equals("png") ? null : recording());
     }
 
     public CaptureRecordingOptions recording() {

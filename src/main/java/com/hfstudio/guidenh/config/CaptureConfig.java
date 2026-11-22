@@ -168,6 +168,12 @@ public class CaptureConfig {
     @DefaultBoolean(true)
     public boolean captureVisibleLayers = true;
 
+    @DefaultString("composite")
+    public String batchVisibleMode = "composite";
+
+    @DefaultString("")
+    public String batchProviders = "";
+
     @DefaultBoolean(false)
     public boolean capturePages;
 

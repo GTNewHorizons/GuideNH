@@ -21,7 +21,7 @@ import com.hfstudio.guidenh.config.ModConfig;
 public class CaptureSession implements AutoCloseable {
 
     private final UUID id = UUID.randomUUID();
-    private final GuiScreen sourceScreen;
+    private GuiScreen sourceScreen;
     private final CaptureSelectionController selections;
     private final CaptureSettingsModel settings;
     private CaptureViewport viewport;
@@ -47,6 +47,16 @@ public class CaptureSession implements AutoCloseable {
 
     public GuiScreen sourceScreen() {
         return sourceScreen;
+    }
+
+    public void adoptScreen(GuiScreen screen, CaptureViewport viewport) {
+        if (sourceScreen == screen) return;
+        sourceScreen = screen;
+        this.viewport = viewport;
+        selections.setBounds(viewport.bounds());
+        if (preview != null) preview.close();
+        preview = null;
+        requestRefresh();
     }
 
     public CaptureViewport viewport() {

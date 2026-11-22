@@ -276,11 +276,11 @@ public class CaptureSelectionController {
         restore(history.redo(snapshot()));
     }
 
-    private CaptureSelectionSnapshot snapshot() {
+    public CaptureSelectionSnapshot snapshot() {
         return new CaptureSelectionSnapshot(regions, activeId);
     }
 
-    private void restore(CaptureSelectionSnapshot snapshot) {
+    public void restore(CaptureSelectionSnapshot snapshot) {
         if (snapshot == null) return;
         regions.clear();
         for (CaptureRegion region : snapshot.regions()) regions.add(

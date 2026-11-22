@@ -15,6 +15,7 @@ import net.minecraft.client.resources.I18n;
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
 
+import com.hfstudio.guidenh.client.capture.api.CaptureBatchController;
 import com.hfstudio.guidenh.client.capture.api.CaptureGeometry;
 import com.hfstudio.guidenh.client.capture.api.CaptureInputOptions;
 import com.hfstudio.guidenh.client.capture.api.CaptureRect;
@@ -31,6 +32,8 @@ public class CaptureOverlay implements AutoCloseable {
     private final Runnable closeAction;
     private final Runnable saveAction;
     private final CaptureOverlayActions actions;
+    private final CaptureBatchController batchController;
+    private final CaptureBatchPanel batchPanel;
     private CaptureIconButton recordButton;
     private CaptureIconButton pauseButton;
     private CaptureIconButton stopButton;
@@ -53,24 +56,22 @@ public class CaptureOverlay implements AutoCloseable {
     private boolean activationHeld = true;
 
     public CaptureOverlay(Minecraft minecraft, CaptureSession session, CaptureInputOptions input,
-        CaptureOverlayActions actions) {
+        CaptureOverlayActions actions, CaptureBatchController batchController) {
         this.minecraft = minecraft;
         this.session = session;
         this.actions = actions;
+        this.batchController = batchController;
+        batchPanel = new CaptureBatchPanel(minecraft, batchController);
         this.closeAction = actions.close();
         this.saveAction = actions.save();
         this.input = input;
         preview = new CapturePreviewRenderer(minecraft);
         settings = new CaptureSettingsPanel(minecraft, session);
         add(CaptureIcons.SAVE, "save", this::save);
-        add(
-            CaptureIcons.CAPTURE_ALL,
-            "all_visible",
-            () -> session.selections()
-                .select(
-                    session.viewport()
-                        .bounds(),
-                    false));
+        add(CaptureIcons.CAPTURE_ALL, "all_visible", () -> {
+            settings.close();
+            batchPanel.toggle();
+        });
         add(CaptureIcons.ADD, "add", () -> additive = !additive);
         add(
             CaptureIcons.SNAP,
@@ -148,7 +149,7 @@ public class CaptureOverlay implements AutoCloseable {
             (int) toolbar.right() - 6,
             (int) toolbar.y() + 6,
             0xFF687581);
-        buttons.get(0).enabled = session.canSave();
+        buttons.get(0).enabled = session.canSave() && !batchController.busy();
         buttons.get(2)
             .setActive(additive);
         buttons.get(3)
@@ -167,12 +168,12 @@ public class CaptureOverlay implements AutoCloseable {
             .canRedo();
         buttons.get(8)
             .setActive(settings.isOpen());
-        if (session.busy()) {
+        if ((session.busy() || batchController.busy())) {
             for (int index = 1; index < 8; index++) buttons.get(index).enabled = false;
         } else {
             for (int index = 1; index < 6; index++) buttons.get(index).enabled = true;
         }
-        recordButton.enabled = session.canSave();
+        recordButton.enabled = session.canSave() && !batchController.busy();
         recordButton.setActive(session.recording() != null);
         pauseButton.enabled = session.recording() != null && !session.recording()
             .finished();
@@ -230,6 +231,7 @@ public class CaptureOverlay implements AutoCloseable {
             8,
             viewport.logicalHeight() - 12,
             0xE0E7EE);
+        batchPanel.draw(viewport, mouseX, mouseY);
     }
 
     private void updateLayout(CaptureViewport viewport) {
@@ -275,6 +277,12 @@ public class CaptureOverlay implements AutoCloseable {
         int x = Mouse.getEventX() * viewport.logicalWidth() / viewport.pixelWidth();
         int y = viewport.logicalHeight() - Mouse.getEventY() * viewport.logicalHeight() / viewport.pixelHeight() - 1;
         int wheel = Mouse.getEventDWheel();
+        if (batchPanel.isOpen()) {
+            if (wheel != 0) batchPanel.scroll(wheel);
+            if (Mouse.getEventButton() >= 0 && Mouse.getEventButtonState())
+                batchPanel.click(x, y, Mouse.getEventButton());
+            return;
+        }
         if (wheel != 0) {
             if (settings.contains(x, y)) settings.scroll(wheel);
             else candidateOffset += Integer.signum(wheel);
@@ -308,19 +316,19 @@ public class CaptureOverlay implements AutoCloseable {
                 }
                 return;
             }
-            if (session.busy()) return;
+            if ((session.busy() || batchController.busy())) return;
             if (button == 1) session.selections()
                 .redraw();
             else if (button == 0) session.selections()
                 .begin(x, y, additive || GuiScreen.isCtrlKeyDown(), targetAt(x, y));
         } else if (button == 0) {
             draggingToolbar = false;
-            if (session.busy()) return;
+            if ((session.busy() || batchController.busy())) return;
             session.selections()
                 .finish(x, y);
             additive = false;
         } else if (button == -1) {
-            if (session.busy()) return;
+            if ((session.busy() || batchController.busy())) return;
             if (draggingToolbar) {
                 toolbarX = x - dragOffsetX;
                 toolbarY = y - dragOffsetY;
@@ -345,12 +353,13 @@ public class CaptureOverlay implements AutoCloseable {
     }
 
     private void key(char character, int key, boolean control, boolean shift) {
+        if (batchPanel.key(character, key)) return;
         if (settings.key(character, key)) return;
         if (key == Keyboard.KEY_ESCAPE && settings.isOpen()) {
             settings.close();
             return;
         }
-        if (session.busy()) {
+        if ((session.busy() || batchController.busy())) {
             if (key == Keyboard.KEY_ESCAPE) closeAction.run();
             else if (key == Keyboard.KEY_SPACE) actions.pause()
                 .run();
@@ -405,7 +414,8 @@ public class CaptureOverlay implements AutoCloseable {
     }
 
     public void text(String text) {
-        settings.text(text);
+        if (batchPanel.isOpen()) batchPanel.text(text);
+        else settings.text(text);
     }
 
     private void save() {
