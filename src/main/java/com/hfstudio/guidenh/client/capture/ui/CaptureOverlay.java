@@ -2,6 +2,7 @@ package com.hfstudio.guidenh.client.capture.ui;
 
 import java.awt.Desktop;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -17,7 +18,6 @@ import org.lwjgl.input.Mouse;
 import com.hfstudio.guidenh.client.capture.api.CaptureGeometry;
 import com.hfstudio.guidenh.client.capture.api.CaptureInputOptions;
 import com.hfstudio.guidenh.client.capture.api.CaptureRect;
-import com.hfstudio.guidenh.client.capture.api.CaptureSessionState;
 import com.hfstudio.guidenh.client.capture.api.CaptureTarget;
 import com.hfstudio.guidenh.client.capture.api.CaptureViewport;
 import com.hfstudio.guidenh.client.capture.geometry.CaptureGeometryIndex;
@@ -30,6 +30,11 @@ public class CaptureOverlay implements AutoCloseable {
     private final CaptureSession session;
     private final Runnable closeAction;
     private final Runnable saveAction;
+    private final CaptureOverlayActions actions;
+    private CaptureIconButton recordButton;
+    private CaptureIconButton pauseButton;
+    private CaptureIconButton stopButton;
+    private CaptureIconButton scheduleButton;
     private final CapturePreviewRenderer preview;
     private final CaptureSelectionRenderer selections = new CaptureSelectionRenderer();
     private final CaptureSettingsPanel settings;
@@ -47,12 +52,13 @@ public class CaptureOverlay implements AutoCloseable {
     private final CaptureInputOptions input;
     private boolean activationHeld = true;
 
-    public CaptureOverlay(Minecraft minecraft, CaptureSession session, CaptureInputOptions input, Runnable saveAction,
-        Runnable closeAction) {
+    public CaptureOverlay(Minecraft minecraft, CaptureSession session, CaptureInputOptions input,
+        CaptureOverlayActions actions) {
         this.minecraft = minecraft;
         this.session = session;
-        this.closeAction = closeAction;
-        this.saveAction = saveAction;
+        this.actions = actions;
+        this.closeAction = actions.close();
+        this.saveAction = actions.save();
         this.input = input;
         preview = new CapturePreviewRenderer(minecraft);
         settings = new CaptureSettingsPanel(minecraft, session);
@@ -90,11 +96,18 @@ public class CaptureOverlay implements AutoCloseable {
             () -> session.selections()
                 .redo());
         add(CaptureIcons.SETTINGS, "settings", settings::toggle);
+        recordButton = add(CaptureIcons.RECORD, "record", actions.record());
+        pauseButton = add(CaptureIcons.PAUSE, "pause", actions.pause());
+        stopButton = add(CaptureIcons.STOP, "stop", actions.stop());
+        scheduleButton = add(CaptureIcons.TIMER, "timer", actions.schedule());
+        add(CaptureIcons.FOLDER, "folder", this::openOutputFolder);
         add(CaptureIcons.CLOSE, "close", closeAction);
     }
 
-    private void add(SceneEditorIcon icon, String tooltip, Runnable action) {
-        buttons.add(new CaptureIconButton(buttons.size(), icon, "guidenh.capture." + tooltip, action));
+    private CaptureIconButton add(SceneEditorIcon icon, String tooltip, Runnable action) {
+        CaptureIconButton button = new CaptureIconButton(buttons.size(), icon, "guidenh.capture." + tooltip, action);
+        buttons.add(button);
+        return button;
     }
 
     public void updateGeometry(CaptureGeometry current) {
@@ -154,12 +167,22 @@ public class CaptureOverlay implements AutoCloseable {
             .canRedo();
         buttons.get(8)
             .setActive(settings.isOpen());
-        if (session.state()
-            .equals(CaptureSessionState.SAVING)) {
+        if (session.busy()) {
             for (int index = 1; index < 8; index++) buttons.get(index).enabled = false;
         } else {
             for (int index = 1; index < 6; index++) buttons.get(index).enabled = true;
         }
+        recordButton.enabled = session.canSave();
+        recordButton.setActive(session.recording() != null);
+        pauseButton.enabled = session.recording() != null && !session.recording()
+            .finished();
+        pauseButton.setIcon(
+            session.recording() != null && session.recording()
+                .paused() ? CaptureIcons.PLAY : CaptureIcons.PAUSE);
+        stopButton.enabled = pauseButton.enabled;
+        scheduleButton.setActive(
+            actions.scheduled()
+                .getAsBoolean());
         for (CaptureIconButton button : buttons) button.drawButton(minecraft, mouseX, mouseY);
         int panelWidth = Math.min(280, viewport.logicalWidth() - 12);
         int above = (int) toolbar.y() - 12;
@@ -190,6 +213,18 @@ public class CaptureOverlay implements AutoCloseable {
         }
         String status = session.message()
             .isEmpty() ? I18n.format("guidenh.capture.hint") : session.message();
+        if (session.recording() != null && !session.recording()
+            .finished()) {
+            status = I18n.format(
+                session.recording()
+                    .paused() ? "guidenh.capture.recording_paused" : "guidenh.capture.recording_status",
+                session.recording()
+                    .frameCount(),
+                session.recording()
+                    .elapsed(System.nanoTime()) / 1_000_000_000d,
+                session.recording()
+                    .skippedFrames());
+        }
         minecraft.fontRenderer.drawStringWithShadow(
             minecraft.fontRenderer.trimStringToWidth(status, viewport.logicalWidth() - 16),
             8,
@@ -273,22 +308,19 @@ public class CaptureOverlay implements AutoCloseable {
                 }
                 return;
             }
-            if (session.state()
-                .equals(CaptureSessionState.SAVING)) return;
+            if (session.busy()) return;
             if (button == 1) session.selections()
                 .redraw();
             else if (button == 0) session.selections()
                 .begin(x, y, additive || GuiScreen.isCtrlKeyDown(), targetAt(x, y));
         } else if (button == 0) {
             draggingToolbar = false;
-            if (session.state()
-                .equals(CaptureSessionState.SAVING)) return;
+            if (session.busy()) return;
             session.selections()
                 .finish(x, y);
             additive = false;
         } else if (button == -1) {
-            if (session.state()
-                .equals(CaptureSessionState.SAVING)) return;
+            if (session.busy()) return;
             if (draggingToolbar) {
                 toolbarX = x - dragOffsetX;
                 toolbarY = y - dragOffsetY;
@@ -314,9 +346,16 @@ public class CaptureOverlay implements AutoCloseable {
 
     private void key(char character, int key, boolean control, boolean shift) {
         if (settings.key(character, key)) return;
-        if (session.state()
-            .equals(CaptureSessionState.SAVING)) {
+        if (key == Keyboard.KEY_ESCAPE && settings.isOpen()) {
+            settings.close();
+            return;
+        }
+        if (session.busy()) {
             if (key == Keyboard.KEY_ESCAPE) closeAction.run();
+            else if (key == Keyboard.KEY_SPACE) actions.pause()
+                .run();
+            else if (key == Keyboard.KEY_RETURN || key == Keyboard.KEY_NUMPADENTER) actions.stop()
+                .run();
             return;
         }
         if (key == Keyboard.KEY_ESCAPE) {
@@ -382,6 +421,7 @@ public class CaptureOverlay implements AutoCloseable {
             .snapshot(minecraft.mcDataDir.toPath())
             .outputDirectory();
         try {
+            Files.createDirectories(directory);
             Desktop.getDesktop()
                 .open(directory.toFile());
         } catch (IOException error) {

@@ -1,9 +1,12 @@
 package com.hfstudio.guidenh.client.capture.ui;
 
+import java.time.DateTimeException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
+import java.util.function.IntConsumer;
+import java.util.function.IntSupplier;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Gui;
@@ -13,6 +16,7 @@ import net.minecraft.client.resources.I18n;
 import org.lwjgl.input.Keyboard;
 
 import com.hfstudio.guidenh.client.capture.api.CaptureRect;
+import com.hfstudio.guidenh.client.capture.session.CaptureSchedule;
 import com.hfstudio.guidenh.client.capture.session.CaptureSession;
 import com.hfstudio.guidenh.client.capture.session.CaptureSettingsModel;
 import com.hfstudio.guidenh.config.CaptureConfig;
@@ -35,6 +39,13 @@ public class CaptureSettingsPanel {
         this.session = session;
         CaptureSettingsModel model = session.settings();
         CaptureConfig config = model.config();
+        settings.add(
+            new CaptureSetting(
+                "format",
+                () -> config.format,
+                value -> config.format = value,
+                List.of("png", "gif", "sprites", "frames"),
+                false));
         settings.add(
             new CaptureSetting(
                 "quality",
@@ -89,6 +100,46 @@ public class CaptureSettingsPanel {
         toggle("class_name", () -> config.showClassName, value -> config.showClassName = value, false);
         toggle("freeze", () -> config.freezePreview, value -> config.freezePreview = value, true);
         toggle("close_after_save", () -> config.closeAfterSave, value -> config.closeAfterSave = value, false);
+        toggle("refresh_before_save", () -> config.refreshBeforeSave, value -> config.refreshBeforeSave = value, false);
+        toggle("open_folder", () -> config.openFolderAfterSave, value -> config.openFolderAfterSave = value, false);
+        toggle("debug", () -> config.includeDebug, value -> config.includeDebug = value, true);
+        integer("mask_opacity", () -> config.maskOpacity, value -> config.maskOpacity = value, 0, 90);
+        integer("snap_distance", () -> config.snapDistance, value -> config.snapDistance = value, 1, 32);
+        integer("snap_release", () -> config.snapReleaseDistance, value -> config.snapReleaseDistance = value, 1, 64);
+        integer("fps", () -> config.fps, value -> config.fps = value, 1, 60);
+        integer("record_seconds", () -> config.recordingSeconds, value -> config.recordingSeconds = value, 0, 3600);
+        integer("frame_limit", () -> config.frameLimit, value -> config.frameLimit = value, 0, Integer.MAX_VALUE);
+        integer("loop_count", () -> config.loopCount, value -> config.loopCount = value, 0, 65535);
+        integer("alpha_threshold", () -> config.gifAlphaThreshold, value -> config.gifAlphaThreshold = value, 0, 255);
+        toggle("gif_matte", () -> config.gifMatte, value -> config.gifMatte = value, false);
+        toggle("gif_dither", () -> config.gifDither, value -> config.gifDither = value, false);
+        integer("sprite_columns", () -> config.spriteColumns, value -> config.spriteColumns = value, 1, 64);
+        integer("sprite_padding", () -> config.spritePadding, value -> config.spritePadding = value, 0, 128);
+        integer("sprite_page", () -> config.spritePageSize, value -> config.spritePageSize = value, 256, 32768);
+        integer("delay", () -> config.delaySeconds, value -> config.delaySeconds = value, 0, 86400);
+        integer("interval", () -> config.intervalSeconds, value -> config.intervalSeconds = value, 1, 86400);
+        integer("repeat", () -> config.repeatCount, value -> config.repeatCount = value, 1, 10000);
+        settings.add(new CaptureSetting("scheduled_time", () -> config.scheduledTime, value -> {
+            new CaptureSchedule(
+                config.delaySeconds,
+                value,
+                config.intervalSeconds,
+                config.repeatCount,
+                System.nanoTime());
+            config.scheduledTime = value;
+        }, List.of(), false));
+        settings.add(
+            new CaptureSetting(
+                "unavailable",
+                () -> config.unavailablePolicy,
+                value -> config.unavailablePolicy = value,
+                List.of("wait", "skip", "stop"),
+                false));
+        integer("memory_budget", () -> config.memoryBudgetMiB, value -> config.memoryBudgetMiB = value, 32, 4096);
+        integer("tile_size", () -> config.tileSize, value -> config.tileSize = value, 256, 8192);
+        integer("queue_frames", () -> config.queueFrames, value -> config.queueFrames = value, 1, 16);
+        integer("disk_budget", () -> config.temporaryBudgetMiB, value -> config.temporaryBudgetMiB = value, 128, 65536);
+        toggle("strict_queue", () -> config.strictRecordingQueue, value -> config.strictRecordingQueue = value, false);
         settings.add(
             new CaptureSetting(
                 "background",
@@ -103,6 +154,14 @@ public class CaptureSettingsPanel {
                 value -> config.outputDirectory = value,
                 List.of(),
                 false));
+    }
+
+    private void integer(String key, IntSupplier value, IntConsumer update, int min, int max) {
+        settings.add(new CaptureSetting(key, () -> Integer.toString(value.getAsInt()), text -> {
+            int parsed = Integer.parseInt(text);
+            if (parsed < min || parsed > max) throw new IllegalArgumentException(min + "–" + max);
+            update.accept(parsed);
+        }, List.of(), false));
     }
 
     private void toggle(String key, BooleanSupplier value, Consumer<Boolean> update, boolean recapture) {
@@ -237,7 +296,7 @@ public class CaptureSettingsPanel {
             if (setting.recapture()) session.requestRefresh();
             endEdit();
             return true;
-        } catch (IllegalArgumentException error) {
+        } catch (IllegalArgumentException | DateTimeException | ArithmeticException error) {
             validation = I18n.format("guidenh.capture.invalid_value", error.getMessage());
             return false;
         }

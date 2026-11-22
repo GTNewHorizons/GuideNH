@@ -95,7 +95,7 @@ public class CaptureConfig {
     public int fps = 10;
 
     @DefaultInt(5)
-    @RangeInt(min = 1, max = 3600)
+    @RangeInt(min = 0, max = 3600)
     public int recordingSeconds = 5;
 
     @DefaultInt(0)
@@ -105,6 +105,37 @@ public class CaptureConfig {
     @DefaultInt(0)
     @RangeInt(min = 0, max = 65535)
     public int loopCount;
+
+    @DefaultInt(128)
+    @RangeInt(min = 0, max = 255)
+    public int gifAlphaThreshold = 128;
+
+    @DefaultBoolean(false)
+    public boolean gifMatte;
+
+    @DefaultBoolean(false)
+    public boolean gifDither;
+
+    @DefaultInt(4)
+    @RangeInt(min = 1, max = 64)
+    public int spriteColumns = 4;
+
+    @DefaultInt(2)
+    @RangeInt(min = 0, max = 128)
+    public int spritePadding = 2;
+
+    @DefaultInt(4096)
+    @RangeInt(min = 256, max = 32768)
+    public int spritePageSize = 4096;
+
+    @DefaultBoolean(false)
+    public boolean strictRecordingQueue;
+
+    @DefaultString("")
+    public String scheduledTime = "";
+
+    @DefaultString("wait")
+    public String unavailablePolicy = "wait";
 
     @DefaultInt(0)
     @RangeInt(min = 0, max = 86400)

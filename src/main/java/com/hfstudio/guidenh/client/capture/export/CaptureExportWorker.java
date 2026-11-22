@@ -4,21 +4,28 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import com.hfstudio.guidenh.client.capture.api.CaptureAnimationExporter;
+import com.hfstudio.guidenh.client.capture.api.CaptureAnimationWriter;
 import com.hfstudio.guidenh.client.capture.api.CaptureExportRequest;
 import com.hfstudio.guidenh.client.capture.api.CaptureExporter;
 import com.hfstudio.guidenh.client.capture.api.CaptureFrame;
 import com.hfstudio.guidenh.client.capture.api.CaptureOutputArtifact;
+import com.hfstudio.guidenh.client.capture.api.CaptureRecordedFrame;
 import com.hfstudio.guidenh.client.capture.api.CaptureRows;
+import com.hfstudio.guidenh.client.capture.recording.CaptureRecording;
 
 public class CaptureExportWorker implements AutoCloseable {
 
     private final Map<String, CaptureExporter> exporters = new LinkedHashMap<>();
+    private final Map<String, CaptureAnimationExporter> animationExporters = new LinkedHashMap<>();
     private final ExecutorService executor = Executors.newSingleThreadExecutor(task -> {
         Thread thread = new Thread(task, "GuideNH GUI export");
         thread.setDaemon(true);
@@ -27,10 +34,81 @@ public class CaptureExportWorker implements AutoCloseable {
 
     public CaptureExportWorker() {
         register(new PngCaptureExporter());
+        registerAnimation(new GifCaptureExporter());
+        registerAnimation(new PngSequenceCaptureExporter("frames"));
+        registerAnimation(new PngSequenceCaptureExporter("sprites"));
     }
 
     public void register(CaptureExporter exporter) {
         exporters.put(exporter.format(), exporter);
+    }
+
+    public void registerAnimation(CaptureAnimationExporter exporter) {
+        animationExporters.put(exporter.format(), exporter);
+    }
+
+    public void startRecording(CaptureRecording recording) {
+        CaptureAnimationExporter exporter = animationExporters.get(
+            recording.options()
+                .format());
+        if (exporter == null) throw new IllegalArgumentException(
+            "Unknown animation format: " + recording.options()
+                .format());
+        recording.completion(CompletableFuture.supplyAsync(() -> {
+            try {
+                return exportRecording(recording, exporter);
+            } catch (IOException error) {
+                throw new UncheckedIOException(error);
+            } catch (InterruptedException error) {
+                Thread.currentThread()
+                    .interrupt();
+                throw new CancellationException("Recording cancelled");
+            } finally {
+                recording.close();
+            }
+        }, executor));
+    }
+
+    private CaptureOutputArtifact exportRecording(CaptureRecording recording, CaptureAnimationExporter exporter)
+        throws IOException, InterruptedException {
+        CaptureExportRequest request = recording.request();
+        Path directory = request.options()
+            .outputDirectory();
+        Path target = CaptureOutputPaths.next(directory, request.sourceId(), exporter.format());
+        Path temporary = exporter.directory() ? Files.createTempDirectory(directory, ".guidenh_animation_")
+            : Files.createTempFile(directory, ".guidenh_animation_", ".part");
+        try {
+            CaptureOutputArtifact artifact;
+            try (CaptureAnimationWriter writer = exporter.open(request, recording.options(), temporary)) {
+                while (!recording.drained()) {
+                    if (recording.cancelled()) throw new CancellationException("Recording cancelled");
+                    CaptureRecordedFrame frame = recording.poll();
+                    if (frame == null) continue;
+                    try {
+                        writer.append(frame);
+                    } finally {
+                        recording.consumed(frame);
+                    }
+                }
+                if (recording.cancelled()) throw new CancellationException("Recording cancelled");
+                artifact = writer.finish(recording.endTime());
+            }
+            Files.move(temporary, target);
+            return new CaptureOutputArtifact(
+                target,
+                artifact.format(),
+                artifact.width(),
+                artifact.height(),
+                artifact.frameCount(),
+                artifact.byteSize());
+        } finally {
+            if (Files.exists(temporary)) {
+                try (var paths = Files.walk(temporary)) {
+                    for (Path path : paths.sorted(Comparator.reverseOrder())
+                        .toList()) Files.deleteIfExists(path);
+                }
+            }
+        }
     }
 
     public CompletableFuture<CaptureOutputArtifact> submitRows(CaptureExportRequest request, CaptureRows rows) {

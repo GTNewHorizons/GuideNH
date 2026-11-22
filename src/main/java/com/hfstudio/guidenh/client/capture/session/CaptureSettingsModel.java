@@ -7,6 +7,7 @@ import java.util.Set;
 import com.hfstudio.guidenh.client.capture.api.CaptureContentOptions;
 import com.hfstudio.guidenh.client.capture.api.CaptureLayoutOptions;
 import com.hfstudio.guidenh.client.capture.api.CaptureOptions;
+import com.hfstudio.guidenh.client.capture.api.CaptureRecordingOptions;
 import com.hfstudio.guidenh.client.capture.api.CaptureResolution;
 import com.hfstudio.guidenh.client.capture.api.CaptureSnapOptions;
 import com.hfstudio.guidenh.client.capture.api.CaptureTarget;
@@ -63,13 +64,7 @@ public class CaptureSettingsModel {
             requestedHeight,
             keepAspectRatio,
             config.qualityPolicy);
-        CaptureContentOptions content = new CaptureContentOptions(
-            config.includeWorld,
-            config.includeGuiBackdrop,
-            config.includeTooltips,
-            config.includeDebug,
-            config.includeNei,
-            config.backgroundArgb);
+        CaptureContentOptions content = content();
         CaptureLayoutOptions layout = new CaptureLayoutOptions(config.arrangement, config.columns, config.spacing);
         Path output = Path.of(config.outputDirectory);
         if (!output.isAbsolute()) output = gameDirectory.resolve(output);
@@ -79,6 +74,34 @@ public class CaptureSettingsModel {
             layout,
             output.normalize(),
             (long) config.temporaryBudgetMiB << 20);
+    }
+
+    public CaptureContentOptions content() {
+        return new CaptureContentOptions(
+            config.includeWorld,
+            config.includeGuiBackdrop,
+            config.includeTooltips,
+            config.includeDebug,
+            config.includeNei,
+            config.backgroundArgb);
+    }
+
+    public CaptureRecordingOptions recording() {
+        return new CaptureRecordingOptions(
+            config.format.equals("png") ? "gif" : config.format,
+            config.fps,
+            config.recordingSeconds,
+            config.frameLimit,
+            config.loopCount,
+            config.gifAlphaThreshold,
+            config.gifMatte,
+            config.gifDither,
+            config.spriteColumns,
+            config.spritePadding,
+            config.spritePageSize,
+            config.queueFrames,
+            (long) config.memoryBudgetMiB << 20,
+            config.strictRecordingQueue);
     }
 
     public CaptureSnapOptions snapping(boolean temporarilyDisabled) {

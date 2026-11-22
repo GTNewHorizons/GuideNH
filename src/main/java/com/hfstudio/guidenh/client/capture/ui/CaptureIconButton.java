@@ -9,7 +9,7 @@ import com.hfstudio.guidenh.guide.internal.screen.GuideIconButton;
 
 public class CaptureIconButton extends GuiButton {
 
-    private final SceneEditorIcon icon;
+    private SceneEditorIcon icon;
     private final String tooltipKey;
     private final Runnable action;
     private boolean active;
@@ -23,6 +23,10 @@ public class CaptureIconButton extends GuiButton {
 
     public void setActive(boolean value) {
         active = value;
+    }
+
+    public void setIcon(SceneEditorIcon icon) {
+        this.icon = icon;
     }
 
     public String tooltip() {
