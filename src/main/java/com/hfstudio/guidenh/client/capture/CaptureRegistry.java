@@ -25,7 +25,8 @@ public class CaptureRegistry {
     }
 
     public void closed(CaptureContext context) {
-        for (CaptureLifecycleListener listener : lifecycleListeners) listener.closed(context);
+        for (int index = lifecycleListeners.size() - 1; index >= 0; index--) lifecycleListeners.get(index)
+            .closed(context);
     }
 
     public void registerGeometry(CaptureGeometryProvider provider) {

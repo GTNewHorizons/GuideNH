@@ -53,6 +53,7 @@ import com.hfstudio.guidenh.guide.editor.SceneEditorToolbarButton;
 import com.hfstudio.guidenh.guide.editor.SceneEditorToolbarRegistry;
 import com.hfstudio.guidenh.guide.internal.GuidebookText;
 import com.hfstudio.guidenh.guide.internal.debug.DebugComponent;
+import com.hfstudio.guidenh.guide.internal.debug.DebugComponent.ComponentEntry;
 import com.hfstudio.guidenh.guide.internal.debug.GuideDebugOverlay;
 import com.hfstudio.guidenh.guide.internal.debug.ScreenDebugComponents;
 import com.hfstudio.guidenh.guide.internal.editor.gui.SceneEditorDraftTextController;
@@ -119,7 +120,7 @@ import com.hfstudio.guidenh.guide.scene.support.GuideEntityDisplayResolver;
 import com.hfstudio.guidenh.guide.sound.GuideSoundPlayback;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibPreviewSelection;
 
-public class SceneEditorScreen extends GuiScreen {
+public class SceneEditorScreen extends GuiScreen implements DebugComponent {
 
     public static final ResourceLocation BG_TEXTURE = new ResourceLocation(
         "guidenh",
@@ -1035,6 +1036,11 @@ public class SceneEditorScreen extends GuiScreen {
             drawPreviewSceneHoverTooltip(mouseX, mouseY);
         }
         renderDebugOverlay(mouseX, mouseY);
+    }
+
+    @Override
+    public List<ComponentEntry> getDebugComponents() {
+        return screenDebugComponents.getDebugComponents();
     }
 
     private void renderDebugOverlay(int mouseX, int mouseY) {

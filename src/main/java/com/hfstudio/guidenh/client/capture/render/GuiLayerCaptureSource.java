@@ -18,13 +18,13 @@ public class GuiLayerCaptureSource implements AutoCloseable {
     private GuiRenderVisibility visibility;
 
     public boolean drawing() {
-        return scope != null;
+        return visibility != null;
     }
 
-    public void begin(CaptureViewport current, boolean showDebug) {
+    public void begin(CaptureViewport current, boolean showDebug, boolean collectGeometry) {
+        visibility = new GuiRenderVisibility(showDebug, collectGeometry);
         if (!OpenGlHelper.isFramebufferEnabled()) return;
         scope = new CaptureRenderScope();
-        visibility = new GuiRenderVisibility(showDebug);
         viewport = current;
         try {
             if (framebuffer == null || framebuffer.framebufferWidth != current.pixelWidth()
@@ -48,8 +48,10 @@ public class GuiLayerCaptureSource implements AutoCloseable {
     }
 
     public void finish(Minecraft minecraft) {
-        if (scope == null) return;
+        if (visibility == null) return;
+        boolean captured = scope != null;
         restoreScope();
+        if (!captured) return;
         try (CaptureRenderScope composite = new CaptureRenderScope()) {
             minecraft.entityRenderer.setupOverlayRendering();
             CaptureTextureRenderer
@@ -72,13 +74,13 @@ public class GuiLayerCaptureSource implements AutoCloseable {
     private void restoreScope() {
         visibility.close();
         visibility = null;
-        scope.close();
+        if (scope != null) scope.close();
         scope = null;
     }
 
     @Override
     public void close() {
-        if (scope != null) {
+        if (visibility != null) {
             restoreScope();
         }
         if (framebuffer != null) {

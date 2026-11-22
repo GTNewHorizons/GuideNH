@@ -27,6 +27,8 @@ public enum Mixins implements IMixins {
     LWJGL_CAPTURE_INPUT(Side.CLIENT, Phase.EARLY, Mods.Lwjgl3ify, "compat.lwjgl3ify.MixinCaptureInputEvents",
         "compat.lwjgl3ify.AccessorCaptureTextInput"),
 
+    MUI_CAPTURE_GEOMETRY(Side.CLIENT, Phase.LATE, Mods.ModularUI, "compat.mui.AccessorCaptureModularWindow"),
+
     ANGELICA_SCENE_EXPORT(Side.CLIENT, Phase.LATE, Mods.Angelica,
         "compat.angelica.MixinVanillaModelMeshesSceneExportCapture"),
 

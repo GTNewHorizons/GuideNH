@@ -41,7 +41,7 @@ public class CaptureRuntime {
     private CaptureOverlay overlay;
     private long frameId;
     private float partialTicks;
-    private long geometryTime;
+    private boolean frameRequested;
     private boolean previousKeyRepeat;
     private final Queue<CaptureInputEvent> inputEvents = new ConcurrentLinkedQueue<>();
     private volatile boolean activationRequested;
@@ -100,7 +100,7 @@ public class CaptureRuntime {
                     .getKeyCode(),
                 nativeKeyboard),
             this::close);
-        geometryTime = 0;
+        frameRequested = true;
         registry.opened(new CaptureContext(session.sourceScreen(), session.viewport(), frameId, partialTicks));
     }
 
@@ -142,10 +142,12 @@ public class CaptureRuntime {
         partialTicks = partial;
         CaptureViewport viewport = CaptureCoordinateMapper.current(minecraft);
         session.updateViewport(viewport);
+        frameRequested = session.wantsFrame(System.nanoTime());
         guiLayer.begin(
             viewport,
             session.settings()
-                .config().includeDebug);
+                .config().includeDebug,
+            frameRequested);
     }
 
     public void finishGui() {
@@ -179,7 +181,7 @@ public class CaptureRuntime {
         }
         try (CaptureRenderScope drawing = new CaptureRenderScope()) {
             long now = System.nanoTime();
-            if (session.wantsFrame(now)) {
+            if (frameRequested) {
                 CaptureViewport viewport = session.viewport();
                 CaptureFrame frame;
                 if (session.settings()
@@ -193,11 +195,11 @@ public class CaptureRuntime {
                 }
                 if (frame != null) session.acceptFrame(frame);
             }
-            if (now - geometryTime >= 50_000_000L) {
+            if (frameRequested) {
                 overlay.updateGeometry(
                     registry.collect(
                         new CaptureContext(session.sourceScreen(), session.viewport(), frameId, partialTicks)));
-                geometryTime = now;
+                frameRequested = false;
             }
             minecraft.entityRenderer.setupOverlayRendering();
             overlay.draw();
