@@ -11,6 +11,7 @@ import com.hfstudio.guidenh.bridge.GuideNhRuntimeBridge;
 import com.hfstudio.guidenh.bridge.GuideNhRuntimeBridgeSettings;
 import com.hfstudio.guidenh.client.GuideNhClientTaskScheduler;
 import com.hfstudio.guidenh.client.RegionWandRenderer;
+import com.hfstudio.guidenh.client.capture.GuiCaptureBootstrap;
 import com.hfstudio.guidenh.client.command.GuideNhClientBridgeController;
 import com.hfstudio.guidenh.client.command.GuideNhClientCommand;
 import com.hfstudio.guidenh.client.hotkey.CycleRegionWandModeHotkey;
@@ -143,6 +144,7 @@ public class ClientProxy extends CommonProxy {
         OpenGuideHotkey.init();
         GuidePageHistoryHotkey.init();
         OpenSceneEditorHotkey.init();
+        GuiCaptureBootstrap.initialize();
 
         CycleRegionWandModeHotkey.init();
         MinecraftForge.EVENT_BUS.register(new RegionWandRenderer());
