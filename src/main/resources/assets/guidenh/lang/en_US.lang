@@ -218,6 +218,7 @@ guideme.guidebook.CommandStructurePermissionDenied=You need permission level 3 t
 guideme.guidebook.CommandStructurePlacedAll=Placed %s remembered structures starting at %s, %s, %s.
 guideme.guidebook.CommandStructureSaved=Structure exported to %s
 guideme.guidebook.CommandStructureServerRequired=This structure command requires GuideNH on the server.
+guideme.guidebook.CommandStructureUploadConfirm=Upload this structure file to the current server?
 guideme.guidebook.CommandUsage=/guide <list|open <guideId>|reload|search <query>>
 guideme.guidebook.ContentFrom=Content from
 guideme.guidebook.FullWidthView=Full Width View

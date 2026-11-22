@@ -86,7 +86,10 @@ public class CaptureRuntime {
         partialTicks = partial;
         CaptureViewport viewport = CaptureCoordinateMapper.current(minecraft);
         session.updateViewport(viewport);
-        guiLayer.begin(viewport);
+        guiLayer.begin(
+            viewport,
+            session.settings()
+                .config().includeDebug);
     }
 
     public void finishGui() {

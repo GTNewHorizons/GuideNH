@@ -8,20 +8,23 @@ import org.lwjgl.opengl.GL11;
 
 import com.hfstudio.guidenh.client.capture.api.CaptureFrame;
 import com.hfstudio.guidenh.client.capture.api.CaptureViewport;
+import com.hfstudio.guidenh.guide.render.GuiRenderVisibility;
 
 public class GuiLayerCaptureSource implements AutoCloseable {
 
     private Framebuffer framebuffer;
     private CaptureRenderScope scope;
     private CaptureViewport viewport;
+    private GuiRenderVisibility visibility;
 
     public boolean drawing() {
         return scope != null;
     }
 
-    public void begin(CaptureViewport current) {
+    public void begin(CaptureViewport current, boolean showDebug) {
         if (!OpenGlHelper.isFramebufferEnabled()) return;
         scope = new CaptureRenderScope();
+        visibility = new GuiRenderVisibility(showDebug);
         viewport = current;
         try {
             if (framebuffer == null || framebuffer.framebufferWidth != current.pixelWidth()
@@ -39,16 +42,14 @@ public class GuiLayerCaptureSource implements AutoCloseable {
             OpenGlHelper
                 .glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA, GL11.GL_ONE, GL11.GL_ONE_MINUS_SRC_ALPHA);
         } catch (RuntimeException error) {
-            scope.close();
-            scope = null;
+            restoreScope();
             throw error;
         }
     }
 
     public void finish(Minecraft minecraft) {
         if (scope == null) return;
-        scope.close();
-        scope = null;
+        restoreScope();
         try (CaptureRenderScope composite = new CaptureRenderScope()) {
             minecraft.entityRenderer.setupOverlayRendering();
             CaptureTextureRenderer
@@ -68,11 +69,17 @@ public class GuiLayerCaptureSource implements AutoCloseable {
         return framebuffer != null && OpenGlHelper.isFramebufferEnabled();
     }
 
+    private void restoreScope() {
+        visibility.close();
+        visibility = null;
+        scope.close();
+        scope = null;
+    }
+
     @Override
     public void close() {
         if (scope != null) {
-            scope.close();
-            scope = null;
+            restoreScope();
         }
         if (framebuffer != null) {
             try (CaptureRenderScope deletion = new CaptureRenderScope()) {
