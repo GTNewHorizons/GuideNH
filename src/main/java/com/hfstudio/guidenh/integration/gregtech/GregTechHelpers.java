@@ -23,7 +23,6 @@ import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.integration.Mods;
 
-import bartworks.system.material.BWMetaGeneratedBlocks;
 import cpw.mods.fml.common.Optional;
 import gregtech.api.GregTechAPI;
 import gregtech.api.interfaces.INEIPreviewModifier;
@@ -35,7 +34,6 @@ import gregtech.api.metatileentity.MetaPipeEntity;
 import gregtech.api.metatileentity.implementations.MTEHatch;
 import gregtech.api.metatileentity.implementations.MTEMultiBlockBase;
 import gregtech.api.structure.error.StructureError;
-import gregtech.api.util.GTOreDictUnificator;
 import gregtech.common.blocks.ItemMachines;
 import gregtech.common.misc.GTStructureChannels;
 import gtnhlanth.common.beamline.IConnectsToBeamline;
@@ -48,15 +46,6 @@ import tectech.thing.metaTileEntity.pipe.MTEPipeLaser;
 public class GregTechHelpers {
 
     public static final Set<String> LOGGED_KEYS = Collections.synchronizedSet(new HashSet<>());
-
-    public static boolean isBartWorksGeneratedBlock(@Nullable Block block) {
-        return Mods.BartWorks.isModLoaded() && isBartWorksGeneratedBlockImpl(block);
-    }
-
-    @Optional.Method(modid = "bartworks")
-    private static boolean isBartWorksGeneratedBlockImpl(Block block) {
-        return block instanceof BWMetaGeneratedBlocks;
-    }
 
     @Nullable
     public static Integer resolveMetaTileIdFromBlock(@Nullable Block block, int requestedMeta,
@@ -83,22 +72,6 @@ public class GregTechHelpers {
             return tagMetaTileId > 0 ? tagMetaTileId : null;
         }
         return requestedMeta > 15 ? requestedMeta : null;
-    }
-
-    public static ItemStack applyOreDictUnification(ItemStack stack) {
-        if (stack == null || !Mods.GregTech.isModLoaded()) {
-            return stack;
-        }
-        try {
-            return applyOreDictUnificationImpl(stack);
-        } catch (Throwable ignored) {
-            return stack;
-        }
-    }
-
-    @Optional.Method(modid = "gregtech_nh")
-    private static ItemStack applyOreDictUnificationImpl(ItemStack stack) {
-        return GTOreDictUnificator.setStack(stack.copy());
     }
 
     public static boolean registerDummyWorld(Class<?> worldClass) {

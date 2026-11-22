@@ -789,8 +789,7 @@ public class GuidebookPreviewBlockPlacer {
     }
 
     public static boolean shouldLogPlacement(Block block, PlacementData placementData) {
-        return GuideDebugLog.isEnabled()
-            && (placementData.metaTileId != null || GregTechHelpers.isBartWorksGeneratedBlock(block));
+        return GuideDebugLog.isEnabled() && placementData.metaTileId != null;
     }
 
     public static String describePosition(int x, int y, int z) {
