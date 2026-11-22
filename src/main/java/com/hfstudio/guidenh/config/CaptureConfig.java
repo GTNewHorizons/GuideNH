@@ -70,6 +70,9 @@ public class CaptureConfig {
     @DefaultString("png")
     public String format = "png";
 
+    @DefaultString("automatic")
+    public String qualityPolicy = "automatic";
+
     @DefaultString("original")
     public String arrangement = "original";
 

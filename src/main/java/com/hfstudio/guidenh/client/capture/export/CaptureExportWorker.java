@@ -14,6 +14,7 @@ import com.hfstudio.guidenh.client.capture.api.CaptureExportRequest;
 import com.hfstudio.guidenh.client.capture.api.CaptureExporter;
 import com.hfstudio.guidenh.client.capture.api.CaptureFrame;
 import com.hfstudio.guidenh.client.capture.api.CaptureOutputArtifact;
+import com.hfstudio.guidenh.client.capture.api.CaptureRows;
 
 public class CaptureExportWorker implements AutoCloseable {
 
@@ -30,6 +31,37 @@ public class CaptureExportWorker implements AutoCloseable {
 
     public void register(CaptureExporter exporter) {
         exporters.put(exporter.format(), exporter);
+    }
+
+    public CompletableFuture<CaptureOutputArtifact> submitRows(CaptureExportRequest request, CaptureRows rows) {
+        return CompletableFuture.supplyAsync(() -> {
+            Path temporary = null;
+            try (rows) {
+                Path directory = request.options()
+                    .outputDirectory();
+                Path target = CaptureOutputPaths.next(directory, request.sourceId(), "png");
+                temporary = Files.createTempFile(directory, ".guidenh_capture_", ".part");
+                CaptureOutputArtifact artifact = new PngCaptureExporter().exportRows(request, rows, temporary);
+                Files.move(temporary, target);
+                return new CaptureOutputArtifact(
+                    target,
+                    artifact.format(),
+                    artifact.width(),
+                    artifact.height(),
+                    artifact.frameCount(),
+                    artifact.byteSize());
+            } catch (IOException error) {
+                throw new UncheckedIOException(error);
+            } finally {
+                if (temporary != null) {
+                    try {
+                        Files.deleteIfExists(temporary);
+                    } catch (IOException error) {
+                        throw new UncheckedIOException(error);
+                    }
+                }
+            }
+        }, executor);
     }
 
     public CompletableFuture<CaptureOutputArtifact> submit(CaptureExportRequest request, CaptureFrame frame,

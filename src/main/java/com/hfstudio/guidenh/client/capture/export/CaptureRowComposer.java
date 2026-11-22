@@ -11,8 +11,9 @@ import com.hfstudio.guidenh.client.capture.api.CaptureFrame;
 import com.hfstudio.guidenh.client.capture.api.CaptureLayoutOptions;
 import com.hfstudio.guidenh.client.capture.api.CaptureOutputSize;
 import com.hfstudio.guidenh.client.capture.api.CaptureRect;
+import com.hfstudio.guidenh.client.capture.api.CaptureRows;
 
-public class CaptureRowComposer {
+public class CaptureRowComposer implements CaptureRows {
 
     private final CaptureFrame frame;
     private final CaptureComposition composition;

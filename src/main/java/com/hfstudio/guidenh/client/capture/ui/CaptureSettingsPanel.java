@@ -35,6 +35,13 @@ public class CaptureSettingsPanel {
         this.session = session;
         CaptureSettingsModel model = session.settings();
         CaptureConfig config = model.config();
+        settings.add(
+            new CaptureSetting(
+                "quality",
+                () -> config.qualityPolicy,
+                value -> config.qualityPolicy = value,
+                List.of("automatic", "strict", "compatible"),
+                false));
         settings.add(new CaptureSetting("scale", () -> Float.toString(config.scale), value -> {
             float scale = Float.parseFloat(value);
             if (!Float.isFinite(scale) || scale < 1 || scale > 32) throw new IllegalArgumentException("1–32");

@@ -62,7 +62,7 @@ public class CaptureSettingsModel {
             requestedWidth,
             requestedHeight,
             keepAspectRatio,
-            "compatible");
+            config.qualityPolicy);
         CaptureContentOptions content = new CaptureContentOptions(
             config.includeWorld,
             config.includeGuiBackdrop,

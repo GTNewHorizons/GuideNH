@@ -14,6 +14,7 @@ import org.scilab.forge.jlatexmath.TeXFormula;
 import org.scilab.forge.jlatexmath.TeXIcon;
 
 import com.hfstudio.guidenh.guide.color.ColorUtils;
+import com.hfstudio.guidenh.guide.latex.GuideLatexFormulaFactory;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 
 public class GuideSiteLatexExporter {
@@ -87,7 +88,7 @@ public class GuideSiteLatexExporter {
     }
 
     private TeXIcon createIcon(String formula, int fillColorArgb, float sourceScale) throws ParseException {
-        TeXFormula texFormula = new TeXFormula(formula);
+        TeXFormula texFormula = GuideLatexFormulaFactory.parse(formula);
         TeXIcon icon = texFormula.new TeXIconBuilder().setStyle(TeXConstants.STYLE_DISPLAY)
             .setSize(sourceScale)
             .setFGColor(new Color(fillColorArgb, true))

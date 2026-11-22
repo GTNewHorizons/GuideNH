@@ -79,7 +79,7 @@ public class GuideStructurePlacementService {
     }
 
     @FunctionalInterface
-    interface StructureBlockResolver {
+    public interface StructureBlockResolver {
 
         Block resolve(String name);
     }

@@ -31,6 +31,7 @@ public class CaptureSession implements AutoCloseable {
     private CompletableFuture<CaptureOutputArtifact> export;
     private CaptureOutputArtifact lastArtifact;
     private String message = "";
+    private String outputQuality = "native";
 
     public CaptureSession(GuiScreen sourceScreen, CaptureViewport viewport) {
         this.sourceScreen = sourceScreen;
@@ -105,7 +106,7 @@ public class CaptureSession implements AutoCloseable {
 
     public boolean canSave() {
         return preview != null && !selections.regions()
-            .isEmpty() && !state.equals(CaptureSessionState.SAVING);
+            .isEmpty() && !selections.dragging() && !state.equals(CaptureSessionState.SAVING);
     }
 
     public CaptureExportRequest request(Path gameDirectory) {
@@ -120,9 +121,26 @@ public class CaptureSession implements AutoCloseable {
 
     public void save(CaptureExportWorker worker, Path gameDirectory) {
         if (!canSave()) return;
-        export = worker.submit(request(gameDirectory), preview, settings.config().format);
+        beginExport(worker.submit(request(gameDirectory), preview, settings.config().format));
+    }
+
+    public void beginExport(CompletableFuture<CaptureOutputArtifact> task) {
+        export = task;
         state = CaptureSessionState.SAVING;
         message = I18n.format("guidenh.capture.saving");
+    }
+
+    public void preparingOutput() {
+        state = CaptureSessionState.SAVING;
+    }
+
+    public void outputFailed(Exception error) {
+        state = CaptureSessionState.EDITING;
+        message = I18n.format("guidenh.capture.failed", error.getMessage());
+    }
+
+    public void outputQuality(String quality) {
+        outputQuality = quality;
     }
 
     public void pollExport() {
@@ -133,7 +151,9 @@ public class CaptureSession implements AutoCloseable {
                 "guidenh.capture.saved",
                 lastArtifact.path()
                     .getFileName()
-                    .toString());
+                    .toString())
+                + " · "
+                + I18n.format("guidenh.capture.quality." + outputQuality);
             state = settings.config().closeAfterSave ? CaptureSessionState.CLOSED : CaptureSessionState.EDITING;
         } catch (CompletionException error) {
             state = CaptureSessionState.EDITING;

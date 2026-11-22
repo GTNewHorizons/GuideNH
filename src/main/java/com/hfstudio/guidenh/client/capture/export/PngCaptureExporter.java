@@ -16,6 +16,7 @@ import com.hfstudio.guidenh.client.capture.api.CaptureExporter;
 import com.hfstudio.guidenh.client.capture.api.CaptureFrame;
 import com.hfstudio.guidenh.client.capture.api.CaptureOutputArtifact;
 import com.hfstudio.guidenh.client.capture.api.CaptureOutputSize;
+import com.hfstudio.guidenh.client.capture.api.CaptureRows;
 
 public class PngCaptureExporter implements CaptureExporter {
 
@@ -27,8 +28,12 @@ public class PngCaptureExporter implements CaptureExporter {
     @Override
     public CaptureOutputArtifact export(CaptureExportRequest request, CaptureFrame frame, Path target)
         throws IOException {
-        CaptureRowComposer composer = new CaptureRowComposer(request, frame);
-        CaptureOutputSize size = composer.size();
+        return exportRows(request, new CaptureRowComposer(request, frame), target);
+    }
+
+    public CaptureOutputArtifact exportRows(CaptureExportRequest request, CaptureRows rows, Path target)
+        throws IOException {
+        CaptureOutputSize size = rows.size();
         try (DataOutputStream output = new DataOutputStream(Files.newOutputStream(target))) {
             output.writeLong(0x89504E470D0A1A0AL);
             ByteArrayOutputStream headerBytes = new ByteArrayOutputStream(13);
@@ -54,7 +59,7 @@ public class PngCaptureExporter implements CaptureExporter {
                 for (int y = 0; y < size.height(); y++) {
                     if (Thread.currentThread()
                         .isInterrupted()) throw new IOException("Capture export cancelled");
-                    composer.row(y, row);
+                    rows.row(y, row);
                     int previous = 0;
                     for (int x = 0; x < row.length; x++) {
                         int pixel = row[x];
