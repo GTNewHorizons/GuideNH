@@ -7606,14 +7606,14 @@ public class GuideScreen extends GuiContainer
             .isEmpty()) {
             if (!resourceTargetSelection.itemTargets()
                 .isEmpty()) document.append(LytParagraph.of(GuidebookText.FluidPages.text()));
-            buildTargetListDocument(resourceTargetSelection.fluidTargets()).getBlocks()
+            new ArrayList<>(buildTargetListDocument(resourceTargetSelection.fluidTargets()).getBlocks())
                 .forEach(document::append);
         }
         if (!resourceTargetSelection.itemTargets()
             .isEmpty()) {
             if (!resourceTargetSelection.fluidTargets()
                 .isEmpty()) document.append(LytParagraph.of(GuidebookText.ContainerPages.text()));
-            buildTargetListDocument(resourceTargetSelection.itemTargets()).getBlocks()
+            new ArrayList<>(buildTargetListDocument(resourceTargetSelection.itemTargets()).getBlocks())
                 .forEach(document::append);
         }
         return document;
