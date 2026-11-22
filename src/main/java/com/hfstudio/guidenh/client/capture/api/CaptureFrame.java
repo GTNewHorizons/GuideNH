@@ -36,6 +36,10 @@ public class CaptureFrame implements AutoCloseable {
         return (long) width * height * 4;
     }
 
+    public CaptureFrame retain() {
+        return new CaptureFrame(width, height, timestampNanos, pixels);
+    }
+
     public int argb(int x, int y) {
         return pixels[y * width + x];
     }
