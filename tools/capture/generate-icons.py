@@ -100,7 +100,7 @@ def glyph(name):
 
 
 def main():
-    atlas = Image.new("RGBA", (256, 32))
+    atlas = Image.new("RGBA", (256, 256))
     for index, name in enumerate(NAMES):
         mask = glyph(name)
         icon = Image.new("RGBA", (16, 16))
