@@ -1,5 +1,8 @@
 package com.hfstudio.guidenh.client.capture.api;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public record CaptureRect(double x, double y, double width, double height) {
 
     public CaptureRect {
@@ -54,6 +57,19 @@ public record CaptureRect(double x, double y, double width, double height) {
 
     public CaptureRect move(double dx, double dy) {
         return new CaptureRect(x + dx, y + dy, width, height);
+    }
+
+    public List<CaptureRect> subtract(CaptureRect other) {
+        CaptureRect overlap = intersect(other);
+        if (overlap.isEmpty()) return List.of(this);
+        List<CaptureRect> pieces = new ArrayList<>(4);
+        if (overlap.y() > y) pieces.add(new CaptureRect(x, y, width, overlap.y() - y));
+        if (overlap.bottom() < bottom())
+            pieces.add(new CaptureRect(x, overlap.bottom(), width, bottom() - overlap.bottom()));
+        if (overlap.x() > x) pieces.add(new CaptureRect(x, overlap.y(), overlap.x() - x, overlap.height()));
+        if (overlap.right() < right())
+            pieces.add(new CaptureRect(overlap.right(), overlap.y(), right() - overlap.right(), overlap.height()));
+        return List.copyOf(pieces);
     }
 
     public CaptureRect clamp(CaptureRect bounds) {

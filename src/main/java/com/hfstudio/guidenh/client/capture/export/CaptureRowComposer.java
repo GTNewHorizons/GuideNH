@@ -19,6 +19,7 @@ public class CaptureRowComposer implements CaptureRows {
     private final CaptureComposition composition;
     private final CaptureOutputSize outputSize;
     private final int background;
+    private final CaptureEraseMask mask;
 
     public CaptureRowComposer(CaptureExportRequest request, CaptureFrame frame) {
         this.frame = frame;
@@ -33,6 +34,7 @@ public class CaptureRowComposer implements CaptureRows {
         background = request.options()
             .content()
             .backgroundArgb();
+        mask = new CaptureEraseMask(request, composition, outputSize);
     }
 
     public CaptureOutputSize size() {
@@ -46,6 +48,7 @@ public class CaptureRowComposer implements CaptureRows {
     public static CaptureComposition compose(CaptureExportRequest request) {
         List<CaptureRect> crops = request.regions()
             .stream()
+            .filter(region -> !region.erased())
             .map(
                 region -> request.viewport()
                     .pixels(region.bounds()))
@@ -63,6 +66,7 @@ public class CaptureRowComposer implements CaptureRows {
                 placements.add(placement(crop, (int) (crop.x() - bounds.x()), (int) (crop.y() - bounds.y())));
             return new CaptureComposition(
                 new CaptureOutputSize((int) bounds.width(), (int) bounds.height()),
+                List.of(placement(bounds, 0, 0)),
                 placements);
         }
         int columns = switch (layout.arrangement()) {
@@ -132,6 +136,7 @@ public class CaptureRowComposer implements CaptureRows {
                 target[x] = composite(pixel, background);
             }
         }
+        mask.apply(y, target, background);
     }
 
     private static int scaledCeiling(int coordinate, int base, int scaled) {

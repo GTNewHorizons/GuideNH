@@ -59,7 +59,8 @@ public class MuiCaptureGeometryProvider implements CaptureGeometryProvider {
                         context.viewport()
                             .bounds()),
                     index + 1,
-                    -10));
+                    -10,
+                    Integer.toUnsignedLong(System.identityHashCode(window))));
             List<Widget> children = window.getChildren();
             for (int child = 0; child < children.size(); child++) {
                 collectWidget(
@@ -111,7 +112,8 @@ public class MuiCaptureGeometryProvider implements CaptureGeometryProvider {
                     bounds,
                     visible,
                     layer,
-                    20 + depth + widget.getLayer()));
+                    20 + depth + widget.getLayer(),
+                    Integer.toUnsignedLong(System.identityHashCode(widget))));
         }
         if (widget instanceof IWidgetParent group) {
             CaptureRect childClip = group.childrenMustBeInBounds() ? clip.intersect(

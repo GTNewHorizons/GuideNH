@@ -15,13 +15,13 @@ import com.hfstudio.guidenh.client.capture.api.CaptureRect;
 import com.hfstudio.guidenh.client.capture.api.CaptureRegion;
 import com.hfstudio.guidenh.client.capture.api.CaptureTarget;
 import com.hfstudio.guidenh.client.capture.api.CaptureViewport;
+import com.hfstudio.guidenh.client.capture.geometry.CaptureSelectionAreas;
 
 public class CaptureSelectionRenderer {
 
     public void draw(List<CaptureRegion> regions, CaptureRegion active, CaptureTarget hovered, CaptureViewport viewport,
         int opacity, FontRenderer font) {
-        List<CaptureRect> holes = new ArrayList<>();
-        for (CaptureRegion region : regions) holes.add(region.bounds());
+        List<CaptureRect> holes = new ArrayList<>(CaptureSelectionAreas.visible(regions));
         if (regions.isEmpty() && hovered != null) holes.add(hovered.visibleBounds());
         shade(holes, viewport, opacity * 255 / 100);
         if (hovered != null && regions.isEmpty()) outline(hovered.visibleBounds(), 0xFFFFFFFF, true);
@@ -30,9 +30,9 @@ public class CaptureSelectionRenderer {
             number++;
             boolean selected = active != null && active.id() == region.id();
             CaptureRect rectangle = region.bounds();
-            outline(rectangle, selected ? 0xFFFFFFFF : 0xFFABB3BC, false);
+            outline(rectangle, selected ? 0xFFFFFFFF : 0xFFABB3BC, region.erased());
             if (selected) handles(rectangle);
-            String text = "#" + number
+            String text = (region.erased() ? "−#" : "#") + number
                 + "  "
                 + (int) Math.round(rectangle.width())
                 + " × "

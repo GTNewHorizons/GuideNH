@@ -86,7 +86,8 @@ public class GuideCaptureGeometryProvider implements CaptureGeometryProvider {
                     positioned,
                     visible,
                     1,
-                    depth));
+                    depth,
+                    Integer.toUnsignedLong(System.identityHashCode(node))));
         }
         List<? extends LytNode> children = node.getChildren();
         for (int index = 0; index < children.size(); index++) {

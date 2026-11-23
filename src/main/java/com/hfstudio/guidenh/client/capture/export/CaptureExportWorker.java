@@ -143,14 +143,25 @@ public class CaptureExportWorker implements AutoCloseable {
     }
 
     public CompletableFuture<CaptureOutputArtifact> submitRows(CaptureExportRequest request, CaptureRows rows) {
+        return submitRows(request, rows, 0);
+    }
+
+    public CompletableFuture<CaptureOutputArtifact> submitRows(CaptureExportRequest request, CaptureRows rows,
+        long timestampNanos) {
         return CompletableFuture.supplyAsync(() -> {
             Path temporary = null;
             try (rows) {
                 Path directory = request.options()
                     .outputDirectory();
-                Path target = CaptureOutputPaths.next(directory, request.sourceId(), "png");
-                temporary = Files.createTempFile(directory, ".guidenh_capture_", ".part");
-                CaptureOutputArtifact artifact = new PngCaptureExporter().exportRows(request, rows, temporary);
+                boolean separate = request.options()
+                    .layout()
+                    .separateRegions();
+                Path target = CaptureOutputPaths.next(directory, request.sourceId(), separate ? "regions" : "png");
+                temporary = separate ? Files.createTempDirectory(directory, ".guidenh_regions_")
+                    : Files.createTempFile(directory, ".guidenh_capture_", ".part");
+                CaptureOutputArtifact artifact = separate
+                    ? CaptureRegionExporter.export(request, rows, temporary, timestampNanos)
+                    : new PngCaptureExporter().exportRows(request, rows, temporary);
                 Files.move(temporary, target);
                 return new CaptureOutputArtifact(
                     target,
@@ -164,7 +175,7 @@ public class CaptureExportWorker implements AutoCloseable {
             } finally {
                 if (temporary != null) {
                     try {
-                        Files.deleteIfExists(temporary);
+                        removeTemporary(temporary);
                     } catch (IOException error) {
                         throw new UncheckedIOException(error);
                     }
@@ -191,10 +202,19 @@ public class CaptureExportWorker implements AutoCloseable {
         throws IOException {
         Path directory = request.options()
             .outputDirectory();
-        Path target = CaptureOutputPaths.next(directory, request.sourceId(), exporter.format());
-        Path temporary = Files.createTempFile(directory, ".guidenh_capture_", ".part");
+        boolean separate = exporter.format()
+            .equals("png")
+            && request.options()
+                .layout()
+                .separateRegions();
+        Path target = CaptureOutputPaths.next(directory, request.sourceId(), separate ? "regions" : exporter.format());
+        Path temporary = separate ? Files.createTempDirectory(directory, ".guidenh_regions_")
+            : Files.createTempFile(directory, ".guidenh_capture_", ".part");
         try {
-            CaptureOutputArtifact artifact = exporter.export(request, frame, temporary);
+            CaptureOutputArtifact artifact = separate
+                ? CaptureRegionExporter
+                    .export(request, new CaptureRowComposer(request, frame), temporary, frame.timestampNanos())
+                : exporter.export(request, frame, temporary);
             Files.move(temporary, target);
             return new CaptureOutputArtifact(
                 target,
@@ -204,7 +224,15 @@ public class CaptureExportWorker implements AutoCloseable {
                 artifact.frameCount(),
                 artifact.byteSize());
         } finally {
-            Files.deleteIfExists(temporary);
+            removeTemporary(temporary);
+        }
+    }
+
+    private static void removeTemporary(Path temporary) throws IOException {
+        if (!Files.exists(temporary)) return;
+        try (var paths = Files.walk(temporary)) {
+            for (Path path : paths.sorted(Comparator.reverseOrder())
+                .toList()) Files.deleteIfExists(path);
         }
     }
 

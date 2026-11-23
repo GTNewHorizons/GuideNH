@@ -100,7 +100,8 @@ public class Mui2CaptureGeometryProvider implements CaptureGeometryProvider {
                         bounds,
                         visible,
                         panelIndex,
-                        kind.equals(CaptureTarget.WINDOW) ? -10 : 20 + depth + area.z()));
+                        kind.equals(CaptureTarget.WINDOW) ? -10 : 20 + depth + area.z(),
+                        Integer.toUnsignedLong(System.identityHashCode(widget))));
             }
             IViewport childViewport = widget instanceof IViewport value ? value : null;
             if (childViewport != null) {

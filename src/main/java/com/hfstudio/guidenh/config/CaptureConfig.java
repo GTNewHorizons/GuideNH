@@ -76,6 +76,9 @@ public class CaptureConfig {
     @DefaultString("original")
     public String arrangement = "original";
 
+    @DefaultBoolean(false)
+    public boolean separateRegions;
+
     @DefaultInt(4)
     @RangeInt(min = 1, max = 32)
     public int columns = 4;

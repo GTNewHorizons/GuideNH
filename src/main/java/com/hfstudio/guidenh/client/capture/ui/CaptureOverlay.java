@@ -16,11 +16,15 @@ import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
 
 import com.hfstudio.guidenh.client.capture.api.CaptureBatchController;
+import com.hfstudio.guidenh.client.capture.api.CaptureExportRequest;
 import com.hfstudio.guidenh.client.capture.api.CaptureGeometry;
 import com.hfstudio.guidenh.client.capture.api.CaptureInputOptions;
+import com.hfstudio.guidenh.client.capture.api.CaptureOutputSize;
 import com.hfstudio.guidenh.client.capture.api.CaptureRect;
 import com.hfstudio.guidenh.client.capture.api.CaptureTarget;
 import com.hfstudio.guidenh.client.capture.api.CaptureViewport;
+import com.hfstudio.guidenh.client.capture.export.CaptureComposition;
+import com.hfstudio.guidenh.client.capture.export.CaptureRowComposer;
 import com.hfstudio.guidenh.client.capture.geometry.CaptureGeometryIndex;
 import com.hfstudio.guidenh.client.capture.session.CaptureSession;
 import com.hfstudio.guidenh.guide.editor.SceneEditorIcon;
@@ -38,6 +42,9 @@ public class CaptureOverlay implements AutoCloseable {
     private CaptureIconButton pauseButton;
     private CaptureIconButton stopButton;
     private CaptureIconButton scheduleButton;
+    private CaptureIconButton followButton;
+    private CaptureIconButton compositionButton;
+    private CaptureIconButton eraseButton;
     private final CapturePreviewRenderer preview;
     private final CaptureSelectionRenderer selections = new CaptureSelectionRenderer();
     private final CaptureSettingsPanel settings;
@@ -54,6 +61,8 @@ public class CaptureOverlay implements AutoCloseable {
     private int candidateOffset;
     private final CaptureInputOptions input;
     private boolean activationHeld = true;
+    private boolean showComposition = true;
+    private CaptureRect compositionBounds = new CaptureRect(0, 0, 0, 0);
 
     public CaptureOverlay(Minecraft minecraft, CaptureSession session, CaptureInputOptions input,
         CaptureOverlayActions actions, CaptureBatchController batchController) {
@@ -101,6 +110,19 @@ public class CaptureOverlay implements AutoCloseable {
         pauseButton = add(CaptureIcons.PAUSE, "pause", actions.pause());
         stopButton = add(CaptureIcons.STOP, "stop", actions.stop());
         scheduleButton = add(CaptureIcons.TIMER, "timer", actions.schedule());
+        followButton = add(CaptureIcons.LINK, "follow", () -> {
+            session.selections()
+                .toggleFollow();
+            session.requestRefresh();
+        });
+        compositionButton = add(CaptureIcons.COPY, "composition_preview", () -> showComposition = !showComposition);
+        eraseButton = add(
+            CaptureIcons.ERASE,
+            "erase",
+            () -> session.selections()
+                .setErasing(
+                    !session.selections()
+                        .erasing()));
         add(CaptureIcons.FOLDER, "folder", this::openOutputFolder);
         add(CaptureIcons.CLOSE, "close", closeAction);
     }
@@ -123,6 +145,7 @@ public class CaptureOverlay implements AutoCloseable {
             geometry = new CaptureGeometryIndex(current);
             candidateOffset = 0;
         }
+        if (!batchController.busy()) session.follow(geometry::tracked);
     }
 
     public void draw() {
@@ -131,8 +154,9 @@ public class CaptureOverlay implements AutoCloseable {
         int mouseY = viewport.logicalHeight() - Mouse.getY() * viewport.logicalHeight() / viewport.pixelHeight() - 1;
         updateLayout(viewport);
         hovered = null;
-        if (!batchPanel.isOpen() && !toolbar.contains(mouseX, mouseY) && !settings.contains(mouseX, mouseY))
-            hovered = targetAt(mouseX, mouseY);
+        if (!batchPanel.isOpen() && !toolbar.contains(mouseX, mouseY)
+            && !settings.contains(mouseX, mouseY)
+            && !compositionBounds.contains(mouseX, mouseY)) hovered = targetAt(mouseX, mouseY);
         preview.draw(
             session.preview(),
             session.previewVersion(),
@@ -153,6 +177,7 @@ public class CaptureOverlay implements AutoCloseable {
             batchPanel.draw(viewport, mouseX, mouseY);
             return;
         }
+        drawComposition(viewport);
         Gui.drawRect(
             (int) toolbar.x(),
             (int) toolbar.y(),
@@ -200,6 +225,23 @@ public class CaptureOverlay implements AutoCloseable {
         scheduleButton.setActive(
             actions.scheduled()
                 .getAsBoolean());
+        followButton.enabled = !session.busy() && !batchController.busy()
+            && session.selections()
+                .active() != null
+            && !session.selections()
+                .active()
+                .targetId()
+                .isEmpty();
+        followButton.setActive(
+            session.selections()
+                .active() != null && session.selections()
+                    .active()
+                    .followTarget());
+        compositionButton.setActive(showComposition);
+        eraseButton.enabled = !session.busy() && !batchController.busy();
+        eraseButton.setActive(
+            session.selections()
+                .erasing());
         for (CaptureIconButton button : buttons) button.drawButton(minecraft, mouseX, mouseY);
         int panelWidth = Math.min(280, viewport.logicalWidth() - 12);
         int above = (int) toolbar.y() - 12;
@@ -248,6 +290,53 @@ public class CaptureOverlay implements AutoCloseable {
             viewport.logicalHeight() - 12,
             0xE0E7EE);
         batchPanel.draw(viewport, mouseX, mouseY);
+    }
+
+    private void drawComposition(CaptureViewport viewport) {
+        compositionBounds = new CaptureRect(0, 0, 0, 0);
+        if (!showComposition || settings.isOpen()
+            || session.selections()
+                .regions()
+                .size() < 2)
+            return;
+        int width = Math.min(166, viewport.logicalWidth() - 16);
+        int height = Math.min(124, viewport.logicalHeight() / 3);
+        compositionBounds = new CaptureRect(viewport.logicalWidth() - width - 8, 8, width, height);
+        Gui.drawRect(
+            (int) compositionBounds.x(),
+            (int) compositionBounds.y(),
+            (int) compositionBounds.right(),
+            (int) compositionBounds.bottom(),
+            CaptureUiColors.SURFACE);
+        try {
+            CaptureExportRequest request = session.request(minecraft.mcDataDir.toPath());
+            CaptureComposition composition = CaptureRowComposer.compose(request);
+            CaptureOutputSize output = request.options()
+                .resolution()
+                .resolve(
+                    composition.size()
+                        .width(),
+                    composition.size()
+                        .height());
+            String label = output.width() + " × " + output.height();
+            if (request.options()
+                .layout()
+                .separateRegions())
+                label += " · " + composition.regions()
+                    .size() + " PNG";
+            minecraft.fontRenderer.drawStringWithShadow(label, (int) compositionBounds.x() + 6, 13, 0xFFFFFF);
+            preview.drawComposition(
+                composition,
+                new CaptureRect(compositionBounds.x() + 6, 27, width - 12, height - 25),
+                request);
+        } catch (IllegalArgumentException error) {
+            minecraft.fontRenderer.drawSplitString(
+                I18n.format("guidenh.capture.invalid_composition"),
+                (int) compositionBounds.x() + 6,
+                27,
+                width - 12,
+                0xFFFFFF);
+        }
     }
 
     private void updateLayout(CaptureViewport viewport) {
@@ -299,6 +388,7 @@ public class CaptureOverlay implements AutoCloseable {
                 batchPanel.click(x, y, Mouse.getEventButton());
             return;
         }
+        if (compositionBounds.contains(x, y)) return;
         if (wheel != 0) {
             if (settings.contains(x, y)) settings.scroll(wheel);
             else candidateOffset += Integer.signum(wheel);
@@ -340,9 +430,11 @@ public class CaptureOverlay implements AutoCloseable {
         } else if (button == 0) {
             draggingToolbar = false;
             if ((session.busy() || batchController.busy())) return;
+            boolean wasDragging = session.selections()
+                .dragging();
             session.selections()
                 .finish(x, y);
-            additive = false;
+            if (wasDragging) additive = false;
         } else if (button == -1) {
             if ((session.busy() || batchController.busy())) return;
             if (draggingToolbar) {

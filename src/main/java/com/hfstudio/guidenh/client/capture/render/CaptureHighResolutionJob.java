@@ -12,6 +12,7 @@ import com.hfstudio.guidenh.client.capture.api.CaptureRenderSnapshot;
 import com.hfstudio.guidenh.client.capture.api.CaptureRows;
 import com.hfstudio.guidenh.client.capture.api.CaptureTile;
 import com.hfstudio.guidenh.client.capture.export.CaptureComposition;
+import com.hfstudio.guidenh.client.capture.export.CaptureMaskedRows;
 import com.hfstudio.guidenh.client.capture.export.CaptureRowComposer;
 
 public class CaptureHighResolutionJob implements AutoCloseable {
@@ -66,6 +67,10 @@ public class CaptureHighResolutionJob implements AutoCloseable {
         return nextTile;
     }
 
+    public long timestampNanos() {
+        return timestamp;
+    }
+
     public int tileCount() {
         return tiles.size();
     }
@@ -96,7 +101,7 @@ public class CaptureHighResolutionJob implements AutoCloseable {
     }
 
     public CaptureRows takeRows() {
-        CaptureRows result = store;
+        CaptureRows result = new CaptureMaskedRows(request, store);
         store = null;
         return result;
     }

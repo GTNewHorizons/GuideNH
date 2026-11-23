@@ -235,7 +235,11 @@ public class CaptureRuntime {
             sourceMouseY = viewport.logicalHeight() - Mouse.getY() * viewport.logicalHeight() / viewport.pixelHeight()
                 - 1;
         }
-        guiLayer.begin(viewport, content().includeDebug(), session.previewRequested());
+        guiLayer.begin(
+            viewport,
+            content().includeDebug(),
+            session.previewRequested() || session.selections()
+                .following());
     }
 
     public void finishGui() {
@@ -287,6 +291,12 @@ public class CaptureRuntime {
         }
         try (CaptureRenderScope drawing = new CaptureRenderScope()) {
             long now = System.nanoTime();
+            if (frameRequested && (session.previewRequested() || session.selections()
+                .following())) {
+                geometry = registry
+                    .collect(new CaptureContext(session.sourceScreen(), session.viewport(), frameId, partialTicks));
+                overlay.updateGeometry(geometry);
+            }
             if (frameRequested) {
                 CaptureViewport viewport = session.viewport();
                 CaptureFrame frame;
@@ -303,11 +313,6 @@ public class CaptureRuntime {
                     session.acceptFrame(frame);
                 }
             }
-            if (frameRequested && session.previewRequested()) {
-                geometry = registry
-                    .collect(new CaptureContext(session.sourceScreen(), session.viewport(), frameId, partialTicks));
-                overlay.updateGeometry(geometry);
-            }
             frameRequested = false;
             if (batch.busy()) batch.frameReady(batchHost.context());
             if (pendingSave) {
@@ -320,7 +325,7 @@ public class CaptureRuntime {
                     if (highResolution.step(tileSource, pixels)) {
                         CaptureRows rows = highResolution.takeRows();
                         CompletableFuture<CaptureOutputArtifact> completion = highResolutionCompletion;
-                        exporter.submitRows(highResolution.request(), rows)
+                        exporter.submitRows(highResolution.request(), rows, highResolution.timestampNanos())
                             .whenComplete((artifact, error) -> {
                                 if (error == null) completion.complete(artifact);
                                 else completion.completeExceptionally(error);

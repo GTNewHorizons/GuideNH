@@ -884,3 +884,11 @@ guidenh.capture.server_empty=No loaded GUI targets in the selected radius
 guidenh.capture.setting.server_radius=Server GUI radius (loaded tiles only)
 guidenh.capture.setting.server_travel=Temporary travel (single-player creative)
 guidenh.capture.server_notice=Server catalog notice
+
+guidenh.capture.setting.separate_regions=Save each selection as a separate PNG
+guidenh.capture.follow=Follow the snapped component (click a component first)
+guidenh.capture.follow_missing=The followed component disappeared. Restore it, disable following, or choose another area.
+guidenh.capture.follow_resized=The followed area changed size. Restore its original size to resume, or start a new recording.
+guidenh.capture.composition_preview=Show arrangement preview
+guidenh.capture.invalid_composition=Adjust the output size or selections to preview the arrangement.
+guidenh.capture.erase=Erase unwanted areas from the bounding rectangle

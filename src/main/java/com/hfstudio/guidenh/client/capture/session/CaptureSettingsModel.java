@@ -70,7 +70,11 @@ public class CaptureSettingsModel {
             keepAspectRatio,
             config.qualityPolicy);
         CaptureContentOptions content = content();
-        CaptureLayoutOptions layout = new CaptureLayoutOptions(config.arrangement, config.columns, config.spacing);
+        CaptureLayoutOptions layout = new CaptureLayoutOptions(
+            config.arrangement,
+            config.columns,
+            config.spacing,
+            config.separateRegions);
         Path output = Path.of(config.outputDirectory);
         if (!output.isAbsolute()) output = gameDirectory.resolve(output);
         return new CaptureOptions(

@@ -5,6 +5,7 @@ import java.util.UUID;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.function.Function;
 
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.resources.I18n;
@@ -12,9 +13,13 @@ import net.minecraft.client.resources.I18n;
 import com.hfstudio.guidenh.client.capture.api.CaptureExportRequest;
 import com.hfstudio.guidenh.client.capture.api.CaptureFrame;
 import com.hfstudio.guidenh.client.capture.api.CaptureOutputArtifact;
+import com.hfstudio.guidenh.client.capture.api.CaptureOutputSize;
 import com.hfstudio.guidenh.client.capture.api.CaptureSessionState;
+import com.hfstudio.guidenh.client.capture.api.CaptureTarget;
 import com.hfstudio.guidenh.client.capture.api.CaptureViewport;
+import com.hfstudio.guidenh.client.capture.export.CaptureComposition;
 import com.hfstudio.guidenh.client.capture.export.CaptureExportWorker;
+import com.hfstudio.guidenh.client.capture.export.CaptureRowComposer;
 import com.hfstudio.guidenh.client.capture.recording.CaptureRecording;
 import com.hfstudio.guidenh.config.ModConfig;
 
@@ -37,6 +42,7 @@ public class CaptureSession implements AutoCloseable {
     private CaptureRecording recording;
     private boolean previewRequested;
     private boolean keepOpenAfterSave;
+    private boolean targetMissing;
 
     public CaptureSession(GuiScreen sourceScreen, CaptureViewport viewport) {
         this.sourceScreen = sourceScreen;
@@ -107,9 +113,48 @@ public class CaptureSession implements AutoCloseable {
         refresh = true;
     }
 
+    public void follow(Function<String, CaptureTarget> resolve) {
+        targetMissing = !selections.follow(resolve)
+            .isEmpty();
+        if (targetMissing) {
+            if (recording != null && !recording.finished() && !recording.paused()) pauseRecording();
+            message = I18n.format("guidenh.capture.follow_missing");
+        } else if (selections.following() && recording != null
+            && !recording.finished()
+            && !recording.paused()
+            && !recordingSizeMatches()) {
+                pauseRecording();
+                message = I18n.format("guidenh.capture.follow_resized");
+            }
+    }
+
+    private boolean recordingSizeMatches() {
+        CaptureComposition initial = CaptureRowComposer.compose(recording.request());
+        CaptureComposition current = CaptureRowComposer.compose(
+            recording.request()
+                .withRegions(selections.regions()));
+        CaptureOutputSize initialSize = recording.request()
+            .options()
+            .resolution()
+            .resolve(
+                initial.size()
+                    .width(),
+                initial.size()
+                    .height());
+        CaptureOutputSize currentSize = recording.request()
+            .options()
+            .resolution()
+            .resolve(
+                current.size()
+                    .width(),
+                current.size()
+                    .height());
+        return initialSize.equals(currentSize);
+    }
+
     public boolean wantsFrame(long now) {
         previewRequested = preview == null || refresh
-            || !settings.config().freezePreview && now - lastPreviewTime >= 100_000_000L;
+            || (!settings.config().freezePreview || selections.following()) && now - lastPreviewTime >= 100_000_000L;
         if (recording != null) {
             recording.tick(now);
             if (recording.finished() && !state.equals(CaptureSessionState.SAVING)) state = CaptureSessionState.SAVING;
@@ -122,7 +167,7 @@ public class CaptureSession implements AutoCloseable {
     }
 
     public void acceptFrame(CaptureFrame frame) {
-        if (recording != null) recording.offer(frame, System.nanoTime());
+        if (recording != null) recording.offer(frame, System.nanoTime(), selections.regions());
         if (!previewRequested) {
             frame.close();
             return;
@@ -136,8 +181,14 @@ public class CaptureSession implements AutoCloseable {
     }
 
     public boolean canSave() {
-        return preview != null && !selections.regions()
-            .isEmpty() && !selections.dragging() && !busy();
+        return preview != null && selections.regions()
+            .stream()
+            .anyMatch(
+                region -> !region.erased() && !region.bounds()
+                    .isEmpty())
+            && !selections.dragging()
+            && !(targetMissing && selections.following())
+            && !busy();
     }
 
     public boolean busy() {
@@ -172,6 +223,10 @@ public class CaptureSession implements AutoCloseable {
 
     public void pauseRecording() {
         if (recording == null || recording.finished()) return;
+        if (recording.paused() && (targetMissing || !recordingSizeMatches())) {
+            message = I18n.format(targetMissing ? "guidenh.capture.follow_missing" : "guidenh.capture.follow_resized");
+            return;
+        }
         if (recording.paused() && !viewport.equals(
             recording.request()
                 .viewport())) {

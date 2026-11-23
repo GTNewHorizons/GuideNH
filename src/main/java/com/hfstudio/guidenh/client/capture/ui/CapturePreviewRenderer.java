@@ -1,12 +1,18 @@
 package com.hfstudio.guidenh.client.capture.ui;
 
+import java.util.List;
+
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.texture.DynamicTexture;
 
 import org.lwjgl.opengl.GL11;
 
+import com.hfstudio.guidenh.client.capture.api.CaptureExportRequest;
 import com.hfstudio.guidenh.client.capture.api.CaptureFrame;
+import com.hfstudio.guidenh.client.capture.api.CaptureRect;
 import com.hfstudio.guidenh.client.capture.api.CaptureViewport;
+import com.hfstudio.guidenh.client.capture.export.CaptureComposition;
+import com.hfstudio.guidenh.client.capture.export.CapturePlacement;
 import com.hfstudio.guidenh.client.capture.render.CaptureTextureRenderer;
 
 public class CapturePreviewRenderer implements AutoCloseable {
@@ -15,6 +21,9 @@ public class CapturePreviewRenderer implements AutoCloseable {
     private long version = -1;
     private int textureWidth;
     private int textureHeight;
+    private CaptureComposition composition;
+    private List<CapturePlacement> visiblePlacements = List.of();
+    private List<CaptureRect> erased = List.of();
 
     public CapturePreviewRenderer() {}
 
@@ -63,6 +72,43 @@ public class CapturePreviewRenderer implements AutoCloseable {
         }
         tessellator.draw();
         GL11.glEnable(GL11.GL_TEXTURE_2D);
+    }
+
+    public void drawComposition(CaptureComposition composition, CaptureRect bounds, CaptureExportRequest request) {
+        if (texture == null) return;
+        List<CaptureRect> current = request.regions()
+            .stream()
+            .filter(region -> region.erased())
+            .map(
+                region -> request.viewport()
+                    .pixels(region.bounds()))
+            .toList();
+        if (!composition.equals(this.composition) || !current.equals(erased)) {
+            this.composition = composition;
+            erased = current;
+            visiblePlacements = composition.visiblePlacements(erased);
+        }
+        double scale = Math.min(
+            bounds.width() / composition.size()
+                .width(),
+            bounds.height() / composition.size()
+                .height());
+        double left = bounds.x() + (bounds.width() - composition.size()
+            .width() * scale) / 2;
+        double top = bounds.y() + (bounds.height() - composition.size()
+            .height() * scale) / 2;
+        for (CapturePlacement placement : visiblePlacements) {
+            CaptureTextureRenderer.drawRegion(
+                texture.getGlTextureId(),
+                new CaptureRect(placement.sourceX(), placement.sourceY(), placement.width(), placement.height()),
+                new CaptureRect(
+                    left + placement.destinationX() * scale,
+                    top + placement.destinationY() * scale,
+                    placement.width() * scale,
+                    placement.height() * scale),
+                textureWidth,
+                textureHeight);
+        }
     }
 
     @Override

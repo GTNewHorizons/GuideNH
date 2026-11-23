@@ -10,4 +10,8 @@ public record CaptureExportRequest(UUID taskId, String sourceId, CaptureViewport
         regions = List.copyOf(regions);
         if (regions.isEmpty()) throw new IllegalArgumentException("Select an area before saving");
     }
+
+    public CaptureExportRequest withRegions(List<CaptureRegion> selected) {
+        return new CaptureExportRequest(taskId, sourceId, viewport, selected, options);
+    }
 }

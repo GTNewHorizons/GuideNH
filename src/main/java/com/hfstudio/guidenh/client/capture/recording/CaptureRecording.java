@@ -1,5 +1,6 @@
 package com.hfstudio.guidenh.client.capture.recording;
 
+import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -10,6 +11,7 @@ import com.hfstudio.guidenh.client.capture.api.CaptureFrame;
 import com.hfstudio.guidenh.client.capture.api.CaptureOutputArtifact;
 import com.hfstudio.guidenh.client.capture.api.CaptureRecordedFrame;
 import com.hfstudio.guidenh.client.capture.api.CaptureRecordingOptions;
+import com.hfstudio.guidenh.client.capture.api.CaptureRegion;
 import com.hfstudio.guidenh.client.capture.export.CaptureComposition;
 import com.hfstudio.guidenh.client.capture.export.CaptureRowComposer;
 
@@ -113,6 +115,10 @@ public class CaptureRecording implements AutoCloseable {
     }
 
     public void offer(CaptureFrame frame, long now) {
+        offer(frame, now, List.of());
+    }
+
+    public void offer(CaptureFrame frame, long now, List<CaptureRegion> regions) {
         if (finished || paused() || now < nextSample) return;
         long interval = 1_000_000_000L / options.fps();
         nextSample += interval;
@@ -123,7 +129,7 @@ public class CaptureRecording implements AutoCloseable {
             rejected(now);
             return;
         }
-        CaptureRecordedFrame owned = new CaptureRecordedFrame(frame.retain(), elapsed(now));
+        CaptureRecordedFrame owned = new CaptureRecordedFrame(frame.retain(), elapsed(now), regions);
         if (!queue.offer(owned)) {
             owned.close();
             queuedBytes.addAndGet(-bytes);

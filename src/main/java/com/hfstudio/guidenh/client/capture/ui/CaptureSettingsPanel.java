@@ -72,6 +72,7 @@ public class CaptureSettingsPanel {
                 List.of(),
                 false));
         toggle("keep_ratio", model::keepAspectRatio, model::setKeepAspectRatio, false);
+        toggle("separate_regions", () -> config.separateRegions, value -> config.separateRegions = value, false);
         settings.add(
             new CaptureSetting(
                 "arrangement",

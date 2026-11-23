@@ -112,6 +112,7 @@ public class VanillaCaptureGeometryProvider implements CaptureGeometryProvider {
             bounds,
             bounds.intersect(viewport),
             0,
-            priority);
+            priority,
+            Integer.toUnsignedLong(System.identityHashCode(owner)));
     }
 }

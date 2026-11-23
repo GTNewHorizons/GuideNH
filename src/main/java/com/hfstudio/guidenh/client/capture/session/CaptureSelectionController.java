@@ -2,6 +2,7 @@ package com.hfstudio.guidenh.client.capture.session;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 
 import com.hfstudio.guidenh.client.capture.api.CaptureRect;
 import com.hfstudio.guidenh.client.capture.api.CaptureRegion;
@@ -19,6 +20,7 @@ public class CaptureSelectionController {
     private long nextId;
     private long activeId = -1;
     private CaptureSelectionDrag drag;
+    private boolean erasing;
 
     public CaptureSelectionController(CaptureRect bounds) {
         this.bounds = bounds;
@@ -39,6 +41,14 @@ public class CaptureSelectionController {
 
     public boolean dragging() {
         return drag != null;
+    }
+
+    public boolean erasing() {
+        return erasing;
+    }
+
+    public void setErasing(boolean value) {
+        erasing = value;
     }
 
     public void setBounds(CaptureRect rectangle) {
@@ -76,7 +86,9 @@ public class CaptureSelectionController {
         history.record(snapshot());
         snapResolver.reset();
         CaptureRegion selected = active();
-        CaptureResizeEdges edges = additive ? CaptureResizeEdges.NONE : handleAt(x, y);
+        CaptureResizeEdges edges = additive || erasing && selected != null && !selected.erased()
+            ? CaptureResizeEdges.NONE
+            : handleAt(x, y);
         if (!edges.isEmpty() && selected != null) {
             drag = new CaptureSelectionDrag(
                 selected.id(),
@@ -88,7 +100,7 @@ public class CaptureSelectionController {
                 null);
             return;
         }
-        if (!additive) {
+        if (!additive && !erasing) {
             for (int index = regions.size() - 1; index >= 0; index--) {
                 CaptureRegion region = regions.get(index);
                 if (!region.bounds()
@@ -112,7 +124,7 @@ public class CaptureSelectionController {
             Math.clamp(y, bounds.y(), bounds.bottom()),
             0,
             0);
-        regions.add(new CaptureRegion(activeId, initial, target == null ? "" : target.id(), false));
+        regions.add(new CaptureRegion(activeId, initial, "", false, erasing));
         drag = new CaptureSelectionDrag(
             activeId,
             CaptureSelectionDrag.CREATE,
@@ -169,11 +181,21 @@ public class CaptureSelectionController {
         if (drag.kind()
             .equals(CaptureSelectionDrag.CREATE) && drag.clickTarget() != null
             && Math.hypot(x - drag.originX(), y - drag.originY()) <= 3) {
-            replace(
-                drag.regionId(),
-                drag.clickTarget()
-                    .visibleBounds()
-                    .intersect(bounds));
+            CaptureTarget target = drag.clickTarget();
+            for (int index = 0; index < regions.size(); index++) {
+                if (regions.get(index)
+                    .id() == drag.regionId())
+                    regions.set(
+                        index,
+                        new CaptureRegion(
+                            drag.regionId(),
+                            target.visibleBounds()
+                                .intersect(bounds),
+                            target.trackingId(),
+                            false,
+                            regions.get(index)
+                                .erased()));
+            }
         }
         regions.removeIf(
             region -> region.bounds()
@@ -217,9 +239,9 @@ public class CaptureSelectionController {
 
     public void select(CaptureRect rectangle, boolean additive) {
         history.record(snapshot());
-        if (!additive) regions.clear();
+        if (!additive && !erasing) regions.clear();
         activeId = ++nextId;
-        regions.add(new CaptureRegion(activeId, rectangle.intersect(bounds), "", false));
+        regions.add(new CaptureRegion(activeId, rectangle.intersect(bounds), "", false, erasing));
     }
 
     public void adjustActive(CaptureRect rectangle) {
@@ -227,6 +249,49 @@ public class CaptureSelectionController {
         if (selected == null) return;
         history.record(snapshot());
         replace(selected.id(), rectangle.clamp(bounds));
+    }
+
+    public boolean following() {
+        return regions.stream()
+            .anyMatch(CaptureRegion::followTarget);
+    }
+
+    public void toggleFollow() {
+        CaptureRegion selected = active();
+        if (selected == null || selected.targetId()
+            .isEmpty()) return;
+        history.record(snapshot());
+        for (int index = 0; index < regions.size(); index++) {
+            if (regions.get(index)
+                .id() == selected.id())
+                regions.set(
+                    index,
+                    new CaptureRegion(
+                        selected.id(),
+                        selected.bounds(),
+                        selected.targetId(),
+                        !selected.followTarget(),
+                        selected.erased()));
+        }
+    }
+
+    public List<String> follow(Function<String, CaptureTarget> resolve) {
+        if (drag != null) return List.of();
+        List<String> missing = new ArrayList<>();
+        for (int index = 0; index < regions.size(); index++) {
+            CaptureRegion region = regions.get(index);
+            if (!region.followTarget()) continue;
+            CaptureTarget target = resolve.apply(region.targetId());
+            if (target == null || target.visibleBounds()
+                .intersect(bounds)
+                .isEmpty()) missing.add(region.targetId());
+            else regions.set(
+                index,
+                region.withBounds(
+                    target.visibleBounds()
+                        .intersect(bounds)));
+        }
+        return List.copyOf(missing);
     }
 
     public void nudge(double dx, double dy, boolean all) {
@@ -252,20 +317,30 @@ public class CaptureSelectionController {
             CaptureRegion region = regions.get(index);
             regions.set(
                 index,
-                region.withBounds(
+                new CaptureRegion(
+                    region.id(),
                     region.bounds()
-                        .move(actualX, actualY)));
+                        .move(actualX, actualY),
+                    "",
+                    false,
+                    region.erased()));
         }
     }
 
     public void duplicateActive() {
         CaptureRegion selected = active();
         if (selected == null) return;
-        select(
-            selected.bounds()
-                .move(8, 8)
-                .clamp(bounds),
-            true);
+        history.record(snapshot());
+        activeId = ++nextId;
+        regions.add(
+            new CaptureRegion(
+                activeId,
+                selected.bounds()
+                    .move(8, 8)
+                    .clamp(bounds),
+                "",
+                false,
+                selected.erased()));
     }
 
     public void undo() {
@@ -287,6 +362,7 @@ public class CaptureSelectionController {
             region.withBounds(
                 region.bounds()
                     .clamp(bounds)));
+        for (CaptureRegion region : regions) nextId = Math.max(nextId, region.id());
         activeId = snapshot.activeId();
         drag = null;
         snapResolver.reset();
@@ -296,7 +372,7 @@ public class CaptureSelectionController {
         for (int index = 0; index < regions.size(); index++) {
             CaptureRegion region = regions.get(index);
             if (region.id() == id) {
-                regions.set(index, region.withBounds(rectangle));
+                regions.set(index, new CaptureRegion(id, rectangle, "", false, region.erased()));
                 return;
             }
         }

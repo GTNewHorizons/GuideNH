@@ -267,7 +267,7 @@ public class GuideLatexRenderer {
     }
 
     private static TeXIcon createIcon(String formula, int fillColorArgb, float sourceScale) throws ParseException {
-        TeXFormula texFormula = new TeXFormula(formula);
+        TeXFormula texFormula = GuideLatexFormulaFactory.parse(formula);
         TeXIcon icon = texFormula.new TeXIconBuilder().setStyle(TeXConstants.STYLE_DISPLAY)
             .setSize(sourceScale)
             .setFGColor(new Color(fillColorArgb, true))

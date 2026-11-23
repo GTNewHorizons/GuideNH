@@ -49,7 +49,7 @@ public class GifCaptureWriter implements CaptureAnimationWriter {
 
     @Override
     public void append(CaptureRecordedFrame frame) throws IOException {
-        CaptureRowComposer rows = new CaptureRowComposer(request, frame.frame());
+        CaptureRowComposer rows = new CaptureRowComposer(frame.request(request), frame.frame());
         if (rows.size()
             .width() > 65535
             || rows.size()

@@ -105,6 +105,7 @@ public class NeiCaptureGeometryProvider implements CaptureGeometryProvider {
             bounds,
             bounds.intersect(clip),
             zOrder + 2,
-            priority);
+            priority,
+            Integer.toUnsignedLong(System.identityHashCode(widget)));
     }
 }

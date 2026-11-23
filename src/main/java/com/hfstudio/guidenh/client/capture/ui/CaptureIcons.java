@@ -31,6 +31,7 @@ public class CaptureIcons {
     public static final SceneEditorIcon DOWN = icon(21);
     public static final SceneEditorIcon CHECK = icon(22);
     public static final SceneEditorIcon COPY = icon(23);
+    public static final SceneEditorIcon ERASE = icon(24);
 
     private CaptureIcons() {}
 

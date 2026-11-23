@@ -44,7 +44,7 @@ public class PngSequenceCaptureWriter implements CaptureAnimationWriter {
 
     @Override
     public void append(CaptureRecordedFrame frame) throws IOException {
-        CaptureOutputArtifact artifact = png.export(request, frame.frame(), framePath(times.size()));
+        CaptureOutputArtifact artifact = png.export(frame.request(request), frame.frame(), framePath(times.size()));
         size = new CaptureOutputSize(artifact.width(), artifact.height());
         times.add(times.isEmpty() ? 0L : frame.elapsedNanos());
         bytes += artifact.byteSize();

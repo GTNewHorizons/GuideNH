@@ -27,10 +27,13 @@ public class CaptureGeometryIndex {
 
     private final CaptureGeometry geometry;
     private final Map<Long, List<CaptureTarget>> cells = new HashMap<>();
+    private final Map<String, CaptureTarget> tracked = new HashMap<>();
 
     public CaptureGeometryIndex(CaptureGeometry geometry) {
         this.geometry = geometry;
         for (CaptureTarget target : geometry.targets()) {
+            if (!target.trackingId()
+                .isEmpty()) tracked.put(target.trackingId(), target);
             CaptureRect bounds = target.visibleBounds()
                 .intersect(
                     geometry.viewport()
@@ -49,6 +52,10 @@ public class CaptureGeometryIndex {
 
     public CaptureGeometry geometry() {
         return geometry;
+    }
+
+    public CaptureTarget tracked(String id) {
+        return tracked.get(id);
     }
 
     public List<CaptureTarget> candidates(double x, double y, CaptureSnapOptions options) {

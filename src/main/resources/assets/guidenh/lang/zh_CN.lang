@@ -881,3 +881,11 @@ guidenh.capture.server_empty=所选范围内没有已加载的 GUI 目标
 guidenh.capture.setting.server_radius=服务器 GUI 范围（只扫描已加载方块）
 guidenh.capture.setting.server_travel=临时移动（限单人创造模式）
 guidenh.capture.server_notice=服务器目录提示
+
+guidenh.capture.setting.separate_regions=将每个选区保存为独立 PNG
+guidenh.capture.follow=跟随吸附组件（先单击组件框选）
+guidenh.capture.follow_missing=跟随的组件已消失。请恢复组件、关闭跟随或重新框选。
+guidenh.capture.follow_resized=跟随区域的尺寸已变化。恢复原尺寸后可继续，或开始新录制。
+guidenh.capture.composition_preview=显示排列预览
+guidenh.capture.invalid_composition=请调整输出尺寸或选区后预览排列。
+guidenh.capture.erase=擦除外接矩形中不需要的区域
