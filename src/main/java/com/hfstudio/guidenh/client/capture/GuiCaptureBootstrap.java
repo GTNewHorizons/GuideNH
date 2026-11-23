@@ -10,6 +10,7 @@ import com.hfstudio.guidenh.integration.capture.GuidePageBatchProvider;
 import com.hfstudio.guidenh.integration.capture.ServerGuiBatchProvider;
 import com.hfstudio.guidenh.integration.lwjgl3ify.capture.LwjglCaptureInputBridge;
 import com.hfstudio.guidenh.integration.mui.capture.MuiCaptureGeometryProvider;
+import com.hfstudio.guidenh.integration.mui.capture.MuiPageBatchProvider;
 import com.hfstudio.guidenh.integration.mui2.capture.Mui2CaptureGeometryProvider;
 import com.hfstudio.guidenh.integration.mui2.capture.Mui2PageBatchProvider;
 import com.hfstudio.guidenh.integration.nei.capture.NeiCaptureGeometryProvider;
@@ -39,6 +40,8 @@ public class GuiCaptureBootstrap {
             .registerBatch(new GuidePageBatchProvider());
         if (Mods.ModularUI.isModLoaded()) runtime.registry()
             .registerGeometry(new MuiCaptureGeometryProvider());
+        if (Mods.ModularUI.isModLoaded()) runtime.registry()
+            .registerBatch(new MuiPageBatchProvider());
         if (Mods.ModularUI2.isModLoaded()) runtime.registry()
             .registerGeometry(new Mui2CaptureGeometryProvider());
         if (Mods.ModularUI2.isModLoaded()) runtime.registry()

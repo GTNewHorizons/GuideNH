@@ -4,6 +4,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
@@ -44,7 +45,7 @@ public class GuideNhClientCommand extends CommandBase {
 
     public static final String[] ROOT_SUB_COMMANDS = { "editor", "guideeditor", "guideedit", "list", "open", "reload",
         "search", "export", "exportsite", "exportstructure", "dumppagelang", "pos1", "pos2", "clearselection", "bind",
-        "unbind" };
+        "unbind", "importstructure" };
     public static final String[] EXPORT_STRUCTURE_FLAGS = { "--mode", "snbt", "snbt_e", "blocks", "blocks_e" };
     public static final String[] EXPORT_SITE_FLAGS = { "--ponder-frames", "--ponder-every-tick" };
 
@@ -80,6 +81,10 @@ public class GuideNhClientCommand extends CommandBase {
             case "exportstructure" -> {
                 if (!requireSceneExportEnabled(sender)) return;
                 exportStructure(sender, args);
+            }
+            case "importstructure" -> {
+                if (!requireSceneExportEnabled(sender)) return;
+                importStructure(sender, args);
             }
             case "dumppagelang" -> dumpPageLang(sender, args);
             case "pos1" -> {
@@ -363,6 +368,19 @@ public class GuideNhClientCommand extends CommandBase {
         } catch (Throwable t) {
             send(sender, GuidebookText.CommandExportFailure, getErrorMessage(t));
         }
+    }
+
+    private void importStructure(ICommandSender sender, String[] args) throws CommandException {
+        if (args.length < 5) {
+            send(sender, GuidebookText.CommandImportStructureUsage);
+            return;
+        }
+        EntityPlayer player = getCommandSenderAsPlayer(sender);
+        int x = GuideStructureCoordinateParser.parsePosition(MathHelper.floor_double(player.posX), args[1]);
+        int y = GuideStructureCoordinateParser.parsePosition(MathHelper.floor_double(player.posY), args[2]);
+        int z = GuideStructureCoordinateParser.parsePosition(MathHelper.floor_double(player.posZ), args[3]);
+        GuideNhClientBridgeController.getInstance()
+            .beginImportStructure(x, y, z, String.join(" ", Arrays.copyOfRange(args, 4, args.length)));
     }
 
     private void dumpPageLang(ICommandSender sender, String[] args) {

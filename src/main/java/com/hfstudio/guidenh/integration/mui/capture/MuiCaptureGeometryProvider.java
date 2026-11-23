@@ -78,7 +78,7 @@ public class MuiCaptureGeometryProvider implements CaptureGeometryProvider {
         return new CaptureGeometry(targets.hashCode(), context.viewport(), targets);
     }
 
-    private static AffineTransform windowTransform(ModularWindow window) {
+    public static AffineTransform windowTransform(ModularWindow window) {
         AccessorCaptureModularWindow access = (AccessorCaptureModularWindow) window;
         double centerX = window.getPos().x + window.getSize().width / 2d;
         double centerY = window.getPos().y + window.getSize().height / 2d;
@@ -116,13 +116,7 @@ public class MuiCaptureGeometryProvider implements CaptureGeometryProvider {
                     Integer.toUnsignedLong(System.identityHashCode(widget))));
         }
         if (widget instanceof IWidgetParent group) {
-            CaptureRect childClip = group.childrenMustBeInBounds() ? clip.intersect(
-                new CaptureRect(
-                    widget.getAbsolutePos().x,
-                    widget.getAbsolutePos().y,
-                    Math.max(0, widget.getSize().width),
-                    Math.max(0, widget.getSize().height)))
-                : clip;
+            CaptureRect childClip = group.childrenMustBeInBounds() ? clip.intersect(bounds) : clip;
             List<Widget> children = group.getChildren();
             for (int index = 0; index < children.size(); index++) {
                 collectWidget(
@@ -138,7 +132,7 @@ public class MuiCaptureGeometryProvider implements CaptureGeometryProvider {
         }
     }
 
-    private static CaptureRect bounds(Pos2d position, Size size, AffineTransform transform) {
+    public static CaptureRect bounds(Pos2d position, Size size, AffineTransform transform) {
         double x0 = transform.getScaleX() * position.x + transform.getShearX() * position.y + transform.getTranslateX();
         double y0 = transform.getShearY() * position.x + transform.getScaleY() * position.y + transform.getTranslateY();
         double x1 = x0 + transform.getScaleX() * size.width;

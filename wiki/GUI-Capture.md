@@ -37,7 +37,7 @@ The timer supports a delay, a local scheduled time, and repeated capture. The un
 
 Use the capture-all icon to review targets before starting. Visible layers, pages, and reachable GUIs are independent scope settings. Provider selection, popups, variants, navigation timeout, target limit, and restoration are configurable. Reachable server containers require the capture protocol and a valid server context; availability and failures appear in the target results.
 
-Enable contact sheets to produce paged thumbnails with optional provider grouping. Enable scroll images to combine supported GuideNH or NEI scroll slices at their document positions. Scroll images retain a separate original viewport capture for fixed controls. The last overlapping slice replaces earlier pixels; it does not blend them twice.
+Enable contact sheets to produce paged thumbnails with optional provider grouping. Enable scroll images to combine supported GuideNH, NEI, or MUI1 scroll slices at their document positions. MUI1 supports nested page controls, horizontal and vertical scroll views, and lists; batch restoration restores their page choices and scroll positions. Scroll images retain a separate original viewport capture for fixed controls. The last overlapping slice replaces earlier pixels; it does not blend them twice.
 
 `batch.json` lists target results, restoration, and composed outputs. Each scroll output includes `scroll.png` and `scroll.json` with the source crops, destination rectangles, pixel scale, and coverage. A target limit or missing slice leaves an explicitly partial result and uncovered space. Sheet and scroll outputs consume the remaining batch disk budget. Cancelled and failed unpublished compositions remove their temporary files.
 
