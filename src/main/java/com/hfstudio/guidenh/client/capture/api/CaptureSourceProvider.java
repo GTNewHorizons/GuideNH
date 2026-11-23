@@ -8,6 +8,10 @@ public interface CaptureSourceProvider {
 
     CaptureSource open(CaptureContext context);
 
+    default boolean automaticSelection(CaptureContext context, CaptureContentOptions content) {
+        return true;
+    }
+
     // Include every context or capability generation that owns this source's resources.
     default Object contextKey(CaptureContext context) {
         return context.screen();

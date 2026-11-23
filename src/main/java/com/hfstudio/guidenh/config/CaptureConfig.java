@@ -16,6 +16,15 @@ public class CaptureConfig {
     @DefaultBoolean(false)
     public boolean includeWorld;
 
+    @DefaultBoolean(true)
+    public boolean includeGui = true;
+
+    @DefaultBoolean(true)
+    public boolean includePlayerInventory = true;
+
+    @DefaultBoolean(false)
+    public boolean fullBrightness;
+
     @DefaultBoolean(false)
     public boolean includeHud;
 

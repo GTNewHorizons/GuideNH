@@ -34,6 +34,11 @@ public class AngelicaCaptureSourceProvider implements CaptureSourceProvider {
     }
 
     @Override
+    public boolean automaticSelection(CaptureContext context, CaptureContentOptions content) {
+        return delegate.automaticSelection(context, content);
+    }
+
+    @Override
     public Object contextKey(CaptureContext context) {
         return new CaptureRenderContextKey(delegate.contextKey(context), AngelicaCaptureBackendContext.key());
     }

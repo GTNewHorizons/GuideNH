@@ -1,5 +1,6 @@
 package com.hfstudio.guidenh.mixins.early.compat.angelica;
 
+import com.gtnewhorizons.angelica.hudcaching.HUDCaching;
 import net.minecraft.client.gui.GuiIngame;
 import net.minecraft.client.renderer.EntityRenderer;
 
@@ -11,8 +12,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import com.hfstudio.guidenh.client.capture.CaptureRuntime;
 
-@Pseudo
-@Mixin(targets = "com.gtnewhorizons.angelica.hudcaching.HUDCaching", remap = false)
+@Mixin(value = HUDCaching.class, remap = false)
 public class MixinCaptureHudCache {
 
     @Inject(method = "renderCachedHud", at = @At("HEAD"), cancellable = true, require = 0)

@@ -8,6 +8,7 @@ import com.hfstudio.guidenh.client.capture.render.GuiLayerCaptureSourceProvider;
 import com.hfstudio.guidenh.client.capture.server.CaptureClientConnection;
 import com.hfstudio.guidenh.client.hotkey.OpenGuiCaptureHotkey;
 import com.hfstudio.guidenh.integration.Mods;
+import com.hfstudio.guidenh.integration.angelica.capture.AngelicaCaptureBrightness;
 import com.hfstudio.guidenh.integration.angelica.capture.AngelicaCapturePixelReaderProvider;
 import com.hfstudio.guidenh.integration.angelica.capture.AngelicaCaptureRenderProbe;
 import com.hfstudio.guidenh.integration.angelica.capture.AngelicaCaptureSourceProvider;
@@ -47,6 +48,7 @@ public class GuiCaptureBootstrap {
             .registerSource(new FinalFrameCaptureSourceProvider());
         runtime.initialize();
         if (Mods.Angelica.isModLoaded()) {
+            AngelicaCaptureBrightness.initialize();
             runtime.renderProbe(new AngelicaCaptureRenderProbe(), true);
             runtime.registry()
                 .registerReader(new AngelicaOpenGlPixelReaderProvider());
@@ -88,7 +90,8 @@ public class GuiCaptureBootstrap {
             runtime.registry()
                 .registerBatch(new BqPageBatchProvider());
         }
-        if (Mods.Thaumcraft.isModLoaded()) runtime.registry().registerBatch(new TcPageBatchProvider());
+        if (Mods.Thaumcraft.isModLoaded()) runtime.registry()
+            .registerBatch(new TcPageBatchProvider());
         MinecraftForge.EVENT_BUS.register(runtime);
         FMLCommonHandler.instance()
             .bus()

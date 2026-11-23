@@ -18,22 +18,35 @@ public class OpenGuiCaptureHotkey {
         Keyboard.KEY_NONE,
         "key.categories.guidenh");
     private static boolean wasDown;
+    public static final KeyBinding TOGGLE_CAPTURE_INTERFACE_KEY = new KeyBinding(
+        "key.guidenh.toggle_capture_interface",
+        Keyboard.KEY_F6,
+        "key.categories.guidenh");
+    private static boolean interfaceWasDown;
 
     private OpenGuiCaptureHotkey() {}
 
     public static void initialize() {
         ClientRegistry.registerKeyBinding(OPEN_GUI_CAPTURE_KEY);
+        ClientRegistry.registerKeyBinding(TOGGLE_CAPTURE_INTERFACE_KEY);
     }
 
     public static void poll() {
         if (!Display.isActive()) {
             wasDown = false;
+            interfaceWasDown = false;
             return;
         }
         boolean down = GuideKeyBindingSupport.isDown(OPEN_GUI_CAPTURE_KEY);
-        if (down && !wasDown && Minecraft.getMinecraft().currentScreen != null) CaptureRuntime.instance()
-            .open();
+        CaptureRuntime runtime = CaptureRuntime.instance();
+        if (down && !wasDown && Minecraft.getMinecraft().currentScreen != null) {
+            if (!runtime.active()) runtime.open();
+            else if (!runtime.captureTextInputFocused()) runtime.toggleCaptureInterface();
+        }
         wasDown = down;
+        boolean interfaceDown = GuideKeyBindingSupport.isDown(TOGGLE_CAPTURE_INTERFACE_KEY);
+        if (interfaceDown && !interfaceWasDown && runtime.active()) runtime.toggleCaptureInterface();
+        interfaceWasDown = interfaceDown;
     }
 
     public static KeyBinding getHotkey() {

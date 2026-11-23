@@ -4,6 +4,7 @@ import net.minecraft.client.renderer.OpenGlHelper;
 
 import org.lwjgl.opengl.EXTFramebufferObject;
 import org.lwjgl.opengl.GL11;
+import org.lwjgl.opengl.GL13;
 import org.lwjgl.opengl.GL15;
 import org.lwjgl.opengl.GL20;
 import org.lwjgl.opengl.GL21;
@@ -19,10 +20,23 @@ public class CaptureRenderScope implements AutoCloseable {
     private final int packBuffer;
     private final int unpackBuffer;
     private final boolean separateFramebuffers;
+    private final boolean multitexture;
+    private final int activeTexture;
+    private final int[] textureUnits;
+    private final float brightnessX;
+    private final float brightnessY;
     private boolean closed;
 
     public CaptureRenderScope() {
         separateFramebuffers = GLContext.getCapabilities().OpenGL30;
+        multitexture = GLContext.getCapabilities().OpenGL13 || GLContext.getCapabilities().GL_ARB_multitexture;
+        activeTexture = multitexture ? GL11.glGetInteger(GL13.GL_ACTIVE_TEXTURE) : OpenGlHelper.defaultTexUnit;
+        textureUnits = !multitexture ? new int[] { activeTexture }
+            : activeTexture == OpenGlHelper.defaultTexUnit || activeTexture == OpenGlHelper.lightmapTexUnit
+                ? new int[] { OpenGlHelper.defaultTexUnit, OpenGlHelper.lightmapTexUnit }
+                : new int[] { OpenGlHelper.defaultTexUnit, OpenGlHelper.lightmapTexUnit, activeTexture };
+        brightnessX = OpenGlHelper.lastBrightnessX;
+        brightnessY = OpenGlHelper.lastBrightnessY;
         framebuffer = OpenGlHelper.framebufferSupported
             ? GL11.glGetInteger(EXTFramebufferObject.GL_FRAMEBUFFER_BINDING_EXT)
             : 0;
@@ -36,7 +50,11 @@ public class CaptureRenderScope implements AutoCloseable {
         GL11.glPushClientAttrib(GL11.GL_CLIENT_PIXEL_STORE_BIT | GL11.GL_CLIENT_VERTEX_ARRAY_BIT);
         pushMatrix(GL11.GL_PROJECTION);
         pushMatrix(GL11.GL_MODELVIEW);
-        pushMatrix(GL11.GL_TEXTURE);
+        for (int unit : textureUnits) {
+            activate(unit);
+            pushMatrix(GL11.GL_TEXTURE);
+        }
+        activate(activeTexture);
         GL11.glMatrixMode(matrixMode);
     }
 
@@ -50,11 +68,19 @@ public class CaptureRenderScope implements AutoCloseable {
         GL11.glPopMatrix();
     }
 
+    private void activate(int unit) {
+        if (multitexture) OpenGlHelper.setActiveTexture(unit);
+    }
+
     @Override
     public void close() {
         if (closed) return;
         closed = true;
-        popMatrix(GL11.GL_TEXTURE);
+        for (int index = textureUnits.length - 1; index >= 0; index--) {
+            activate(textureUnits[index]);
+            popMatrix(GL11.GL_TEXTURE);
+        }
+        activate(activeTexture);
         popMatrix(GL11.GL_MODELVIEW);
         popMatrix(GL11.GL_PROJECTION);
         GL11.glMatrixMode(matrixMode);
@@ -69,5 +95,7 @@ public class CaptureRenderScope implements AutoCloseable {
         }
         GL11.glPopClientAttrib();
         GL11.glPopAttrib();
+        OpenGlHelper.lastBrightnessX = brightnessX;
+        OpenGlHelper.lastBrightnessY = brightnessY;
     }
 }

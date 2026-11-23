@@ -13,6 +13,7 @@ import com.cleanroommc.modularui.screen.viewport.GuiViewportStack;
 import com.cleanroommc.modularui.widget.sizer.Area;
 import com.cleanroommc.modularui.widgets.slot.FluidSlot;
 import com.cleanroommc.modularui.widgets.slot.ItemSlot;
+import com.cleanroommc.modularui.widgets.slot.ModularSlot;
 import com.hfstudio.guidenh.client.capture.api.CaptureContext;
 import com.hfstudio.guidenh.client.capture.api.CaptureGeometry;
 import com.hfstudio.guidenh.client.capture.api.CaptureGeometryProvider;
@@ -31,6 +32,11 @@ public class Mui2CaptureGeometryProvider implements CaptureGeometryProvider {
     @Override
     public boolean supports(CaptureContext context) {
         return context.screen() instanceof IMuiScreen;
+    }
+
+    @Override
+    public boolean ownsContainerSlots() {
+        return true;
     }
 
     @Override
@@ -66,7 +72,7 @@ public class Mui2CaptureGeometryProvider implements CaptureGeometryProvider {
 
     private void collectWidget(IWidget widget, String id, String parentId, int panelIndex, int depth,
         List<CaptureTarget> targets) {
-        if (!widget.isEnabled()) return;
+        if (!widget.isEnabled() || widget instanceof ItemSlot slot && !slot.isSynced()) return;
         transforms.pushMatrix();
         try {
             widget.transform(transforms);
@@ -101,7 +107,9 @@ public class Mui2CaptureGeometryProvider implements CaptureGeometryProvider {
                         visible,
                         panelIndex,
                         kind.equals(CaptureTarget.WINDOW) ? -10 : 20 + depth + area.z(),
-                        Integer.toUnsignedLong(System.identityHashCode(widget))));
+                        Integer.toUnsignedLong(System.identityHashCode(widget))).withContent(
+                            CaptureTarget.GUI_LAYER,
+                            widget instanceof ItemSlot slot && ModularSlot.isPlayerSlot(slot.getSlot())));
             }
             IViewport childViewport = widget instanceof IViewport value ? value : null;
             if (childViewport != null) {

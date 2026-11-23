@@ -36,25 +36,18 @@ public class FinalFrameCaptureSource implements CaptureSource {
 
     @Override
     public CaptureProviderAvailability readiness(CaptureContext context) {
-        return completedFrame == context.frameId() ? CaptureProviderAvailability.ready()
+        return completedFrame == context.frameId() ? guiLayer.readiness(context)
             : CaptureProviderAvailability.unavailable("The final GUI frame has not completed");
     }
 
     @Override
     public CaptureFrame captureCompletedFrame(CaptureContext context, CapturePixelReader reader, long timestamp) {
-        return reader.readOpaque(
-            0,
-            0,
-            context.viewport()
-                .pixelWidth(),
-            context.viewport()
-                .pixelHeight(),
-            timestamp);
+        return guiLayer.captureCompletedFrame(context, reader, timestamp);
     }
 
     @Override
     public boolean supportsRedraw() {
-        return false;
+        return guiLayer.supportsRedraw();
     }
 
     @Override

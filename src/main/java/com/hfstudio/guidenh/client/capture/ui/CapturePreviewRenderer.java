@@ -2,6 +2,7 @@ package com.hfstudio.guidenh.client.capture.ui;
 
 import java.util.List;
 
+import net.minecraft.client.gui.Gui;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.texture.DynamicTexture;
 
@@ -9,7 +10,9 @@ import org.lwjgl.opengl.GL11;
 
 import com.hfstudio.guidenh.client.capture.api.CaptureExportRequest;
 import com.hfstudio.guidenh.client.capture.api.CaptureFrame;
+import com.hfstudio.guidenh.client.capture.api.CaptureOutputSize;
 import com.hfstudio.guidenh.client.capture.api.CaptureRect;
+import com.hfstudio.guidenh.client.capture.api.CaptureRegion;
 import com.hfstudio.guidenh.client.capture.api.CaptureViewport;
 import com.hfstudio.guidenh.client.capture.export.CaptureComposition;
 import com.hfstudio.guidenh.client.capture.export.CapturePlacement;
@@ -25,11 +28,33 @@ public class CapturePreviewRenderer implements AutoCloseable {
     private CaptureComposition composition;
     private List<CapturePlacement> visiblePlacements = List.of();
     private List<CaptureRect> erased = List.of();
+    private List<CaptureRegion> selection = List.of();
+    private List<CapturePlacement> selectionPlacements = List.of();
+    private CaptureViewport selectionViewport;
+    private boolean brightCanvas;
 
     public CapturePreviewRenderer() {}
 
     public void draw(CaptureFrame frame, long frameVersion, CaptureViewport viewport, int backgroundArgb) {
-        checkerboard(viewport.logicalWidth(), viewport.logicalHeight(), backgroundArgb);
+        draw(frame, frameVersion, viewport, backgroundArgb, List.of(), false);
+    }
+
+    public void draw(CaptureFrame frame, long frameVersion, CaptureViewport viewport, int backgroundArgb,
+        List<CaptureRegion> regions, boolean selectedOnly) {
+        draw(frame, frameVersion, viewport, backgroundArgb, regions, selectedOnly, false);
+    }
+
+    public void draw(CaptureFrame frame, long frameVersion, CaptureViewport viewport, int backgroundArgb,
+        List<CaptureRegion> regions, boolean selectedOnly, boolean brightCanvas) {
+        this.brightCanvas = brightCanvas;
+        CaptureTextureRenderer.prepareOverlay();
+        boolean masked = selectedOnly && regions.stream()
+            .anyMatch(
+                region -> !region.erased() && !region.bounds()
+                    .isEmpty());
+        checkerboard(
+            new CaptureRect(0, 0, viewport.logicalWidth(), viewport.logicalHeight()),
+            masked ? 0 : backgroundArgb);
         if (frame == null) {
             hasFrame = false;
             return;
@@ -47,6 +72,53 @@ public class CapturePreviewRenderer implements AutoCloseable {
             version = frameVersion;
         }
         hasFrame = true;
+        if (masked) {
+            if (!regions.equals(selection) || !viewport.equals(selectionViewport)) {
+                selection = List.copyOf(regions);
+                selectionViewport = viewport;
+                List<CapturePlacement> placements = regions.stream()
+                    .filter(region -> !region.erased())
+                    .map(region -> viewport.pixels(region.bounds()))
+                    .filter(bounds -> !bounds.isEmpty())
+                    .map(
+                        bounds -> new CapturePlacement(
+                            (int) bounds.x(),
+                            (int) bounds.y(),
+                            (int) bounds.width(),
+                            (int) bounds.height(),
+                            (int) bounds.x(),
+                            (int) bounds.y()))
+                    .toList();
+                List<CaptureRect> masks = regions.stream()
+                    .filter(CaptureRegion::erased)
+                    .map(region -> viewport.pixels(region.bounds()))
+                    .toList();
+                selectionPlacements = new CaptureComposition(
+                    new CaptureOutputSize(viewport.pixelWidth(), viewport.pixelHeight()),
+                    placements).visiblePlacements(masks);
+            }
+            for (CapturePlacement placement : selectionPlacements) {
+                CaptureRect pixels = new CaptureRect(
+                    placement.sourceX(),
+                    placement.sourceY(),
+                    placement.width(),
+                    placement.height());
+                CaptureRect destination = new CaptureRect(
+                    pixels.x() / viewport.scaleX(),
+                    pixels.y() / viewport.scaleY(),
+                    pixels.width() / viewport.scaleX(),
+                    pixels.height() / viewport.scaleY());
+                if (backgroundArgb >>> 24 != 0) Gui.drawRect(
+                    (int) destination.x(),
+                    (int) destination.y(),
+                    (int) destination.right(),
+                    (int) destination.bottom(),
+                    backgroundArgb);
+                CaptureTextureRenderer
+                    .drawRegion(texture.getGlTextureId(), pixels, destination, textureWidth, textureHeight);
+            }
+            return;
+        }
         CaptureTextureRenderer.draw(
             texture.getGlTextureId(),
             viewport.bounds()
@@ -57,22 +129,27 @@ public class CapturePreviewRenderer implements AutoCloseable {
             false);
     }
 
-    private static void checkerboard(int width, int height, int background) {
+    private void checkerboard(CaptureRect bounds, int background) {
         GL11.glDisable(GL11.GL_TEXTURE_2D);
         GL11.glDisable(GL11.GL_DEPTH_TEST);
         GL11.glDisable(GL11.GL_ALPHA_TEST);
         GL11.glDisable(GL11.GL_BLEND);
         Tessellator tessellator = Tessellator.instance;
         tessellator.startDrawingQuads();
-        for (int y = 0; y < height; y += 12) {
-            for (int x = 0; x < width; x += 12) {
-                int shade = ((x / 12 + y / 12) & 1) == 0 ? 0x252A31 : 0x1D2228;
+        for (int y = 0; y < bounds.height(); y += 12) {
+            for (int x = 0; x < bounds.width(); x += 12) {
+                boolean light = ((x / 12 + y / 12) & 1) == 0;
+                int shade = brightCanvas ? light ? 0xE9EDF2 : 0xD5DCE5 : light ? 0x252A31 : 0x1D2228;
                 if ((background >>> 24) == 255) shade = background & 0xFFFFFF;
                 tessellator.setColorOpaque_I(shade);
-                tessellator.addVertex(x, Math.min(height, y + 12), 0);
-                tessellator.addVertex(Math.min(width, x + 12), Math.min(height, y + 12), 0);
-                tessellator.addVertex(Math.min(width, x + 12), y, 0);
-                tessellator.addVertex(x, y, 0);
+                double left = bounds.x() + x;
+                double right = bounds.x() + Math.min(bounds.width(), x + 12);
+                double top = bounds.y() + y;
+                double bottom = bounds.y() + Math.min(bounds.height(), y + 12);
+                tessellator.addVertex(left, bottom, 0);
+                tessellator.addVertex(right, bottom, 0);
+                tessellator.addVertex(right, top, 0);
+                tessellator.addVertex(left, top, 0);
             }
         }
         tessellator.draw();
@@ -102,6 +179,15 @@ public class CapturePreviewRenderer implements AutoCloseable {
             .width() * scale) / 2;
         double top = bounds.y() + (bounds.height() - composition.size()
             .height() * scale) / 2;
+        checkerboard(
+            new CaptureRect(
+                left,
+                top,
+                composition.size()
+                    .width() * scale,
+                composition.size()
+                    .height() * scale),
+            0);
         for (CapturePlacement placement : visiblePlacements) {
             CaptureTextureRenderer.drawRegion(
                 texture.getGlTextureId(),

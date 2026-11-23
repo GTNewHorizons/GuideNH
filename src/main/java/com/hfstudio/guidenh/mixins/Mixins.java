@@ -20,7 +20,7 @@ public enum Mixins implements IMixins {
         "minecraft.MixinTessellatorSceneExportCapture", "minecraft.MixinModelRendererSceneExportCapture",
         "minecraft.AccessorGuiCaptureScreen", "minecraft.AccessorGuiCaptureContainer", "minecraft.MixinGuiCaptureInput",
         "minecraft.MixinGuiCaptureRender", "minecraft.MixinGuiCaptureLayer", "minecraft.MixinGuiCaptureBackground",
-        "minecraft.MixinGuiCaptureHud", "forge.MixinGuiCaptureForgeHud",
+        "minecraft.MixinGuiCaptureHud", "forge.MixinGuiCaptureForgeHud", "minecraft.MixinCaptureGuiBrightness",
         "minecraft.MixinGuiCaptureAlpha", "minecraft.MixinGuiCaptureButtonAlpha",
         "minecraft.MixinGuiCaptureFramebuffer", "minecraft.MixinGuiCaptureMainMenu",
         "minecraft.MixinStandaloneContainerScreen", "minecraft.MixinCaptureContainerSynchronization"),
@@ -28,8 +28,8 @@ public enum Mixins implements IMixins {
     AE2_EXTERNAL_CABLE_PARTS(Side.CLIENT, Phase.LATE, Mods.AE2, "compat.ae2.MixinPartQuartzFiber",
         "compat.ae2.MixinPartP2PTunnelME", "compat.ae2.MixinPartToggleBus"),
 
-    ANGELICA_CAPTURE_FRAME_END(new MixinBuilder().addClientMixins("compat.angelica.MixinCaptureFrameEnd",
-        "compat.angelica.MixinCaptureHudCache")
+    ANGELICA_CAPTURE_FRAME_END(new MixinBuilder()
+        .addClientMixins("compat.angelica.MixinCaptureFrameEnd", "compat.angelica.MixinCaptureHudCache")
         .setPhase(Phase.EARLY)
         .setApplyIf(
             () -> Mixins.class.getClassLoader()
@@ -38,7 +38,11 @@ public enum Mixins implements IMixins {
     LWJGL_CAPTURE_INPUT(Side.CLIENT, Phase.EARLY, Mods.Lwjgl3ify, "compat.lwjgl3ify.MixinCaptureInputEvents",
         "compat.lwjgl3ify.AccessorCaptureTextInput"),
 
-    MUI_CAPTURE_GEOMETRY(Side.CLIENT, Phase.LATE, Mods.ModularUI, "compat.mui.AccessorCaptureModularWindow"),
+    MUI_CAPTURE_GEOMETRY(Side.CLIENT, Phase.LATE, Mods.ModularUI, "compat.mui.AccessorCaptureModularWindow",
+        "compat.mui.MixinCaptureMuiTooltip"),
+
+    MUI2_CAPTURE_TOOLTIP(Side.CLIENT, Phase.LATE, Mods.ModularUI2, "compat.mui2.MixinCaptureMui2Tooltip",
+        "compat.mui2.MixinCaptureMui2TooltipVisibility"),
 
     SERVER_CAPTURE_CONTAINER(new MixinBuilder()
         .addCommonMixins("minecraft.MixinCaptureServerContainer", "minecraft.AccessorCaptureEnderInventory")
@@ -54,7 +58,7 @@ public enum Mixins implements IMixins {
 
     NEI_CAPTURE_GUI(Side.CLIENT, Phase.LATE, Mods.NotEnoughItems, "compat.nei.AccessorCaptureNeiLayout",
         "compat.nei.AccessorCaptureNeiRecipe", "compat.nei.AccessorCaptureNeiTask", "compat.nei.AccessorCaptureNeiText",
-        "compat.nei.MixinCaptureNeiLayers"),
+        "compat.nei.MixinCaptureNeiLayers", "compat.nei.MixinCaptureNeiTooltip"),
 
     BQ_CAPTURE_GUI(Side.CLIENT, Phase.LATE, Mods.BetterQuesting, "compat.betterquesting.AccessorCaptureBqCanvas",
         "compat.betterquesting.AccessorCaptureBqQuest", "compat.betterquesting.AccessorCaptureBqQuestLines",

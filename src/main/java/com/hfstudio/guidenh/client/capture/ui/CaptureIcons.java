@@ -32,7 +32,9 @@ public class CaptureIcons {
     public static final SceneEditorIcon CHECK = icon(22);
     public static final SceneEditorIcon COPY = icon(23);
     public static final SceneEditorIcon ERASE = icon(24);
-    public static final SceneEditorIcon CURSOR = icon(25);
+    public static final SceneEditorIcon VISIBILITY = icon(25);
+    public static final SceneEditorIcon SELECTION_VISIBILITY = icon(26);
+    public static final SceneEditorIcon SOURCE_PREVIEW = icon(27);
 
     private CaptureIcons() {}
 

@@ -66,7 +66,7 @@ public class CaptureRowComposer implements CaptureRows {
                 placements.add(placement(crop, (int) (crop.x() - bounds.x()), (int) (crop.y() - bounds.y())));
             return new CaptureComposition(
                 new CaptureOutputSize((int) bounds.width(), (int) bounds.height()),
-                List.of(placement(bounds, 0, 0)),
+                placements,
                 placements);
         }
         int columns = switch (layout.arrangement()) {

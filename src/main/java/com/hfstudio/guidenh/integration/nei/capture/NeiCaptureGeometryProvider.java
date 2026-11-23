@@ -39,7 +39,7 @@ public class NeiCaptureGeometryProvider implements CaptureGeometryProvider {
         List<CaptureTarget> targets = new ArrayList<>();
         int index = 0;
         for (Widget widget : AccessorCaptureNeiLayout.guidenh$getCaptureWidgets()) {
-            if (widget.w <= 0 || widget.h <= 0) continue;
+            if (!widget.isVisible() || widget.w <= 0 || widget.h <= 0) continue;
             String id = "nei:widget:" + index++;
             CaptureRect bounds = new CaptureRect(widget.x, widget.y, widget.w, widget.h);
             targets.add(
@@ -106,6 +106,6 @@ public class NeiCaptureGeometryProvider implements CaptureGeometryProvider {
             bounds.intersect(clip),
             zOrder + 2,
             priority,
-            Integer.toUnsignedLong(System.identityHashCode(widget)));
+            Integer.toUnsignedLong(System.identityHashCode(widget))).withContent(CaptureTarget.NEI_LAYER, false);
     }
 }

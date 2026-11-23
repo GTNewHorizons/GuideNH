@@ -6,6 +6,7 @@ import java.util.List;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.inventory.GuiContainer;
+import net.minecraft.entity.player.InventoryPlayer;
 import net.minecraft.inventory.Slot;
 
 import com.hfstudio.guidenh.client.capture.api.CaptureContext;
@@ -30,6 +31,11 @@ public class VanillaCaptureGeometryProvider implements CaptureGeometryProvider {
 
     @Override
     public CaptureGeometry collect(CaptureContext context) {
+        return collect(context, true);
+    }
+
+    @Override
+    public CaptureGeometry collect(CaptureContext context, boolean includeContainerSlots) {
         GuiScreen screen = context.screen();
         CaptureRect viewport = context.viewport()
             .bounds();
@@ -65,7 +71,8 @@ public class VanillaCaptureGeometryProvider implements CaptureGeometryProvider {
                     viewport,
                     -10));
             parent = "window";
-            for (Slot slot : container.inventorySlots.inventorySlots) {
+            if (includeContainerSlots) for (Slot slot : container.inventorySlots.inventorySlots) {
+                if (!slot.func_111238_b()) continue;
                 CaptureRect bounds = new CaptureRect(
                     access.guidenh$getCaptureGuiLeft() + slot.xDisplayPosition - 1,
                     access.guidenh$getCaptureGuiTop() + slot.yDisplayPosition - 1,
@@ -80,7 +87,7 @@ public class VanillaCaptureGeometryProvider implements CaptureGeometryProvider {
                         "Slot " + slot.slotNumber,
                         bounds,
                         viewport,
-                        20));
+                        20).withContent(CaptureTarget.GUI_LAYER, slot.inventory instanceof InventoryPlayer));
             }
         }
         for (GuiButton button : ((AccessorGuiCaptureScreen) screen).guidenh$getCaptureButtons()) {

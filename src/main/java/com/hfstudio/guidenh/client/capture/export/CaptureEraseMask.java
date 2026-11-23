@@ -15,6 +15,36 @@ public class CaptureEraseMask {
 
     public CaptureEraseMask(CaptureExportRequest request, CaptureComposition composition, CaptureOutputSize output) {
         List<CaptureRect> masks = new ArrayList<>();
+        List<CaptureRect> uncovered = List.of(new CaptureRect(0, 0, output.width(), output.height()));
+        for (CapturePlacement placement : composition.placements()) {
+            int left = ceiling(
+                placement.destinationX(),
+                composition.size()
+                    .width(),
+                output.width());
+            int right = ceiling(
+                placement.destinationX() + placement.width(),
+                composition.size()
+                    .width(),
+                output.width());
+            int top = ceiling(
+                placement.destinationY(),
+                composition.size()
+                    .height(),
+                output.height());
+            int bottom = ceiling(
+                placement.destinationY() + placement.height(),
+                composition.size()
+                    .height(),
+                output.height());
+            CaptureRect selected = new CaptureRect(left, top, right - left, bottom - top);
+            uncovered = uncovered.stream()
+                .flatMap(
+                    piece -> piece.subtract(selected)
+                        .stream())
+                .toList();
+        }
+        masks.addAll(uncovered);
         for (CaptureRegion region : request.regions()) {
             if (!region.erased()) continue;
             CaptureRect erase = request.viewport()
@@ -50,9 +80,13 @@ public class CaptureEraseMask {
     }
 
     public void apply(int y, int[] row, int background) {
+        apply(y, row);
+    }
+
+    public void apply(int y, int[] row) {
         for (CaptureRect rectangle : rectangles) {
             if (y >= rectangle.y() && y < rectangle.bottom())
-                Arrays.fill(row, (int) rectangle.x(), (int) rectangle.right(), background);
+                Arrays.fill(row, (int) rectangle.x(), (int) rectangle.right(), 0);
         }
     }
 

@@ -4,6 +4,8 @@ import java.awt.geom.AffineTransform;
 import java.util.ArrayList;
 import java.util.List;
 
+import net.minecraft.entity.player.InventoryPlayer;
+
 import com.gtnewhorizons.modularui.api.math.Pos2d;
 import com.gtnewhorizons.modularui.api.math.Size;
 import com.gtnewhorizons.modularui.api.screen.ModularWindow;
@@ -30,6 +32,11 @@ public class MuiCaptureGeometryProvider implements CaptureGeometryProvider {
     @Override
     public boolean supports(CaptureContext context) {
         return context.screen() instanceof ModularGui;
+    }
+
+    @Override
+    public boolean ownsContainerSlots() {
+        return true;
     }
 
     @Override
@@ -113,7 +120,9 @@ public class MuiCaptureGeometryProvider implements CaptureGeometryProvider {
                     visible,
                     layer,
                     20 + depth + widget.getLayer(),
-                    Integer.toUnsignedLong(System.identityHashCode(widget))));
+                    Integer.toUnsignedLong(System.identityHashCode(widget))).withContent(
+                        CaptureTarget.GUI_LAYER,
+                        widget instanceof SlotWidget slot && slot.getMcSlot().inventory instanceof InventoryPlayer));
         }
         if (widget instanceof IWidgetParent group) {
             CaptureRect childClip = group.childrenMustBeInBounds() ? clip.intersect(bounds) : clip;

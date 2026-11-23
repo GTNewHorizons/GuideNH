@@ -46,6 +46,8 @@ public class CaptureOverlay implements AutoCloseable {
     private CaptureIconButton followButton;
     private CaptureIconButton compositionButton;
     private CaptureIconButton eraseButton;
+    private CaptureIconButton decorationsButton;
+    private CaptureIconButton sourcePreviewButton;
     private final CapturePreviewRenderer preview;
     private final CaptureSelectionRenderer selections = new CaptureSelectionRenderer();
     private final CaptureSettingsPanel settings;
@@ -63,6 +65,11 @@ public class CaptureOverlay implements AutoCloseable {
     private final CaptureInputOptions input;
     private boolean activationHeld = true;
     private boolean showComposition = true;
+    private boolean interfaceVisible = true;
+    private boolean toolbarVisible = true;
+    private boolean decorationsVisible = true;
+    private boolean peekSource;
+    private final CaptureIconButton restoreToolbar;
     private CaptureRect compositionBounds = new CaptureRect(0, 0, 0, 0);
 
     public CaptureOverlay(Minecraft minecraft, CaptureSession session, CaptureInputOptions input,
@@ -124,8 +131,23 @@ public class CaptureOverlay implements AutoCloseable {
                 .setErasing(
                     !session.selections()
                         .erasing()));
+        add(CaptureIcons.VISIBILITY, "hide_toolbar", () -> {
+            toolbarVisible = false;
+            settings.close();
+            batchPanel.close();
+        });
+        decorationsButton = add(CaptureIcons.SELECTION_VISIBILITY, "toggle_selection_overlay", () -> {
+            decorationsVisible = !decorationsVisible;
+            if (!decorationsVisible) compositionBounds = new CaptureRect(0, 0, 0, 0);
+        });
+        sourcePreviewButton = add(CaptureIcons.SOURCE_PREVIEW, "peek_source", () -> peekSource = !peekSource);
         add(CaptureIcons.FOLDER, "folder", this::openOutputFolder);
         add(CaptureIcons.CLOSE, "close", closeAction);
+        restoreToolbar = new CaptureIconButton(
+            -1,
+            CaptureIcons.VISIBILITY,
+            "guidenh.capture.show_toolbar",
+            () -> toolbarVisible = true);
     }
 
     private CaptureIconButton add(SceneEditorIcon icon, String tooltip, Runnable action) {
@@ -155,16 +177,23 @@ public class CaptureOverlay implements AutoCloseable {
         int mouseY = viewport.logicalHeight() - Mouse.getY() * viewport.logicalHeight() / viewport.pixelHeight() - 1;
         updateLayout(viewport);
         hovered = null;
-        if (!batchPanel.isOpen() && !toolbar.contains(mouseX, mouseY)
+        if (interfaceVisible && !batchPanel.isOpen()
+            && (!toolbarVisible || !toolbar.contains(mouseX, mouseY))
             && !settings.contains(mouseX, mouseY)
-            && !compositionBounds.contains(mouseX, mouseY)) hovered = targetAt(mouseX, mouseY);
+            && (!decorationsVisible || !compositionBounds.contains(mouseX, mouseY))) hovered = targetAt(mouseX, mouseY);
         preview.draw(
             session.preview(),
             session.previewVersion(),
             viewport,
             session.settings()
-                .config().backgroundArgb);
-        selections.draw(
+                .config().backgroundArgb,
+            session.selections()
+                .regions(),
+            !peekSource,
+            session.settings()
+                .config().fullBrightness);
+        if (!interfaceVisible || viewport.logicalWidth() < 96 || viewport.logicalHeight() < 96) return;
+        if (decorationsVisible) selections.draw(
             session.selections()
                 .regions(),
             session.selections()
@@ -178,7 +207,15 @@ public class CaptureOverlay implements AutoCloseable {
             batchPanel.draw(viewport, mouseX, mouseY);
             return;
         }
-        drawComposition(viewport);
+        if (decorationsVisible) drawComposition(viewport);
+        else compositionBounds = new CaptureRect(0, 0, 0, 0);
+        if (!toolbarVisible) {
+            restoreToolbar.xPosition = Math.max(0, viewport.logicalWidth() - 30);
+            restoreToolbar.yPosition = Math.max(0, viewport.logicalHeight() - 30);
+            restoreToolbar.drawButton(minecraft, mouseX, mouseY);
+            if (restoreToolbar.hovered()) tooltip(restoreToolbar.tooltip(), mouseX, mouseY, viewport);
+            return;
+        }
         Gui.drawRect(
             (int) toolbar.x(),
             (int) toolbar.y(),
@@ -239,6 +276,8 @@ public class CaptureOverlay implements AutoCloseable {
                     .active()
                     .followTarget());
         compositionButton.setActive(showComposition);
+        decorationsButton.setActive(decorationsVisible);
+        sourcePreviewButton.setActive(peekSource);
         eraseButton.enabled = !session.busy() && !batchController.busy();
         eraseButton.setActive(
             session.selections()
@@ -256,8 +295,9 @@ public class CaptureOverlay implements AutoCloseable {
             if (button.hovered() && !settings.contains(mouseX, mouseY))
                 tooltip(button.tooltip(), mouseX, mouseY, viewport);
         }
-        if (hovered != null && session.settings()
-            .config().showClassName) {
+        if (decorationsVisible && hovered != null
+            && session.settings()
+                .config().showClassName) {
             String name = hovered.className();
             name = name.substring(name.lastIndexOf('.') + 1);
             tooltip(
@@ -285,10 +325,16 @@ public class CaptureOverlay implements AutoCloseable {
                 session.recording()
                     .skippedFrames());
         }
+        Gui.drawRect(
+            0,
+            viewport.logicalHeight() - 12,
+            viewport.logicalWidth(),
+            viewport.logicalHeight(),
+            CaptureUiColors.SURFACE);
         minecraft.fontRenderer.drawStringWithShadow(
             minecraft.fontRenderer.trimStringToWidth(status, viewport.logicalWidth() - 16),
             8,
-            viewport.logicalHeight() - 12,
+            viewport.logicalHeight() - 10,
             0xE0E7EE);
         batchPanel.draw(viewport, mouseX, mouseY);
     }
@@ -346,9 +392,9 @@ public class CaptureOverlay implements AutoCloseable {
         int width = columns * 24 + 8;
         int height = rows * 24 + 12;
         if (toolbarX < 0) toolbarX = (viewport.logicalWidth() - width) / 2;
-        if (toolbarY < 0) toolbarY = viewport.logicalHeight() - height - 24;
+        if (toolbarY < 0) toolbarY = viewport.logicalHeight() - height - 14;
         toolbarX = Math.clamp(toolbarX, 4, Math.max(4, viewport.logicalWidth() - width - 4));
-        toolbarY = Math.clamp(toolbarY, 4, Math.max(4, viewport.logicalHeight() - height - 20));
+        toolbarY = Math.clamp(toolbarY, 4, Math.max(4, viewport.logicalHeight() - height - 14));
         toolbar = new CaptureRect(toolbarX, toolbarY, width, height);
         for (int index = 0; index < buttons.size(); index++) {
             CaptureIconButton button = buttons.get(index);
@@ -361,7 +407,7 @@ public class CaptureOverlay implements AutoCloseable {
         String displayed = minecraft.fontRenderer.trimStringToWidth(text, viewport.logicalWidth() - 16);
         int width = minecraft.fontRenderer.getStringWidth(displayed);
         int x = Math.clamp(mouseX + 12, 4, viewport.logicalWidth() - width - 8);
-        int y = Math.clamp(mouseY - 19, 4, viewport.logicalHeight() - 18);
+        int y = Math.clamp(mouseY - 19, 4, viewport.logicalHeight() - 26);
         Gui.drawRect(x - 4, y - 3, x + width + 4, y + 12, CaptureUiColors.TOOLTIP);
         minecraft.fontRenderer.drawStringWithShadow(displayed, x, y, 0xFFFFFF);
     }
@@ -370,7 +416,7 @@ public class CaptureOverlay implements AutoCloseable {
         if (Mouse.isCreated()) while (Mouse.next()) mouse();
         if (Keyboard.isCreated()) while (Keyboard.next()) {
             int code = Keyboard.getEventKey();
-            if (activationHeld && code == input.activationKey()) {
+            if (code == input.activationKey()) {
                 if (!Keyboard.getEventKeyState()) activationHeld = false;
                 continue;
             }
@@ -383,13 +429,26 @@ public class CaptureOverlay implements AutoCloseable {
         int x = Mouse.getEventX() * viewport.logicalWidth() / viewport.pixelWidth();
         int y = viewport.logicalHeight() - Mouse.getEventY() * viewport.logicalHeight() / viewport.pixelHeight() - 1;
         int wheel = Mouse.getEventDWheel();
+        int eventButton = Mouse.getEventButton();
+        if (eventButton == 0 && !Mouse.getEventButtonState()) settings.release(x, y);
+        if (!interfaceVisible) return;
+        if (settings.dragging() && eventButton == -1) {
+            settings.move(x, y);
+            return;
+        }
+        if (!toolbarVisible && eventButton == 0
+            && Mouse.getEventButtonState()
+            && restoreToolbar.mousePressed(minecraft, x, y)) {
+            restoreToolbar.activate();
+            return;
+        }
         if (batchPanel.isOpen()) {
             if (wheel != 0) batchPanel.scroll(wheel);
             if (Mouse.getEventButton() >= 0 && Mouse.getEventButtonState())
                 batchPanel.click(x, y, Mouse.getEventButton());
             return;
         }
-        if (compositionBounds.contains(x, y)) return;
+        if (decorationsVisible && compositionBounds.contains(x, y)) return;
         if (wheel != 0) {
             if (settings.contains(x, y)) settings.scroll(wheel);
             else candidateOffset += Integer.signum(wheel);
@@ -404,7 +463,7 @@ public class CaptureOverlay implements AutoCloseable {
                 settings.click(x, y, button);
                 return;
             }
-            if (toolbar.contains(x, y)) {
+            if (toolbarVisible && toolbar.contains(x, y)) {
                 if (button == 0 && y < toolbar.y() + 9) {
                     draggingToolbar = true;
                     dragOffsetX = x - toolbarX;
@@ -462,8 +521,18 @@ public class CaptureOverlay implements AutoCloseable {
     }
 
     private void key(char character, int key, boolean control, boolean shift) {
+        if (!interfaceVisible) {
+            if (key == Keyboard.KEY_ESCAPE) closeAction.run();
+            else if (key == Keyboard.KEY_RETURN || key == Keyboard.KEY_NUMPADENTER) {
+                if (session.busy() || batchController.busy()) actions.stop()
+                    .run();
+                else save();
+            } else if (key == Keyboard.KEY_SPACE && (session.busy() || batchController.busy())) actions.pause()
+                .run();
+            return;
+        }
         if (batchPanel.key(character, key)) return;
-        if (settings.key(character, key)) return;
+        if (settings.key(character, key, control)) return;
         if (key == Keyboard.KEY_ESCAPE && settings.isOpen()) {
             settings.close();
             return;
@@ -507,7 +576,7 @@ public class CaptureOverlay implements AutoCloseable {
     }
 
     public void nativeKey(int code, boolean pressed, boolean control, boolean shift) {
-        if (activationHeld && code == input.activationKey()) {
+        if (code == input.activationKey()) {
             if (!pressed) activationHeld = false;
             return;
         }
@@ -523,8 +592,28 @@ public class CaptureOverlay implements AutoCloseable {
     }
 
     public void text(String text) {
+        if (!interfaceVisible) return;
         if (batchPanel.isOpen()) batchPanel.text(text);
         else settings.text(text);
+    }
+
+    public void toggleInterface() {
+        interfaceVisible = !interfaceVisible;
+        if (interfaceVisible) toolbarVisible = true;
+        else {
+            settings.close();
+            batchPanel.close();
+            compositionBounds = new CaptureRect(0, 0, 0, 0);
+            draggingToolbar = false;
+            if (session.selections()
+                .dragging())
+                session.selections()
+                    .cancelDrag();
+        }
+    }
+
+    public boolean textInputFocused() {
+        return settings.textInputFocused() || batchPanel.isOpen();
     }
 
     private void save() {

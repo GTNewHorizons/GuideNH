@@ -1,5 +1,7 @@
 package com.hfstudio.guidenh.client.capture.render;
 
+import net.minecraft.client.renderer.OpenGlHelper;
+
 import org.lwjgl.opengl.GLContext;
 
 import com.hfstudio.guidenh.client.capture.api.CaptureContentOptions;
@@ -18,13 +20,18 @@ public class FinalFrameCaptureSourceProvider implements CaptureSourceProvider {
 
     @Override
     public CaptureProviderAvailability availability(CaptureContext context, CaptureContentOptions content) {
-        return content.includeWorld() ? CaptureProviderAvailability.ready()
-            : CaptureProviderAvailability.unavailable("The final frame source requires world inclusion to be enabled");
+        return OpenGlHelper.isFramebufferEnabled() ? CaptureProviderAvailability.ready()
+            : CaptureProviderAvailability.unavailable("Content filtering requires framebuffer support");
     }
 
     @Override
     public CaptureSource open(CaptureContext context) {
         return new FinalFrameCaptureSource();
+    }
+
+    @Override
+    public boolean automaticSelection(CaptureContext context, CaptureContentOptions content) {
+        return content.includeWorld();
     }
 
     @Override

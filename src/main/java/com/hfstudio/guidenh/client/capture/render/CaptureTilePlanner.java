@@ -21,7 +21,7 @@ public class CaptureTilePlanner {
         double scaleY = (double) output.height() / composition.size()
             .height();
         List<CaptureTile> tiles = new ArrayList<>();
-        for (CapturePlacement placement : composition.placements()) {
+        for (CapturePlacement placement : composition.visiblePlacements()) {
             int left = ceiling(
                 placement.destinationX(),
                 composition.size()

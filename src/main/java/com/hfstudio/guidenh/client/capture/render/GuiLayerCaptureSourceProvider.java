@@ -20,8 +20,6 @@ public class GuiLayerCaptureSourceProvider implements CaptureSourceProvider {
 
     @Override
     public CaptureProviderAvailability availability(CaptureContext context, CaptureContentOptions content) {
-        if (content.includeWorld()) return CaptureProviderAvailability
-            .unavailable("The GUI layer source requires world inclusion to be disabled");
         return OpenGlHelper.isFramebufferEnabled() ? CaptureProviderAvailability.ready()
             : CaptureProviderAvailability.unavailable("The GUI layer source requires framebuffer support");
     }
@@ -29,6 +27,11 @@ public class GuiLayerCaptureSourceProvider implements CaptureSourceProvider {
     @Override
     public CaptureSource open(CaptureContext context) {
         return new GuiLayerCaptureSource();
+    }
+
+    @Override
+    public boolean automaticSelection(CaptureContext context, CaptureContentOptions content) {
+        return !content.includeWorld();
     }
 
     @Override

@@ -22,10 +22,12 @@ public class GuiLayerCaptureSource implements CaptureSource {
     private CaptureViewport viewport;
     private GuiRenderVisibility visibility;
     private long completedFrame = Long.MIN_VALUE;
+    private boolean includeWorld;
 
     @Override
     public void beginGui(CaptureContext context, CaptureContentOptions content, boolean collectGeometry) {
         completedFrame = Long.MIN_VALUE;
+        includeWorld = content.includeWorld();
         begin(context.viewport(), content.includeDebug(), collectGeometry);
     }
 
@@ -50,7 +52,19 @@ public class GuiLayerCaptureSource implements CaptureSource {
 
     @Override
     public CaptureFrame captureCompletedFrame(CaptureContext context, CapturePixelReader reader, long timestamp) {
-        return read(reader, timestamp);
+        if (!includeWorld) return read(reader, timestamp);
+        try (CaptureRenderScope reading = new CaptureRenderScope()) {
+            if (OpenGlHelper.framebufferSupported) OpenGlHelper.func_153171_g(OpenGlHelper.field_153198_e, 0);
+            GL11.glReadBuffer(GL11.GL_BACK);
+            return reader.readOpaque(
+                0,
+                0,
+                context.viewport()
+                    .pixelWidth(),
+                context.viewport()
+                    .pixelHeight(),
+                timestamp);
+        }
     }
 
     @Override
@@ -74,7 +88,7 @@ public class GuiLayerCaptureSource implements CaptureSource {
         try {
             if (framebuffer == null || framebuffer.framebufferWidth != current.pixelWidth()
                 || framebuffer.framebufferHeight != current.pixelHeight()) {
-                if (framebuffer != null) framebuffer.deleteFramebuffer();
+                CaptureFramebufferResources.delete(framebuffer);
                 framebuffer = new Framebuffer(current.pixelWidth(), current.pixelHeight(), true);
                 framebuffer.setFramebufferColor(0, 0, 0, 0);
             }
@@ -99,6 +113,7 @@ public class GuiLayerCaptureSource implements CaptureSource {
         if (!captured) return;
         try (CaptureRenderScope composite = new CaptureRenderScope()) {
             minecraft.entityRenderer.setupOverlayRendering();
+            CaptureTextureRenderer.prepareOverlay();
             CaptureTextureRenderer.draw(
                 framebuffer.framebufferTexture,
                 viewport.bounds()
@@ -136,9 +151,7 @@ public class GuiLayerCaptureSource implements CaptureSource {
             restoreScope();
         }
         if (framebuffer != null) {
-            try (CaptureRenderScope deletion = new CaptureRenderScope()) {
-                framebuffer.deleteFramebuffer();
-            }
+            CaptureFramebufferResources.delete(framebuffer);
             framebuffer = null;
         }
     }

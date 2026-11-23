@@ -81,7 +81,13 @@ public class CaptureRegistry {
     }
 
     public CaptureSourceProvider sourceProvider(CaptureContext context, CaptureContentOptions content, String id) {
-        return resolveBackend(sourceProviders, id, provider -> provider.availability(context, content), "source");
+        return resolveBackend(
+            sourceProviders,
+            id,
+            provider -> id.equals("automatic") && !provider.automaticSelection(context, content)
+                ? CaptureProviderAvailability.unavailable("This source is not preferred for the selected content")
+                : provider.availability(context, content),
+            "source");
     }
 
     private static <P> P resolveBackend(Map<String, P> providers, String id,
@@ -192,9 +198,13 @@ public class CaptureRegistry {
 
     public CaptureGeometry collect(CaptureContext context) {
         Map<String, CaptureTarget> targets = new LinkedHashMap<>();
-        for (CaptureGeometryProvider provider : geometryProviders) {
-            if (!provider.supports(context)) continue;
-            for (CaptureTarget target : provider.collect(context)
+        List<CaptureGeometryProvider> supported = geometryProviders.stream()
+            .filter(provider -> provider.supports(context))
+            .toList();
+        boolean ownedSlots = supported.stream()
+            .anyMatch(CaptureGeometryProvider::ownsContainerSlots);
+        for (CaptureGeometryProvider provider : supported) {
+            for (CaptureTarget target : provider.collect(context, !ownedSlots || provider.ownsContainerSlots())
                 .targets()) targets.put(target.id(), target);
         }
         List<CaptureTarget> collected = List.copyOf(targets.values());

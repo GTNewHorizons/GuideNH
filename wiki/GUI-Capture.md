@@ -8,11 +8,11 @@ Bind **Open GUI capture** in the GuideNH controls category. It starts unbound. O
 
 Drag a selection, release to fix it, and use its corners or edges to resize it. Snapping can target slots, components, windows, and supported mod layers. The hovered target can display its class name. Use the add-selection button or Ctrl while dragging to add another selection.
 
-The default output is the rectangle enclosing all positive selections, including the space between them. Use the eraser to remove unwanted parts. Overlapping selections do not duplicate pixels. Separate-region export and horizontal, vertical, or grid arrangements are optional settings.
+The default output retains the rectangle enclosing all positive selections and their original positions. Unselected gaps and erased areas are transparent in the preview and output. Use the eraser to remove unwanted parts. Overlapping selections do not duplicate pixels. Separate-region export and horizontal, vertical, or grid arrangements are optional settings.
 
 Use the save icon or Enter to save. The settings panel controls dimensions, output format, background, content layers, snapping, output folder, and resource budgets. World rendering is off by default; GUI models remain part of the selected GUI content. Tooltip, debug, NEI, and GUI backdrop inclusion are separate choices.
 
-The source and pixel-reader settings include every registered provider. Automatic source selection uses an isolated GUI layer while world inclusion is off, and the opaque final frame while it is on. An explicit incompatible source reports its reason. Successful changes refresh the preview; rejected choices preserve it. The settings footer shows the implementations currently in use. Recording and export keep their source, reader, and content snapshots until the task ends. Capability changes rebuild idle resources and pause an affected recording.
+The source and pixel-reader settings include every registered provider. Automatic source selection uses an isolated GUI layer while world inclusion is off, and the opaque final frame while it is on. Both built-in sources honor the content switches, including an explicit final-frame source with world inclusion off. An unavailable source reports its reason. Successful changes refresh the preview; rejected choices preserve it. The settings footer shows the implementations currently in use. Recording and export keep their source, reader, and content snapshots until the task ends. Capability changes rebuild idle resources and pause an affected recording.
 
 | Key | Action |
 | --- | --- |
@@ -29,7 +29,9 @@ The source and pixel-reader settings include every registered provider. Automati
 
 Resolution is limited to 32 times the source size per axis. True GUI redraw uses tiles for large output. The selected quality policy determines whether a source that cannot be redrawn may use native capture or resampling. Read the displayed quality and capability information when choosing a source or backend.
 
-HUD and cursor inclusion are independent options, both off by default. HUD capture starts the selected GUI layer before normal HUD drawing and also handles the Angelica cached-HUD entry. Frozen previews keep the source pointer for GUI drawing and Forge draw events; the exported software cursor uses the existing monochrome capture atlas. Cursor drawing is included in safe tiled GUI snapshots. Safe high-resolution HUD redraw remains pending: strict quality currently rejects that combination, while compatible output enlarges the complete native HUD/GUI frame.
+GUI, HUD, player inventory, world, and tooltip inclusion are independently configurable. Full brightness uses a light preview checkerboard to reveal dark GUI borders and maximum GUI lighting. Hidden widgets and excluded layers are removed from snapping; a frozen tooltip retains the bounds collected during its actual drawing. Cursor inclusion reads the active system cursor bitmap and hotspot through the native Windows or X11 API. Cursor drawing and inventory masking also apply to tiled GUI snapshots. Safe high-resolution HUD redraw remains pending: strict quality rejects that combination, while compatible output enlarges the complete native HUD/GUI frame.
+
+Use the visibility button to hide the toolbar and the bottom-right restore button to bring it back. The rebindable show/hide-interface key defaults to F6; the opening binding also toggles the interface while capture is active. Separate buttons hide selection decoration and reveal the complete source beneath the selection mask. Settings support search with Ctrl+F, smooth scrolling, and numeric sliders with editable values.
 
 ## Record and schedule
 

@@ -41,6 +41,8 @@ public class CapturePipeline implements AutoCloseable {
         if (guiOpen) throw new IllegalStateException("The capture pipeline cannot change while the GUI is drawing");
         boolean current = source != null && reader != null;
         if (current && selection.equals(requested)
+            && (!selection.sourceId()
+                .equals("automatic") || sourceProvider.automaticSelection(context, content))
             && revision == registry.backendRevision()
             && Objects.equals(sourceKey, sourceProvider.contextKey(context))
             && Objects.equals(readerKey, readerProvider.contextKey(context))

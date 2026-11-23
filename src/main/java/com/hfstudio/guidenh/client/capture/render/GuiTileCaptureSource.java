@@ -47,7 +47,7 @@ public class GuiTileCaptureSource implements AutoCloseable {
             GuiRenderVisibility visibility = new GuiRenderVisibility(includeDebug)) {
             if (framebuffer == null || framebuffer.framebufferWidth != width
                 || framebuffer.framebufferHeight != height) {
-                if (framebuffer != null) framebuffer.deleteFramebuffer();
+                CaptureFramebufferResources.delete(framebuffer);
                 framebuffer = new Framebuffer(width, height, true);
                 framebuffer.setFramebufferColor(0, 0, 0, 0);
             }
@@ -83,9 +83,7 @@ public class GuiTileCaptureSource implements AutoCloseable {
     @Override
     public void close() {
         if (framebuffer == null) return;
-        try (CaptureRenderScope scope = new CaptureRenderScope()) {
-            framebuffer.deleteFramebuffer();
-        }
+        CaptureFramebufferResources.delete(framebuffer);
         framebuffer = null;
     }
 }

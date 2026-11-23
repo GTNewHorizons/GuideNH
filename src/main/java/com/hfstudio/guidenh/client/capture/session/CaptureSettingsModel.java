@@ -101,7 +101,10 @@ public class CaptureSettingsModel {
             config.includeNei,
             config.backgroundArgb,
             config.includeHud,
-            config.includeCursor);
+            config.includeCursor,
+            config.includeGui,
+            config.includePlayerInventory,
+            config.fullBrightness);
     }
 
     public CaptureBatchOptions batch(Path gameDirectory) {
@@ -161,7 +164,10 @@ public class CaptureSettingsModel {
     public CaptureSnapOptions snapping(boolean temporarilyDisabled) {
         Set<String> kinds = new HashSet<>();
         if (config.snapSlots) kinds.add(CaptureTarget.SLOT);
-        if (config.snapComponents) kinds.add(CaptureTarget.COMPONENT);
+        if (config.snapComponents) {
+            kinds.add(CaptureTarget.COMPONENT);
+            kinds.add(CaptureTarget.TOOLTIP);
+        }
         if (config.snapWindows) {
             kinds.add(CaptureTarget.WINDOW);
             kinds.add(CaptureTarget.SCREEN);

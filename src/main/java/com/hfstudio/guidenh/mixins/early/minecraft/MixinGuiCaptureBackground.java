@@ -1,5 +1,8 @@
 package com.hfstudio.guidenh.mixins.early.minecraft;
 
+import java.util.List;
+
+import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.GuiScreen;
 
 import org.spongepowered.asm.mixin.Mixin;
@@ -29,8 +32,19 @@ public class MixinGuiCaptureBackground {
         at = @At("HEAD"),
         cancellable = true,
         remap = false)
-    private void guidenh$hideCaptureHoverText(CallbackInfo callback) {
+    private void guidenh$hideCaptureHoverText(List<String> lines, int x, int y, FontRenderer font,
+        CallbackInfo callback) {
         if (CaptureRuntime.instance()
             .hideTooltips()) callback.cancel();
+    }
+
+    @Inject(
+        method = "drawHoveringText(Ljava/util/List;IILnet/minecraft/client/gui/FontRenderer;)V",
+        at = @At("RETURN"),
+        remap = false)
+    private void guidenh$recordCaptureHoverText(List<String> lines, int x, int y, FontRenderer font,
+        CallbackInfo callback) {
+        CaptureRuntime.instance()
+            .recordTooltip(lines, x, y, font);
     }
 }
