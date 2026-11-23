@@ -17,6 +17,12 @@ public class CaptureConfig {
     public boolean includeWorld;
 
     @DefaultBoolean(false)
+    public boolean includeHud;
+
+    @DefaultBoolean(false)
+    public boolean includeCursor;
+
+    @DefaultBoolean(false)
     public boolean includeGuiBackdrop;
 
     @DefaultBoolean(false)

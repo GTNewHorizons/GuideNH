@@ -117,6 +117,10 @@ public class CapturePipeline implements AutoCloseable {
         return guiOpen && source != null && source.drawing();
     }
 
+    public boolean guiOpen() {
+        return guiOpen;
+    }
+
     public boolean bindMainFramebuffer(boolean viewport) {
         return guiOpen && source != null && source.bindMainFramebuffer(viewport);
     }

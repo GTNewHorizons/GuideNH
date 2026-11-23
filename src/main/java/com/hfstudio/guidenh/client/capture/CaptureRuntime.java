@@ -57,6 +57,8 @@ import com.hfstudio.guidenh.client.capture.render.CaptureFramePhases;
 import com.hfstudio.guidenh.client.capture.render.CaptureHighResolutionJob;
 import com.hfstudio.guidenh.client.capture.render.CapturePipeline;
 import com.hfstudio.guidenh.client.capture.render.CaptureRenderScope;
+import com.hfstudio.guidenh.client.capture.render.CaptureCursorRenderer;
+import com.hfstudio.guidenh.client.capture.render.CaptureCursorSnapshot;
 import com.hfstudio.guidenh.client.capture.render.CaptureTracingPixelReader;
 import com.hfstudio.guidenh.client.capture.render.GlCaptureRenderProbe;
 import com.hfstudio.guidenh.client.capture.render.GuiTileCaptureSource;
@@ -371,6 +373,7 @@ public class CaptureRuntime implements CaptureBackendControls {
         previousKeyRepeat = Keyboard.areRepeatEventsEnabled();
         Keyboard.enableRepeatEvents(true);
         session = new CaptureSession(minecraft.currentScreen, CaptureCoordinateMapper.current(minecraft));
+        updateSourcePointer(session.viewport(), true);
         sourceVisible = true;
         batch = new CaptureBatchEngine(registry, batchHost);
         overlay = new CaptureOverlay(
@@ -457,11 +460,24 @@ public class CaptureRuntime implements CaptureBackendControls {
         }
         frameRequested = session.wantsFrame(sampleTime)
             || batchRecording != null && batchRecording.needsFrame(sampleTime);
-        if (frameRequested && session.previewRequested()) {
+        updateSourcePointer(viewport, !session.settings().config().freezePreview);
+    }
+
+    private void updateSourcePointer(CaptureViewport viewport, boolean sample) {
+        if (sample) {
             sourceMouseX = Mouse.getX() * viewport.logicalWidth() / viewport.pixelWidth();
-            sourceMouseY = viewport.logicalHeight() - Mouse.getY() * viewport.logicalHeight() / viewport.pixelHeight()
-                - 1;
+            sourceMouseY = viewport.logicalHeight() - Mouse.getY() * viewport.logicalHeight() / viewport.pixelHeight() - 1;
         }
+        sourceMouseX = Math.min(Math.max(0, sourceMouseX), viewport.logicalWidth() - 1);
+        sourceMouseY = Math.min(Math.max(0, sourceMouseY), viewport.logicalHeight() - 1);
+    }
+
+    public int captureMouseX(int original) {
+        return session != null && session.settings().config().freezePreview ? sourceMouseX : original;
+    }
+
+    public int captureMouseY(int original) {
+        return session != null && session.settings().config().freezePreview ? sourceMouseY : original;
     }
 
     public void worldReady() {
@@ -474,7 +490,7 @@ public class CaptureRuntime implements CaptureBackendControls {
         try {
             CaptureContext context = captureContext()
                 .atPhase(CaptureRenderPhase.GUI_BEGIN, renderProbe.capture(captureContext(), memoryBudget()));
-            if (pipeline.selection() != null) pipeline.beginGui(
+            if (pipeline.selection() != null && !pipeline.guiOpen()) pipeline.beginGui(
                 context,
                 content(),
                 session.previewRequested() || session.selections()
@@ -486,7 +502,29 @@ public class CaptureRuntime implements CaptureBackendControls {
     }
 
     public void finishGui() {
+        if (session != null && framePhases.active() && content().includeCursor()) {
+            try (CaptureRenderScope scope = new CaptureRenderScope()) {
+                Minecraft.getMinecraft().entityRenderer.setupOverlayRendering();
+                CaptureCursorRenderer.draw(sourceMouseX, sourceMouseY);
+            }
+        }
         reachPhase(CaptureRenderPhase.GUI_END);
+    }
+
+    public boolean prepareHud() {
+        if (drawingTile) return highResolution != null && highResolution.content().includeHud();
+        if (session == null || !framePhases.active()) return true;
+        if (!content().includeHud()) return false;
+        if (pipeline.selection() == null || pipeline.guiOpen()) return true;
+        try {
+            pipeline.beginGui(
+                captureContext().atPhase(CaptureRenderPhase.GUI_BEGIN, renderProbe.capture(captureContext(), memoryBudget())),
+                content(),
+                session.previewRequested() || session.selections().following());
+        } catch (RuntimeException error) {
+            captureFailed(error);
+        }
+        return true;
     }
 
     public void finishFrameLayers() {
@@ -880,6 +918,7 @@ public class CaptureRuntime implements CaptureBackendControls {
             if (renderer != null && !request.options()
                 .content()
                 .includeWorld()
+                && !request.options().content().includeHud()
                 && pipeline.supportsRedraw()
                 && request.options()
                     .backend()
@@ -893,6 +932,8 @@ public class CaptureRuntime implements CaptureBackendControls {
                     request.options()
                         .content()
                         .includeGuiBackdrop());
+                if (request.options().content().includeCursor())
+                    snapshot = new CaptureCursorSnapshot(snapshot, sourceMouseX, sourceMouseY);
                 try {
                     highResolution = new CaptureHighResolutionJob(
                         request,

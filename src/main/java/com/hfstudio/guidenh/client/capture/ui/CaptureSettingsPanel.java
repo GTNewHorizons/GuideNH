@@ -98,6 +98,8 @@ public class CaptureSettingsPanel {
             config.spacing = spacing;
         }, List.of(), false));
         toggle("world", () -> config.includeWorld, value -> config.includeWorld = value, true);
+        toggle("hud", () -> config.includeHud, value -> config.includeHud = value, true);
+        toggle("cursor", () -> config.includeCursor, value -> config.includeCursor = value, true);
         toggle("backdrop", () -> config.includeGuiBackdrop, value -> config.includeGuiBackdrop = value, true);
         toggle("tooltips", () -> config.includeTooltips, value -> config.includeTooltips = value, true);
         toggle("snapping", () -> config.snapping, value -> config.snapping = value, false);

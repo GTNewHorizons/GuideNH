@@ -99,7 +99,9 @@ public class CaptureSettingsModel {
             config.includeTooltips,
             config.includeDebug,
             config.includeNei,
-            config.backgroundArgb);
+            config.backgroundArgb,
+            config.includeHud,
+            config.includeCursor);
     }
 
     public CaptureBatchOptions batch(Path gameDirectory) {

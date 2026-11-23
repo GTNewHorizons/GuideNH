@@ -6,6 +6,8 @@ import org.objectweb.asm.Opcodes;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.ModifyArgs;
+import org.spongepowered.asm.mixin.injection.invoke.arg.Args;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import com.hfstudio.guidenh.client.capture.CaptureRuntime;
@@ -45,5 +47,36 @@ public class MixinGuiCaptureLayer {
     private void guidenh$finishCaptureGui(float partialTicks, CallbackInfo callback) {
         CaptureRuntime.instance()
             .finishGui();
+    }
+
+    @ModifyArgs(
+        method = "updateCameraAndRender",
+        at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/GuiScreen;drawScreen(IIF)V"))
+    private void guidenh$freezeSourcePointer(Args arguments) {
+        CaptureRuntime runtime = CaptureRuntime.instance();
+        arguments.set(0, runtime.captureMouseX(arguments.get(0)));
+        arguments.set(1, runtime.captureMouseY(arguments.get(1)));
+    }
+
+    @ModifyArgs(
+        method = "updateCameraAndRender",
+        at = @At(value = "INVOKE",
+            target = "Lnet/minecraftforge/client/event/GuiScreenEvent$DrawScreenEvent$Pre;<init>(Lnet/minecraft/client/gui/GuiScreen;IIF)V",
+            remap = false))
+    private void guidenh$freezeGuiPrePointer(Args arguments) {
+        CaptureRuntime runtime = CaptureRuntime.instance();
+        arguments.set(1, runtime.captureMouseX(arguments.get(1)));
+        arguments.set(2, runtime.captureMouseY(arguments.get(2)));
+    }
+
+    @ModifyArgs(
+        method = "updateCameraAndRender",
+        at = @At(value = "INVOKE",
+            target = "Lnet/minecraftforge/client/event/GuiScreenEvent$DrawScreenEvent$Post;<init>(Lnet/minecraft/client/gui/GuiScreen;IIF)V",
+            remap = false))
+    private void guidenh$freezeGuiPostPointer(Args arguments) {
+        CaptureRuntime runtime = CaptureRuntime.instance();
+        arguments.set(1, runtime.captureMouseX(arguments.get(1)));
+        arguments.set(2, runtime.captureMouseY(arguments.get(2)));
     }
 }

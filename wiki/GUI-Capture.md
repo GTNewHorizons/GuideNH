@@ -29,6 +29,8 @@ The source and pixel-reader settings include every registered provider. Automati
 
 Resolution is limited to 32 times the source size per axis. True GUI redraw uses tiles for large output. The selected quality policy determines whether a source that cannot be redrawn may use native capture or resampling. Read the displayed quality and capability information when choosing a source or backend.
 
+HUD and cursor inclusion are independent options, both off by default. HUD capture starts the selected GUI layer before normal HUD drawing and also handles the Angelica cached-HUD entry. Frozen previews keep the source pointer for GUI drawing and Forge draw events; the exported software cursor uses the existing monochrome capture atlas. Cursor drawing is included in safe tiled GUI snapshots. Safe high-resolution HUD redraw remains pending: strict quality currently rejects that combination, while compatible output enlarges the complete native HUD/GUI frame.
+
 ## Record and schedule
 
 Choose GIF, a PNG sprite sheet, or a PNG frame sequence, configure the frame rate and duration or frame limit, and start recording. Pause, resume, stop, and cancel are available in the overlay. Sprite sheets include frame rectangles and timing in JSON. GIF transparency uses the configured alpha threshold or matte color.
