@@ -211,7 +211,13 @@ public class CaptureBatchPanel {
                     output -> output.status()
                         .equals("success"))
                 .count();
-            summary = I18n.format("guidenh.capture.batch_outputs", ready, outputs.size() - ready, summary);
+            long partial = outputs.stream()
+                .filter(
+                    output -> output.status()
+                        .equals("partial"))
+                .count();
+            summary = I18n
+                .format("guidenh.capture.batch_outputs", ready, partial, outputs.size() - ready - partial, summary);
         }
         minecraft.fontRenderer.drawStringWithShadow(
             minecraft.fontRenderer.trimStringToWidth(summary, width - 128),

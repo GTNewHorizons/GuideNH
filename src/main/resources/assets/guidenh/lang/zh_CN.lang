@@ -895,4 +895,5 @@ guidenh.capture.setting.batch_sheet_columns=联系表列数
 guidenh.capture.setting.batch_thumbnail_size=联系表缩略图尺寸（像素）
 guidenh.capture.setting.batch_sheet_page=联系表单页尺寸上限（像素）
 guidenh.capture.batch_stage.composing=正在合成批量输出
-guidenh.capture.batch_outputs=合成输出：%s 项完成，%s 项失败 · %s
+guidenh.capture.batch_outputs=合成输出：%s 项完成，%s 项部分完成，%s 项失败 · %s
+guidenh.capture.setting.batch_scroll_images=将可滚内容合成为长图

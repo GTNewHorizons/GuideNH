@@ -67,6 +67,32 @@ public class CaptureTileStore implements CaptureRows {
         }
     }
 
+    public void putRow(int y, int[] pixels) throws IOException {
+        ByteBuffer row = buffer(Math.multiplyExact(pixels.length, 4));
+        for (int pixel : pixels) row.putInt(pixel);
+        row.flip();
+        long offset = (long) y * size.width() * 4;
+        while (row.hasRemaining()) offset += channel.write(row, offset);
+    }
+
+    public void releaseBuffer() {
+        buffer = null;
+    }
+
+    public void readSpan(int y, int x, int count, int[] target, int targetOffset, ByteBuffer shared)
+        throws IOException {
+        shared.clear()
+            .limit(Math.multiplyExact(count, 4));
+        long offset = ((long) y * size.width() + x) * 4;
+        while (shared.hasRemaining()) {
+            int read = channel.read(shared, offset);
+            if (read < 0) throw new IOException("Incomplete scroll capture source");
+            offset += read;
+        }
+        shared.flip();
+        for (int index = 0; index < count; index++) target[targetOffset + index] = shared.getInt();
+    }
+
     @Override
     public void row(int y, int[] target) throws IOException {
         ByteBuffer row = buffer(Math.multiplyExact(size.width(), 4));

@@ -12,6 +12,7 @@ import com.hfstudio.guidenh.client.capture.api.CaptureBatchOptions;
 import com.hfstudio.guidenh.client.capture.api.CaptureBatchProvider;
 import com.hfstudio.guidenh.client.capture.api.CaptureBatchReadiness;
 import com.hfstudio.guidenh.client.capture.api.CaptureRect;
+import com.hfstudio.guidenh.client.capture.api.CaptureScrollGeometry;
 import com.hfstudio.guidenh.client.capture.api.CaptureTargetDescriptor;
 import com.hfstudio.guidenh.mixins.late.compat.nei.AccessorCaptureNeiRecipe;
 import com.hfstudio.guidenh.mixins.late.compat.nei.AccessorCaptureNeiTask;
@@ -300,6 +301,24 @@ public class NeiPageBatchProvider implements CaptureBatchProvider {
             Rectangle4i bounds = access.guidenh$getCaptureContainer()
                 .boundsInside();
             return List.of(new CaptureRect(bounds.x, bounds.y, bounds.w, bounds.h));
+        }
+
+        @Override
+        public CaptureScrollGeometry scrollGeometry(CaptureBatchContext context) {
+            ScrollContainer container = access.guidenh$getCaptureContainer();
+            Rectangle4i bounds = container.boundsInside();
+            return new CaptureScrollGeometry(
+                selected.data()
+                    .get("handler") + "/"
+                    + selected.data()
+                        .get("ordinal")
+                    + "/"
+                    + page,
+                new CaptureRect(bounds.x, bounds.y, container.getVisibleWidth(), container.getVisibleHeight()),
+                x,
+                y,
+                Math.max(container.getActualWidth(), container.getVisibleWidth()),
+                Math.max(container.getActualHeight(), container.getVisibleHeight()));
         }
 
         @Override

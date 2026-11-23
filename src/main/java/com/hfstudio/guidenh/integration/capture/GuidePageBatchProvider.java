@@ -12,6 +12,7 @@ import com.hfstudio.guidenh.client.capture.api.CaptureBatchOptions;
 import com.hfstudio.guidenh.client.capture.api.CaptureBatchProvider;
 import com.hfstudio.guidenh.client.capture.api.CaptureBatchReadiness;
 import com.hfstudio.guidenh.client.capture.api.CaptureRect;
+import com.hfstudio.guidenh.client.capture.api.CaptureScrollGeometry;
 import com.hfstudio.guidenh.client.capture.api.CaptureTargetDescriptor;
 import com.hfstudio.guidenh.guide.Guide;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
@@ -162,6 +163,21 @@ public class GuidePageBatchProvider implements CaptureBatchProvider {
                         .bounds());
             LytRect viewport = preview.viewport();
             return List.of(new CaptureRect(viewport.x(), viewport.y(), viewport.width(), viewport.height()));
+        }
+
+        @Override
+        public CaptureScrollGeometry scrollGeometry(CaptureBatchContext context) {
+            LytRect viewport = preview.viewport();
+            return new CaptureScrollGeometry(
+                selected.data()
+                    .get("guide") + "/"
+                    + selected.data()
+                        .get("page"),
+                new CaptureRect(viewport.x(), viewport.y(), viewport.width(), viewport.height()),
+                0,
+                offset * preview.zoom(),
+                viewport.width(),
+                preview.maximumScroll() * preview.zoom() + viewport.height());
         }
 
         @Override

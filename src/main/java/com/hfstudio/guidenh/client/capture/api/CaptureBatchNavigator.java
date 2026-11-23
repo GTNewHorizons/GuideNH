@@ -12,6 +12,10 @@ public interface CaptureBatchNavigator extends AutoCloseable {
 
     List<CaptureRect> regions(CaptureBatchContext context);
 
+    default CaptureScrollGeometry scrollGeometry(CaptureBatchContext context) {
+        return null;
+    }
+
     default List<CaptureTargetDescriptor> additionalTargets(CaptureTargetDescriptor target,
         CaptureBatchContext context) {
         return List.of();

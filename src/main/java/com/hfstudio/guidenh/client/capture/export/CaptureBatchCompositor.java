@@ -34,36 +34,45 @@ public class CaptureBatchCompositor {
     public static List<CaptureBatchOutput> compose(CaptureBatchManifest manifest, CaptureBatchOptions options,
         Path directory, long remainingBytes) throws IOException {
         if (!options.layout()
-            .contactSheet()) return List.of();
+            .contactSheet()
+            && !options.layout()
+                .scrollImages())
+            return List.of();
         Map<String, List<CaptureContactSheetEntry>> groups = new LinkedHashMap<>();
         List<CaptureBatchOutput> outputs = new ArrayList<>();
-        for (CaptureBatchResult result : manifest.results()) {
-            if (!result.status()
-                .equals("success") || result.file()
-                    .isEmpty())
-                continue;
-            String group = options.layout()
-                .groupByProvider() ? result.providerId() : "all";
-            try {
-                groups.computeIfAbsent(group, ignored -> new ArrayList<>())
-                    .addAll(entries(result, directory));
-            } catch (IOException | RuntimeException error) {
-                outputs.add(
-                    new CaptureBatchOutput(
-                        "contact_sheet",
-                        group,
-                        "failed",
-                        "",
-                        0,
-                        0,
-                        1,
-                        0,
-                        result.label() + ": " + error));
+        if (options.layout()
+            .contactSheet()) for (CaptureBatchResult result : manifest.results()) {
+                if (!result.status()
+                    .equals("success") || result.file()
+                        .isEmpty())
+                    continue;
+                String group = options.layout()
+                    .groupByProvider() ? result.providerId() : "all";
+                try {
+                    groups.computeIfAbsent(group, ignored -> new ArrayList<>())
+                        .addAll(entries(result, directory));
+                } catch (IOException | RuntimeException error) {
+                    outputs.add(
+                        new CaptureBatchOutput(
+                            "contact_sheet",
+                            group,
+                            "failed",
+                            "",
+                            0,
+                            0,
+                            1,
+                            0,
+                            result.label() + ": " + error));
+                }
             }
-        }
-        if (groups.isEmpty()) return List.copyOf(outputs);
-        Path staging = Files.createTempDirectory(directory, ".guidenh_contact_batch_");
-        Path published = CaptureOutputPaths.next(directory, "contact_sheets", "contact");
+        if (groups.isEmpty() && !options.layout()
+            .scrollImages()) return List.copyOf(outputs);
+        Path staging = Files.createTempDirectory(directory, ".guidenh_batch_layout_");
+        Path published = CaptureOutputPaths.next(
+            directory,
+            options.layout()
+                .scrollImages() ? "batch_outputs" : "contact_sheets",
+            "outputs");
         try {
             for (Map.Entry<String, List<CaptureContactSheetEntry>> group : groups.entrySet()) {
                 if (group.getValue()
@@ -96,17 +105,21 @@ public class CaptureBatchCompositor {
                             error.toString()));
                 }
             }
+            if (options.layout()
+                .scrollImages()) {
+                outputs.addAll(CaptureScrollCompositor.compose(manifest, options, directory, staging, remainingBytes));
+            }
             if (Thread.currentThread()
                 .isInterrupted()) throw new CancellationException("Batch composition cancelled");
             if (outputs.stream()
                 .anyMatch(
-                    output -> output.status()
-                        .equals("success"))) {
+                    output -> !output.file()
+                        .isEmpty())) {
                 Files.move(staging, published);
                 outputs = outputs.stream()
                     .map(
-                        output -> output.status()
-                            .equals("success")
+                        output -> !output.file()
+                            .isEmpty()
                                 ? new CaptureBatchOutput(
                                     output.kind(),
                                     output.group(),

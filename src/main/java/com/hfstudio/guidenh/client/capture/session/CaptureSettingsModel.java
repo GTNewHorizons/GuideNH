@@ -128,7 +128,8 @@ public class CaptureSettingsModel {
                 config.batchGroupByProvider,
                 config.batchSheetColumns,
                 config.batchThumbnailSize,
-                config.batchSheetPageSize));
+                config.batchSheetPageSize,
+                config.batchScrollImages));
     }
 
     public CaptureRecordingOptions recording() {

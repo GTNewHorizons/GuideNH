@@ -177,6 +177,9 @@ public class CaptureConfig {
     @DefaultBoolean(false)
     public boolean batchContactSheet;
 
+    @DefaultBoolean(false)
+    public boolean batchScrollImages;
+
     @DefaultBoolean(true)
     public boolean batchGroupByProvider = true;
 

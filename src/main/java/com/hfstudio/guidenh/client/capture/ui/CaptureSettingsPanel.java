@@ -152,6 +152,7 @@ public class CaptureSettingsPanel {
         toggle("batch_variants", () -> config.includeVariants, value -> config.includeVariants = value, false);
         toggle("batch_restore", () -> config.restoreOriginal, value -> config.restoreOriginal = value, false);
         toggle("batch_contact_sheet", () -> config.batchContactSheet, value -> config.batchContactSheet = value, false);
+        toggle("batch_scroll_images", () -> config.batchScrollImages, value -> config.batchScrollImages = value, false);
         toggle(
             "batch_group_provider",
             () -> config.batchGroupByProvider,

@@ -898,4 +898,5 @@ guidenh.capture.setting.batch_sheet_columns=Contact sheet columns
 guidenh.capture.setting.batch_thumbnail_size=Contact thumbnail size (px)
 guidenh.capture.setting.batch_sheet_page=Contact page size limit (px)
 guidenh.capture.batch_stage.composing=Composing batch outputs
-guidenh.capture.batch_outputs=Compositions: %s ready, %s failed · %s
+guidenh.capture.batch_outputs=Compositions: %s ready, %s partial, %s failed · %s
+guidenh.capture.setting.batch_scroll_images=Combine scrollable content into long images

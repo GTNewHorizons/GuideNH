@@ -33,8 +33,10 @@ import com.hfstudio.guidenh.client.capture.api.CaptureOptions;
 import com.hfstudio.guidenh.client.capture.api.CaptureOutputArtifact;
 import com.hfstudio.guidenh.client.capture.api.CaptureRect;
 import com.hfstudio.guidenh.client.capture.api.CaptureRegion;
+import com.hfstudio.guidenh.client.capture.api.CaptureScrollGeometry;
 import com.hfstudio.guidenh.client.capture.api.CaptureTargetDescriptor;
 import com.hfstudio.guidenh.client.capture.export.CaptureOutputPaths;
+import com.hfstudio.guidenh.client.capture.export.CaptureScrollSlice;
 
 public class CaptureBatchEngine implements CaptureBatchController, AutoCloseable {
 
@@ -68,6 +70,7 @@ public class CaptureBatchEngine implements CaptureBatchController, AutoCloseable
     private CompletableFuture<List<CaptureBatchOutput>> composition;
     private CaptureBatchManifest manifest;
     private long outputBytes;
+    private Map<String, String> currentData = Map.of();
     private long deadline;
     private long lastFrame = Long.MIN_VALUE;
     private long lastRevision = Long.MIN_VALUE;
@@ -339,6 +342,7 @@ public class CaptureBatchEngine implements CaptureBatchController, AutoCloseable
                 continue;
             }
             current = target;
+            currentData = target.data();
             attempted++;
             try {
                 navigators.get(target.providerId())
@@ -429,6 +433,25 @@ public class CaptureBatchEngine implements CaptureBatchController, AutoCloseable
                     settings.layout(),
                     output,
                     remainingBytes()));
+            if (catalog.options()
+                .layout()
+                .scrollImages()) {
+                CaptureScrollGeometry scroll = navigator.scrollGeometry(context);
+                if (scroll != null) {
+                    CaptureScrollSlice slice = CaptureScrollSlice.from(
+                        request,
+                        scroll,
+                        catalog.options()
+                            .recording() == null && request.options()
+                                .layout()
+                                .separateRegions());
+                    if (slice != null) {
+                        Map<String, String> data = new LinkedHashMap<>(current.data());
+                        data.putAll(slice.metadata());
+                        currentData = Map.copyOf(data);
+                    }
+                }
+            }
             CaptureFrame frame = current.scope()
                 .equals(CaptureBatchOptions.VISIBLE) ? visibleFrame : host.frame();
             capture = host.capture(request, catalog.options(), frame);
@@ -456,7 +479,7 @@ public class CaptureBatchEngine implements CaptureBatchController, AutoCloseable
                 artifact == null ? 0 : artifact.height(),
                 artifact == null ? 0 : artifact.frameCount(),
                 detail,
-                target.data()));
+                target == current ? currentData : target.data()));
     }
 
     private void restore(long now) {
@@ -532,9 +555,12 @@ public class CaptureBatchEngine implements CaptureBatchController, AutoCloseable
             restoration,
             restorationReason,
             ordered);
-        if (!cancelRequested && catalog.options()
+        if (!cancelRequested && (catalog.options()
             .layout()
-            .contactSheet()) {
+            .contactSheet()
+            || catalog.options()
+                .layout()
+                .scrollImages())) {
             composition = host.compose(manifest, catalog.options(), directory, remainingBytes());
             stage = Stage.COMPOSING;
         } else writeReport();

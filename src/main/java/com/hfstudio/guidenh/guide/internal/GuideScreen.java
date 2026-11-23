@@ -50,6 +50,7 @@ import org.lwjgl.opengl.GL12;
 
 import com.hfstudio.guidenh.ClientProxy;
 import com.hfstudio.guidenh.client.command.GuideNhClientBridgeController;
+import com.hfstudio.guidenh.client.gui.StandaloneContainerScreen;
 import com.hfstudio.guidenh.client.hotkey.GuidePageHistoryHotkey;
 import com.hfstudio.guidenh.client.hotkey.OpenGuideHotkey;
 import com.hfstudio.guidenh.config.ModConfig;
@@ -179,8 +180,8 @@ import com.hfstudio.guidenh.guide.ui.GuideUiHost;
 import com.hfstudio.guidenh.integration.nei.GuideScreenNeiBridge;
 import com.hfstudio.guidenh.libs.unist.UnistPoint;
 
-public class GuideScreen extends GuiContainer
-    implements GuideUiHost, GuiYesNoCallback, GuideScreenNeiBridge.EditorAccess, DebugComponent {
+public class GuideScreen extends GuiContainer implements GuideUiHost, GuiYesNoCallback,
+    GuideScreenNeiBridge.EditorAccess, DebugComponent, StandaloneContainerScreen {
 
     public static final int PANEL_MARGIN = 20;
     public static final int PANEL_PADDING = 8;
@@ -787,6 +788,10 @@ public class GuideScreen extends GuiContainer
             return Math.max(1, getDocumentViewportHeight());
         }
 
+        public float zoom() {
+            return currentZoom;
+        }
+
         public LytRect viewport() {
             return new LytRect(contentX, getDocumentViewportY(), contentW, contentH);
         }
@@ -1035,12 +1040,12 @@ public class GuideScreen extends GuiContainer
 
     @Override
     public void updateScreen() {
-        if (mc == null) return;
-        try {
-            tickScreen();
-        } catch (NullPointerException ignored) {
-            // NEI Mixin may leave GuiContainer.manager uninitialized for GuideScreen
-        }
+        super.updateScreen();
+    }
+
+    @Override
+    public void updateStandaloneScreen() {
+        if (mc != null) tickScreen();
     }
 
     private void tickScreen() {
