@@ -21,6 +21,7 @@ public class CapturePreviewRenderer implements AutoCloseable {
     private long version = -1;
     private int textureWidth;
     private int textureHeight;
+    private boolean hasFrame;
     private CaptureComposition composition;
     private List<CapturePlacement> visiblePlacements = List.of();
     private List<CaptureRect> erased = List.of();
@@ -29,7 +30,10 @@ public class CapturePreviewRenderer implements AutoCloseable {
 
     public void draw(CaptureFrame frame, long frameVersion, CaptureViewport viewport, int backgroundArgb) {
         checkerboard(viewport.logicalWidth(), viewport.logicalHeight(), backgroundArgb);
-        if (frame == null) return;
+        if (frame == null) {
+            hasFrame = false;
+            return;
+        }
         if (texture == null || textureWidth != frame.width() || textureHeight != frame.height()) {
             close();
             textureWidth = frame.width();
@@ -42,6 +46,7 @@ public class CapturePreviewRenderer implements AutoCloseable {
             texture.updateDynamicTexture();
             version = frameVersion;
         }
+        hasFrame = true;
         CaptureTextureRenderer.draw(
             texture.getGlTextureId(),
             viewport.bounds()
@@ -75,7 +80,7 @@ public class CapturePreviewRenderer implements AutoCloseable {
     }
 
     public void drawComposition(CaptureComposition composition, CaptureRect bounds, CaptureExportRequest request) {
-        if (texture == null) return;
+        if (!hasFrame || texture == null) return;
         List<CaptureRect> current = request.regions()
             .stream()
             .filter(region -> region.erased())
@@ -116,5 +121,6 @@ public class CapturePreviewRenderer implements AutoCloseable {
         if (texture != null) texture.deleteGlTexture();
         texture = null;
         version = -1;
+        hasFrame = false;
     }
 }

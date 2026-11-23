@@ -2,8 +2,8 @@ package com.hfstudio.guidenh.client.capture;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.Queue;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
@@ -19,6 +19,8 @@ import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.Display;
 
+import com.hfstudio.guidenh.client.capture.api.CaptureBackendControls;
+import com.hfstudio.guidenh.client.capture.api.CaptureBackendSelection;
 import com.hfstudio.guidenh.client.capture.api.CaptureBatchContext;
 import com.hfstudio.guidenh.client.capture.api.CaptureBatchHost;
 import com.hfstudio.guidenh.client.capture.api.CaptureBatchManifest;
@@ -29,14 +31,13 @@ import com.hfstudio.guidenh.client.capture.api.CaptureContentOptions;
 import com.hfstudio.guidenh.client.capture.api.CaptureContext;
 import com.hfstudio.guidenh.client.capture.api.CaptureExportRequest;
 import com.hfstudio.guidenh.client.capture.api.CaptureFrame;
+import com.hfstudio.guidenh.client.capture.api.CaptureFrameIdentity;
 import com.hfstudio.guidenh.client.capture.api.CaptureGeometry;
 import com.hfstudio.guidenh.client.capture.api.CaptureGuiRenderer;
 import com.hfstudio.guidenh.client.capture.api.CaptureInputEvent;
 import com.hfstudio.guidenh.client.capture.api.CaptureInputOptions;
 import com.hfstudio.guidenh.client.capture.api.CaptureOutputArtifact;
 import com.hfstudio.guidenh.client.capture.api.CaptureOutputSize;
-import com.hfstudio.guidenh.client.capture.api.CapturePixelReader;
-import com.hfstudio.guidenh.client.capture.api.CapturePixelReaderProvider;
 import com.hfstudio.guidenh.client.capture.api.CaptureRenderSnapshot;
 import com.hfstudio.guidenh.client.capture.api.CaptureRows;
 import com.hfstudio.guidenh.client.capture.api.CaptureSessionState;
@@ -48,8 +49,8 @@ import com.hfstudio.guidenh.client.capture.export.CaptureRowComposer;
 import com.hfstudio.guidenh.client.capture.geometry.CaptureCoordinateMapper;
 import com.hfstudio.guidenh.client.capture.recording.CaptureRecording;
 import com.hfstudio.guidenh.client.capture.render.CaptureHighResolutionJob;
+import com.hfstudio.guidenh.client.capture.render.CapturePipeline;
 import com.hfstudio.guidenh.client.capture.render.CaptureRenderScope;
-import com.hfstudio.guidenh.client.capture.render.GuiLayerCaptureSource;
 import com.hfstudio.guidenh.client.capture.render.GuiTileCaptureSource;
 import com.hfstudio.guidenh.client.capture.server.CaptureClientConnection;
 import com.hfstudio.guidenh.client.capture.session.CaptureSchedule;
@@ -59,6 +60,8 @@ import com.hfstudio.guidenh.client.capture.ui.CaptureNavigationScreen;
 import com.hfstudio.guidenh.client.capture.ui.CaptureOverlay;
 import com.hfstudio.guidenh.client.capture.ui.CaptureOverlayActions;
 import com.hfstudio.guidenh.client.hotkey.OpenGuiCaptureHotkey;
+import com.hfstudio.guidenh.config.CaptureConfig;
+import com.hfstudio.guidenh.config.ModConfig;
 import com.hfstudio.guidenh.integration.capture.ClientGuiBatchProvider;
 import com.hfstudio.guidenh.integration.capture.VanillaCaptureGeometryProvider;
 import com.hfstudio.guidenh.integration.capture.VanillaCaptureGuiRenderer;
@@ -69,14 +72,15 @@ import cpw.mods.fml.common.eventhandler.EventPriority;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
 
-public class CaptureRuntime {
+public class CaptureRuntime implements CaptureBackendControls {
 
     private static final CaptureRuntime INSTANCE = new CaptureRuntime();
     private final CaptureRegistry registry = new CaptureRegistry();
-    private final GuiLayerCaptureSource guiLayer = new GuiLayerCaptureSource();
-    private CapturePixelReader pixels;
-    private String preferredReader = "automatic";
-    private String readerId;
+    private final CapturePipeline pipeline = new CapturePipeline(registry);
+    private CaptureBackendSelection exportBackend;
+    private CaptureBackendSelection exportPreference;
+    private CaptureBackendSelection recordingPreference;
+    private CaptureContentOptions exportContent;
     private final CaptureExportWorker exporter = new CaptureExportWorker();
     private volatile CaptureSession session;
     private CaptureOverlay overlay;
@@ -115,38 +119,131 @@ public class CaptureRuntime {
     }
 
     public String readerId() {
-        return readerId;
+        CaptureBackendSelection selection = pipeline.selection();
+        return selection == null ? null : selection.readerId();
     }
 
+    public String sourceId() {
+        CaptureBackendSelection selection = pipeline.selection();
+        return selection == null ? null : selection.sourceId();
+    }
+
+    @Override
+    public CaptureBackendSelection activeBackend() {
+        return pipeline.selection();
+    }
+
+    @Override
+    public List<String> sourceIds() {
+        return backendChoices(registry.sourceIds());
+    }
+
+    @Override
+    public List<String> readerIds() {
+        return backendChoices(registry.readerIds());
+    }
+
+    private static List<String> backendChoices(List<String> ids) {
+        List<String> choices = new ArrayList<>(ids.size() + 1);
+        choices.add("automatic");
+        choices.addAll(ids);
+        return List.copyOf(choices);
+    }
+
+    @Override
+    public void selectSource(String id) {
+        CaptureConfig config = session == null ? ModConfig.capture
+            : session.settings()
+                .config();
+        selectBackend(new CaptureBackendSelection(id, config.readerId));
+    }
+
+    @Override
     public void selectReader(String id) {
-        Objects.requireNonNull(id);
-        if (session != null && (session.busy() || batch != null && batch.busy()))
-            throw new IllegalStateException("The pixel reader cannot change during a capture task");
-        if (session == null) {
-            preferredReader = id;
-            return;
-        }
-        CaptureContext context = new CaptureContext(session.sourceScreen(), session.viewport(), frameId, partialTicks);
-        CapturePixelReaderProvider provider = registry.readerProvider(context, id);
-        CapturePixelReader replacement = Objects.requireNonNull(provider.open(context));
-        try {
-            if (pixels != null) pixels.close();
-        } catch (RuntimeException error) {
-            replacement.close();
-            throw error;
-        }
-        pixels = replacement;
-        readerId = provider.id();
-        preferredReader = id;
-        session.invalidatePreview();
+        CaptureConfig config = session == null ? ModConfig.capture
+            : session.settings()
+                .config();
+        selectBackend(new CaptureBackendSelection(config.sourceId, id));
     }
 
-    private void openReader() {
-        if (pixels != null) return;
-        CaptureContext context = new CaptureContext(session.sourceScreen(), session.viewport(), frameId, partialTicks);
-        CapturePixelReaderProvider provider = registry.readerProvider(context, preferredReader);
-        pixels = Objects.requireNonNull(provider.open(context));
-        readerId = provider.id();
+    private void selectBackend(CaptureBackendSelection selection) {
+        if (session != null && (session.busy() || batch != null && batch.busy()))
+            throw new IllegalStateException("The capture source and pixel reader cannot change during a capture task");
+        CaptureConfig config = session == null ? ModConfig.capture
+            : session.settings()
+                .config();
+        if (session != null) {
+            CaptureContext context = captureContext();
+            pipeline.select(context, content(), selection, false);
+            session.invalidatePreview();
+        }
+        config.sourceId = selection.sourceId();
+        config.readerId = selection.readerId();
+        refreshBatchCatalog();
+    }
+
+    private CaptureContext captureContext() {
+        return new CaptureContext(session.sourceScreen(), session.viewport(), frameId, partialTicks);
+    }
+
+    private boolean taskOwnsPipeline() {
+        return session.busy() || highResolution != null
+            || batchRecording != null && !batchRecording.finished()
+            || batch != null && batch.busy()
+                && batch.progress()
+                    .stage()
+                    .equals("saving");
+    }
+
+    private CaptureBackendSelection backendSelection() {
+        CaptureRecording recording = session.recording();
+        if (recording != null) return recording.request()
+            .options()
+            .backend();
+        if (batchRecording != null) return batchRecording.request()
+            .options()
+            .backend();
+        if (highResolution != null) return highResolution.request()
+            .options()
+            .backend();
+        if (exportBackend != null && taskOwnsPipeline()) return exportBackend;
+        if (batch != null && batch.busy()) return batch.catalog()
+            .options()
+            .output()
+            .backend();
+        CaptureConfig config = session.settings()
+            .config();
+        return new CaptureBackendSelection(config.sourceId, config.readerId);
+    }
+
+    private CaptureBackendSelection previewSelection() {
+        if (batch != null && batch.busy()) return batch.catalog()
+            .options()
+            .output()
+            .backend();
+        if (session.recording() != null && recordingPreference != null) return recordingPreference;
+        if (session.busy() && exportPreference != null) return exportPreference;
+        return session.settings()
+            .backend();
+    }
+
+    private void captureFailed(RuntimeException error) {
+        try {
+            pipeline.close();
+        } catch (RuntimeException closing) {
+            error.addSuppressed(closing);
+        }
+        session.invalidatePreview();
+        if (session.recording() != null && !session.recording()
+            .finished()
+            && !session.recording()
+                .paused())
+            session.pauseRecording();
+        if (highResolutionCompletion != null) highResolutionCompletion.completeExceptionally(error);
+        releaseHighResolution();
+        if (batch != null && batch.busy()) batch.captureUnavailable(error.getMessage());
+        session.notify(I18n.format("guidenh.capture.failed", error.getMessage()));
+        frameRequested = false;
     }
 
     public void initialize() {
@@ -214,7 +311,8 @@ public class CaptureRuntime {
                 this::toggleSchedule,
                 this::close,
                 () -> schedule != null),
-            batch);
+            batch,
+            this);
         frameRequested = true;
         registry.opened(new CaptureContext(session.sourceScreen(), session.viewport(), frameId, partialTicks));
     }
@@ -259,11 +357,11 @@ public class CaptureRuntime {
         CaptureViewport viewport = CaptureCoordinateMapper.current(minecraft);
         session.updateViewport(viewport);
         try {
-            openReader();
+            boolean changed = pipeline.select(captureContext(), content(), backendSelection(), taskOwnsPipeline());
+            if (changed || session.preview() != null && !session.previewMatches(content(), previewSelection()))
+                session.invalidatePreview();
         } catch (RuntimeException error) {
-            session.invalidatePreview();
-            session.notify(I18n.format("guidenh.capture.failed", error.getMessage()));
-            frameRequested = false;
+            captureFailed(error);
             return;
         }
         if (batch.needsFrame()) session.requestRefresh();
@@ -283,33 +381,42 @@ public class CaptureRuntime {
             sourceMouseY = viewport.logicalHeight() - Mouse.getY() * viewport.logicalHeight() / viewport.pixelHeight()
                 - 1;
         }
-        guiLayer.begin(
-            viewport,
-            content().includeDebug(),
-            session.previewRequested() || session.selections()
-                .following());
+        try {
+            pipeline.beginGui(
+                captureContext(),
+                content(),
+                session.previewRequested() || session.selections()
+                    .following());
+        } catch (RuntimeException error) {
+            captureFailed(error);
+        }
     }
 
     public void finishGui() {
-        if (session != null) guiLayer.finish(Minecraft.getMinecraft());
+        if (session == null) return;
+        try {
+            pipeline.finishGui(captureContext());
+        } catch (RuntimeException error) {
+            captureFailed(error);
+        }
     }
 
     public boolean hideBackdrop() {
         if (drawingTile) return !highResolution.content()
             .includeGuiBackdrop();
-        return session != null && (guiLayer.drawing() || drawingTile) && !content().includeGuiBackdrop();
+        return session != null && (pipeline.drawing() || drawingTile) && !content().includeGuiBackdrop();
     }
 
     public boolean hideTooltips() {
         if (drawingTile) return !highResolution.content()
             .includeTooltips();
-        return session != null && (guiLayer.drawing() || drawingTile) && !content().includeTooltips();
+        return session != null && (pipeline.drawing() || drawingTile) && !content().includeTooltips();
     }
 
     public boolean hideDebug() {
         if (drawingTile) return !highResolution.content()
             .includeDebug();
-        return session != null && (guiLayer.drawing() || drawingTile) && !content().includeDebug();
+        return session != null && (pipeline.drawing() || drawingTile) && !content().includeDebug();
     }
 
     public boolean bindMainFramebuffer(Framebuffer target, boolean viewport) {
@@ -319,15 +426,11 @@ public class CaptureRuntime {
             tileSource.bindCurrent(viewport);
             return true;
         }
-        if (guiLayer.drawing() && guiLayer.available()) {
-            guiLayer.bindCurrent(viewport);
-            return true;
-        }
-        return false;
+        return pipeline.bindMainFramebuffer(viewport);
     }
 
     public boolean hideNei() {
-        return session != null && guiLayer.drawing() && !content().includeNei();
+        return session != null && pipeline.drawing() && !content().includeNei();
     }
 
     public void frameReady() {
@@ -339,26 +442,22 @@ public class CaptureRuntime {
         }
         try (CaptureRenderScope drawing = new CaptureRenderScope()) {
             long now = System.nanoTime();
-            if (frameRequested && (session.previewRequested() || session.selections()
-                .following())) {
+            if ((frameRequested || batch.needsFrame()) && (session.previewRequested() || batch.needsFrame()
+                || session.selections()
+                    .following())) {
                 geometry = registry
                     .collect(new CaptureContext(session.sourceScreen(), session.viewport(), frameId, partialTicks));
                 overlay.updateGeometry(geometry);
             }
             if (frameRequested) {
-                CaptureViewport viewport = session.viewport();
-                CaptureFrame frame;
-                if (content().includeWorld() && minecraft.theWorld != null) {
-                    frame = pixels.readOpaque(0, 0, viewport.pixelWidth(), viewport.pixelHeight(), now);
-                } else if (guiLayer.available()) {
-                    frame = guiLayer.read(pixels, now);
-                } else {
-                    frame = null;
-                    session.notify(I18n.format("guidenh.capture.requires_framebuffer"));
-                }
-                if (frame != null) {
+                try {
+                    CaptureFrame frame = pipeline.captureCompletedFrame(captureContext(), now);
                     if (batchRecording != null) batchRecording.offer(frame, now);
-                    session.acceptFrame(frame);
+                    session.acceptFrame(
+                        frame,
+                        new CaptureFrameIdentity(pipeline.selection(), previewSelection(), content()));
+                } catch (RuntimeException error) {
+                    captureFailed(error);
                 }
             }
             frameRequested = false;
@@ -370,7 +469,7 @@ public class CaptureRuntime {
             if (highResolution != null) {
                 try {
                     drawingTile = true;
-                    if (highResolution.step(tileSource, pixels)) {
+                    if (highResolution.step(tileSource, pipeline.reader())) {
                         CaptureRows rows = highResolution.takeRows();
                         CompletableFuture<CaptureOutputArtifact> completion = highResolutionCompletion;
                         CompletableFuture<CaptureOutputArtifact> writing = exporter
@@ -461,10 +560,15 @@ public class CaptureRuntime {
         schedule = null;
         overlay.close();
         registry.closed(new CaptureContext(session.sourceScreen(), session.viewport(), frameId, partialTicks));
-        guiLayer.close();
-        if (pixels != null) pixels.close();
-        pixels = null;
-        readerId = null;
+        try {
+            pipeline.close();
+        } catch (RuntimeException error) {
+            session.notify(I18n.format("guidenh.capture.failed", error.getMessage()));
+        }
+        exportBackend = null;
+        exportContent = null;
+        exportPreference = null;
+        recordingPreference = null;
         session.close();
         Keyboard.enableRepeatEvents(previousKeyRepeat);
         overlay = null;
@@ -494,13 +598,18 @@ public class CaptureRuntime {
     }
 
     private CaptureContentOptions content() {
+        CaptureRecording recording = session.recording();
+        if (recording != null) return recording.request()
+            .options()
+            .content();
+        if (highResolution != null) return highResolution.content();
+        if (batchRecording != null) return batchRecording.request()
+            .options()
+            .content();
+        if (exportContent != null && taskOwnsPipeline()) return exportContent;
         if (batch != null && batch.busy()) return batch.catalog()
             .options()
             .output()
-            .content();
-        CaptureRecording recording = session.recording();
-        if (recording != null && !recording.finished()) return recording.request()
-            .options()
             .content();
         return session.settings()
             .content();
@@ -528,6 +637,8 @@ public class CaptureRuntime {
                             .height())) {
                 throw new IllegalArgumentException(I18n.format("guidenh.capture.no_high_resolution"));
             }
+            recordingPreference = session.previewIdentity()
+                .requestedBackend();
             session.startRecording(exporter, Minecraft.getMinecraft().mcDataDir.toPath());
         } catch (RuntimeException error) {
             session.outputFailed(error);
@@ -621,6 +732,16 @@ public class CaptureRuntime {
 
     private CompletableFuture<CaptureOutputArtifact> captureFrame(CaptureExportRequest request, CaptureFrame frame,
         int tileSize, long memoryBudget) throws IOException {
+        exportPreference = batch != null && batch.busy() ? batch.catalog()
+            .options()
+            .output()
+            .backend()
+            : session.previewIdentity()
+                .requestedBackend();
+        exportBackend = request.options()
+            .backend();
+        exportContent = request.options()
+            .content();
         CaptureComposition composition = CaptureRowComposer.compose(request);
         CaptureOutputSize output = request.options()
             .resolution()
@@ -646,7 +767,10 @@ public class CaptureRuntime {
             if (renderer != null && !request.options()
                 .content()
                 .includeWorld()
-                && guiLayer.available()
+                && pipeline.supportsRedraw()
+                && request.options()
+                    .backend()
+                    .equals(pipeline.selection())
                 && request.viewport()
                     .equals(session.viewport())) {
                 CaptureRenderSnapshot snapshot = renderer.snapshot(
@@ -702,8 +826,20 @@ public class CaptureRuntime {
         }
 
         @Override
+        public CaptureFrameIdentity frameIdentity() {
+            return session.previewIdentity();
+        }
+
+        @Override
         public boolean readyForBatch() {
-            return !session.busy() && !pendingSave && highResolution == null;
+            return session.previewMatches(
+                session.settings()
+                    .content(),
+                session.settings()
+                    .backend())
+                && !session.busy()
+                && !pendingSave
+                && highResolution == null;
         }
 
         @Override
@@ -828,7 +964,7 @@ public class CaptureRuntime {
     }
 
     public boolean capturingGuiLayer() {
-        return session != null && (guiLayer.available() && guiLayer.drawing() || drawingTile);
+        return session != null && (pipeline.supportsRedraw() && pipeline.drawing() || drawingTile);
     }
 
     public void shutdown() {

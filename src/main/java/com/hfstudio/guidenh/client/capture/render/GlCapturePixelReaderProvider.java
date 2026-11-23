@@ -24,4 +24,9 @@ public class GlCapturePixelReaderProvider implements CapturePixelReaderProvider 
     public CapturePixelReader open(CaptureContext context) {
         return new GlCapturePixelReader();
     }
+
+    @Override
+    public Object contextKey(CaptureContext context) {
+        return GLContext.getCapabilities();
+    }
 }

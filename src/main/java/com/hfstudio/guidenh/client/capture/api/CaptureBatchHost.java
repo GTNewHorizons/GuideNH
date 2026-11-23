@@ -12,6 +12,8 @@ public interface CaptureBatchHost {
 
     CaptureFrame frame();
 
+    CaptureFrameIdentity frameIdentity();
+
     boolean readyForBatch();
 
     void beginBatch();

@@ -14,6 +14,7 @@ import net.minecraft.client.resources.I18n;
 
 import org.lwjgl.input.Keyboard;
 
+import com.hfstudio.guidenh.client.capture.api.CaptureBackendControls;
 import com.hfstudio.guidenh.client.capture.api.CaptureRect;
 import com.hfstudio.guidenh.client.capture.session.CaptureSchedule;
 import com.hfstudio.guidenh.client.capture.session.CaptureSession;
@@ -25,6 +26,7 @@ public class CaptureSettingsPanel {
 
     private final Minecraft minecraft;
     private final CaptureSession session;
+    private final CaptureBackendControls backend;
     private final List<CaptureSetting> settings = new ArrayList<>();
     private CaptureRect bounds = new CaptureRect(0, 0, 0, 0);
     private int scroll;
@@ -33,11 +35,16 @@ public class CaptureSettingsPanel {
     private String validation = "";
     private boolean open;
 
-    public CaptureSettingsPanel(Minecraft minecraft, CaptureSession session) {
+    public CaptureSettingsPanel(Minecraft minecraft, CaptureSession session, CaptureBackendControls backend) {
         this.minecraft = minecraft;
         this.session = session;
+        this.backend = backend;
         CaptureSettingsModel model = session.settings();
         CaptureConfig config = model.config();
+        settings
+            .add(new CaptureSetting("source", () -> config.sourceId, backend::selectSource, backend::sourceIds, true));
+        settings
+            .add(new CaptureSetting("reader", () -> config.readerId, backend::selectReader, backend::readerIds, true));
         settings.add(
             new CaptureSetting(
                 "format",
@@ -280,8 +287,9 @@ public class CaptureSettingsPanel {
                 if (Boolean.parseBoolean(value)) GuideIconButton
                     .drawIcon(minecraft, CaptureIcons.CHECK, x + width - 26, rowY + 4, 16, 16, 0xFFFFFFFF);
             } else {
+                String translated = I18n.format("guidenh.capture.value." + value);
                 String displayed = setting.choices()
-                    .isEmpty() ? value : I18n.format("guidenh.capture.value." + value);
+                    .isEmpty() || translated.equals("guidenh.capture.value." + value) ? value : translated;
                 displayed = minecraft.fontRenderer.trimStringToWidth(displayed, width / 2 - 16);
                 minecraft.fontRenderer.drawStringWithShadow(
                     displayed,
@@ -291,11 +299,29 @@ public class CaptureSettingsPanel {
             }
         }
         String footer = validation.isEmpty() ? I18n.format("guidenh.capture.settings_hint") : validation;
+        if (validation.isEmpty() && backend.activeBackend() != null) {
+            footer = I18n.format(
+                "guidenh.capture.active_backend",
+                backendName(
+                    backend.activeBackend()
+                        .sourceId()),
+                backendName(
+                    backend.activeBackend()
+                        .readerId()))
+                + " · "
+                + footer;
+        }
         minecraft.fontRenderer.drawStringWithShadow(
             minecraft.fontRenderer.trimStringToWidth(footer, width - 16),
             x + 8,
             y + height - 13,
             validation.isEmpty() ? 0x919EAC : 0xFFC5A8);
+    }
+
+    private static String backendName(String id) {
+        String key = "guidenh.capture.value." + id;
+        String translated = I18n.format(key);
+        return translated.equals(key) ? id : translated;
     }
 
     public void click(int x, int y, int button) {
@@ -310,8 +336,13 @@ public class CaptureSettingsPanel {
         CaptureSetting setting = settings.get(index);
         if (!setting.choices()
             .isEmpty()) {
-            setting.cycle(button == 1 ? -1 : 1);
-            if (setting.recapture()) session.requestRefresh();
+            try {
+                setting.cycle(button == 1 ? -1 : 1);
+                if (setting.recapture()) session.invalidatePreview();
+                validation = "";
+            } catch (IllegalArgumentException | IllegalStateException error) {
+                validation = I18n.format("guidenh.capture.invalid_value", error.getMessage());
+            }
         } else if (button == 0) {
             editing = index;
             editor = new CaptureTextField(minecraft.fontRenderer, 0, 0, 100, 18);
@@ -347,10 +378,10 @@ public class CaptureSettingsPanel {
         try {
             setting.update()
                 .accept(editor.getText());
-            if (setting.recapture()) session.requestRefresh();
+            if (setting.recapture()) session.invalidatePreview();
             endEdit();
             return true;
-        } catch (IllegalArgumentException | DateTimeException | ArithmeticException error) {
+        } catch (IllegalArgumentException | IllegalStateException | DateTimeException | ArithmeticException error) {
             validation = I18n.format("guidenh.capture.invalid_value", error.getMessage());
             return false;
         }

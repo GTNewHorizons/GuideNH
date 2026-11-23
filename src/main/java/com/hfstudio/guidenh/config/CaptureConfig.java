@@ -73,6 +73,12 @@ public class CaptureConfig {
     @DefaultString("automatic")
     public String qualityPolicy = "automatic";
 
+    @DefaultString("automatic")
+    public String sourceId = "automatic";
+
+    @DefaultString("automatic")
+    public String readerId = "automatic";
+
     @DefaultString("original")
     public String arrangement = "original";
 

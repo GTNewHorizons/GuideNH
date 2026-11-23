@@ -6,17 +6,57 @@ import net.minecraft.client.shader.Framebuffer;
 
 import org.lwjgl.opengl.GL11;
 
+import com.hfstudio.guidenh.client.capture.api.CaptureContentOptions;
+import com.hfstudio.guidenh.client.capture.api.CaptureContext;
 import com.hfstudio.guidenh.client.capture.api.CaptureFrame;
 import com.hfstudio.guidenh.client.capture.api.CapturePixelReader;
+import com.hfstudio.guidenh.client.capture.api.CaptureProviderAvailability;
+import com.hfstudio.guidenh.client.capture.api.CaptureSource;
 import com.hfstudio.guidenh.client.capture.api.CaptureViewport;
 import com.hfstudio.guidenh.guide.render.GuiRenderVisibility;
 
-public class GuiLayerCaptureSource implements AutoCloseable {
+public class GuiLayerCaptureSource implements CaptureSource {
 
     private Framebuffer framebuffer;
     private CaptureRenderScope scope;
     private CaptureViewport viewport;
     private GuiRenderVisibility visibility;
+    private long completedFrame = Long.MIN_VALUE;
+
+    @Override
+    public void beginGui(CaptureContext context, CaptureContentOptions content, boolean collectGeometry) {
+        completedFrame = Long.MIN_VALUE;
+        begin(context.viewport(), content.includeDebug(), collectGeometry);
+    }
+
+    @Override
+    public void finishGui(CaptureContext context) {
+        finish(Minecraft.getMinecraft());
+        if (available()) completedFrame = context.frameId();
+    }
+
+    @Override
+    public boolean bindMainFramebuffer(boolean viewport) {
+        if (!drawing() || !available()) return false;
+        bindCurrent(viewport);
+        return true;
+    }
+
+    @Override
+    public CaptureProviderAvailability readiness(CaptureContext context) {
+        return available() && completedFrame == context.frameId() ? CaptureProviderAvailability.ready()
+            : CaptureProviderAvailability.unavailable("The isolated GUI frame has not completed");
+    }
+
+    @Override
+    public CaptureFrame captureCompletedFrame(CaptureContext context, CapturePixelReader reader, long timestamp) {
+        return read(reader, timestamp);
+    }
+
+    @Override
+    public boolean supportsRedraw() {
+        return available();
+    }
 
     public boolean drawing() {
         return visibility != null;
@@ -91,6 +131,7 @@ public class GuiLayerCaptureSource implements AutoCloseable {
 
     @Override
     public void close() {
+        completedFrame = Long.MIN_VALUE;
         if (visibility != null) {
             restoreScope();
         }

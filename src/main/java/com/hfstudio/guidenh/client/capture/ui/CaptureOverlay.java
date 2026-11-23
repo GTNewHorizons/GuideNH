@@ -15,6 +15,7 @@ import net.minecraft.client.resources.I18n;
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
 
+import com.hfstudio.guidenh.client.capture.api.CaptureBackendControls;
 import com.hfstudio.guidenh.client.capture.api.CaptureBatchController;
 import com.hfstudio.guidenh.client.capture.api.CaptureExportRequest;
 import com.hfstudio.guidenh.client.capture.api.CaptureGeometry;
@@ -65,7 +66,7 @@ public class CaptureOverlay implements AutoCloseable {
     private CaptureRect compositionBounds = new CaptureRect(0, 0, 0, 0);
 
     public CaptureOverlay(Minecraft minecraft, CaptureSession session, CaptureInputOptions input,
-        CaptureOverlayActions actions, CaptureBatchController batchController) {
+        CaptureOverlayActions actions, CaptureBatchController batchController, CaptureBackendControls backend) {
         this.minecraft = minecraft;
         this.session = session;
         this.actions = actions;
@@ -75,7 +76,7 @@ public class CaptureOverlay implements AutoCloseable {
         this.saveAction = actions.save();
         this.input = input;
         preview = new CapturePreviewRenderer();
-        settings = new CaptureSettingsPanel(minecraft, session);
+        settings = new CaptureSettingsPanel(minecraft, session, backend);
         add(CaptureIcons.SAVE, "save", this::save);
         add(CaptureIcons.CAPTURE_ALL, "all_visible", () -> {
             settings.close();
@@ -92,7 +93,7 @@ public class CaptureOverlay implements AutoCloseable {
             session.settings()
                 .config().includeWorld = !session.settings()
                     .config().includeWorld;
-            session.requestRefresh();
+            session.invalidatePreview();
         });
         add(CaptureIcons.REFRESH, "refresh", session::requestRefresh);
         add(

@@ -7,11 +7,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Function;
 
 import com.hfstudio.guidenh.client.capture.api.CaptureBatchCatalog;
 import com.hfstudio.guidenh.client.capture.api.CaptureBatchContext;
 import com.hfstudio.guidenh.client.capture.api.CaptureBatchOptions;
 import com.hfstudio.guidenh.client.capture.api.CaptureBatchProvider;
+import com.hfstudio.guidenh.client.capture.api.CaptureContentOptions;
 import com.hfstudio.guidenh.client.capture.api.CaptureContext;
 import com.hfstudio.guidenh.client.capture.api.CaptureGeometry;
 import com.hfstudio.guidenh.client.capture.api.CaptureGeometryProvider;
@@ -19,6 +21,7 @@ import com.hfstudio.guidenh.client.capture.api.CaptureGuiRenderer;
 import com.hfstudio.guidenh.client.capture.api.CaptureLifecycleListener;
 import com.hfstudio.guidenh.client.capture.api.CapturePixelReaderProvider;
 import com.hfstudio.guidenh.client.capture.api.CaptureProviderAvailability;
+import com.hfstudio.guidenh.client.capture.api.CaptureSourceProvider;
 import com.hfstudio.guidenh.client.capture.api.CaptureTarget;
 import com.hfstudio.guidenh.client.capture.api.CaptureTargetDescriptor;
 
@@ -29,16 +32,34 @@ public class CaptureRegistry {
     private final List<CaptureGuiRenderer> guiRenderers = new ArrayList<>();
     private final Map<String, CaptureBatchProvider> batchProviders = new LinkedHashMap<>();
     private final Map<String, CapturePixelReaderProvider> readerProviders = new LinkedHashMap<>();
+    private final Map<String, CaptureSourceProvider> sourceProviders = new LinkedHashMap<>();
+    private long backendRevision;
 
     public void registerReader(CapturePixelReaderProvider provider) {
         Objects.requireNonNull(provider);
-        if (provider.id() == null || provider.id()
-            .isBlank()
-            || provider.id()
-                .equals("automatic"))
-            throw new IllegalArgumentException("A pixel reader needs a non-reserved identifier");
-        readerProviders.remove(provider.id());
-        readerProviders.put(provider.id(), provider);
+        registerBackend(readerProviders, provider.id(), provider);
+        backendRevision++;
+    }
+
+    public void registerSource(CaptureSourceProvider provider) {
+        Objects.requireNonNull(provider);
+        registerBackend(sourceProviders, provider.id(), provider);
+        backendRevision++;
+    }
+
+    private static <P> void registerBackend(Map<String, P> providers, String id, P provider) {
+        if (id == null || id.isBlank() || id.equals("automatic"))
+            throw new IllegalArgumentException("A capture provider needs a non-reserved identifier");
+        providers.remove(id);
+        providers.put(id, provider);
+    }
+
+    public long backendRevision() {
+        return backendRevision;
+    }
+
+    public List<String> sourceIds() {
+        return List.copyOf(sourceProviders.keySet());
     }
 
     public List<String> readerIds() {
@@ -46,23 +67,32 @@ public class CaptureRegistry {
     }
 
     public CapturePixelReaderProvider readerProvider(CaptureContext context, String id) {
+        return resolveBackend(readerProviders, id, provider -> provider.availability(context), "pixel reader");
+    }
+
+    public CaptureSourceProvider sourceProvider(CaptureContext context, CaptureContentOptions content, String id) {
+        return resolveBackend(sourceProviders, id, provider -> provider.availability(context, content), "source");
+    }
+
+    private static <P> P resolveBackend(Map<String, P> providers, String id,
+        Function<P, CaptureProviderAvailability> availability, String kind) {
         if (!id.equals("automatic")) {
-            CapturePixelReaderProvider provider = readerProviders.get(id);
-            if (provider == null) throw new IllegalArgumentException("Unknown capture pixel reader: " + id);
-            CaptureProviderAvailability availability = provider.availability(context);
-            if (!availability.available())
-                throw new IllegalStateException("Capture pixel reader " + id + ": " + availability.reason());
+            P provider = providers.get(id);
+            if (provider == null) throw new IllegalArgumentException("Unknown capture " + kind + ": " + id);
+            CaptureProviderAvailability status = availability.apply(provider);
+            if (!status.available())
+                throw new IllegalStateException("Capture " + kind + " " + id + ": " + status.reason());
             return provider;
         }
-        List<CapturePixelReaderProvider> providers = new ArrayList<>(readerProviders.values());
+        List<Map.Entry<String, P>> ordered = new ArrayList<>(providers.entrySet());
         List<String> reasons = new ArrayList<>();
-        for (int index = providers.size() - 1; index >= 0; index--) {
-            CapturePixelReaderProvider provider = providers.get(index);
-            CaptureProviderAvailability availability = provider.availability(context);
-            if (availability.available()) return provider;
-            reasons.add(provider.id() + ": " + availability.reason());
+        for (int index = ordered.size() - 1; index >= 0; index--) {
+            Map.Entry<String, P> entry = ordered.get(index);
+            CaptureProviderAvailability status = availability.apply(entry.getValue());
+            if (status.available()) return entry.getValue();
+            reasons.add(entry.getKey() + ": " + status.reason());
         }
-        throw new IllegalStateException("No capture pixel reader is available. " + String.join("; ", reasons));
+        throw new IllegalStateException("No capture " + kind + " is available. " + String.join("; ", reasons));
     }
 
     public void registerBatch(CaptureBatchProvider provider) {

@@ -5,7 +5,10 @@ import java.util.Map;
 
 import org.jetbrains.annotations.Nullable;
 import org.yaml.snakeyaml.DumperOptions;
+import org.yaml.snakeyaml.LoaderOptions;
 import org.yaml.snakeyaml.Yaml;
+import org.yaml.snakeyaml.constructor.SafeConstructor;
+import org.yaml.snakeyaml.representer.Representer;
 
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
@@ -80,7 +83,7 @@ public class GuideLocalizedFrontmatterMerger {
         var options = new DumperOptions();
         options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
         options.setPrettyFlow(true);
-        return new Yaml(options);
+        return new Yaml(new SafeConstructor(new LoaderOptions()), new Representer(options), options);
     }
 
     private static boolean mergeMissingKeys(Map<String, Object> fallbackFrontmatter,

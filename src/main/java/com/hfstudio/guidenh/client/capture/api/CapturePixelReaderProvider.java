@@ -7,4 +7,9 @@ public interface CapturePixelReaderProvider {
     CaptureProviderAvailability availability(CaptureContext context);
 
     CapturePixelReader open(CaptureContext context);
+
+    // A context-independent reader can keep its resources for the entire capture session.
+    default Object contextKey(CaptureContext context) {
+        return null;
+    }
 }

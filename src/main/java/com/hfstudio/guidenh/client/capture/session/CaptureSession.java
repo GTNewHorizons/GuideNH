@@ -10,8 +10,11 @@ import java.util.function.Function;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.resources.I18n;
 
+import com.hfstudio.guidenh.client.capture.api.CaptureBackendSelection;
+import com.hfstudio.guidenh.client.capture.api.CaptureContentOptions;
 import com.hfstudio.guidenh.client.capture.api.CaptureExportRequest;
 import com.hfstudio.guidenh.client.capture.api.CaptureFrame;
+import com.hfstudio.guidenh.client.capture.api.CaptureFrameIdentity;
 import com.hfstudio.guidenh.client.capture.api.CaptureOutputArtifact;
 import com.hfstudio.guidenh.client.capture.api.CaptureOutputSize;
 import com.hfstudio.guidenh.client.capture.api.CaptureSessionState;
@@ -32,6 +35,7 @@ public class CaptureSession implements AutoCloseable {
     private CaptureViewport viewport;
     private CaptureSessionState state = CaptureSessionState.PREPARING;
     private CaptureFrame preview;
+    private CaptureFrameIdentity previewIdentity;
     private long previewVersion;
     private boolean refresh = true;
     private long lastPreviewTime;
@@ -62,6 +66,7 @@ public class CaptureSession implements AutoCloseable {
         selections.setBounds(viewport.bounds());
         if (preview != null) preview.close();
         preview = null;
+        previewIdentity = null;
         requestRefresh();
     }
 
@@ -83,6 +88,18 @@ public class CaptureSession implements AutoCloseable {
 
     public CaptureFrame preview() {
         return preview;
+    }
+
+    public CaptureFrameIdentity previewIdentity() {
+        return previewIdentity;
+    }
+
+    public boolean previewMatches(CaptureContentOptions content, CaptureBackendSelection backend) {
+        return preview != null && previewIdentity != null
+            && previewIdentity.content()
+                .equals(content)
+            && previewIdentity.requestedBackend()
+                .equals(backend);
     }
 
     public long previewVersion() {
@@ -116,6 +133,7 @@ public class CaptureSession implements AutoCloseable {
     public void invalidatePreview() {
         if (preview != null) preview.close();
         preview = null;
+        previewIdentity = null;
         previewVersion++;
         requestRefresh();
     }
@@ -174,6 +192,12 @@ public class CaptureSession implements AutoCloseable {
     }
 
     public void acceptFrame(CaptureFrame frame) {
+        acceptFrame(
+            frame,
+            new CaptureFrameIdentity(CaptureBackendSelection.automatic(), settings.backend(), settings.content()));
+    }
+
+    public void acceptFrame(CaptureFrame frame, CaptureFrameIdentity identity) {
         if (recording != null) recording.offer(frame, System.nanoTime(), selections.regions());
         if (!previewRequested) {
             frame.close();
@@ -181,6 +205,7 @@ public class CaptureSession implements AutoCloseable {
         }
         if (preview != null) preview.close();
         preview = frame;
+        previewIdentity = identity;
         previewVersion++;
         lastPreviewTime = System.nanoTime();
         refresh = false;
@@ -188,7 +213,7 @@ public class CaptureSession implements AutoCloseable {
     }
 
     public boolean canSave() {
-        return preview != null && selections.regions()
+        return previewMatches(settings.content(), settings.backend()) && selections.regions()
             .stream()
             .anyMatch(
                 region -> !region.erased() && !region.bounds()
@@ -258,7 +283,8 @@ public class CaptureSession implements AutoCloseable {
                 .getSimpleName(),
             viewport,
             selections.regions(),
-            settings.snapshot(gameDirectory));
+            settings.snapshot(gameDirectory)
+                .withBackend(previewIdentity == null ? settings.backend() : previewIdentity.backend()));
     }
 
     public void save(CaptureExportWorker worker, Path gameDirectory) {
@@ -327,6 +353,7 @@ public class CaptureSession implements AutoCloseable {
         if (recording != null) recording.close();
         if (preview != null) preview.close();
         preview = null;
+        previewIdentity = null;
         ModConfig.save();
     }
 }

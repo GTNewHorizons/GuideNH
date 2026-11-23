@@ -12,6 +12,8 @@
 
 点击保存图标或按 Enter 保存。设置面板可调整尺寸、输出格式、背景、内容层、吸附、输出目录和资源预算。默认不包含背后的世界，GUI 内部模型仍属于 GUI 内容。工具提示、调试、NEI 和 GUI 背景分别配置。
 
+捕获源和像素读回器选项会显示已注册的提供器。自动源在关闭世界包含时使用 GUI 独立层，开启时使用不透明的最终帧；显式选择不兼容的源会显示原因。成功切换会更新预览，拒绝选择时保留当前预览，设置页底部显示实际使用的实现。录制和导出在任务结束前保留源、读回器及内容快照；能力快照变化时重建空闲资源，并暂停受影响的录制。
+
 | 按键 | 操作 |
 | --- | --- |
 | Enter | 保存；录制时停止录制 |
@@ -45,7 +47,9 @@
 
 ## 开发接入
 
-通过截图接口分别注册几何提供器、GUI 渲染器、像素读回器、批量提供器和输出编码器。使用 `CaptureRegistry.registerReader` 注册 `CapturePixelReaderProvider`；提供器报告可用性时不分配缓冲区，需要捕获帧时才打开读回器。自动选择优先使用最后注册的可用提供器。在客户端线程且没有活动捕获任务时，可用 `CaptureRuntime.selectReader` 按 ID 选择；失败选择保留原预览，成功切换会作废旧预览并请求新帧。读回器接收明确的源 Alpha 模式，返回直通 ARGB 帧，并在会话关闭时释放资源。原生 GUI 层和分块导出使用相同读回接口。
+通过截图接口分别注册几何提供器、GUI 渲染器、捕获源、像素读回器、批量提供器和输出编码器。使用 `CaptureRegistry.registerSource` 注册 `CaptureSourceProvider`，使用 `registerReader` 注册 `CapturePixelReaderProvider`。提供器报告可用性时不分配捕获缓冲区，管线在需要时才打开资源。自动选择优先使用最后注册的可用提供器。上下文键需包含资源所依赖的屏幕、渲染上下文或能力代次。源收到配对的 GUI 开始/完成回调，并在完整帧回调中捕获视口尺寸的像素；不重定向 GUI 绘制的源也会收到完成回调。
+
+在客户端线程且没有活动捕获任务时，可用 `CaptureRuntime.selectSource` 和 `selectReader` 按 ID 选择。失败选择保留原预览，成功切换会作废旧预览并请求新帧。读回器接收明确的源 Alpha 模式，返回直通 ARGB 帧，并在会话关闭时释放资源。原生 GUI 层和分块导出使用相同读回接口。`CaptureFrameIdentity` 记录实际后端、请求选项及捕获内容，导出选项冻结实际实现 ID；批量结果通过 `capture.source` 和 `capture.reader` 记录来源，包括保留的可见层帧。
 
 滚动导航器可从 `CaptureBatchNavigator.scrollGeometry` 返回 `CaptureScrollGeometry`；编码模块读取导出帧，不依赖模组 GUI 的实现。继承容器界面但拥有独立更新生命周期的界面，可实现 `StandaloneContainerScreen` 并提供 `updateStandaloneScreen`。
 

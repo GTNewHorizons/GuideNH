@@ -7,6 +7,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import com.hfstudio.guidenh.capture.server.api.CaptureServerQuery;
+import com.hfstudio.guidenh.client.capture.api.CaptureBackendSelection;
 import com.hfstudio.guidenh.client.capture.api.CaptureBatchLayoutOptions;
 import com.hfstudio.guidenh.client.capture.api.CaptureBatchOptions;
 import com.hfstudio.guidenh.client.capture.api.CaptureContentOptions;
@@ -83,7 +84,12 @@ public class CaptureSettingsModel {
             content,
             layout,
             output.normalize(),
-            (long) config.temporaryBudgetMiB << 20);
+            (long) config.temporaryBudgetMiB << 20,
+            backend());
+    }
+
+    public CaptureBackendSelection backend() {
+        return new CaptureBackendSelection(config.sourceId, config.readerId);
     }
 
     public CaptureContentOptions content() {

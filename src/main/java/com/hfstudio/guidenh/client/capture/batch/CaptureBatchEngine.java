@@ -29,6 +29,7 @@ import com.hfstudio.guidenh.client.capture.api.CaptureBatchReadiness;
 import com.hfstudio.guidenh.client.capture.api.CaptureBatchResult;
 import com.hfstudio.guidenh.client.capture.api.CaptureExportRequest;
 import com.hfstudio.guidenh.client.capture.api.CaptureFrame;
+import com.hfstudio.guidenh.client.capture.api.CaptureFrameIdentity;
 import com.hfstudio.guidenh.client.capture.api.CaptureOptions;
 import com.hfstudio.guidenh.client.capture.api.CaptureOutputArtifact;
 import com.hfstudio.guidenh.client.capture.api.CaptureRect;
@@ -64,6 +65,7 @@ public class CaptureBatchEngine implements CaptureBatchController, AutoCloseable
     private UUID id;
     private Path directory;
     private CaptureFrame visibleFrame;
+    private CaptureFrameIdentity visibleIdentity;
     private CaptureTargetDescriptor current;
     private CompletableFuture<CaptureOutputArtifact> capture;
     private CompletableFuture<Path> report;
@@ -137,6 +139,7 @@ public class CaptureBatchEngine implements CaptureBatchController, AutoCloseable
         restorationReason = reason = "";
         visibleFrame = host.frame()
             .retain();
+        visibleIdentity = host.frameIdentity();
         try {
             directory = CaptureOutputPaths.next(
                 catalog.options()
@@ -188,6 +191,13 @@ public class CaptureBatchEngine implements CaptureBatchController, AutoCloseable
 
     public boolean needsFrame() {
         return stage == Stage.WAITING || stage == Stage.RESTORE_WAIT;
+    }
+
+    public void captureUnavailable(String detail) {
+        if (stage == Stage.WAITING) {
+            result(current, "failed", detail, null);
+            stage = Stage.SELECTING;
+        } else if (stage == Stage.SAVING) host.cancelCapture();
     }
 
     @Override
@@ -418,6 +428,18 @@ public class CaptureBatchEngine implements CaptureBatchController, AutoCloseable
                 regions.add(new CaptureRegion(index + 1, rectangles.get(index), current.id(), false));
             CaptureOptions settings = catalog.options()
                 .output();
+            CaptureFrameIdentity identity = current.scope()
+                .equals(CaptureBatchOptions.VISIBLE) ? visibleIdentity : host.frameIdentity();
+            Map<String, String> captureData = new LinkedHashMap<>(currentData);
+            captureData.put(
+                "capture.source",
+                identity.backend()
+                    .sourceId());
+            captureData.put(
+                "capture.reader",
+                identity.backend()
+                    .readerId());
+            currentData = Map.copyOf(captureData);
             Path output = directory.resolve(
                 current.providerId()
                     .replaceAll("[^a-zA-Z0-9_-]", "_"));
@@ -432,7 +454,8 @@ public class CaptureBatchEngine implements CaptureBatchController, AutoCloseable
                     settings.content(),
                     settings.layout(),
                     output,
-                    remainingBytes()));
+                    remainingBytes(),
+                    identity.backend()));
             if (catalog.options()
                 .layout()
                 .scrollImages()) {
@@ -446,7 +469,7 @@ public class CaptureBatchEngine implements CaptureBatchController, AutoCloseable
                                 .layout()
                                 .separateRegions());
                     if (slice != null) {
-                        Map<String, String> data = new LinkedHashMap<>(current.data());
+                        Map<String, String> data = new LinkedHashMap<>(currentData);
                         data.putAll(slice.metadata());
                         currentData = Map.copyOf(data);
                     }

@@ -14,4 +14,8 @@ public record CaptureExportRequest(UUID taskId, String sourceId, CaptureViewport
     public CaptureExportRequest withRegions(List<CaptureRegion> selected) {
         return new CaptureExportRequest(taskId, sourceId, viewport, selected, options);
     }
+
+    public CaptureExportRequest withBackend(CaptureBackendSelection backend) {
+        return new CaptureExportRequest(taskId, sourceId, viewport, regions, options.withBackend(backend));
+    }
 }

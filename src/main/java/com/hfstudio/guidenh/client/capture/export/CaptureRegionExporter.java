@@ -72,7 +72,8 @@ public class CaptureRegionExporter {
                     options.content(),
                     options.layout(),
                     directory,
-                    options.temporaryBudgetBytes() - bytes));
+                    options.temporaryBudgetBytes() - bytes,
+                    options.backend()));
             CaptureOutputArtifact artifact = new PngCaptureExporter()
                 .exportRows(bounded, new CaptureRegionRows(source, left, top, right - left, bottom - top), target);
             bytes += artifact.byteSize();

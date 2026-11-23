@@ -12,6 +12,8 @@ The default output is the rectangle enclosing all positive selections, including
 
 Use the save icon or Enter to save. The settings panel controls dimensions, output format, background, content layers, snapping, output folder, and resource budgets. World rendering is off by default; GUI models remain part of the selected GUI content. Tooltip, debug, NEI, and GUI backdrop inclusion are separate choices.
 
+The source and pixel-reader settings include every registered provider. Automatic source selection uses an isolated GUI layer while world inclusion is off, and the opaque final frame while it is on. An explicit incompatible source reports its reason. Successful changes refresh the preview; rejected choices preserve it. The settings footer shows the implementations currently in use. Recording and export keep their source, reader, and content snapshots until the task ends. Capability changes rebuild idle resources and pause an affected recording.
+
 | Key | Action |
 | --- | --- |
 | Enter | Save; stop an active recording |
@@ -45,7 +47,9 @@ The `betterquesting_pages` provider starts from the quest home, chapter reader, 
 
 ## Integration
 
-Geometry providers, GUI renderers, pixel readers, batch providers, and output exporters register through the capture interfaces. Register a `CapturePixelReaderProvider` with `CaptureRegistry.registerReader`; it reports availability without allocating buffers and opens a reader when the capture session needs it. Automatic reader selection prefers the most recently registered available provider. On the client thread, `CaptureRuntime.selectReader` selects a reader by ID while no capture task is active. Failed selection preserves the current preview; a successful switch invalidates it and requests a fresh frame. Readers receive an explicit source alpha mode, return straight ARGB frames, and release their resources when the session closes. Native layers and tiled exports use the same reader interface.
+Geometry providers, GUI renderers, sources, pixel readers, batch providers, and output exporters register through the capture interfaces. Register `CaptureSourceProvider` with `CaptureRegistry.registerSource` and `CapturePixelReaderProvider` with `registerReader`. Providers report availability without allocating capture buffers; the pipeline opens their resources when needed. Automatic selection prefers the most recently registered available provider. Context keys must include the screen, rendering context, or capability generation on which a provider's resources depend. Sources receive paired GUI begin/finish callbacks and capture viewport-sized pixels at the completed-frame callback. The finish callback also reaches sources that do not redirect GUI drawing.
+
+On the client thread, `CaptureRuntime.selectSource` and `selectReader` select implementations by ID while no capture task is active. Failed selection preserves the current preview; a successful switch invalidates it and requests a fresh frame. Readers receive an explicit source alpha mode, return straight ARGB frames, and release their resources when the session closes. Native layers and tiled exports use the same reader interface. `CaptureFrameIdentity` records the actual backend, requested choices, and captured content; export options freeze the actual implementation IDs. Batch results include `capture.source` and `capture.reader`, including the identity of a retained visible-layer frame.
 
 A scroll navigator can return `CaptureScrollGeometry` from `CaptureBatchNavigator.scrollGeometry`; the encoder operates on exported frames without importing a mod's GUI implementation. A container-derived screen that owns an independent update lifecycle can implement `StandaloneContainerScreen` and supply `updateStandaloneScreen`.
 

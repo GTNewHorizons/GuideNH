@@ -906,3 +906,10 @@ guidenh.capture.bq.tasks=Tasks
 guidenh.capture.bq.rewards=Rewards
 guidenh.capture.bq.description=Description
 guidenh.capture.bq.content=Scrollable content
+
+guidenh.capture.setting.source=Capture source
+guidenh.capture.setting.reader=Pixel reader
+guidenh.capture.value.gui_layer=GUI layer
+guidenh.capture.value.final_frame=Final frame
+guidenh.capture.value.opengl=OpenGL
+guidenh.capture.active_backend=Active: %s / %s

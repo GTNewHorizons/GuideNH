@@ -2,7 +2,9 @@ package com.hfstudio.guidenh.client.capture;
 
 import net.minecraftforge.common.MinecraftForge;
 
+import com.hfstudio.guidenh.client.capture.render.FinalFrameCaptureSourceProvider;
 import com.hfstudio.guidenh.client.capture.render.GlCapturePixelReaderProvider;
+import com.hfstudio.guidenh.client.capture.render.GuiLayerCaptureSourceProvider;
 import com.hfstudio.guidenh.client.capture.server.CaptureClientConnection;
 import com.hfstudio.guidenh.client.hotkey.OpenGuiCaptureHotkey;
 import com.hfstudio.guidenh.integration.Mods;
@@ -34,6 +36,10 @@ public class GuiCaptureBootstrap {
         CaptureRuntime runtime = CaptureRuntime.instance();
         runtime.registry()
             .registerReader(new GlCapturePixelReaderProvider());
+        runtime.registry()
+            .registerSource(new GuiLayerCaptureSourceProvider());
+        runtime.registry()
+            .registerSource(new FinalFrameCaptureSourceProvider());
         runtime.initialize();
         CaptureClientConnection.instance()
             .onCatalogChanged(runtime::refreshBatchCatalog);

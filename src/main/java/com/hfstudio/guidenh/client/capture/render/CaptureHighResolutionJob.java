@@ -51,7 +51,8 @@ public class CaptureHighResolutionJob implements AutoCloseable {
                 options.content(),
                 options.layout(),
                 options.outputDirectory(),
-                outputBudget));
+                outputBudget,
+                options.backend()));
         tiles = CaptureTilePlanner.plan(request, composition, size, tileSize);
         store = new CaptureTileStore(
             request.options()

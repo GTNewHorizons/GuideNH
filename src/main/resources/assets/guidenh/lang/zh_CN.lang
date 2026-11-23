@@ -903,3 +903,10 @@ guidenh.capture.bq.tasks=任务目标
 guidenh.capture.bq.rewards=奖励
 guidenh.capture.bq.description=说明
 guidenh.capture.bq.content=滚动内容
+
+guidenh.capture.setting.source=捕获源
+guidenh.capture.setting.reader=像素读回器
+guidenh.capture.value.gui_layer=GUI 独立层
+guidenh.capture.value.final_frame=最终帧
+guidenh.capture.value.opengl=OpenGL
+guidenh.capture.active_backend=当前：%s / %s
