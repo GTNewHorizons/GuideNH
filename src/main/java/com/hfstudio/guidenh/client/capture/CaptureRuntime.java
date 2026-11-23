@@ -38,7 +38,12 @@ import com.hfstudio.guidenh.client.capture.api.CaptureInputEvent;
 import com.hfstudio.guidenh.client.capture.api.CaptureInputOptions;
 import com.hfstudio.guidenh.client.capture.api.CaptureOutputArtifact;
 import com.hfstudio.guidenh.client.capture.api.CaptureOutputSize;
+import com.hfstudio.guidenh.client.capture.api.CapturePhaseSnapshot;
+import com.hfstudio.guidenh.client.capture.api.CaptureReadbackMetadata;
+import com.hfstudio.guidenh.client.capture.api.CaptureRenderPhase;
+import com.hfstudio.guidenh.client.capture.api.CaptureRenderProbe;
 import com.hfstudio.guidenh.client.capture.api.CaptureRenderSnapshot;
+import com.hfstudio.guidenh.client.capture.api.CaptureRenderState;
 import com.hfstudio.guidenh.client.capture.api.CaptureRows;
 import com.hfstudio.guidenh.client.capture.api.CaptureSessionState;
 import com.hfstudio.guidenh.client.capture.api.CaptureViewport;
@@ -48,9 +53,12 @@ import com.hfstudio.guidenh.client.capture.export.CaptureExportWorker;
 import com.hfstudio.guidenh.client.capture.export.CaptureRowComposer;
 import com.hfstudio.guidenh.client.capture.geometry.CaptureCoordinateMapper;
 import com.hfstudio.guidenh.client.capture.recording.CaptureRecording;
+import com.hfstudio.guidenh.client.capture.render.CaptureFramePhases;
 import com.hfstudio.guidenh.client.capture.render.CaptureHighResolutionJob;
 import com.hfstudio.guidenh.client.capture.render.CapturePipeline;
 import com.hfstudio.guidenh.client.capture.render.CaptureRenderScope;
+import com.hfstudio.guidenh.client.capture.render.CaptureTracingPixelReader;
+import com.hfstudio.guidenh.client.capture.render.GlCaptureRenderProbe;
 import com.hfstudio.guidenh.client.capture.render.GuiTileCaptureSource;
 import com.hfstudio.guidenh.client.capture.server.CaptureClientConnection;
 import com.hfstudio.guidenh.client.capture.session.CaptureSchedule;
@@ -81,6 +89,13 @@ public class CaptureRuntime implements CaptureBackendControls {
     private CaptureBackendSelection exportPreference;
     private CaptureBackendSelection recordingPreference;
     private CaptureContentOptions exportContent;
+    private CaptureRenderProbe renderProbe = new GlCaptureRenderProbe();
+    private final CaptureFramePhases framePhases = new CaptureFramePhases();
+    private CaptureFrame pendingFrame;
+    private CaptureFrameIdentity pendingIdentity;
+    private CaptureRenderState pendingTarget;
+    private CaptureRenderPhase pendingPhase;
+    private boolean backendPresentationHook;
     private final CaptureExportWorker exporter = new CaptureExportWorker();
     private volatile CaptureSession session;
     private CaptureOverlay overlay;
@@ -116,6 +131,61 @@ public class CaptureRuntime implements CaptureBackendControls {
 
     public CaptureRegistry registry() {
         return registry;
+    }
+
+    public void renderProbe(CaptureRenderProbe probe, boolean presentationHook) {
+        renderProbe.reset();
+        renderProbe = probe;
+        backendPresentationHook = presentationHook;
+    }
+
+    public List<CapturePhaseSnapshot> phaseSnapshots() {
+        return framePhases.snapshots();
+    }
+
+    public boolean backendPresentationHook() {
+        return backendPresentationHook;
+    }
+
+    private long memoryBudget() {
+        return batch != null && batch.busy() ? batch.catalog()
+            .options()
+            .memoryBudgetBytes()
+            : (long) session.settings()
+                .config().memoryBudgetMiB << 20;
+    }
+
+    private void discardPendingFrame() {
+        if (pendingFrame != null) pendingFrame.close();
+        pendingFrame = null;
+        pendingIdentity = null;
+        pendingTarget = null;
+        pendingPhase = null;
+    }
+
+    private void reachPhase(CaptureRenderPhase phase) {
+        if (session == null || !framePhases.active()) return;
+        try {
+            CaptureRenderState state = renderProbe.capture(captureContext(), memoryBudget());
+            if (state.shadowPass()) return;
+            CaptureContext context = framePhases.reach(phase, state, System.nanoTime());
+            if (context == null) return;
+            registry.phaseReached(context);
+            if (!frameRequested || pendingFrame != null || pipeline.capturePhase() != phase) return;
+            if (phase == CaptureRenderPhase.GUI_END || phase == CaptureRenderPhase.FRAME_READY)
+                pipeline.finishGui(context);
+            CaptureTracingPixelReader reader = new CaptureTracingPixelReader(
+                pipeline.reader(),
+                renderProbe,
+                context,
+                memoryBudget());
+            pendingFrame = pipeline.capture(context, reader, System.nanoTime());
+            pendingIdentity = new CaptureFrameIdentity(pipeline.selection(), previewSelection(), content());
+            pendingTarget = reader.target();
+            pendingPhase = phase;
+        } catch (RuntimeException error) {
+            captureFailed(error);
+        }
     }
 
     public String readerId() {
@@ -183,7 +253,13 @@ public class CaptureRuntime implements CaptureBackendControls {
     }
 
     private CaptureContext captureContext() {
-        return new CaptureContext(session.sourceScreen(), session.viewport(), frameId, partialTicks);
+        return new CaptureContext(
+            session.sourceScreen(),
+            session.viewport(),
+            frameId,
+            partialTicks,
+            framePhases.phase(),
+            framePhases.renderState());
     }
 
     private boolean taskOwnsPipeline() {
@@ -228,6 +304,7 @@ public class CaptureRuntime implements CaptureBackendControls {
     }
 
     private void captureFailed(RuntimeException error) {
+        discardPendingFrame();
         try {
             pipeline.close();
         } catch (RuntimeException closing) {
@@ -345,8 +422,11 @@ public class CaptureRuntime implements CaptureBackendControls {
         }
     }
 
-    public void beginGui(float partial) {
+    public void beginFrame(float partial) {
         if (session == null) return;
+        discardPendingFrame();
+        framePhases.close();
+        if (renderProbe.shadowPass()) return;
         Minecraft minecraft = Minecraft.getMinecraft();
         if (minecraft.currentScreen != session.sourceScreen()) {
             unavailableSource();
@@ -356,6 +436,7 @@ public class CaptureRuntime implements CaptureBackendControls {
         partialTicks = partial;
         CaptureViewport viewport = CaptureCoordinateMapper.current(minecraft);
         session.updateViewport(viewport);
+        framePhases.begin(captureContext());
         try {
             boolean changed = pipeline.select(captureContext(), content(), backendSelection(), taskOwnsPipeline());
             if (changed || session.preview() != null && !session.previewMatches(content(), previewSelection()))
@@ -381,24 +462,44 @@ public class CaptureRuntime implements CaptureBackendControls {
             sourceMouseY = viewport.logicalHeight() - Mouse.getY() * viewport.logicalHeight() / viewport.pixelHeight()
                 - 1;
         }
+    }
+
+    public void worldReady() {
+        reachPhase(CaptureRenderPhase.WORLD_READY);
+    }
+
+    public void beginGui(float partial) {
+        if (session == null || !framePhases.active()) return;
+        if (framePhases.phase() == null) worldReady();
         try {
-            pipeline.beginGui(
-                captureContext(),
+            CaptureContext context = captureContext()
+                .atPhase(CaptureRenderPhase.GUI_BEGIN, renderProbe.capture(captureContext(), memoryBudget()));
+            if (pipeline.selection() != null) pipeline.beginGui(
+                context,
                 content(),
                 session.previewRequested() || session.selections()
                     .following());
+            reachPhase(CaptureRenderPhase.GUI_BEGIN);
         } catch (RuntimeException error) {
             captureFailed(error);
         }
     }
 
     public void finishGui() {
-        if (session == null) return;
+        reachPhase(CaptureRenderPhase.GUI_END);
+    }
+
+    public void finishFrameLayers() {
+        if (session == null || !framePhases.active()) return;
         try {
-            pipeline.finishGui(captureContext());
+            pipeline.finishGui(captureContext().atPhase(CaptureRenderPhase.GUI_END, null));
         } catch (RuntimeException error) {
             captureFailed(error);
         }
+    }
+
+    public void beforePresentation() {
+        if (session != null) framePhases.preparePresentation();
     }
 
     public boolean hideBackdrop() {
@@ -434,7 +535,7 @@ public class CaptureRuntime implements CaptureBackendControls {
     }
 
     public void frameReady() {
-        if (session == null) return;
+        if (session == null || !framePhases.readyToPresent()) return;
         Minecraft minecraft = Minecraft.getMinecraft();
         if (minecraft.currentScreen != session.sourceScreen()) {
             unavailableSource();
@@ -442,23 +543,32 @@ public class CaptureRuntime implements CaptureBackendControls {
         }
         try (CaptureRenderScope drawing = new CaptureRenderScope()) {
             long now = System.nanoTime();
+            reachPhase(CaptureRenderPhase.FRAME_READY);
+            framePhases.presented();
             if ((frameRequested || batch.needsFrame()) && (session.previewRequested() || batch.needsFrame()
                 || session.selections()
                     .following())) {
-                geometry = registry
-                    .collect(new CaptureContext(session.sourceScreen(), session.viewport(), frameId, partialTicks));
+                geometry = registry.collect(captureContext());
                 overlay.updateGeometry(geometry);
             }
-            if (frameRequested) {
+            if (pendingFrame != null) {
+                CaptureFrame frame = pendingFrame;
+                pendingFrame = null;
+                CaptureFrameIdentity identity = new CaptureFrameIdentity(
+                    pendingIdentity.backend(),
+                    pendingIdentity.requestedBackend(),
+                    pendingIdentity.content(),
+                    new CaptureReadbackMetadata(frameId, pendingPhase, pendingTarget, framePhases.snapshots()));
                 try {
-                    CaptureFrame frame = pipeline.captureCompletedFrame(captureContext(), now);
                     if (batchRecording != null) batchRecording.offer(frame, now);
-                    session.acceptFrame(
-                        frame,
-                        new CaptureFrameIdentity(pipeline.selection(), previewSelection(), content()));
+                    session.acceptFrame(frame, identity);
                 } catch (RuntimeException error) {
+                    frame.close();
                     captureFailed(error);
                 }
+                pendingIdentity = null;
+                pendingTarget = null;
+                pendingPhase = null;
             }
             frameRequested = false;
             if (batch.busy()) batch.frameReady(batchHost.context());
@@ -565,6 +675,9 @@ public class CaptureRuntime implements CaptureBackendControls {
         } catch (RuntimeException error) {
             session.notify(I18n.format("guidenh.capture.failed", error.getMessage()));
         }
+        discardPendingFrame();
+        framePhases.close();
+        renderProbe.reset();
         exportBackend = null;
         exportContent = null;
         exportPreference = null;
@@ -810,7 +923,13 @@ public class CaptureRuntime implements CaptureBackendControls {
             CaptureGeometry current = geometry == null || !geometry.viewport()
                 .equals(viewport) ? new CaptureGeometry(0, viewport, List.of()) : geometry;
             return new CaptureBatchContext(
-                new CaptureContext(minecraft.currentScreen, viewport, frameId, partialTicks),
+                new CaptureContext(
+                    minecraft.currentScreen,
+                    viewport,
+                    frameId,
+                    partialTicks,
+                    framePhases.phase(),
+                    framePhases.renderState()),
                 current);
         }
 

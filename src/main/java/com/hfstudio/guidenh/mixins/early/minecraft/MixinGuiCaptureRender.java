@@ -28,7 +28,23 @@ public class MixinGuiCaptureRender {
         at = @At(value = "INVOKE", target = "Lnet/minecraft/client/shader/Framebuffer;unbindFramebuffer()V"))
     private void guidenh$finishCaptureFrame(CallbackInfo callback) {
         CaptureRuntime.instance()
-            .frameReady();
+            .finishFrameLayers();
+    }
+
+    @Inject(
+        method = "runGameLoop",
+        at = @At(value = "INVOKE", target = "Lnet/minecraft/client/Minecraft;func_147120_f()V"))
+    private void guidenh$prepareCapturePresentation(CallbackInfo callback) {
+        CaptureRuntime.instance()
+            .beforePresentation();
+    }
+
+    @Inject(
+        method = "func_147120_f",
+        at = @At(value = "INVOKE", target = "Lorg/lwjgl/opengl/Display;update()V", remap = false))
+    private void guidenh$captureBeforeDisplaySwap(CallbackInfo callback) {
+        CaptureRuntime runtime = CaptureRuntime.instance();
+        if (!runtime.backendPresentationHook()) runtime.frameReady();
     }
 
     @Inject(method = "shutdownMinecraftApplet", at = @At("HEAD"))

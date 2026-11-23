@@ -14,6 +14,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.stream.Collectors;
 
 import com.hfstudio.guidenh.client.capture.CaptureRegistry;
 import com.hfstudio.guidenh.client.capture.api.CaptureBatchCatalog;
@@ -32,8 +33,10 @@ import com.hfstudio.guidenh.client.capture.api.CaptureFrame;
 import com.hfstudio.guidenh.client.capture.api.CaptureFrameIdentity;
 import com.hfstudio.guidenh.client.capture.api.CaptureOptions;
 import com.hfstudio.guidenh.client.capture.api.CaptureOutputArtifact;
+import com.hfstudio.guidenh.client.capture.api.CaptureReadbackMetadata;
 import com.hfstudio.guidenh.client.capture.api.CaptureRect;
 import com.hfstudio.guidenh.client.capture.api.CaptureRegion;
+import com.hfstudio.guidenh.client.capture.api.CaptureRenderState;
 import com.hfstudio.guidenh.client.capture.api.CaptureScrollGeometry;
 import com.hfstudio.guidenh.client.capture.api.CaptureTargetDescriptor;
 import com.hfstudio.guidenh.client.capture.export.CaptureOutputPaths;
@@ -439,6 +442,7 @@ public class CaptureBatchEngine implements CaptureBatchController, AutoCloseable
                 "capture.reader",
                 identity.backend()
                     .readerId());
+            addRenderMetadata(captureData, identity.readback());
             currentData = Map.copyOf(captureData);
             Path output = directory.resolve(
                 current.providerId()
@@ -483,6 +487,36 @@ public class CaptureBatchEngine implements CaptureBatchController, AutoCloseable
             result(current, "failed", error.toString(), null);
             stage = Stage.SELECTING;
         }
+    }
+
+    private static void addRenderMetadata(Map<String, String> data, CaptureReadbackMetadata readback) {
+        if (readback == null) return;
+        data.put("capture.frame", Long.toString(readback.frameId()));
+        data.put(
+            "capture.phase",
+            readback.capturedPhase()
+                .name());
+        data.put(
+            "capture.phases",
+            readback.phases()
+                .stream()
+                .map(
+                    snapshot -> snapshot.phase()
+                        .name())
+                .collect(Collectors.joining(",")));
+        CaptureRenderState target = readback.target();
+        if (target == null) return;
+        data.put("capture.backend", target.backendId());
+        data.put("capture.opengl", Boolean.toString(target.openGl()));
+        data.put("capture.drawFramebuffer", Integer.toString(target.drawFramebuffer()));
+        data.put("capture.readFramebuffer", Integer.toString(target.readFramebuffer()));
+        data.put("capture.drawBuffer", Integer.toString(target.drawBuffer()));
+        data.put("capture.readBuffer", Integer.toString(target.readBuffer()));
+        data.put(
+            "capture.viewport",
+            target.viewportPixels()
+                .toString());
+        data.put("capture.shadowPass", Boolean.toString(target.shadowPass()));
     }
 
     private void result(CaptureTargetDescriptor target, String status, String detail, CaptureOutputArtifact artifact) {

@@ -47,9 +47,13 @@
 
 ## 开发接入
 
-通过截图接口分别注册几何提供器、GUI 渲染器、捕获源、像素读回器、批量提供器和输出编码器。使用 `CaptureRegistry.registerSource` 注册 `CaptureSourceProvider`，使用 `registerReader` 注册 `CapturePixelReaderProvider`。提供器报告可用性时不分配捕获缓冲区，管线在需要时才打开资源。自动选择优先使用最后注册的可用提供器。上下文键需包含资源所依赖的屏幕、渲染上下文或能力代次。源收到配对的 GUI 开始/完成回调，并在完整帧回调中捕获视口尺寸的像素；不重定向 GUI 绘制的源也会收到完成回调。
+通过截图接口分别注册几何提供器、GUI 渲染器、捕获源、像素读回器、批量提供器和输出编码器。使用 `CaptureRegistry.registerSource` 注册 `CaptureSourceProvider`，使用 `registerReader` 注册 `CapturePixelReaderProvider`。提供器报告可用性时不分配捕获缓冲区，管线在需要时才打开资源。自动选择优先使用最后注册的可用提供器。上下文键需包含资源所依赖的屏幕、渲染上下文或能力代次。源收到配对的 GUI 开始/完成回调。`CaptureSource.capturePhase` 可选择 `WORLD_READY`、`GUI_BEGIN`、`GUI_END` 或 `FRAME_READY`，默认使用 `FRAME_READY`；通用 `capture` 回调保留旧的完整帧回调兼容。源在选择的阶段返回视口尺寸像素，提前捕获的帧由运行时持有至呈现阶段；不重定向 GUI 绘制的源也会收到完成回调。
 
 在客户端线程且没有活动捕获任务时，可用 `CaptureRuntime.selectSource` 和 `selectReader` 按 ID 选择。失败选择保留原预览，成功切换会作废旧预览并请求新帧。读回器接收明确的源 Alpha 模式，返回直通 ARGB 帧，并在会话关闭时释放资源。原生 GUI 层和分块导出使用相同读回接口。`CaptureFrameIdentity` 记录实际后端、请求选项及捕获内容，导出选项冻结实际实现 ID；批量结果通过 `capture.source` 和 `capture.reader` 记录来源，包括保留的可见层帧。
+
+在客户端线程通过 `CaptureRegistry.registerPhaseListener` 注册 `CapturePhaseListener`，可观察顺序固定的四阶段边界。`CaptureContext` 携带阶段及观测渲染状态。`WORLD_READY` 位于世界及 shader-group 绘制完成后，`GUI_END` 位于屏幕渲染器返回后，`FRAME_READY` 位于后置层和主帧缓冲 blit 完成、提交呈现之前。GUI 独立层包含 RenderTick End 后置绘制，最终帧源读取呈现 back buffer。`CaptureFrameIdentity.readback` 保留捕获阶段、实际读回目标和四阶段不可变快照。批量数据记录 `capture.frame`、`capture.phase`、`capture.phases`、`capture.backend`、`capture.opengl`、帧缓冲/缓冲编号、viewport 和 shadow-pass 状态。硬件 PBO/fence 能力标记仅表示硬件支持，异步读回器仍待实现。
+
+客户端 GUI 导航采用 Forge 初始化后实际打开的屏幕，支持 Angelica 视频设置等同步替换；打开被取消时明确报告失败。
 
 滚动导航器可从 `CaptureBatchNavigator.scrollGeometry` 返回 `CaptureScrollGeometry`；编码模块读取导出帧，不依赖模组 GUI 的实现。继承容器界面但拥有独立更新生命周期的界面，可实现 `StandaloneContainerScreen` 并提供 `updateStandaloneScreen`。
 

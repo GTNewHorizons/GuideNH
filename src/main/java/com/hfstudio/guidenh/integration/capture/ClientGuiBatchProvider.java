@@ -129,10 +129,16 @@ public class ClientGuiBatchProvider implements CaptureBatchProvider {
                     .get("factory"))
                 .create()
                 .apply(origin);
-            if (Minecraft.getMinecraft().currentScreen != selected) {
+            Minecraft minecraft = Minecraft.getMinecraft();
+            GuiScreen previous = minecraft.currentScreen;
+            if (previous != selected) {
                 changed = true;
-                Minecraft.getMinecraft()
-                    .displayGuiScreen(selected);
+                minecraft.displayGuiScreen(selected);
+                GuiScreen opened = minecraft.currentScreen;
+                if (opened == null || opened == previous)
+                    throw new IllegalStateException("The client GUI opening was cancelled");
+                // Forge initialization may replace the requested screen synchronously.
+                selected = opened;
             }
         }
 

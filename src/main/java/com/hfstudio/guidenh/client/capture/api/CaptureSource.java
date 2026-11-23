@@ -12,7 +12,15 @@ public interface CaptureSource extends AutoCloseable {
 
     CaptureProviderAvailability readiness(CaptureContext context);
 
-    // Read at the completed-frame callback; return viewport-sized, top-down straight ARGB pixels.
+    default CaptureRenderPhase capturePhase() {
+        return CaptureRenderPhase.FRAME_READY;
+    }
+
+    default CaptureFrame capture(CaptureContext context, CapturePixelReader reader, long timestampNanos) {
+        return captureCompletedFrame(context, reader, timestampNanos);
+    }
+
+    // Return viewport-sized, top-down straight ARGB pixels at the source's declared capture phase.
     CaptureFrame captureCompletedFrame(CaptureContext context, CapturePixelReader reader, long timestampNanos);
 
     boolean supportsRedraw();

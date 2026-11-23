@@ -27,6 +27,12 @@ public enum Mixins implements IMixins {
     AE2_EXTERNAL_CABLE_PARTS(Side.CLIENT, Phase.LATE, Mods.AE2, "compat.ae2.MixinPartQuartzFiber",
         "compat.ae2.MixinPartP2PTunnelME", "compat.ae2.MixinPartToggleBus"),
 
+    ANGELICA_CAPTURE_FRAME_END(new MixinBuilder().addClientMixins("compat.angelica.MixinCaptureFrameEnd")
+        .setPhase(Phase.EARLY)
+        .setApplyIf(
+            () -> Mixins.class.getClassLoader()
+                .getResource("com/gtnewhorizons/angelica/glsm/hooks/FrameHooks.class") != null)),
+
     LWJGL_CAPTURE_INPUT(Side.CLIENT, Phase.EARLY, Mods.Lwjgl3ify, "compat.lwjgl3ify.MixinCaptureInputEvents",
         "compat.lwjgl3ify.AccessorCaptureTextInput"),
 

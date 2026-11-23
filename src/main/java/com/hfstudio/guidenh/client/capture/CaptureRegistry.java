@@ -19,6 +19,7 @@ import com.hfstudio.guidenh.client.capture.api.CaptureGeometry;
 import com.hfstudio.guidenh.client.capture.api.CaptureGeometryProvider;
 import com.hfstudio.guidenh.client.capture.api.CaptureGuiRenderer;
 import com.hfstudio.guidenh.client.capture.api.CaptureLifecycleListener;
+import com.hfstudio.guidenh.client.capture.api.CapturePhaseListener;
 import com.hfstudio.guidenh.client.capture.api.CapturePixelReaderProvider;
 import com.hfstudio.guidenh.client.capture.api.CaptureProviderAvailability;
 import com.hfstudio.guidenh.client.capture.api.CaptureSourceProvider;
@@ -34,6 +35,15 @@ public class CaptureRegistry {
     private final Map<String, CapturePixelReaderProvider> readerProviders = new LinkedHashMap<>();
     private final Map<String, CaptureSourceProvider> sourceProviders = new LinkedHashMap<>();
     private long backendRevision;
+    private final List<CapturePhaseListener> phaseListeners = new ArrayList<>();
+
+    public void registerPhaseListener(CapturePhaseListener listener) {
+        phaseListeners.add(Objects.requireNonNull(listener));
+    }
+
+    public void phaseReached(CaptureContext context) {
+        for (CapturePhaseListener listener : phaseListeners) listener.phaseReached(context);
+    }
 
     public void registerReader(CapturePixelReaderProvider provider) {
         Objects.requireNonNull(provider);

@@ -10,6 +10,7 @@ import com.hfstudio.guidenh.client.capture.api.CaptureFrame;
 import com.hfstudio.guidenh.client.capture.api.CapturePixelReader;
 import com.hfstudio.guidenh.client.capture.api.CapturePixelReaderProvider;
 import com.hfstudio.guidenh.client.capture.api.CaptureProviderAvailability;
+import com.hfstudio.guidenh.client.capture.api.CaptureRenderPhase;
 import com.hfstudio.guidenh.client.capture.api.CaptureSource;
 import com.hfstudio.guidenh.client.capture.api.CaptureSourceProvider;
 
@@ -128,12 +129,17 @@ public class CapturePipeline implements AutoCloseable {
         return reader;
     }
 
-    public CaptureFrame captureCompletedFrame(CaptureContext context, long timestamp) {
-        if (guiOpen) throw new IllegalStateException("The GUI capture has not finished");
+    public CaptureRenderPhase capturePhase() {
+        return source == null ? null : source.capturePhase();
+    }
+
+    public CaptureFrame capture(CaptureContext context, CapturePixelReader pixelReader, long timestamp) {
         if (source == null || reader == null) throw new IllegalStateException("The capture pipeline is not available");
+        if (context.phase() != source.capturePhase())
+            throw new IllegalStateException("The capture source phase is not ready");
         CaptureProviderAvailability readiness = source.readiness(context);
         if (!readiness.available()) throw new IllegalStateException(readiness.reason());
-        CaptureFrame frame = Objects.requireNonNull(source.captureCompletedFrame(context, reader, timestamp));
+        CaptureFrame frame = Objects.requireNonNull(source.capture(context, pixelReader, timestamp));
         if (frame.width() != context.viewport()
             .pixelWidth() || frame.height()
                 != context.viewport()
@@ -142,6 +148,11 @@ public class CapturePipeline implements AutoCloseable {
             throw new IllegalStateException("The capture source returned dimensions that differ from the viewport");
         }
         return frame;
+    }
+
+    public CaptureFrame captureCompletedFrame(CaptureContext context, long timestamp) {
+        if (guiOpen) throw new IllegalStateException("The GUI capture has not finished");
+        return capture(context, reader, timestamp);
     }
 
     @Override
