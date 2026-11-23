@@ -1,6 +1,7 @@
 package com.hfstudio.guidenh.client.capture.render;
 
 import java.nio.IntBuffer;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -58,11 +59,8 @@ public class GlCaptureRenderProbe implements CaptureRenderProbe {
         Object key = contextKey();
         if (capabilities == null || !Objects.equals(capabilitiesKey, key)) {
             Set<String> features = new HashSet<>();
-            features.add("native_readback");
-            boolean gl = openGl();
-            if (gl && OpenGlHelper.isFramebufferEnabled()) features.add("gui_framebuffer");
-            if (gl && GLContext.getCapabilities().OpenGL21) features.add("hardware_pbo");
-            if (gl && GLContext.getCapabilities().OpenGL32) features.add("hardware_fence");
+            List<String> limitations = new ArrayList<>();
+            describeCapabilities(features, limitations);
             if (vector == null) vector = BufferUtils.createIntBuffer(16);
             vector.clear();
             integers(GL11.GL_MAX_VIEWPORT_DIMS, vector);
@@ -76,7 +74,7 @@ public class GlCaptureRenderProbe implements CaptureRenderProbe {
                 width,
                 height,
                 budget,
-                gl ? List.of() : List.of("GUI isolation and tiled redraw require a backend source adapter"));
+                limitations);
             capabilitiesKey = key;
         } else if (capabilities.memoryBudgetBytes() != budget) {
             capabilities = new CaptureCapabilities(
@@ -90,6 +88,17 @@ public class GlCaptureRenderProbe implements CaptureRenderProbe {
                 capabilities.limitations());
         }
         return capabilities;
+    }
+
+    protected void describeCapabilities(Set<String> features, List<String> limitations) {
+        if (!openGl()) {
+            limitations.add("GUI isolation and tiled redraw require a backend source adapter");
+            return;
+        }
+        features.add("native_readback");
+        if (OpenGlHelper.isFramebufferEnabled()) features.add("gui_framebuffer");
+        if (GLContext.getCapabilities().OpenGL21) features.add("hardware_pbo");
+        if (GLContext.getCapabilities().OpenGL32) features.add("hardware_fence");
     }
 
     @Override

@@ -58,3 +58,7 @@
 滚动导航器可从 `CaptureBatchNavigator.scrollGeometry` 返回 `CaptureScrollGeometry`；编码模块读取导出帧，不依赖模组 GUI 的实现。继承容器界面但拥有独立更新生命周期的界面，可实现 `StandaloneContainerScreen` 并提供 `updateStandaloneScreen`。
 
 兼容情况取决于实际模组版本和渲染后端，完整的着色器、后端及模组验收矩阵仍在进行中。
+
+Angelica 为当前 `RenderBackend` 注册 `angelica` 像素读回器，通过后端 API 读取打包像素，并在转换为直通 ARGB 前恢复像素打包参数和缓冲绑定。加载 Angelica 时，自动读回选择使用该实现；SDL GPU 下显式选择 `opengl` 会显示不可用原因。源的资源键同时保留原源的上下文键与实际后端身份。原生与后端读回器通过 `CaptureBufferPixelReader` 共享缓冲复用、行方向和 Alpha 转换；后端回调填充从下到上的 ARGB 数值，并恢复它修改的状态。
+
+直接后端读回器已有 OpenGL 验收结果。开发环境通过临时启动库补齐 shaderc/spvc 后已初始化 SDL GPU Vulkan；按全部实现完成后再验收的新要求，捕获验收已停止。非 GL 捕获、着色器包和指定 Prism 实例仍未验证。工具不会自动修改渲染后端或着色器偏好。

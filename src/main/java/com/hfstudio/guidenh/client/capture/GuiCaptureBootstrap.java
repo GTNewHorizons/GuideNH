@@ -8,7 +8,10 @@ import com.hfstudio.guidenh.client.capture.render.GuiLayerCaptureSourceProvider;
 import com.hfstudio.guidenh.client.capture.server.CaptureClientConnection;
 import com.hfstudio.guidenh.client.hotkey.OpenGuiCaptureHotkey;
 import com.hfstudio.guidenh.integration.Mods;
+import com.hfstudio.guidenh.integration.angelica.capture.AngelicaCapturePixelReaderProvider;
 import com.hfstudio.guidenh.integration.angelica.capture.AngelicaCaptureRenderProbe;
+import com.hfstudio.guidenh.integration.angelica.capture.AngelicaCaptureSourceProvider;
+import com.hfstudio.guidenh.integration.angelica.capture.AngelicaOpenGlPixelReaderProvider;
 import com.hfstudio.guidenh.integration.betterquesting.capture.BqCaptureGeometryProvider;
 import com.hfstudio.guidenh.integration.betterquesting.capture.BqPageBatchProvider;
 import com.hfstudio.guidenh.integration.capture.GuideCaptureGeometryProvider;
@@ -42,7 +45,17 @@ public class GuiCaptureBootstrap {
         runtime.registry()
             .registerSource(new FinalFrameCaptureSourceProvider());
         runtime.initialize();
-        if (Mods.Angelica.isModLoaded()) runtime.renderProbe(new AngelicaCaptureRenderProbe(), true);
+        if (Mods.Angelica.isModLoaded()) {
+            runtime.renderProbe(new AngelicaCaptureRenderProbe(), true);
+            runtime.registry()
+                .registerReader(new AngelicaOpenGlPixelReaderProvider());
+            runtime.registry()
+                .registerReader(new AngelicaCapturePixelReaderProvider());
+            runtime.registry()
+                .registerSource(new AngelicaCaptureSourceProvider(new GuiLayerCaptureSourceProvider()));
+            runtime.registry()
+                .registerSource(new AngelicaCaptureSourceProvider(new FinalFrameCaptureSourceProvider()));
+        }
         CaptureClientConnection.instance()
             .onCatalogChanged(runtime::refreshBatchCatalog);
         runtime.registry()

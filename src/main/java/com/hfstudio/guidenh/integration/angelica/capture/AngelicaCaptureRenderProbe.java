@@ -1,11 +1,13 @@
 package com.hfstudio.guidenh.integration.angelica.capture;
 
 import java.nio.IntBuffer;
+import java.util.List;
+import java.util.Set;
 
 import net.coderbot.iris.shadows.ShadowRenderingState;
+import net.minecraft.client.renderer.OpenGlHelper;
 
 import com.gtnewhorizons.angelica.glsm.backend.BackendManager;
-import com.hfstudio.guidenh.client.capture.api.CaptureRenderContextKey;
 import com.hfstudio.guidenh.client.capture.render.GlCaptureRenderProbe;
 
 public class AngelicaCaptureRenderProbe extends GlCaptureRenderProbe {
@@ -17,12 +19,19 @@ public class AngelicaCaptureRenderProbe extends GlCaptureRenderProbe {
 
     @Override
     protected boolean openGl() {
-        return backendId().startsWith("OpenGL");
+        return !BackendManager.RENDER_BACKEND.isSDLGPU();
     }
 
     @Override
     protected Object contextKey() {
-        return new CaptureRenderContextKey(BackendManager.RENDER_BACKEND, openGl() ? super.contextKey() : null);
+        return AngelicaCaptureBackendContext.key();
+    }
+
+    @Override
+    protected void describeCapabilities(Set<String> features, List<String> limitations) {
+        if (openGl()) super.describeCapabilities(features, limitations);
+        else if (OpenGlHelper.isFramebufferEnabled()) features.add("gui_framebuffer");
+        features.add("backend_readback");
     }
 
     @Override
