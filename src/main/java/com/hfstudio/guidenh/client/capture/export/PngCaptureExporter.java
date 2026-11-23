@@ -33,6 +33,15 @@ public class PngCaptureExporter implements CaptureExporter {
 
     public CaptureOutputArtifact exportRows(CaptureExportRequest request, CaptureRows rows, Path target)
         throws IOException {
+        return exportRows(
+            rows,
+            target,
+            request.options()
+                .temporaryBudgetBytes());
+    }
+
+    public CaptureOutputArtifact exportRows(CaptureRows rows, Path target, long diskBudget) throws IOException {
+        if (diskBudget < 45) throw new IOException("PNG output exceeds the remaining disk budget");
         CaptureOutputSize size = rows.size();
         try (DataOutputStream output = new DataOutputStream(Files.newOutputStream(target))) {
             output.writeLong(0x89504E470D0A1A0AL);
@@ -47,10 +56,7 @@ public class PngCaptureExporter implements CaptureExporter {
                 header.writeByte(0);
             }
             chunk(output, "IHDR", headerBytes.toByteArray(), 13);
-            IdatOutputStream idat = new IdatOutputStream(
-                output,
-                request.options()
-                    .temporaryBudgetBytes());
+            IdatOutputStream idat = new IdatOutputStream(output, diskBudget - 45);
             Deflater deflater = new Deflater();
             try (DeflaterOutputStream compressed = new DeflaterOutputStream(idat, deflater, 65536)) {
                 int[] row = new int[size.width()];

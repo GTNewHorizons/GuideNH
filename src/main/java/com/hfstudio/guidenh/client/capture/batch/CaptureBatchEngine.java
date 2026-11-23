@@ -23,6 +23,7 @@ import com.hfstudio.guidenh.client.capture.api.CaptureBatchHost;
 import com.hfstudio.guidenh.client.capture.api.CaptureBatchManifest;
 import com.hfstudio.guidenh.client.capture.api.CaptureBatchNavigator;
 import com.hfstudio.guidenh.client.capture.api.CaptureBatchOptions;
+import com.hfstudio.guidenh.client.capture.api.CaptureBatchOutput;
 import com.hfstudio.guidenh.client.capture.api.CaptureBatchProgress;
 import com.hfstudio.guidenh.client.capture.api.CaptureBatchReadiness;
 import com.hfstudio.guidenh.client.capture.api.CaptureBatchResult;
@@ -46,6 +47,7 @@ public class CaptureBatchEngine implements CaptureBatchController, AutoCloseable
         public static final Stage RESTORING = new Stage("restoring");
         public static final Stage RESTORE_WAIT = new Stage("restore_wait");
         public static final Stage REPORTING = new Stage("reporting");
+        public static final Stage COMPOSING = new Stage("composing");
         public static final Stage COMPLETE = new Stage("complete");
     }
 
@@ -63,6 +65,9 @@ public class CaptureBatchEngine implements CaptureBatchController, AutoCloseable
     private CaptureTargetDescriptor current;
     private CompletableFuture<CaptureOutputArtifact> capture;
     private CompletableFuture<Path> report;
+    private CompletableFuture<List<CaptureBatchOutput>> composition;
+    private CaptureBatchManifest manifest;
+    private long outputBytes;
     private long deadline;
     private long lastFrame = Long.MIN_VALUE;
     private long lastRevision = Long.MIN_VALUE;
@@ -107,6 +112,7 @@ public class CaptureBatchEngine implements CaptureBatchController, AutoCloseable
         }
         close();
         results.clear();
+        manifest = null;
         expanded.clear();
         selected = catalog.targets()
             .stream()
@@ -122,6 +128,7 @@ public class CaptureBatchEngine implements CaptureBatchController, AutoCloseable
         }
         id = UUID.randomUUID();
         nextTarget = attempted = 0;
+        outputBytes = 0;
         cancelRequested = false;
         restoration = "not_requested";
         restorationReason = reason = "";
@@ -167,6 +174,7 @@ public class CaptureBatchEngine implements CaptureBatchController, AutoCloseable
     public void cancel() {
         if (!busy()) return;
         cancelRequested = true;
+        if (composition != null) composition.cancel(true);
         host.cancelCapture();
     }
 
@@ -192,6 +200,11 @@ public class CaptureBatchEngine implements CaptureBatchController, AutoCloseable
     @Override
     public List<CaptureBatchResult> results() {
         return List.copyOf(results.values());
+    }
+
+    @Override
+    public List<CaptureBatchOutput> outputs() {
+        return manifest == null ? List.of() : manifest.outputs();
     }
 
     @Override
@@ -276,6 +289,35 @@ public class CaptureBatchEngine implements CaptureBatchController, AutoCloseable
                     stage = Stage.COMPLETE;
                 }
             }
+            case "composing" -> {
+                if (!composition.isDone()) return;
+                List<CaptureBatchOutput> outputs;
+                try {
+                    outputs = composition.join();
+                    for (CaptureBatchOutput output : outputs) outputBytes += output.byteSize();
+                } catch (RuntimeException error) {
+                    outputs = List.of(
+                        new CaptureBatchOutput(
+                            "contact_sheet",
+                            "all",
+                            cancelRequested ? "cancelled" : "failed",
+                            "",
+                            0,
+                            0,
+                            0,
+                            0,
+                            error.toString()));
+                }
+                manifest = new CaptureBatchManifest(
+                    manifest.id(),
+                    manifest.maxTargets(),
+                    manifest.restoration(),
+                    manifest.restorationReason(),
+                    manifest.results(),
+                    outputs);
+                composition = null;
+                writeReport();
+            }
             default -> {}
         }
     }
@@ -284,12 +326,15 @@ public class CaptureBatchEngine implements CaptureBatchController, AutoCloseable
         while (nextTarget < selected.size()) {
             CaptureTargetDescriptor target = selected.get(nextTarget++);
             if (results.containsKey(target.id())) continue;
-            if (cancelRequested || attempted >= catalog.options()
-                .maxTargets()) {
+            if (cancelRequested || remainingBytes() <= 0
+                || attempted >= catalog.options()
+                    .maxTargets()) {
                 result(
                     target,
                     cancelRequested ? "cancelled" : "not_processed",
-                    cancelRequested ? "Batch cancelled" : "The configured target limit was reached",
+                    cancelRequested ? "Batch cancelled"
+                        : remainingBytes() <= 0 ? "The batch disk budget was exhausted"
+                            : "The configured target limit was reached",
                     null);
                 continue;
             }
@@ -383,7 +428,7 @@ public class CaptureBatchEngine implements CaptureBatchController, AutoCloseable
                     settings.content(),
                     settings.layout(),
                     output,
-                    settings.temporaryBudgetBytes()));
+                    remainingBytes()));
             CaptureFrame frame = current.scope()
                 .equals(CaptureBatchOptions.VISIBLE) ? visibleFrame : host.frame();
             capture = host.capture(request, catalog.options(), frame);
@@ -395,6 +440,7 @@ public class CaptureBatchEngine implements CaptureBatchController, AutoCloseable
     }
 
     private void result(CaptureTargetDescriptor target, String status, String detail, CaptureOutputArtifact artifact) {
+        if (artifact != null) outputBytes += artifact.byteSize();
         results.put(
             target.id(),
             new CaptureBatchResult(
@@ -479,20 +525,36 @@ public class CaptureBatchEngine implements CaptureBatchController, AutoCloseable
             .stream()
             .map(target -> results.get(target.id()))
             .toList();
-        report = host.writeManifest(
-            new CaptureBatchManifest(
-                id,
-                catalog.options()
-                    .maxTargets(),
-                restoration,
-                restorationReason,
-                ordered),
-            directory);
+        manifest = new CaptureBatchManifest(
+            id,
+            catalog.options()
+                .maxTargets(),
+            restoration,
+            restorationReason,
+            ordered);
+        if (!cancelRequested && catalog.options()
+            .layout()
+            .contactSheet()) {
+            composition = host.compose(manifest, catalog.options(), directory, remainingBytes());
+            stage = Stage.COMPOSING;
+        } else writeReport();
+    }
+
+    private long remainingBytes() {
+        return catalog.options()
+            .output()
+            .temporaryBudgetBytes() - outputBytes;
+    }
+
+    private void writeReport() {
+        report = host.writeManifest(manifest, directory, remainingBytes());
         stage = Stage.REPORTING;
     }
 
     @Override
     public void close() {
+        if (composition != null) composition.cancel(true);
+        composition = null;
         for (CaptureBatchNavigator navigator : navigators.values()) navigator.close();
         navigators.clear();
         if (visibleFrame != null) visibleFrame.close();

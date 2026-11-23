@@ -22,6 +22,7 @@ import com.hfstudio.guidenh.client.capture.api.CaptureBatchContext;
 import com.hfstudio.guidenh.client.capture.api.CaptureBatchHost;
 import com.hfstudio.guidenh.client.capture.api.CaptureBatchManifest;
 import com.hfstudio.guidenh.client.capture.api.CaptureBatchOptions;
+import com.hfstudio.guidenh.client.capture.api.CaptureBatchOutput;
 import com.hfstudio.guidenh.client.capture.api.CaptureClientGuiFactory;
 import com.hfstudio.guidenh.client.capture.api.CaptureContentOptions;
 import com.hfstudio.guidenh.client.capture.api.CaptureContext;
@@ -751,8 +752,15 @@ public class CaptureRuntime {
         }
 
         @Override
-        public CompletableFuture<Path> writeManifest(CaptureBatchManifest manifest, Path directory) {
-            return exporter.writeManifest(manifest, directory);
+        public CompletableFuture<List<CaptureBatchOutput>> compose(CaptureBatchManifest manifest,
+            CaptureBatchOptions options, Path directory, long remainingBytes) {
+            return exporter.compose(manifest, options, directory, remainingBytes);
+        }
+
+        @Override
+        public CompletableFuture<Path> writeManifest(CaptureBatchManifest manifest, Path directory,
+            long remainingBytes) {
+            return exporter.writeManifest(manifest, directory, remainingBytes);
         }
     }
 

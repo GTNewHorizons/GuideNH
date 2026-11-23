@@ -15,6 +15,7 @@ import org.lwjgl.input.Keyboard;
 
 import com.hfstudio.guidenh.client.capture.api.CaptureBatchCatalog;
 import com.hfstudio.guidenh.client.capture.api.CaptureBatchController;
+import com.hfstudio.guidenh.client.capture.api.CaptureBatchOutput;
 import com.hfstudio.guidenh.client.capture.api.CaptureBatchProgress;
 import com.hfstudio.guidenh.client.capture.api.CaptureBatchResult;
 import com.hfstudio.guidenh.client.capture.api.CaptureRect;
@@ -203,6 +204,15 @@ public class CaptureBatchPanel {
                         .maxTargets());
         if (!progress.reason()
             .isEmpty() && !controller.busy()) summary = progress.reason();
+        List<CaptureBatchOutput> outputs = controller.outputs();
+        if (!controller.busy() && !outputs.isEmpty()) {
+            long ready = outputs.stream()
+                .filter(
+                    output -> output.status()
+                        .equals("success"))
+                .count();
+            summary = I18n.format("guidenh.capture.batch_outputs", ready, outputs.size() - ready, summary);
+        }
         minecraft.fontRenderer.drawStringWithShadow(
             minecraft.fontRenderer.trimStringToWidth(summary, width - 128),
             x + 8,

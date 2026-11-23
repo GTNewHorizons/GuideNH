@@ -7,6 +7,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import com.hfstudio.guidenh.capture.server.api.CaptureServerQuery;
+import com.hfstudio.guidenh.client.capture.api.CaptureBatchLayoutOptions;
 import com.hfstudio.guidenh.client.capture.api.CaptureBatchOptions;
 import com.hfstudio.guidenh.client.capture.api.CaptureContentOptions;
 import com.hfstudio.guidenh.client.capture.api.CaptureLayoutOptions;
@@ -121,7 +122,13 @@ public class CaptureSettingsModel {
             new CaptureServerQuery(
                 config.serverCaptureRadius,
                 Math.min(config.maxTargets, CaptureCapabilityMessage.MAX_TARGETS),
-                config.serverTemporaryTravel));
+                config.serverTemporaryTravel),
+            new CaptureBatchLayoutOptions(
+                config.batchContactSheet,
+                config.batchGroupByProvider,
+                config.batchSheetColumns,
+                config.batchThumbnailSize,
+                config.batchSheetPageSize));
     }
 
     public CaptureRecordingOptions recording() {

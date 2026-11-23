@@ -174,6 +174,24 @@ public class CaptureConfig {
     @DefaultString("composite")
     public String batchVisibleMode = "composite";
 
+    @DefaultBoolean(false)
+    public boolean batchContactSheet;
+
+    @DefaultBoolean(true)
+    public boolean batchGroupByProvider = true;
+
+    @DefaultInt(4)
+    @RangeInt(min = 1, max = 16)
+    public int batchSheetColumns = 4;
+
+    @DefaultInt(256)
+    @RangeInt(min = 64, max = 1024)
+    public int batchThumbnailSize = 256;
+
+    @DefaultInt(4096)
+    @RangeInt(min = 512, max = 32768)
+    public int batchSheetPageSize = 4096;
+
     @DefaultString("")
     public String batchProviders = "";
 

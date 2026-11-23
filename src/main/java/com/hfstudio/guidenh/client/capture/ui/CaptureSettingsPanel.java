@@ -151,6 +151,30 @@ public class CaptureSettingsPanel {
         toggle("batch_popups", () -> config.includePopups, value -> config.includePopups = value, false);
         toggle("batch_variants", () -> config.includeVariants, value -> config.includeVariants = value, false);
         toggle("batch_restore", () -> config.restoreOriginal, value -> config.restoreOriginal = value, false);
+        toggle("batch_contact_sheet", () -> config.batchContactSheet, value -> config.batchContactSheet = value, false);
+        toggle(
+            "batch_group_provider",
+            () -> config.batchGroupByProvider,
+            value -> config.batchGroupByProvider = value,
+            false);
+        integer(
+            "batch_sheet_columns",
+            () -> config.batchSheetColumns,
+            value -> config.batchSheetColumns = value,
+            1,
+            16);
+        integer(
+            "batch_thumbnail_size",
+            () -> config.batchThumbnailSize,
+            value -> config.batchThumbnailSize = value,
+            64,
+            1024);
+        integer(
+            "batch_sheet_page",
+            () -> config.batchSheetPageSize,
+            value -> config.batchSheetPageSize = value,
+            512,
+            32768);
         integer("stable_frames", () -> config.stableFrames, value -> config.stableFrames = value, 1, 60);
         integer("timeout", () -> config.timeoutSeconds, value -> config.timeoutSeconds = value, 1, 60);
         integer("target_limit", () -> config.maxTargets, value -> config.maxTargets = value, 1, 100000);

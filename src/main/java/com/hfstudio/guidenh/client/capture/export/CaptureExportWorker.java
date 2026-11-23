@@ -1,6 +1,7 @@
 package com.hfstudio.guidenh.client.capture.export;
 
 import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.io.UncheckedIOException;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
@@ -8,6 +9,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CancellationException;
@@ -22,6 +24,8 @@ import com.google.gson.GsonBuilder;
 import com.hfstudio.guidenh.client.capture.api.CaptureAnimationExporter;
 import com.hfstudio.guidenh.client.capture.api.CaptureAnimationWriter;
 import com.hfstudio.guidenh.client.capture.api.CaptureBatchManifest;
+import com.hfstudio.guidenh.client.capture.api.CaptureBatchOptions;
+import com.hfstudio.guidenh.client.capture.api.CaptureBatchOutput;
 import com.hfstudio.guidenh.client.capture.api.CaptureExportRequest;
 import com.hfstudio.guidenh.client.capture.api.CaptureExporter;
 import com.hfstudio.guidenh.client.capture.api.CaptureFrame;
@@ -61,11 +65,17 @@ public class CaptureExportWorker implements AutoCloseable {
     }
 
     public CompletableFuture<Path> writeManifest(CaptureBatchManifest manifest, Path directory) {
+        return writeManifest(manifest, directory, Long.MAX_VALUE);
+    }
+
+    public CompletableFuture<Path> writeManifest(CaptureBatchManifest manifest, Path directory, long remainingBytes) {
         return submitTask(() -> {
             Path temporary = null;
             try {
                 temporary = Files.createTempFile(directory, ".guidenh_manifest_", ".part");
-                try (Writer writer = Files.newBufferedWriter(temporary, StandardCharsets.UTF_8)) {
+                try (Writer writer = new OutputStreamWriter(
+                    new CaptureBudgetOutputStream(Files.newOutputStream(temporary), remainingBytes),
+                    StandardCharsets.UTF_8)) {
                     new GsonBuilder().setPrettyPrinting()
                         .create()
                         .toJson(manifest, writer);
@@ -83,6 +93,17 @@ public class CaptureExportWorker implements AutoCloseable {
                         throw new UncheckedIOException(error);
                     }
                 }
+            }
+        }, () -> {});
+    }
+
+    public CompletableFuture<List<CaptureBatchOutput>> compose(CaptureBatchManifest manifest,
+        CaptureBatchOptions options, Path directory, long remainingBytes) {
+        return submitTask(() -> {
+            try {
+                return CaptureBatchCompositor.compose(manifest, options, directory, remainingBytes);
+            } catch (IOException error) {
+                throw new UncheckedIOException(error);
             }
         }, () -> {});
     }

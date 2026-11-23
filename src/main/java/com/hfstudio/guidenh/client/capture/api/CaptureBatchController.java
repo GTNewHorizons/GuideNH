@@ -19,6 +19,8 @@ public interface CaptureBatchController {
 
     List<CaptureBatchResult> results();
 
+    List<CaptureBatchOutput> outputs();
+
     boolean recordingActive();
 
     boolean recordingPaused();

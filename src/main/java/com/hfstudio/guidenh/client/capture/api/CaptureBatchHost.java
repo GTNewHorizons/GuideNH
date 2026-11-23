@@ -1,6 +1,7 @@
 package com.hfstudio.guidenh.client.capture.api;
 
 import java.nio.file.Path;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 public interface CaptureBatchHost {
@@ -32,5 +33,8 @@ public interface CaptureBatchHost {
 
     void stopCapture();
 
-    CompletableFuture<Path> writeManifest(CaptureBatchManifest manifest, Path directory);
+    CompletableFuture<List<CaptureBatchOutput>> compose(CaptureBatchManifest manifest, CaptureBatchOptions options,
+        Path directory, long remainingBytes);
+
+    CompletableFuture<Path> writeManifest(CaptureBatchManifest manifest, Path directory, long remainingBytes);
 }
