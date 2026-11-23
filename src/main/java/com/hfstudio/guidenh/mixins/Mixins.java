@@ -48,6 +48,10 @@ public enum Mixins implements IMixins {
         "compat.nei.AccessorCaptureNeiRecipe", "compat.nei.AccessorCaptureNeiTask", "compat.nei.AccessorCaptureNeiText",
         "compat.nei.MixinCaptureNeiLayers"),
 
+    BQ_CAPTURE_GUI(Side.CLIENT, Phase.LATE, Mods.BetterQuesting, "compat.betterquesting.AccessorCaptureBqCanvas",
+        "compat.betterquesting.AccessorCaptureBqQuest", "compat.betterquesting.AccessorCaptureBqQuestLines",
+        "compat.betterquesting.MixinCaptureBqIconFramebuffer"),
+
     ANGELICA_SCENE_EXPORT(Side.CLIENT, Phase.LATE, Mods.Angelica,
         "compat.angelica.MixinVanillaModelMeshesSceneExportCapture"),
 

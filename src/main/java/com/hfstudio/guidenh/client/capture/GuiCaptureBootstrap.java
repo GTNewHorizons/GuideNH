@@ -5,6 +5,8 @@ import net.minecraftforge.common.MinecraftForge;
 import com.hfstudio.guidenh.client.capture.server.CaptureClientConnection;
 import com.hfstudio.guidenh.client.hotkey.OpenGuiCaptureHotkey;
 import com.hfstudio.guidenh.integration.Mods;
+import com.hfstudio.guidenh.integration.betterquesting.capture.BqCaptureGeometryProvider;
+import com.hfstudio.guidenh.integration.betterquesting.capture.BqPageBatchProvider;
 import com.hfstudio.guidenh.integration.capture.GuideCaptureGeometryProvider;
 import com.hfstudio.guidenh.integration.capture.GuidePageBatchProvider;
 import com.hfstudio.guidenh.integration.capture.ServerGuiBatchProvider;
@@ -55,6 +57,12 @@ public class GuiCaptureBootstrap {
         }
         if (Mods.NotEnoughItems.isModLoaded()) runtime.registry()
             .registerBatch(new NeiPageBatchProvider());
+        if (Mods.BetterQuesting.isModLoaded()) {
+            runtime.registry()
+                .registerGeometry(new BqCaptureGeometryProvider());
+            runtime.registry()
+                .registerBatch(new BqPageBatchProvider());
+        }
         MinecraftForge.EVENT_BUS.register(runtime);
         FMLCommonHandler.instance()
             .bus()
