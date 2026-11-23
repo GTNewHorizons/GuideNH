@@ -24,6 +24,7 @@ import com.hfstudio.guidenh.integration.mui2.capture.Mui2CaptureGeometryProvider
 import com.hfstudio.guidenh.integration.mui2.capture.Mui2PageBatchProvider;
 import com.hfstudio.guidenh.integration.nei.capture.NeiCaptureGeometryProvider;
 import com.hfstudio.guidenh.integration.nei.capture.NeiPageBatchProvider;
+import com.hfstudio.guidenh.integration.thaumcraft.capture.TcPageBatchProvider;
 
 import cpw.mods.fml.common.FMLCommonHandler;
 
@@ -87,6 +88,7 @@ public class GuiCaptureBootstrap {
             runtime.registry()
                 .registerBatch(new BqPageBatchProvider());
         }
+        if (Mods.Thaumcraft.isModLoaded()) runtime.registry().registerBatch(new TcPageBatchProvider());
         MinecraftForge.EVENT_BUS.register(runtime);
         FMLCommonHandler.instance()
             .bus()

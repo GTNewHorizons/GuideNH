@@ -209,7 +209,7 @@ guideme.guidebook.CommandSearchResults=Search results for '%s':
 guideme.guidebook.CommandSearchUsage=Usage: /guide search <query>
 guideme.guidebook.CommandStructureImportCanceled=Structure import cancelled.
 guideme.guidebook.CommandStructureImportFailure=Structure operation failed: %s
-guideme.guidebook.CommandStructureImportPending=Another structure import is already waiting for file selection.
+guideme.guidebook.CommandStructureImportPending=Another structure import is awaiting completion or upload confirmation.
 guideme.guidebook.CommandStructureImportQueued=Choose a .snbt file to import.
 guideme.guidebook.CommandStructureImportSuccess=Structure placed at %s, %s, %s.
 guideme.guidebook.CommandStructureInvalidSize=Structure size must be greater than 0 on every axis.
@@ -915,3 +915,7 @@ guidenh.capture.value.gui_layer=GUI layer
 guidenh.capture.value.final_frame=Final frame
 guidenh.capture.value.opengl=OpenGL
 guidenh.capture.active_backend=Active: %s / %s
+
+guidenh.capture.thaumcraft.research=Thaumcraft research
+guidenh.capture.thaumcraft.spread=%s — spread %s
+guidenh.capture.thaumcraft.map_slice=%s — map slice %s

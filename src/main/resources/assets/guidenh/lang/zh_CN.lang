@@ -912,3 +912,7 @@ guidenh.capture.value.gui_layer=GUI 独立层
 guidenh.capture.value.final_frame=最终帧
 guidenh.capture.value.opengl=OpenGL
 guidenh.capture.active_backend=当前：%s / %s
+
+guidenh.capture.thaumcraft.research=神秘时代研究
+guidenh.capture.thaumcraft.spread=%s — 第 %s 双页
+guidenh.capture.thaumcraft.map_slice=%s — 地图切片 %s
