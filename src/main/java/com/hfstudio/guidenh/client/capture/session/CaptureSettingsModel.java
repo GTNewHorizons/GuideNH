@@ -6,6 +6,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import com.hfstudio.guidenh.capture.server.api.CaptureServerQuery;
 import com.hfstudio.guidenh.client.capture.api.CaptureBatchOptions;
 import com.hfstudio.guidenh.client.capture.api.CaptureContentOptions;
 import com.hfstudio.guidenh.client.capture.api.CaptureLayoutOptions;
@@ -15,6 +16,7 @@ import com.hfstudio.guidenh.client.capture.api.CaptureResolution;
 import com.hfstudio.guidenh.client.capture.api.CaptureSnapOptions;
 import com.hfstudio.guidenh.client.capture.api.CaptureTarget;
 import com.hfstudio.guidenh.config.CaptureConfig;
+import com.hfstudio.guidenh.network.capture.CaptureCapabilityMessage;
 
 public class CaptureSettingsModel {
 
@@ -111,7 +113,11 @@ public class CaptureSettingsModel {
             config.tileSize,
             (long) config.memoryBudgetMiB << 20,
             snapshot(gameDirectory),
-            config.format.equals("png") ? null : recording());
+            config.format.equals("png") ? null : recording(),
+            new CaptureServerQuery(
+                config.serverCaptureRadius,
+                Math.min(config.maxTargets, CaptureCapabilityMessage.MAX_TARGETS),
+                config.serverTemporaryTravel));
     }
 
     public CaptureRecordingOptions recording() {

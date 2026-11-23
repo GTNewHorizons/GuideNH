@@ -52,7 +52,7 @@ public class CaptureIconButton extends GuiButton {
                 yPosition + 1,
                 xPosition + width - 1,
                 yPosition + height - 1,
-                active ? 0xFF495862 : 0xFF353D46);
+                active ? CaptureUiColors.ACTIVE : CaptureUiColors.HOVER);
         }
         GuideIconButton
             .drawIcon(minecraft, icon, xPosition + 4, yPosition + 4, 16, 16, enabled ? 0xFFFFFFFF : 0x70FFFFFF);

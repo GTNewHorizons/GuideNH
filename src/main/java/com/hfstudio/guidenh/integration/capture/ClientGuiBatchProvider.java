@@ -43,6 +43,11 @@ public class ClientGuiBatchProvider implements CaptureBatchProvider {
     }
 
     @Override
+    public int navigationOrder() {
+        return 50;
+    }
+
+    @Override
     public boolean supports(CaptureBatchContext context) {
         return context.capture()
             .screen() != null;
@@ -108,6 +113,7 @@ public class ClientGuiBatchProvider implements CaptureBatchProvider {
         private final GuiScreen origin;
         private final Map<String, CaptureClientGuiFactory> factories;
         private GuiScreen selected;
+        private boolean changed;
 
         public ClientNavigator(GuiScreen origin, Map<String, CaptureClientGuiFactory> factories) {
             this.origin = origin;
@@ -123,8 +129,11 @@ public class ClientGuiBatchProvider implements CaptureBatchProvider {
                     .get("factory"))
                 .create()
                 .apply(origin);
-            if (Minecraft.getMinecraft().currentScreen != selected) Minecraft.getMinecraft()
-                .displayGuiScreen(selected);
+            if (Minecraft.getMinecraft().currentScreen != selected) {
+                changed = true;
+                Minecraft.getMinecraft()
+                    .displayGuiScreen(selected);
+            }
         }
 
         @Override
@@ -148,6 +157,7 @@ public class ClientGuiBatchProvider implements CaptureBatchProvider {
 
         @Override
         public void restore() {
+            if (!changed) return;
             if (origin instanceof GuiContainer && Minecraft.getMinecraft().currentScreen != origin) {
                 throw new IllegalStateException(
                     "The original container closed and needs a registered reopening provider");
@@ -158,7 +168,7 @@ public class ClientGuiBatchProvider implements CaptureBatchProvider {
 
         @Override
         public CaptureBatchReadiness restorationReadiness(CaptureBatchContext context) {
-            boolean ready = context.capture()
+            boolean ready = !changed || context.capture()
                 .screen() == origin;
             return new CaptureBatchReadiness(
                 ready,

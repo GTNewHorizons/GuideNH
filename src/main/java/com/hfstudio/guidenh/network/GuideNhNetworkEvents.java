@@ -3,6 +3,7 @@ package com.hfstudio.guidenh.network;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 
+import com.hfstudio.guidenh.capture.server.CaptureServerCoordinator;
 import com.hfstudio.guidenh.guide.internal.structure.GuideNhStructureRuntime;
 
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
@@ -27,6 +28,8 @@ public class GuideNhNetworkEvents {
         if (player instanceof EntityPlayerMP) {
             GuideNhStructureRuntime.getServerSessionStore()
                 .clear(player.getUniqueID());
+            CaptureServerCoordinator.instance()
+                .release((EntityPlayerMP) player, false);
         }
     }
 }

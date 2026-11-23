@@ -10,7 +10,6 @@ import java.util.function.IntSupplier;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Gui;
-import net.minecraft.client.gui.GuiTextField;
 import net.minecraft.client.resources.I18n;
 
 import org.lwjgl.input.Keyboard;
@@ -30,7 +29,7 @@ public class CaptureSettingsPanel {
     private CaptureRect bounds = new CaptureRect(0, 0, 0, 0);
     private int scroll;
     private int editing = -1;
-    private GuiTextField editor;
+    private CaptureTextField editor;
     private String validation = "";
     private boolean open;
 
@@ -154,6 +153,12 @@ public class CaptureSettingsPanel {
         integer("stable_frames", () -> config.stableFrames, value -> config.stableFrames = value, 1, 60);
         integer("timeout", () -> config.timeoutSeconds, value -> config.timeoutSeconds = value, 1, 60);
         integer("target_limit", () -> config.maxTargets, value -> config.maxTargets = value, 1, 100000);
+        integer("server_radius", () -> config.serverCaptureRadius, value -> config.serverCaptureRadius = value, 1, 256);
+        toggle(
+            "server_travel",
+            () -> config.serverTemporaryTravel,
+            value -> config.serverTemporaryTravel = value,
+            false);
         settings.add(
             new CaptureSetting(
                 "batch_layers",
@@ -223,7 +228,7 @@ public class CaptureSettingsPanel {
     public void draw(int x, int y, int width, int height, int mouseX, int mouseY) {
         if (!open) return;
         bounds = new CaptureRect(x, y, width, height);
-        Gui.drawRect(x, y, x + width, y + height, 0xF51B222A);
+        Gui.drawRect(x, y, x + width, y + height, CaptureUiColors.SURFACE);
         minecraft.fontRenderer.drawStringWithShadow(I18n.format("guidenh.capture.settings"), x + 8, y + 8, 0xFFFFFF);
         int visible = Math.max(1, (height - 42) / 24);
         scroll = Math.clamp(scroll, 0, Math.max(0, settings.size() - visible));
@@ -232,14 +237,12 @@ public class CaptureSettingsPanel {
             CaptureSetting setting = settings.get(index);
             int rowY = y + 24 + row * 24;
             if (mouseX >= x + 4 && mouseX < x + width - 4 && mouseY >= rowY && mouseY < rowY + 23) {
-                Gui.drawRect(x + 4, rowY, x + width - 4, rowY + 23, 0xFF303A45);
+                Gui.drawRect(x + 4, rowY, x + width - 4, rowY + 23, CaptureUiColors.HOVER);
             }
             String label = I18n.format("guidenh.capture.setting." + setting.key());
-            minecraft.fontRenderer.drawString(label, x + 8, rowY + 7, 0xD3DAE2);
+            minecraft.fontRenderer.drawStringWithShadow(label, x + 8, rowY + 7, 0xD3DAE2);
             if (editing == index && editor != null) {
-                editor.xPosition = x + width / 2;
-                editor.yPosition = rowY + 3;
-                editor.width = width / 2 - 10;
+                editor.layout(x + width / 2, rowY + 3, width / 2 - 10, 18);
                 editor.drawTextBox();
                 continue;
             }
@@ -247,14 +250,14 @@ public class CaptureSettingsPanel {
                 .get();
             if (setting.choices()
                 .equals(List.of("false", "true"))) {
-                Gui.drawRect(x + width - 28, rowY + 4, x + width - 8, rowY + 20, 0xFF10161D);
+                Gui.drawRect(x + width - 28, rowY + 4, x + width - 8, rowY + 20, CaptureUiColors.INPUT);
                 if (Boolean.parseBoolean(value)) GuideIconButton
                     .drawIcon(minecraft, CaptureIcons.CHECK, x + width - 26, rowY + 4, 16, 16, 0xFFFFFFFF);
             } else {
                 String displayed = setting.choices()
                     .isEmpty() ? value : I18n.format("guidenh.capture.value." + value);
                 displayed = minecraft.fontRenderer.trimStringToWidth(displayed, width / 2 - 16);
-                minecraft.fontRenderer.drawString(
+                minecraft.fontRenderer.drawStringWithShadow(
                     displayed,
                     x + width - 10 - minecraft.fontRenderer.getStringWidth(displayed),
                     rowY + 7,
@@ -262,7 +265,7 @@ public class CaptureSettingsPanel {
             }
         }
         String footer = validation.isEmpty() ? I18n.format("guidenh.capture.settings_hint") : validation;
-        minecraft.fontRenderer.drawString(
+        minecraft.fontRenderer.drawStringWithShadow(
             minecraft.fontRenderer.trimStringToWidth(footer, width - 16),
             x + 8,
             y + height - 13,
@@ -271,10 +274,7 @@ public class CaptureSettingsPanel {
 
     public void click(int x, int y, int button) {
         if (!contains(x, y)) return;
-        if (editor != null && y >= editor.yPosition
-            && y < editor.yPosition + editor.height
-            && x >= editor.xPosition
-            && x < editor.xPosition + editor.width) {
+        if (editor != null && editor.contains(x, y)) {
             editor.mouseClicked(x, y, button);
             return;
         }
@@ -288,7 +288,7 @@ public class CaptureSettingsPanel {
             if (setting.recapture()) session.requestRefresh();
         } else if (button == 0) {
             editing = index;
-            editor = new GuiTextField(minecraft.fontRenderer, 0, 0, 100, 18);
+            editor = new CaptureTextField(minecraft.fontRenderer, 0, 0, 100, 18);
             editor.setMaxStringLength(512);
             editor.setText(
                 setting.value()

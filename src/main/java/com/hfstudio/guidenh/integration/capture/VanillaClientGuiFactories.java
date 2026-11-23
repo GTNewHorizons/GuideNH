@@ -25,8 +25,8 @@ public class VanillaClientGuiFactories {
                 "main_menu",
                 "Main menu",
                 GuiMainMenu.class,
-                context -> true,
-                "",
+                context -> Minecraft.getMinecraft().theWorld == null,
+                "The main menu requires leaving the current world",
                 parent -> new GuiMainMenu()));
         provider.register(
             new CaptureClientGuiFactory(

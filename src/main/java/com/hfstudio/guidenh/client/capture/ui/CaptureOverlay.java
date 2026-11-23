@@ -61,7 +61,7 @@ public class CaptureOverlay implements AutoCloseable {
         this.session = session;
         this.actions = actions;
         this.batchController = batchController;
-        batchPanel = new CaptureBatchPanel(minecraft, batchController);
+        batchPanel = new CaptureBatchPanel(minecraft, batchController, this::showBatchSettings);
         this.closeAction = actions.close();
         this.saveAction = actions.save();
         this.input = input;
@@ -111,6 +111,12 @@ public class CaptureOverlay implements AutoCloseable {
         return button;
     }
 
+    private void showBatchSettings() {
+        if (batchController.busy()) return;
+        batchPanel.close();
+        settings.toggle();
+    }
+
     public void updateGeometry(CaptureGeometry current) {
         if (geometry == null || !geometry.geometry()
             .equals(current)) {
@@ -125,7 +131,8 @@ public class CaptureOverlay implements AutoCloseable {
         int mouseY = viewport.logicalHeight() - Mouse.getY() * viewport.logicalHeight() / viewport.pixelHeight() - 1;
         updateLayout(viewport);
         hovered = null;
-        if (!toolbar.contains(mouseX, mouseY) && !settings.contains(mouseX, mouseY)) hovered = targetAt(mouseX, mouseY);
+        if (!batchPanel.isOpen() && !toolbar.contains(mouseX, mouseY) && !settings.contains(mouseX, mouseY))
+            hovered = targetAt(mouseX, mouseY);
         preview.draw(
             session.preview(),
             session.previewVersion(),
@@ -142,13 +149,22 @@ public class CaptureOverlay implements AutoCloseable {
             session.settings()
                 .config().maskOpacity,
             minecraft.fontRenderer);
-        Gui.drawRect((int) toolbar.x(), (int) toolbar.y(), (int) toolbar.right(), (int) toolbar.bottom(), 0xF51B222A);
+        if (batchPanel.isOpen()) {
+            batchPanel.draw(viewport, mouseX, mouseY);
+            return;
+        }
+        Gui.drawRect(
+            (int) toolbar.x(),
+            (int) toolbar.y(),
+            (int) toolbar.right(),
+            (int) toolbar.bottom(),
+            CaptureUiColors.SURFACE);
         Gui.drawRect(
             (int) toolbar.x() + 6,
             (int) toolbar.y() + 4,
             (int) toolbar.right() - 6,
             (int) toolbar.y() + 6,
-            0xFF687581);
+            CaptureUiColors.BORDER);
         buttons.get(0).enabled = session.canSave() && !batchController.busy();
         buttons.get(2)
             .setActive(additive);
@@ -256,7 +272,7 @@ public class CaptureOverlay implements AutoCloseable {
         int width = minecraft.fontRenderer.getStringWidth(displayed);
         int x = Math.clamp(mouseX + 12, 4, viewport.logicalWidth() - width - 8);
         int y = Math.clamp(mouseY - 19, 4, viewport.logicalHeight() - 18);
-        Gui.drawRect(x - 4, y - 3, x + width + 4, y + 12, 0xF5141A22);
+        Gui.drawRect(x - 4, y - 3, x + width + 4, y + 12, CaptureUiColors.TOOLTIP);
         minecraft.fontRenderer.drawStringWithShadow(displayed, x, y, 0xFFFFFF);
     }
 

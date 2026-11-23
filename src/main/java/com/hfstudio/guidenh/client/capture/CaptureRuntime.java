@@ -48,9 +48,11 @@ import com.hfstudio.guidenh.client.capture.render.CaptureRenderScope;
 import com.hfstudio.guidenh.client.capture.render.GlCapturePixelReader;
 import com.hfstudio.guidenh.client.capture.render.GuiLayerCaptureSource;
 import com.hfstudio.guidenh.client.capture.render.GuiTileCaptureSource;
+import com.hfstudio.guidenh.client.capture.server.CaptureClientConnection;
 import com.hfstudio.guidenh.client.capture.session.CaptureSchedule;
 import com.hfstudio.guidenh.client.capture.session.CaptureSelectionSnapshot;
 import com.hfstudio.guidenh.client.capture.session.CaptureSession;
+import com.hfstudio.guidenh.client.capture.ui.CaptureNavigationScreen;
 import com.hfstudio.guidenh.client.capture.ui.CaptureOverlay;
 import com.hfstudio.guidenh.client.capture.ui.CaptureOverlayActions;
 import com.hfstudio.guidenh.client.hotkey.OpenGuiCaptureHotkey;
@@ -96,7 +98,6 @@ public class CaptureRuntime {
     private CaptureRecording batchRecording;
     private CaptureGeometry geometry;
     private CaptureSelectionSnapshot batchSelections;
-    private GuiScreen batchOrigin;
     private CompletableFuture<CaptureOutputArtifact> highResolutionCompletion;
     private boolean closeAfterBatch;
 
@@ -127,6 +128,10 @@ public class CaptureRuntime {
 
     public void registerClientGui(CaptureClientGuiFactory factory) {
         clientGuis.register(factory);
+    }
+
+    public void refreshBatchCatalog() {
+        if (batch != null && !batch.busy()) batch.refresh();
     }
 
     public boolean inputCaptured() {
@@ -178,6 +183,7 @@ public class CaptureRuntime {
         guiAvailable = true;
         activateRequested();
         OpenGuiCaptureHotkey.poll();
+        if (session != null && batch.busy() && screen != session.sourceScreen()) batchHost.adoptScreen();
         if (session == null || screen != session.sourceScreen()) screen.handleInput();
         else {
             overlay.handleInput();
@@ -376,8 +382,12 @@ public class CaptureRuntime {
 
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public void onGuiOpen(GuiOpenEvent event) {
+        if (event.gui == null && session != null
+            && batch != null
+            && batch.busy()
+            && Minecraft.getMinecraft().theWorld != null) event.gui = new CaptureNavigationScreen();
         guiAvailable = event.gui != null;
-        if (event.gui != null) clientGuis.observe(event.gui);
+        if (event.gui != null && !(event.gui instanceof CaptureNavigationScreen)) clientGuis.observe(event.gui);
         sourceVisible = session != null && event.gui == session.sourceScreen();
     }
 
@@ -405,6 +415,10 @@ public class CaptureRuntime {
         sourceVisible = false;
         activationRequested = false;
         inputEvents.clear();
+        CaptureClientConnection.instance()
+            .closeCapture();
+        if (Minecraft.getMinecraft().currentScreen instanceof CaptureNavigationScreen) Minecraft.getMinecraft()
+            .displayGuiScreen(null);
     }
 
     public void save() {
@@ -638,18 +652,16 @@ public class CaptureRuntime {
         public void beginBatch() {
             batchSelections = session.selections()
                 .snapshot();
-            batchOrigin = session.sourceScreen();
             schedule = null;
             session.keepOpenAfterSave(true);
         }
 
         @Override
-        public void endBatch() {
-            if (session.sourceScreen() == batchOrigin) session.selections()
+        public void endBatch(boolean restoreSelections) {
+            if (restoreSelections) session.selections()
                 .restore(batchSelections);
             session.keepOpenAfterSave(false);
             batchSelections = null;
-            batchOrigin = null;
             session.requestRefresh();
         }
 

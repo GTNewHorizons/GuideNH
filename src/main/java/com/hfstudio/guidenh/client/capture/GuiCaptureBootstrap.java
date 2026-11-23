@@ -2,10 +2,12 @@ package com.hfstudio.guidenh.client.capture;
 
 import net.minecraftforge.common.MinecraftForge;
 
+import com.hfstudio.guidenh.client.capture.server.CaptureClientConnection;
 import com.hfstudio.guidenh.client.hotkey.OpenGuiCaptureHotkey;
 import com.hfstudio.guidenh.integration.Mods;
 import com.hfstudio.guidenh.integration.capture.GuideCaptureGeometryProvider;
 import com.hfstudio.guidenh.integration.capture.GuidePageBatchProvider;
+import com.hfstudio.guidenh.integration.capture.ServerGuiBatchProvider;
 import com.hfstudio.guidenh.integration.lwjgl3ify.capture.LwjglCaptureInputBridge;
 import com.hfstudio.guidenh.integration.mui.capture.MuiCaptureGeometryProvider;
 import com.hfstudio.guidenh.integration.mui2.capture.Mui2CaptureGeometryProvider;
@@ -27,6 +29,10 @@ public class GuiCaptureBootstrap {
         OpenGuiCaptureHotkey.initialize();
         CaptureRuntime runtime = CaptureRuntime.instance();
         runtime.initialize();
+        CaptureClientConnection.instance()
+            .onCatalogChanged(runtime::refreshBatchCatalog);
+        runtime.registry()
+            .registerBatch(new ServerGuiBatchProvider(CaptureClientConnection.instance()));
         runtime.registry()
             .registerGeometry(new GuideCaptureGeometryProvider());
         runtime.registry()

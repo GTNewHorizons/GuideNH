@@ -15,7 +15,7 @@ public interface CaptureBatchHost {
 
     void beginBatch();
 
-    void endBatch();
+    void endBatch(boolean restoreSelections);
 
     void adoptScreen();
 

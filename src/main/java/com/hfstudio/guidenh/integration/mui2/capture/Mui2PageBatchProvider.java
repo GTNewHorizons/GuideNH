@@ -5,10 +5,13 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import net.minecraft.client.Minecraft;
+
 import com.cleanroommc.modularui.api.IMuiScreen;
 import com.cleanroommc.modularui.api.widget.IWidget;
 import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.widgets.PagedWidget;
+import com.hfstudio.guidenh.capture.server.api.CaptureGuiLocation;
 import com.hfstudio.guidenh.client.capture.api.CaptureBatchContext;
 import com.hfstudio.guidenh.client.capture.api.CaptureBatchNavigator;
 import com.hfstudio.guidenh.client.capture.api.CaptureBatchOptions;
@@ -106,18 +109,22 @@ public class Mui2PageBatchProvider implements CaptureBatchProvider {
 
     public static class PageNavigator implements CaptureBatchNavigator {
 
-        private final IMuiScreen screen;
-        private final Map<String, PagePath> paths;
-        private final Map<PagedWidget<?>, Integer> original = new LinkedHashMap<>();
+        private IMuiScreen screen;
+        private Map<String, PagePath> paths;
+        private final Map<String, Integer> original = new LinkedHashMap<>();
+        private final CaptureGuiLocation location;
         private PagePath selected;
         private int page;
 
         public PageNavigator(IMuiScreen screen) {
             this.screen = screen;
+            location = Minecraft.getMinecraft().thePlayer == null ? null
+                : Mui2ServerContainerIdentity.location(Minecraft.getMinecraft().thePlayer.openContainer);
             paths = paths(screen);
-            for (PagePath path : paths.values()) original.put(
-                path.widget(),
-                path.widget()
+            for (Map.Entry<String, PagePath> entry : paths.entrySet()) original.put(
+                entry.getKey(),
+                entry.getValue()
+                    .widget()
                     .getCurrentPageIndex());
         }
 
@@ -170,10 +177,20 @@ public class Mui2PageBatchProvider implements CaptureBatchProvider {
 
         @Override
         public void restore() {
-            for (Map.Entry<PagedWidget<?>, Integer> entry : original.entrySet()) {
-                if (entry.getKey()
+            if (location != null && (Minecraft.getMinecraft().thePlayer == null || !location
+                .equals(Mui2ServerContainerIdentity.location(Minecraft.getMinecraft().thePlayer.openContainer))))
+                throw new IllegalStateException("The reopened MUI2 GUI belongs to a different target");
+            if (!(Minecraft.getMinecraft().currentScreen instanceof IMuiScreen current))
+                throw new IllegalStateException("The original MUI2 GUI could not be reopened");
+            screen = current;
+            paths = paths(screen);
+            for (Map.Entry<String, Integer> entry : original.entrySet()) {
+                PagePath path = paths.get(entry.getKey());
+                if (path == null)
+                    throw new IllegalStateException("The original MUI2 page path disappeared: " + entry.getKey());
+                if (path.widget()
                     .getCurrentPageIndex() != entry.getValue())
-                    entry.getKey()
+                    path.widget()
                         .setPage(entry.getValue());
             }
         }
@@ -182,11 +199,10 @@ public class Mui2PageBatchProvider implements CaptureBatchProvider {
         public CaptureBatchReadiness restorationReadiness(CaptureBatchContext context) {
             boolean ready = context.capture()
                 .screen() == screen;
-            for (Map.Entry<PagedWidget<?>, Integer> entry : original.entrySet()) {
-                ready &= entry.getKey()
-                    .isValid()
-                    && entry.getKey()
-                        .getCurrentPageIndex() == entry.getValue();
+            for (Map.Entry<String, Integer> entry : original.entrySet()) {
+                PagePath path = paths.get(entry.getKey());
+                ready &= path != null && path.widget()
+                    .getCurrentPageIndex() == entry.getValue();
             }
             return new CaptureBatchReadiness(
                 ready,

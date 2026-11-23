@@ -200,4 +200,11 @@ public class CaptureConfig {
     @DefaultInt(500)
     @RangeInt(min = 1, max = 100000)
     public int maxTargets = 500;
+
+    @DefaultInt(8)
+    @RangeInt(min = 1, max = 256)
+    public int serverCaptureRadius = 8;
+
+    @DefaultBoolean(false)
+    public boolean serverTemporaryTravel;
 }

@@ -877,3 +877,10 @@ guidenh.capture.setting.batch_layers=Visible layer output
 guidenh.capture.setting.batch_providers=Providers (empty: all)
 guidenh.capture.value.composite=One composite image
 guidenh.capture.value.windows=One file per window
+
+guidenh.capture.server_missing=Server GUI capture is unavailable on this server
+guidenh.capture.server_loading=Loading server GUI catalog…
+guidenh.capture.server_empty=No loaded GUI targets in the selected radius
+guidenh.capture.setting.server_radius=Server GUI radius (loaded tiles only)
+guidenh.capture.setting.server_travel=Temporary travel (single-player creative)
+guidenh.capture.server_notice=Server catalog notice

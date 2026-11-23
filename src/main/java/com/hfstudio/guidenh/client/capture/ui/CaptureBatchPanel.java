@@ -9,7 +9,6 @@ import java.util.Set;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Gui;
-import net.minecraft.client.gui.GuiTextField;
 import net.minecraft.client.resources.I18n;
 
 import org.lwjgl.input.Keyboard;
@@ -35,15 +34,22 @@ public class CaptureBatchPanel {
     private final CaptureIconButton close;
     private final CaptureIconButton pause;
     private final CaptureIconButton stop;
-    private GuiTextField filter;
+    private final CaptureIconButton settingsButton;
+    private CaptureTextField filter;
     private CaptureRect bounds = new CaptureRect(0, 0, 0, 0);
     private boolean open;
     private boolean closeWhenReady;
     private int scroll;
+    private CaptureBatchCatalog displayedCatalog;
+    private CaptureBatchCatalog filteredCatalog;
+    private String filteredQuery = "";
+    private List<CaptureTargetDescriptor> filteredTargets = List.of();
+    private boolean selectionEdited;
 
-    public CaptureBatchPanel(Minecraft minecraft, CaptureBatchController controller) {
+    public CaptureBatchPanel(Minecraft minecraft, CaptureBatchController controller, Runnable showSettings) {
         this.minecraft = minecraft;
         this.controller = controller;
+        settingsButton = new CaptureIconButton(7, CaptureIcons.SETTINGS, "guidenh.capture.settings", showSettings);
         start = new CaptureIconButton(
             0,
             CaptureIcons.PLAY,
@@ -66,7 +72,7 @@ public class CaptureBatchPanel {
         else {
             open = true;
             closeWhenReady = false;
-            filter = new GuiTextField(minecraft.fontRenderer, 0, 0, 100, 18);
+            filter = new CaptureTextField(minecraft.fontRenderer, 0, 0, 100, 18);
             filter.setMaxStringLength(256);
             refresh();
         }
@@ -75,6 +81,7 @@ public class CaptureBatchPanel {
     private void refresh() {
         if (controller.busy()) return;
         controller.refresh();
+        selectionEdited = false;
         selected.clear();
         selectAll();
         scroll = 0;
@@ -101,17 +108,28 @@ public class CaptureBatchPanel {
         String query = filter == null ? ""
             : filter.getText()
                 .toLowerCase(Locale.ROOT);
-        return catalog.targets()
+        if (catalog == filteredCatalog && query.equals(filteredQuery)) return filteredTargets;
+        filteredCatalog = catalog;
+        filteredQuery = query;
+        filteredTargets = catalog.targets()
             .stream()
             .filter(
                 target -> query.isEmpty()
                     || (target.label() + " " + target.providerId() + " " + target.scope()).toLowerCase(Locale.ROOT)
                         .contains(query))
             .toList();
+        return filteredTargets;
     }
 
     public void draw(CaptureViewport viewport, int mouseX, int mouseY) {
         if (!open) return;
+        if (displayedCatalog != controller.catalog()) {
+            displayedCatalog = controller.catalog();
+            if (!selectionEdited) {
+                selected.clear();
+                selectAll();
+            }
+        }
         if (closeWhenReady && !controller.busy()) {
             close();
             return;
@@ -121,8 +139,8 @@ public class CaptureBatchPanel {
         int x = (viewport.logicalWidth() - width) / 2;
         int y = (viewport.logicalHeight() - height) / 2;
         bounds = new CaptureRect(x, y, width, height);
-        Gui.drawRect(0, 0, viewport.logicalWidth(), viewport.logicalHeight(), 0x90000000);
-        Gui.drawRect(x, y, x + width, y + height, 0xFF1B222A);
+        Gui.drawRect(0, 0, viewport.logicalWidth(), viewport.logicalHeight(), CaptureUiColors.DIM);
+        Gui.drawRect(x, y, x + width, y + height, CaptureUiColors.SURFACE);
         minecraft.fontRenderer
             .drawStringWithShadow(I18n.format("guidenh.capture.batch_title"), x + 8, y + 10, 0xFFFFFF);
         close.xPosition = x + width - 28;
@@ -131,9 +149,10 @@ public class CaptureBatchPanel {
         refresh.yPosition = y + 3;
         selectAll.xPosition = x + width - 80;
         selectAll.yPosition = y + 3;
-        filter.xPosition = x + 8;
-        filter.yPosition = y + 29;
-        filter.width = width - 16;
+        filter.layout(x + 8, y + 29, width - 16, 18);
+        settingsButton.xPosition = x + width - 106;
+        settingsButton.yPosition = y + 3;
+        settingsButton.enabled = !controller.busy();
         filter.drawTextBox();
         List<CaptureTargetDescriptor> targets = filtered();
         int visible = Math.max(1, (height - 107) / 22);
@@ -144,15 +163,16 @@ public class CaptureBatchPanel {
             CaptureTargetDescriptor target = targets.get(row + scroll);
             int rowY = y + 54 + row * 22;
             boolean hovered = mouseX >= x + 4 && mouseX < x + width - 4 && mouseY >= rowY && mouseY < rowY + 21;
-            Gui.drawRect(x + 4, rowY, x + width - 4, rowY + 21, hovered ? 0xFF35414D : 0xFF242D36);
+            Gui.drawRect(x + 4, rowY, x + width - 4, rowY + 21, hovered ? CaptureUiColors.HOVER : CaptureUiColors.ROW);
             if (selected.contains(target.id()))
                 GuideIconButton.drawIcon(minecraft, CaptureIcons.CHECK, x + 7, rowY + 2, 16, 16, 0xFFFFFFFF);
             String name = minecraft.fontRenderer.trimStringToWidth(target.label(), width - 142);
-            minecraft.fontRenderer.drawString(name, x + 28, rowY + 6, target.available() ? 0xE0E7EE : 0x929DA8);
+            minecraft.fontRenderer
+                .drawStringWithShadow(name, x + 28, rowY + 6, target.available() ? 0xE0E7EE : 0x929DA8);
             CaptureBatchResult result = results.get(target.id());
             String status = result == null ? target.availability() : result.status();
             String label = I18n.format("guidenh.capture.batch_status." + status);
-            minecraft.fontRenderer.drawString(
+            minecraft.fontRenderer.drawStringWithShadow(
                 minecraft.fontRenderer.trimStringToWidth(label, 105),
                 x + width - 112,
                 rowY + 6,
@@ -160,7 +180,7 @@ public class CaptureBatchPanel {
             if (hovered && result != null
                 && !result.reason()
                     .isEmpty()) {
-                minecraft.fontRenderer.drawString(
+                minecraft.fontRenderer.drawStringWithShadow(
                     minecraft.fontRenderer.trimStringToWidth(result.reason(), width - 16),
                     x + 8,
                     y + height - 39,
@@ -183,7 +203,7 @@ public class CaptureBatchPanel {
                         .maxTargets());
         if (!progress.reason()
             .isEmpty() && !controller.busy()) summary = progress.reason();
-        minecraft.fontRenderer.drawString(
+        minecraft.fontRenderer.drawStringWithShadow(
             minecraft.fontRenderer.trimStringToWidth(summary, width - 128),
             x + 8,
             y + height - 16,
@@ -201,10 +221,11 @@ public class CaptureBatchPanel {
         start.enabled = !controller.busy() && !selected.isEmpty();
         cancel.enabled = controller.busy();
         refresh.enabled = selectAll.enabled = !controller.busy();
-        for (CaptureIconButton button : List.of(start, cancel, refresh, selectAll, close, pause, stop)) {
+        for (CaptureIconButton button : List
+            .of(start, cancel, refresh, selectAll, close, pause, stop, settingsButton)) {
             button.drawButton(minecraft, mouseX, mouseY);
             if (button.hovered()) {
-                minecraft.fontRenderer.drawString(
+                minecraft.fontRenderer.drawStringWithShadow(
                     minecraft.fontRenderer.trimStringToWidth(button.tooltip(), width - 16),
                     x + 8,
                     y + height - 39,
@@ -215,7 +236,8 @@ public class CaptureBatchPanel {
 
     public void click(int x, int y, int button) {
         if (!open || button != 0) return;
-        for (CaptureIconButton control : List.of(start, cancel, refresh, selectAll, close, pause, stop)) {
+        for (CaptureIconButton control : List
+            .of(start, cancel, refresh, selectAll, close, pause, stop, settingsButton)) {
             if (control.mousePressed(minecraft, x, y)) {
                 control.activate();
                 return;
@@ -231,6 +253,7 @@ public class CaptureBatchPanel {
         if (index >= targets.size()) return;
         String id = targets.get(index)
             .id();
+        selectionEdited = true;
         if (!selected.remove(id)) selected.add(id);
     }
 

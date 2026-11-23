@@ -41,7 +41,12 @@ public class CaptureSelectionRenderer {
                 .clamp((int) rectangle.x(), 4, Math.max(4, viewport.logicalWidth() - font.getStringWidth(text) - 8));
             int labelY = rectangle.y() >= 18 ? (int) rectangle.y() - 15 : (int) rectangle.bottom() + 6;
             labelY = Math.clamp(labelY, 4, viewport.logicalHeight() - 13);
-            Gui.drawRect(labelX - 3, labelY - 3, labelX + font.getStringWidth(text) + 3, labelY + 11, 0xE51C222A);
+            Gui.drawRect(
+                labelX - 3,
+                labelY - 3,
+                labelX + font.getStringWidth(text) + 3,
+                labelY + 11,
+                CaptureUiColors.LABEL);
             font.drawStringWithShadow(text, labelX, labelY, 0xFFFFFF);
         }
     }

@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -71,6 +73,8 @@ public class CaptureBatchEngine implements CaptureBatchController, AutoCloseable
     private String reason = "";
     private String restoration = "not_requested";
     private String restorationReason = "";
+    private List<CaptureBatchNavigator> restoring = List.of();
+    private int restorationIndex;
 
     public CaptureBatchEngine(CaptureRegistry registry, CaptureBatchHost host) {
         this.registry = registry;
@@ -107,6 +111,10 @@ public class CaptureBatchEngine implements CaptureBatchController, AutoCloseable
         selected = catalog.targets()
             .stream()
             .filter(target -> targetIds.contains(target.id()))
+            .sorted(
+                Comparator.comparingInt(
+                    target -> registry.batchProvider(target.providerId())
+                        .navigationOrder()))
             .toList();
         if (selected.isEmpty()) {
             reason = "Choose at least one target";
@@ -211,6 +219,14 @@ public class CaptureBatchEngine implements CaptureBatchController, AutoCloseable
         switch (stage.id()) {
             case "selecting" -> selectNext(now);
             case "waiting" -> {
+                try {
+                    navigators.get(current.providerId())
+                        .tick(host.context());
+                } catch (RuntimeException error) {
+                    result(current, "failed", error.toString(), null);
+                    stage = Stage.SELECTING;
+                    return;
+                }
                 host.adoptScreen();
                 if (cancelRequested) {
                     result(current, "cancelled", "Batch cancelled", null);
@@ -241,10 +257,11 @@ public class CaptureBatchEngine implements CaptureBatchController, AutoCloseable
             case "restoring" -> restore(now);
             case "restore_wait" -> {
                 host.adoptScreen();
-                if (now >= deadline) {
+                checkRestoration(host.context());
+                if (stage == Stage.RESTORE_WAIT && now >= deadline) {
                     restoration = "failed";
                     restorationReason += "Navigation restoration timed out\n";
-                    finishRestoration();
+                    nextRestoration(now);
                 }
             }
             case "reporting" -> {
@@ -298,18 +315,7 @@ public class CaptureBatchEngine implements CaptureBatchController, AutoCloseable
 
     public void frameReady(CaptureBatchContext context) {
         if (stage == Stage.RESTORE_WAIT) {
-            boolean ready = true;
-            for (CaptureBatchNavigator navigator : navigators.values()) {
-                try {
-                    CaptureBatchReadiness state = navigator.restorationReadiness(context);
-                    ready &= state.ready();
-                    if (!state.ready()) reason = state.reason();
-                } catch (RuntimeException error) {
-                    restoration = "failed";
-                    restorationReason += error.toString() + "\n";
-                }
-            }
-            if (ready) finishRestoration();
+            checkRestoration(context);
             return;
         }
         if (stage != Stage.WAITING || cancelRequested
@@ -336,12 +342,13 @@ public class CaptureBatchEngine implements CaptureBatchController, AutoCloseable
                 if (!additional.isEmpty()) {
                     List<CaptureTargetDescriptor> all = new ArrayList<>(catalog.targets());
                     List<CaptureTargetDescriptor> pending = new ArrayList<>(selected);
+                    int insertion = nextTarget;
                     Set<String> known = new HashSet<>();
                     for (CaptureTargetDescriptor target : all) known.add(target.id());
                     for (CaptureTargetDescriptor target : additional) {
                         if (known.add(target.id())) {
                             all.add(target);
-                            pending.add(target);
+                            pending.add(insertion++, target);
                             if (!target.available()) result(target, target.availability(), target.reason(), null);
                         }
                     }
@@ -408,26 +415,47 @@ public class CaptureBatchEngine implements CaptureBatchController, AutoCloseable
 
     private void restore(long now) {
         List<CaptureBatchNavigator> reverse = new ArrayList<>(navigators.values());
-        if (catalog.options()
-            .restoreOriginal()) {
-            restoration = "success";
-            for (int index = reverse.size() - 1; index >= 0; index--) {
-                try {
-                    reverse.get(index)
-                        .restore();
-                } catch (RuntimeException error) {
-                    restoration = "failed";
-                    restorationReason += error.toString() + "\n";
-                }
+        Collections.reverse(reverse);
+        restoring = List.copyOf(reverse);
+        restorationIndex = 0;
+        boolean reopen = catalog.options()
+            .restoreOriginal();
+        if (reopen) restoration = "success";
+        nextRestoration(now);
+    }
+
+    private void nextRestoration(long now) {
+        while (restorationIndex < restoring.size()) {
+            CaptureBatchNavigator navigator = restoring.get(restorationIndex++);
+            try {
+                if (catalog.options()
+                    .restoreOriginal()) navigator.restore();
+                else navigator.finish();
+                host.adoptScreen();
+                deadline = now + catalog.options()
+                    .timeoutSeconds() * 1_000_000_000L;
+                stage = Stage.RESTORE_WAIT;
+                return;
+            } catch (RuntimeException error) {
+                restoration = "failed";
+                restorationReason += error.toString() + "\n";
             }
         }
-        host.adoptScreen();
-        if (catalog.options()
-            .restoreOriginal() && !restoration.equals("failed")) {
-            deadline = now + catalog.options()
-                .timeoutSeconds() * 1_000_000_000L;
-            stage = Stage.RESTORE_WAIT;
-        } else finishRestoration();
+        finishRestoration();
+    }
+
+    private void checkRestoration(CaptureBatchContext context) {
+        CaptureBatchNavigator navigator = restoring.get(restorationIndex - 1);
+        try {
+            CaptureBatchReadiness state = catalog.options()
+                .restoreOriginal() ? navigator.restorationReadiness(context) : navigator.finishReadiness(context);
+            if (state.ready()) nextRestoration(System.nanoTime());
+            else reason = state.reason();
+        } catch (RuntimeException error) {
+            restoration = "failed";
+            restorationReason += error.toString() + "\n";
+            nextRestoration(System.nanoTime());
+        }
     }
 
     private void finishRestoration() {
@@ -440,8 +468,11 @@ public class CaptureBatchEngine implements CaptureBatchController, AutoCloseable
             }
         }
         navigators.clear();
+        restoring = List.of();
         host.adoptScreen();
-        host.endBatch();
+        host.endBatch(
+            catalog.options()
+                .restoreOriginal() && restoration.equals("success"));
         if (visibleFrame != null) visibleFrame.close();
         visibleFrame = null;
         List<CaptureBatchResult> ordered = catalog.targets()
