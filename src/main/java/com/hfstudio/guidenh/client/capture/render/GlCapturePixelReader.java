@@ -9,6 +9,7 @@ import org.lwjgl.opengl.GL15;
 import org.lwjgl.opengl.GL21;
 import org.lwjgl.opengl.GLContext;
 
+import com.hfstudio.guidenh.client.capture.api.CaptureAlphaMode;
 import com.hfstudio.guidenh.client.capture.api.CaptureFrame;
 import com.hfstudio.guidenh.client.capture.api.CapturePixelReader;
 
@@ -17,20 +18,7 @@ public class GlCapturePixelReader implements CapturePixelReader {
     private IntBuffer scratch;
 
     @Override
-    public CaptureFrame read(int x, int y, int width, int height, long timestampNanos) {
-        return read(x, y, width, height, timestampNanos, false, false);
-    }
-
-    public CaptureFrame readPremultiplied(int x, int y, int width, int height, long timestampNanos) {
-        return read(x, y, width, height, timestampNanos, true, false);
-    }
-
-    public CaptureFrame readOpaque(int x, int y, int width, int height, long timestampNanos) {
-        return read(x, y, width, height, timestampNanos, false, true);
-    }
-
-    private CaptureFrame read(int x, int y, int width, int height, long timestampNanos, boolean premultiplied,
-        boolean opaque) {
+    public CaptureFrame read(int x, int y, int width, int height, long timestampNanos, CaptureAlphaMode alphaMode) {
         int count = Math.multiplyExact(width, height);
         if (scratch == null || scratch.capacity() < count) scratch = BufferUtils.createIntBuffer(count);
         scratch.clear();
@@ -49,25 +37,12 @@ public class GlCapturePixelReader implements CapturePixelReader {
                 scratch.get(pixels, row * width, width);
             }
         }
-        if (opaque) {
-            for (int index = 0; index < pixels.length; index++) pixels[index] |= 0xFF000000;
-        } else if (premultiplied) {
-            for (int index = 0; index < pixels.length; index++) {
-                int pixel = pixels[index];
-                int alpha = pixel >>> 24;
-                if (alpha == 0) pixels[index] = 0;
-                else if (alpha < 255) {
-                    int red = Math.min(255, ((pixel >>> 16) & 255) * 255 / alpha);
-                    int green = Math.min(255, ((pixel >>> 8) & 255) * 255 / alpha);
-                    int blue = Math.min(255, (pixel & 255) * 255 / alpha);
-                    pixels[index] = alpha << 24 | red << 16 | green << 8 | blue;
-                }
-            }
-        }
+        CapturePixelConverter.normalize(pixels, alphaMode);
         return new CaptureFrame(width, height, timestampNanos, pixels);
     }
 
-    public void release() {
+    @Override
+    public void close() {
         scratch = null;
     }
 }

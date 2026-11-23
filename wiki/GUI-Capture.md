@@ -45,6 +45,8 @@ The `betterquesting_pages` provider starts from the quest home, chapter reader, 
 
 ## Integration
 
-Geometry providers, GUI renderers, batch providers, and output exporters register through the capture interfaces. A scroll navigator can return `CaptureScrollGeometry` from `CaptureBatchNavigator.scrollGeometry`; the encoder operates on exported frames without importing a mod's GUI implementation. A container-derived screen that owns an independent update lifecycle can implement `StandaloneContainerScreen` and supply `updateStandaloneScreen`.
+Geometry providers, GUI renderers, pixel readers, batch providers, and output exporters register through the capture interfaces. Register a `CapturePixelReaderProvider` with `CaptureRegistry.registerReader`; it reports availability without allocating buffers and opens a reader when the capture session needs it. Automatic reader selection prefers the most recently registered available provider. On the client thread, `CaptureRuntime.selectReader` selects a reader by ID while no capture task is active. Failed selection preserves the current preview; a successful switch invalidates it and requests a fresh frame. Readers receive an explicit source alpha mode, return straight ARGB frames, and release their resources when the session closes. Native layers and tiled exports use the same reader interface.
+
+A scroll navigator can return `CaptureScrollGeometry` from `CaptureBatchNavigator.scrollGeometry`; the encoder operates on exported frames without importing a mod's GUI implementation. A container-derived screen that owns an independent update lifecycle can implement `StandaloneContainerScreen` and supply `updateStandaloneScreen`.
 
 Compatibility depends on the installed mod versions and rendering backend. The complete shader/backend and mod acceptance matrix remains in progress.

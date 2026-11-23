@@ -10,6 +10,7 @@ import org.lwjgl.opengl.EXTFramebufferObject;
 import org.lwjgl.opengl.GL11;
 
 import com.hfstudio.guidenh.client.capture.api.CaptureFrame;
+import com.hfstudio.guidenh.client.capture.api.CapturePixelReader;
 import com.hfstudio.guidenh.client.capture.api.CaptureRect;
 import com.hfstudio.guidenh.client.capture.api.CaptureRenderSnapshot;
 import com.hfstudio.guidenh.client.capture.api.CaptureTile;
@@ -35,7 +36,7 @@ public class GuiTileCaptureSource implements AutoCloseable {
         return Math.min(requested, limit - GUARD * 2);
     }
 
-    public CaptureFrame render(CaptureTile tile, CaptureRenderSnapshot snapshot, GlCapturePixelReader reader,
+    public CaptureFrame render(CaptureTile tile, CaptureRenderSnapshot snapshot, CapturePixelReader reader,
         boolean includeDebug, long timestamp) {
         int width = tile.width() + GUARD * 2;
         int height = tile.height() + GUARD * 2;

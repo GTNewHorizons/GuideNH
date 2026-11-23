@@ -113,6 +113,13 @@ public class CaptureSession implements AutoCloseable {
         refresh = true;
     }
 
+    public void invalidatePreview() {
+        if (preview != null) preview.close();
+        preview = null;
+        previewVersion++;
+        requestRefresh();
+    }
+
     public void follow(Function<String, CaptureTarget> resolve) {
         targetMissing = !selections.follow(resolve)
             .isEmpty();

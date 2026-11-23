@@ -7,6 +7,7 @@ import net.minecraft.client.shader.Framebuffer;
 import org.lwjgl.opengl.GL11;
 
 import com.hfstudio.guidenh.client.capture.api.CaptureFrame;
+import com.hfstudio.guidenh.client.capture.api.CapturePixelReader;
 import com.hfstudio.guidenh.client.capture.api.CaptureViewport;
 import com.hfstudio.guidenh.guide.render.GuiRenderVisibility;
 
@@ -69,7 +70,7 @@ public class GuiLayerCaptureSource implements AutoCloseable {
         }
     }
 
-    public CaptureFrame read(GlCapturePixelReader reader, long timestamp) {
+    public CaptureFrame read(CapturePixelReader reader, long timestamp) {
         try (CaptureRenderScope reading = new CaptureRenderScope()) {
             framebuffer.bindFramebuffer(true);
             return reader

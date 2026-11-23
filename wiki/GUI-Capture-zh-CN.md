@@ -45,6 +45,8 @@
 
 ## 开发接入
 
-通过截图接口分别注册几何提供器、GUI 渲染器、批量提供器和输出编码器。滚动导航器可从 `CaptureBatchNavigator.scrollGeometry` 返回 `CaptureScrollGeometry`；编码模块读取导出帧，不依赖模组 GUI 的实现。继承容器界面但拥有独立更新生命周期的界面，可实现 `StandaloneContainerScreen` 并提供 `updateStandaloneScreen`。
+通过截图接口分别注册几何提供器、GUI 渲染器、像素读回器、批量提供器和输出编码器。使用 `CaptureRegistry.registerReader` 注册 `CapturePixelReaderProvider`；提供器报告可用性时不分配缓冲区，需要捕获帧时才打开读回器。自动选择优先使用最后注册的可用提供器。在客户端线程且没有活动捕获任务时，可用 `CaptureRuntime.selectReader` 按 ID 选择；失败选择保留原预览，成功切换会作废旧预览并请求新帧。读回器接收明确的源 Alpha 模式，返回直通 ARGB 帧，并在会话关闭时释放资源。原生 GUI 层和分块导出使用相同读回接口。
+
+滚动导航器可从 `CaptureBatchNavigator.scrollGeometry` 返回 `CaptureScrollGeometry`；编码模块读取导出帧，不依赖模组 GUI 的实现。继承容器界面但拥有独立更新生命周期的界面，可实现 `StandaloneContainerScreen` 并提供 `updateStandaloneScreen`。
 
 兼容情况取决于实际模组版本和渲染后端，完整的着色器、后端及模组验收矩阵仍在进行中。

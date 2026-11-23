@@ -8,6 +8,7 @@ import com.hfstudio.guidenh.client.capture.api.CaptureExportRequest;
 import com.hfstudio.guidenh.client.capture.api.CaptureFrame;
 import com.hfstudio.guidenh.client.capture.api.CaptureOptions;
 import com.hfstudio.guidenh.client.capture.api.CaptureOutputSize;
+import com.hfstudio.guidenh.client.capture.api.CapturePixelReader;
 import com.hfstudio.guidenh.client.capture.api.CaptureRenderSnapshot;
 import com.hfstudio.guidenh.client.capture.api.CaptureRows;
 import com.hfstudio.guidenh.client.capture.api.CaptureTile;
@@ -80,7 +81,7 @@ public class CaptureHighResolutionJob implements AutoCloseable {
             .content();
     }
 
-    public boolean step(GuiTileCaptureSource source, GlCapturePixelReader reader) throws IOException {
+    public boolean step(GuiTileCaptureSource source, CapturePixelReader reader) throws IOException {
         CaptureTile tile = tiles.get(nextTile);
         try (CaptureFrame frame = source.render(
             tile,

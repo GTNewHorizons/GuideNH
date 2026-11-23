@@ -1,6 +1,7 @@
 package com.hfstudio.guidenh.guide.internal.structure;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -22,7 +23,7 @@ public class GuideStructureFileStore {
         Path path = workingRoot.resolve(
             Paths.get("config", "guidenh", "structures", sanitizePrefix(prefix) + "-" + UUID.randomUUID() + ".snbt"));
         Files.createDirectories(path.getParent());
-        Files.writeString(path, structureText);
+        Files.writeString(path, structureText, StandardCharsets.UTF_8);
         return path.normalize();
     }
 

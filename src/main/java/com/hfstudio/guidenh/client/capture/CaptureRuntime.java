@@ -3,6 +3,7 @@ package com.hfstudio.guidenh.client.capture;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Objects;
 import java.util.Queue;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
@@ -34,6 +35,8 @@ import com.hfstudio.guidenh.client.capture.api.CaptureInputEvent;
 import com.hfstudio.guidenh.client.capture.api.CaptureInputOptions;
 import com.hfstudio.guidenh.client.capture.api.CaptureOutputArtifact;
 import com.hfstudio.guidenh.client.capture.api.CaptureOutputSize;
+import com.hfstudio.guidenh.client.capture.api.CapturePixelReader;
+import com.hfstudio.guidenh.client.capture.api.CapturePixelReaderProvider;
 import com.hfstudio.guidenh.client.capture.api.CaptureRenderSnapshot;
 import com.hfstudio.guidenh.client.capture.api.CaptureRows;
 import com.hfstudio.guidenh.client.capture.api.CaptureSessionState;
@@ -46,7 +49,6 @@ import com.hfstudio.guidenh.client.capture.geometry.CaptureCoordinateMapper;
 import com.hfstudio.guidenh.client.capture.recording.CaptureRecording;
 import com.hfstudio.guidenh.client.capture.render.CaptureHighResolutionJob;
 import com.hfstudio.guidenh.client.capture.render.CaptureRenderScope;
-import com.hfstudio.guidenh.client.capture.render.GlCapturePixelReader;
 import com.hfstudio.guidenh.client.capture.render.GuiLayerCaptureSource;
 import com.hfstudio.guidenh.client.capture.render.GuiTileCaptureSource;
 import com.hfstudio.guidenh.client.capture.server.CaptureClientConnection;
@@ -72,7 +74,9 @@ public class CaptureRuntime {
     private static final CaptureRuntime INSTANCE = new CaptureRuntime();
     private final CaptureRegistry registry = new CaptureRegistry();
     private final GuiLayerCaptureSource guiLayer = new GuiLayerCaptureSource();
-    private final GlCapturePixelReader pixels = new GlCapturePixelReader();
+    private CapturePixelReader pixels;
+    private String preferredReader = "automatic";
+    private String readerId;
     private final CaptureExportWorker exporter = new CaptureExportWorker();
     private volatile CaptureSession session;
     private CaptureOverlay overlay;
@@ -108,6 +112,41 @@ public class CaptureRuntime {
 
     public CaptureRegistry registry() {
         return registry;
+    }
+
+    public String readerId() {
+        return readerId;
+    }
+
+    public void selectReader(String id) {
+        Objects.requireNonNull(id);
+        if (session != null && (session.busy() || batch != null && batch.busy()))
+            throw new IllegalStateException("The pixel reader cannot change during a capture task");
+        if (session == null) {
+            preferredReader = id;
+            return;
+        }
+        CaptureContext context = new CaptureContext(session.sourceScreen(), session.viewport(), frameId, partialTicks);
+        CapturePixelReaderProvider provider = registry.readerProvider(context, id);
+        CapturePixelReader replacement = Objects.requireNonNull(provider.open(context));
+        try {
+            if (pixels != null) pixels.close();
+        } catch (RuntimeException error) {
+            replacement.close();
+            throw error;
+        }
+        pixels = replacement;
+        readerId = provider.id();
+        preferredReader = id;
+        session.invalidatePreview();
+    }
+
+    private void openReader() {
+        if (pixels != null) return;
+        CaptureContext context = new CaptureContext(session.sourceScreen(), session.viewport(), frameId, partialTicks);
+        CapturePixelReaderProvider provider = registry.readerProvider(context, preferredReader);
+        pixels = Objects.requireNonNull(provider.open(context));
+        readerId = provider.id();
     }
 
     public void initialize() {
@@ -219,6 +258,14 @@ public class CaptureRuntime {
         partialTicks = partial;
         CaptureViewport viewport = CaptureCoordinateMapper.current(minecraft);
         session.updateViewport(viewport);
+        try {
+            openReader();
+        } catch (RuntimeException error) {
+            session.invalidatePreview();
+            session.notify(I18n.format("guidenh.capture.failed", error.getMessage()));
+            frameRequested = false;
+            return;
+        }
         if (batch.needsFrame()) session.requestRefresh();
         long sampleTime = System.nanoTime();
         if (batchRecording != null) {
@@ -415,7 +462,9 @@ public class CaptureRuntime {
         overlay.close();
         registry.closed(new CaptureContext(session.sourceScreen(), session.viewport(), frameId, partialTicks));
         guiLayer.close();
-        pixels.release();
+        if (pixels != null) pixels.close();
+        pixels = null;
+        readerId = null;
         session.close();
         Keyboard.enableRepeatEvents(previousKeyRepeat);
         overlay = null;
