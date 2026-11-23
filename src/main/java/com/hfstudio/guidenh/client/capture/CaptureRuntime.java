@@ -325,11 +325,14 @@ public class CaptureRuntime {
                     if (highResolution.step(tileSource, pixels)) {
                         CaptureRows rows = highResolution.takeRows();
                         CompletableFuture<CaptureOutputArtifact> completion = highResolutionCompletion;
-                        exporter.submitRows(highResolution.request(), rows, highResolution.timestampNanos())
-                            .whenComplete((artifact, error) -> {
-                                if (error == null) completion.complete(artifact);
-                                else completion.completeExceptionally(error);
-                            });
+                        CompletableFuture<CaptureOutputArtifact> writing = exporter
+                            .submitRows(highResolution.request(), rows, highResolution.timestampNanos());
+                        completion
+                            .whenComplete((artifact, error) -> { if (completion.isCancelled()) writing.cancel(true); });
+                        writing.whenComplete((artifact, error) -> {
+                            if (error == null) completion.complete(artifact);
+                            else completion.completeExceptionally(error);
+                        });
                         highResolutionCompletion = null;
                         highResolution.close();
                         highResolution = null;

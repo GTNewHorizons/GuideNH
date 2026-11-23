@@ -316,6 +316,7 @@ public class CaptureSession implements AutoCloseable {
     @Override
     public void close() {
         state = CaptureSessionState.CLOSED;
+        if (export != null) export.cancel(true);
         if (recording != null) recording.close();
         if (preview != null) preview.close();
         preview = null;

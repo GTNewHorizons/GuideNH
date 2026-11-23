@@ -9,10 +9,14 @@ import java.nio.file.Path;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.function.Supplier;
 
 import com.google.gson.GsonBuilder;
 import com.hfstudio.guidenh.client.capture.api.CaptureAnimationExporter;
@@ -30,6 +34,7 @@ public class CaptureExportWorker implements AutoCloseable {
 
     private final Map<String, CaptureExporter> exporters = new LinkedHashMap<>();
     private final Map<String, CaptureAnimationExporter> animationExporters = new LinkedHashMap<>();
+    private final Set<CaptureExportTask<?>> tasks = ConcurrentHashMap.newKeySet();
     private final ExecutorService executor = Executors.newSingleThreadExecutor(task -> {
         Thread thread = new Thread(task, "GuideNH GUI export");
         thread.setDaemon(true);
@@ -47,12 +52,16 @@ public class CaptureExportWorker implements AutoCloseable {
         exporters.put(exporter.format(), exporter);
     }
 
+    public int pendingTasks() {
+        return tasks.size();
+    }
+
     public void registerAnimation(CaptureAnimationExporter exporter) {
         animationExporters.put(exporter.format(), exporter);
     }
 
     public CompletableFuture<Path> writeManifest(CaptureBatchManifest manifest, Path directory) {
-        return CompletableFuture.supplyAsync(() -> {
+        return submitTask(() -> {
             Path temporary = null;
             try {
                 temporary = Files.createTempFile(directory, ".guidenh_manifest_", ".part");
@@ -62,7 +71,7 @@ public class CaptureExportWorker implements AutoCloseable {
                         .toJson(manifest, writer);
                 }
                 Path target = directory.resolve("batch.json");
-                Files.move(temporary, target);
+                publish(temporary, target);
                 return target;
             } catch (IOException error) {
                 throw new UncheckedIOException(error);
@@ -75,7 +84,7 @@ public class CaptureExportWorker implements AutoCloseable {
                     }
                 }
             }
-        }, executor);
+        }, () -> {});
     }
 
     public void startRecording(CaptureRecording recording) {
@@ -85,7 +94,7 @@ public class CaptureExportWorker implements AutoCloseable {
         if (exporter == null) throw new IllegalArgumentException(
             "Unknown animation format: " + recording.options()
                 .format());
-        recording.completion(CompletableFuture.supplyAsync(() -> {
+        recording.completion(submitTask(() -> {
             try {
                 return exportRecording(recording, exporter);
             } catch (IOException error) {
@@ -97,7 +106,7 @@ public class CaptureExportWorker implements AutoCloseable {
             } finally {
                 recording.close();
             }
-        }, executor));
+        }, recording::close));
     }
 
     private CaptureOutputArtifact exportRecording(CaptureRecording recording, CaptureAnimationExporter exporter)
@@ -124,7 +133,7 @@ public class CaptureExportWorker implements AutoCloseable {
                 if (recording.cancelled()) throw new CancellationException("Recording cancelled");
                 artifact = writer.finish(recording.endTime());
             }
-            Files.move(temporary, target);
+            publish(temporary, target);
             return new CaptureOutputArtifact(
                 target,
                 artifact.format(),
@@ -148,7 +157,7 @@ public class CaptureExportWorker implements AutoCloseable {
 
     public CompletableFuture<CaptureOutputArtifact> submitRows(CaptureExportRequest request, CaptureRows rows,
         long timestampNanos) {
-        return CompletableFuture.supplyAsync(() -> {
+        return submitTask(() -> {
             Path temporary = null;
             try (rows) {
                 Path directory = request.options()
@@ -162,7 +171,7 @@ public class CaptureExportWorker implements AutoCloseable {
                 CaptureOutputArtifact artifact = separate
                     ? CaptureRegionExporter.export(request, rows, temporary, timestampNanos)
                     : new PngCaptureExporter().exportRows(request, rows, temporary);
-                Files.move(temporary, target);
+                publish(temporary, target);
                 return new CaptureOutputArtifact(
                     target,
                     artifact.format(),
@@ -181,7 +190,13 @@ public class CaptureExportWorker implements AutoCloseable {
                     }
                 }
             }
-        }, executor);
+        }, () -> {
+            try {
+                rows.close();
+            } catch (IOException error) {
+                throw new UncheckedIOException(error);
+            }
+        });
     }
 
     public CompletableFuture<CaptureOutputArtifact> submit(CaptureExportRequest request, CaptureFrame frame,
@@ -189,13 +204,13 @@ public class CaptureExportWorker implements AutoCloseable {
         CaptureExporter exporter = exporters.get(format);
         if (exporter == null) throw new IllegalArgumentException("Unknown capture format: " + format);
         CaptureFrame owned = frame.retain();
-        return CompletableFuture.supplyAsync(() -> {
+        return submitTask(() -> {
             try (owned) {
                 return export(request, owned, exporter);
             } catch (IOException error) {
                 throw new UncheckedIOException(error);
             }
-        }, executor);
+        }, owned::close);
     }
 
     private CaptureOutputArtifact export(CaptureExportRequest request, CaptureFrame frame, CaptureExporter exporter)
@@ -215,7 +230,7 @@ public class CaptureExportWorker implements AutoCloseable {
                 ? CaptureRegionExporter
                     .export(request, new CaptureRowComposer(request, frame), temporary, frame.timestampNanos())
                 : exporter.export(request, frame, temporary);
-            Files.move(temporary, target);
+            publish(temporary, target);
             return new CaptureOutputArtifact(
                 target,
                 artifact.format(),
@@ -236,8 +251,28 @@ public class CaptureExportWorker implements AutoCloseable {
         }
     }
 
+    private static void publish(Path temporary, Path target) throws IOException {
+        if (Thread.currentThread()
+            .isInterrupted()) throw new CancellationException("Capture export cancelled");
+        Files.move(temporary, target);
+    }
+
+    private <T> CompletableFuture<T> submitTask(Supplier<T> action, Runnable releaseQueued) {
+        CaptureExportTask<T> task = new CaptureExportTask<>(action, releaseQueued, tasks::remove);
+        tasks.add(task);
+        try {
+            executor.execute(task);
+        } catch (RejectedExecutionException error) {
+            task.cancel();
+            throw error;
+        }
+        return task.future();
+    }
+
     @Override
     public void close() {
+        executor.shutdown();
+        for (CaptureExportTask<?> task : tasks) task.cancel();
         executor.shutdownNow();
     }
 }
