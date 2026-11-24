@@ -252,6 +252,12 @@ public class CaptureSettingsPanel {
             100,
             10000);
         toggle("batch_scroll_images", () -> config.batchScrollImages, value -> config.batchScrollImages = value, false);
+        integer(
+            "batch_page_size",
+            () -> config.batchPageMaximumDimension,
+            value -> config.batchPageMaximumDimension = value,
+            0,
+            32768);
         toggle(
             "batch_group_provider",
             () -> config.batchGroupByProvider,

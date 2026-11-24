@@ -1,5 +1,6 @@
 package com.hfstudio.guidenh.client.capture.export;
 
+import java.awt.AlphaComposite;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
@@ -127,6 +128,7 @@ public class PngSequenceCaptureWriter implements CaptureAnimationWriter {
                 actualRows * cellHeight + padding,
                 BufferedImage.TYPE_INT_ARGB);
             Graphics2D graphics = image.createGraphics();
+            graphics.setComposite(AlphaComposite.Src);
             String name = String.format("sprites_%04d.png", page);
             try {
                 for (int offset = 0; offset < count; offset++) {

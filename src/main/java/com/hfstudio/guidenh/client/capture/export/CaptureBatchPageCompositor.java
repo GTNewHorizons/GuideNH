@@ -22,10 +22,10 @@ import com.hfstudio.guidenh.client.capture.api.CaptureBatchOutput;
 import com.hfstudio.guidenh.client.capture.api.CaptureBatchResult;
 import com.hfstudio.guidenh.client.capture.api.CaptureContentOptions;
 import com.hfstudio.guidenh.client.capture.api.CaptureExportRequest;
-import com.hfstudio.guidenh.client.capture.api.CaptureFrame;
 import com.hfstudio.guidenh.client.capture.api.CaptureLayoutOptions;
 import com.hfstudio.guidenh.client.capture.api.CaptureOptions;
 import com.hfstudio.guidenh.client.capture.api.CaptureOutputArtifact;
+import com.hfstudio.guidenh.client.capture.api.CaptureOutputSize;
 import com.hfstudio.guidenh.client.capture.api.CaptureRecordedFrame;
 import com.hfstudio.guidenh.client.capture.api.CaptureRecordingOptions;
 import com.hfstudio.guidenh.client.capture.api.CaptureRegion;
@@ -89,11 +89,20 @@ public class CaptureBatchPageCompositor {
         Path target = CaptureOutputPaths.next(staging, "pages_" + group, "pages");
         Path temporary = Files.createTempDirectory(staging, ".guidenh_pages_");
         try {
-            int width = Math.addExact(
-                options.layout()
-                    .thumbnailSize(),
-                CaptureContactSheetRows.PADDING * 2);
-            int height = Math.addExact(width, CaptureContactSheetRows.CAPTION);
+            List<CaptureOutputSize> pageSizes = new ArrayList<>(entries.size());
+            int width = 0;
+            int height = 0;
+            for (CaptureContactSheetEntry entry : entries) {
+                checkCancellation();
+                CaptureOutputSize size = CaptureBatchPageReader.size(
+                    entry,
+                    options.layout()
+                        .pageMaximumDimension());
+                pageSizes.add(size);
+                width = Math.max(width, size.width());
+                height = Math.max(height, size.height());
+            }
+            CaptureOutputSize canvas = new CaptureOutputSize(width, height);
             long frameBytes = (long) width * height * 4;
             long memoryBudget = Math.min(
                 options.memoryBudgetBytes(),
@@ -101,7 +110,7 @@ public class CaptureBatchPageCompositor {
                     .pageRecording()
                     .memoryBudgetBytes());
             if (frameBytes * 4 > memoryBudget)
-                throw new IOException("Page previews exceed the memory budget; reduce the thumbnail size");
+                throw new IOException("Page images exceed the memory budget; choose a smaller page size");
             CaptureViewport viewport = new CaptureViewport(width, height, width, height);
             CaptureOptions output = options.output();
             CaptureContentOptions content = output.content();
@@ -150,25 +159,13 @@ public class CaptureBatchPageCompositor {
                     checkCancellation();
                     CaptureContactSheetEntry entry = entries.get(index);
                     long elapsed = Math.multiplyExact(index, interval);
-                    try (CaptureContactSheetRows rows = new CaptureContactSheetRows(
-                        List.of(entry),
-                        1,
-                        options.layout()
-                            .thumbnailSize(),
-                        content.backgroundArgb(),
-                        memoryBudget - frameBytes * 2)) {
-                        int[] pixels = new int[Math.multiplyExact(width, height)];
-                        int[] row = new int[width];
-                        for (int y = 0; y < height; y++) {
-                            checkCancellation();
-                            rows.row(y, row);
-                            System.arraycopy(row, 0, pixels, y * width, width);
-                        }
-                        try (CaptureRecordedFrame frame = new CaptureRecordedFrame(
-                            new CaptureFrame(width, height, elapsed, pixels),
-                            elapsed)) {
-                            writer.append(frame);
-                        }
+                    CaptureOutputSize page = pageSizes.get(index);
+                    try (CaptureRecordedFrame frame = new CaptureRecordedFrame(
+                        CaptureBatchPageReader
+                            .frame(entry, page, canvas, content.backgroundArgb(), elapsed, memoryBudget - frameBytes),
+                        elapsed)) {
+                        checkCancellation();
+                        writer.append(frame);
                     }
                     pages.add(
                         new Entry(
@@ -177,6 +174,7 @@ public class CaptureBatchPageCompositor {
                             directory.relativize(entry.source())
                                 .toString(),
                             entry.sourceBounds(),
+                            CaptureBatchPageReader.destination(page, canvas),
                             elapsed,
                             interval));
                 }

@@ -219,7 +219,8 @@ public class CaptureSettingsModel {
                 config.batchSheetPageSize,
                 config.batchScrollImages,
                 config.batchPageFormat.equals("none") ? null : recording(config.batchPageFormat),
-                config.batchPageDelayMillis));
+                config.batchPageDelayMillis,
+                config.batchPageMaximumDimension));
     }
 
     public CaptureRecordingOptions recording() {

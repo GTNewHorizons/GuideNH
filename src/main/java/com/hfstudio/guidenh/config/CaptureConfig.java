@@ -245,6 +245,10 @@ public class CaptureConfig {
     @RangeInt(min = 100, max = 10000)
     public int batchPageDelayMillis = 1000;
 
+    @DefaultInt(0)
+    @RangeInt(min = 0, max = 32768)
+    public int batchPageMaximumDimension;
+
     @DefaultBoolean(true)
     public boolean batchGroupByProvider = true;
 
