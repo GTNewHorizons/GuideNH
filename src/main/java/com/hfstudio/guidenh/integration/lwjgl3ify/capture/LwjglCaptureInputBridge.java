@@ -53,7 +53,8 @@ public class LwjglCaptureInputBridge implements CaptureLifecycleListener {
 
     @Override
     public void closed(CaptureContext context) {
-        if (Minecraft.getMinecraft().currentScreen == context.screen())
+        if (CaptureRuntime.instance()
+            .sourceMatches(Minecraft.getMinecraft().currentScreen))
             AccessorCaptureTextInput.guidenh$setFocusedInput(previousInput);
         previousInput = null;
     }

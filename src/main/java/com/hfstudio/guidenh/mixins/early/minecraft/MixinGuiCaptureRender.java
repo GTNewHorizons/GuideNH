@@ -15,6 +15,26 @@ import com.hfstudio.guidenh.client.capture.server.CaptureClientConnection;
 @Mixin(Minecraft.class)
 public class MixinGuiCaptureRender {
 
+    @Inject(method = "runTick", at = @At("HEAD"))
+    private void guidenh$routeGameplayCaptureInput(CallbackInfo callback) {
+        CaptureRuntime.instance()
+            .routeGameplayInput();
+    }
+
+    @Inject(method = "setIngameFocus", at = @At("HEAD"), cancellable = true)
+    private void guidenh$keepCaptureCursorReleased(CallbackInfo callback) {
+        if (CaptureRuntime.instance()
+            .gameplayInputCaptured()) callback.cancel();
+    }
+
+    @Inject(
+        method = "runGameLoop",
+        at = @At(value = "INVOKE", target = "Lcpw/mods/fml/common/FMLCommonHandler;onRenderTickEnd(F)V", remap = false))
+    private void guidenh$beginLateOverlayCapture(CallbackInfo callback) {
+        CaptureRuntime.instance()
+            .beginLateHud();
+    }
+
     @Redirect(
         method = "runGameLoop",
         at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/GuiScreen;doesGuiPauseGame()Z"))

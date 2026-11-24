@@ -22,11 +22,14 @@ public class CaptureConfig {
     @DefaultBoolean(true)
     public boolean includePlayerInventory = true;
 
-    @DefaultBoolean(false)
-    public boolean fullBrightness;
+    @DefaultBoolean(true)
+    public boolean invertTransparencyGrid = true;
 
     @DefaultBoolean(false)
     public boolean includeHud;
+
+    @DefaultBoolean(true)
+    public boolean includeGameplayHud = true;
 
     @DefaultBoolean(false)
     public boolean includeCursor;

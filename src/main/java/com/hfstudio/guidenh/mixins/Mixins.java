@@ -20,13 +20,16 @@ public enum Mixins implements IMixins {
         "minecraft.MixinTessellatorSceneExportCapture", "minecraft.MixinModelRendererSceneExportCapture",
         "minecraft.AccessorGuiCaptureScreen", "minecraft.AccessorGuiCaptureContainer", "minecraft.MixinGuiCaptureInput",
         "minecraft.MixinGuiCaptureRender", "minecraft.MixinGuiCaptureLayer", "minecraft.MixinGuiCaptureBackground",
-        "minecraft.MixinGuiCaptureHud", "forge.MixinGuiCaptureForgeHud", "minecraft.MixinCaptureGuiBrightness",
-        "minecraft.MixinGuiCaptureAlpha", "minecraft.MixinGuiCaptureButtonAlpha",
-        "minecraft.MixinGuiCaptureFramebuffer", "minecraft.MixinGuiCaptureMainMenu",
-        "minecraft.MixinStandaloneContainerScreen", "minecraft.MixinCaptureContainerSynchronization"),
+        "minecraft.MixinGuiCaptureHud", "forge.MixinGuiCaptureForgeHud", "minecraft.MixinGuiCaptureAlpha",
+        "minecraft.MixinGuiCaptureButtonAlpha", "minecraft.MixinCaptureOverlayDraws",
+        "minecraft.MixinCaptureOverlayText", "minecraft.MixinGuiCaptureFramebuffer",
+        "minecraft.MixinGuiCaptureMainMenu", "minecraft.MixinStandaloneContainerScreen",
+        "minecraft.MixinCaptureContainerSynchronization"),
 
     AE2_EXTERNAL_CABLE_PARTS(Side.CLIENT, Phase.LATE, Mods.AE2, "compat.ae2.MixinPartQuartzFiber",
         "compat.ae2.MixinPartP2PTunnelME", "compat.ae2.MixinPartToggleBus"),
+
+    AE2_CAPTURE_BUTTONS(Side.CLIENT, Phase.LATE, Mods.AE2, "compat.ae2.MixinCaptureAe2Buttons"),
 
     ANGELICA_CAPTURE_FRAME_END(new MixinBuilder()
         .addClientMixins("compat.angelica.MixinCaptureFrameEnd", "compat.angelica.MixinCaptureHudCache")

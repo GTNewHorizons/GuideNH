@@ -18,10 +18,13 @@ public class MixinCaptureMui2Alpha {
     private static void guidenh$composeCaptureTexture(boolean withBlend, CallbackInfo callback) {
         if (!CaptureRuntime.instance()
             .capturingGuiLayer()) return;
-        // Transparent texels must blend over the panel rather than replace its alpha.
+        // Keep native RGB replacement for opaque textures; accumulate coverage over the existing panel.
         GL11.glEnable(GL11.GL_BLEND);
-        OpenGlHelper
-            .glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA, GL11.GL_ONE, GL11.GL_ONE_MINUS_SRC_ALPHA);
+        OpenGlHelper.glBlendFunc(
+            withBlend ? GL11.GL_SRC_ALPHA : GL11.GL_ONE,
+            withBlend ? GL11.GL_ONE_MINUS_SRC_ALPHA : GL11.GL_ZERO,
+            GL11.GL_ONE,
+            GL11.GL_ONE_MINUS_SRC_ALPHA);
     }
 
     @Inject(method = "setupDrawColor", at = @At("RETURN"))

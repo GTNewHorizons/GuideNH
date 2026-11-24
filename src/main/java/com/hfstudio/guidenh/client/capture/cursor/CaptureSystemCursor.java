@@ -3,6 +3,7 @@ package com.hfstudio.guidenh.client.capture.cursor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.hfstudio.guidenh.client.capture.api.CaptureRect;
 import com.hfstudio.guidenh.client.capture.api.CaptureRenderSnapshot;
 import com.hfstudio.guidenh.client.capture.api.CaptureViewport;
 import com.hfstudio.guidenh.client.capture.render.CaptureCursorRenderer;
@@ -54,6 +55,15 @@ public class CaptureSystemCursor implements AutoCloseable {
         double y) {
         CaptureCursorImage current = sampled ? image : current();
         return current == null ? delegate : new CaptureCursorSnapshot(delegate, current, viewport, x, y);
+    }
+
+    public CaptureRect bounds(CaptureViewport viewport, double x, double y) {
+        return image == null ? null
+            : new CaptureRect(
+                x - image.hotspotX() / viewport.scaleX(),
+                y - image.hotspotY() / viewport.scaleY(),
+                image.width() / viewport.scaleX(),
+                image.height() / viewport.scaleY()).intersect(viewport.bounds());
     }
 
     @Override

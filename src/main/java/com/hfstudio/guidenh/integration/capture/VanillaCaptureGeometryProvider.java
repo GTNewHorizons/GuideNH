@@ -90,12 +90,14 @@ public class VanillaCaptureGeometryProvider implements CaptureGeometryProvider {
                         20).withContent(CaptureTarget.GUI_LAYER, slot.inventory instanceof InventoryPlayer));
             }
         }
-        for (GuiButton button : ((AccessorGuiCaptureScreen) screen).guidenh$getCaptureButtons()) {
+        List<GuiButton> buttons = ((AccessorGuiCaptureScreen) screen).guidenh$getCaptureButtons();
+        for (int index = 0; index < buttons.size(); index++) {
+            GuiButton button = buttons.get(index);
             if (!button.visible || button.width <= 0 || button.height <= 0) continue;
             CaptureRect bounds = new CaptureRect(button.xPosition, button.yPosition, button.width, button.height);
             targets.add(
                 target(
-                    "button:" + button.id,
+                    "button:" + button.id + ":" + index,
                     parent,
                     CaptureTarget.COMPONENT,
                     button,

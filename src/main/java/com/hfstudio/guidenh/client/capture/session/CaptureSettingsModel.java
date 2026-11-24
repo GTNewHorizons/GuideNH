@@ -23,12 +23,35 @@ import com.hfstudio.guidenh.network.capture.CaptureCapabilityMessage;
 public class CaptureSettingsModel {
 
     private final CaptureConfig config;
+    private boolean gameplay;
     private int requestedWidth;
     private int requestedHeight;
     private boolean keepAspectRatio = true;
 
     public CaptureSettingsModel(CaptureConfig config) {
+        this(config, false);
+    }
+
+    public CaptureSettingsModel(CaptureConfig config, boolean gameplay) {
         this.config = config;
+        this.gameplay = gameplay;
+    }
+
+    public boolean gameplay() {
+        return gameplay;
+    }
+
+    public void gameplay(boolean value) {
+        gameplay = value;
+    }
+
+    public boolean includeHud() {
+        return gameplay ? config.includeGameplayHud : config.includeHud;
+    }
+
+    public void includeHud(boolean value) {
+        if (gameplay) config.includeGameplayHud = value;
+        else config.includeHud = value;
     }
 
     public CaptureConfig config() {
@@ -100,11 +123,10 @@ public class CaptureSettingsModel {
             config.includeDebug,
             config.includeNei,
             config.backgroundArgb,
-            config.includeHud,
+            includeHud(),
             config.includeCursor,
             config.includeGui,
-            config.includePlayerInventory,
-            config.fullBrightness);
+            config.includePlayerInventory);
     }
 
     public CaptureBatchOptions batch(Path gameDirectory) {

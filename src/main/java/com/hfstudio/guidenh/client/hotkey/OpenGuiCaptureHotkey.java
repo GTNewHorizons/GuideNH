@@ -41,8 +41,9 @@ public class OpenGuiCaptureHotkey {
         }
         boolean down = GuideKeyBindingSupport.isDown(OPEN_GUI_CAPTURE_KEY);
         CaptureRuntime runtime = CaptureRuntime.instance();
-        if (down && !wasDown && Minecraft.getMinecraft().currentScreen != null) {
-            if (!runtime.active()) runtime.open();
+        if (down && !wasDown
+            && (Minecraft.getMinecraft().currentScreen != null || Minecraft.getMinecraft().theWorld != null)) {
+            if (!runtime.active() || !runtime.sourceMatches(Minecraft.getMinecraft().currentScreen)) runtime.open();
             else if ((!nativeKeyboard || OPEN_GUI_CAPTURE_KEY.getKeyCode() < 0) && !runtime.captureTextInputFocused())
                 runtime.toggleCaptureInterface();
         }

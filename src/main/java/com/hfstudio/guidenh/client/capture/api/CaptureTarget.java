@@ -52,6 +52,7 @@ public record CaptureTarget(String id, String parentId, String kind, String clas
     public static final String SCREEN = "screen";
     public static final String TOOLTIP = "tooltip";
     public static final String GUI_LAYER = "gui";
+    public static final String HUD_LAYER = "hud";
     public static final String NEI_LAYER = "nei";
     public static final String TOOLTIP_LAYER = "tooltip";
 }

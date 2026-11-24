@@ -216,7 +216,8 @@ public class ServerGuiBatchProvider implements CaptureBatchProvider {
                 if (restoreScreen
                     && (minecraft.currentScreen == null || minecraft.currentScreen instanceof CaptureNavigationScreen))
                     minecraft.displayGuiScreen(origin);
-                if (!restoreScreen || minecraft.currentScreen == origin) return ready(context);
+                if (!restoreScreen || context.capture()
+                    .screen() == origin) return ready(context);
                 return waiting(context, "Waiting for the original client GUI");
             }
             if (!connection.synchronizedAfter(reply.windowId(), synchronization))

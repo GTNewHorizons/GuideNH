@@ -19,6 +19,7 @@ import com.hfstudio.guidenh.client.capture.api.CaptureBatchReadiness;
 import com.hfstudio.guidenh.client.capture.api.CaptureClientGuiFactory;
 import com.hfstudio.guidenh.client.capture.api.CaptureRect;
 import com.hfstudio.guidenh.client.capture.api.CaptureTargetDescriptor;
+import com.hfstudio.guidenh.client.capture.ui.CaptureGameplayScreen;
 
 public class ClientGuiBatchProvider implements CaptureBatchProvider {
 
@@ -131,6 +132,7 @@ public class ClientGuiBatchProvider implements CaptureBatchProvider {
                 .apply(origin);
             Minecraft minecraft = Minecraft.getMinecraft();
             GuiScreen previous = minecraft.currentScreen;
+            if (selected instanceof CaptureGameplayScreen && previous == null && minecraft.theWorld != null) return;
             if (previous != selected) {
                 changed = true;
                 minecraft.displayGuiScreen(selected);

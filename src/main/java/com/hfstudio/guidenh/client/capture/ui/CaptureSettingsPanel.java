@@ -126,8 +126,12 @@ public class CaptureSettingsPanel {
             () -> config.includePlayerInventory,
             value -> config.includePlayerInventory = value,
             true);
-        toggle("full_brightness", () -> config.fullBrightness, value -> config.fullBrightness = value, true);
-        toggle("hud", () -> config.includeHud, value -> config.includeHud = value, true);
+        toggle(
+            "invert_transparency_grid",
+            () -> config.invertTransparencyGrid,
+            value -> config.invertTransparencyGrid = value,
+            false);
+        toggle("hud", model::includeHud, model::includeHud, true);
         toggle("cursor", () -> config.includeCursor, value -> config.includeCursor = value, true);
         toggle("backdrop", () -> config.includeGuiBackdrop, value -> config.includeGuiBackdrop = value, true);
         toggle("tooltips", () -> config.includeTooltips, value -> config.includeTooltips = value, true);
