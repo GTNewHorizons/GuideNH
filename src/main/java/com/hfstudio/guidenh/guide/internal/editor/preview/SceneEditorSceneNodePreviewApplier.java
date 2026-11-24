@@ -1,7 +1,6 @@
 package com.hfstudio.guidenh.guide.internal.editor.preview;
 
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -462,14 +461,8 @@ public class SceneEditorSceneNodePreviewApplier {
             return null;
         }
 
-        Path path = SceneEditorStructureCache.resolveSceneStructurePath(workingRoot, normalizedSource)
-            .orElse(null);
-        if (path == null || !Files.exists(path)) {
-            return null;
-        }
-
         try {
-            return Files.readString(path);
+            return SceneEditorStructureCache.readSceneStructure(workingRoot, normalizedSource);
         } catch (Exception e) {
             GuideDebugLog.warn("Failed to read scene editor preview structure {}", normalizedSource, e);
             return null;

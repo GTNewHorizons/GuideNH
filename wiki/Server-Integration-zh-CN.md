@@ -19,7 +19,7 @@
 
 | 命令 | 用途 |
 | --- | --- |
-| `/guidenh importstructure <x> <y> <z>` | 打开客户端结构导入窗口，并填入目标坐标 |
+| `/guidenhc importstructure <x> <y> <z> <file.snbt>` | 客户端导入结构；路径相对于 `config/guidenh/structures`，上传前需要确认 |
 | `/guidenh placeallstructures <x> <y> <z>` | 从目标坐标起沿 X 轴依次放置该玩家缓存的结构 |
 
 两条命令以及单个结构放置均要求 3 级命令权限。导入和批量放置使用玩家本次登录的结构缓存，退出后清空；缓存不是长期保存的服务器资源。

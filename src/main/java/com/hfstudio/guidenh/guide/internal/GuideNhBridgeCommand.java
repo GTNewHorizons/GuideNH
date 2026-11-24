@@ -13,12 +13,10 @@ import net.minecraft.util.MathHelper;
 import com.hfstudio.guidenh.guide.internal.structure.GuideNhStructureRuntime;
 import com.hfstudio.guidenh.guide.internal.structure.GuideStructureCoordinateParser;
 import com.hfstudio.guidenh.guide.internal.structure.GuideStructureWorldPlacementTarget;
-import com.hfstudio.guidenh.network.GuideNhClientBridgeMessage;
-import com.hfstudio.guidenh.network.GuideNhNetwork;
 
 public class GuideNhBridgeCommand extends CommandBase {
 
-    public static final String[] ROOT_SUB_COMMANDS = { "importstructure", "placeallstructures" };
+    public static final String[] ROOT_SUB_COMMANDS = { "placeallstructures" };
 
     @Override
     public String getCommandName() {
@@ -38,7 +36,7 @@ public class GuideNhBridgeCommand extends CommandBase {
         }
 
         switch (args[0].toLowerCase()) {
-            case "importstructure" -> importStructure(sender, args);
+            case "importstructure" -> send(sender, GuidebookText.CommandImportStructureUsage);
             case "placeallstructures" -> placeAllStructures(sender, args);
             default -> send(sender, GuidebookText.CommandBridgeUsage);
         }
@@ -55,29 +53,6 @@ public class GuideNhBridgeCommand extends CommandBase {
     @Override
     public boolean canCommandSenderUseCommand(ICommandSender sender) {
         return true;
-    }
-
-    private void importStructure(ICommandSender sender, String[] args) throws CommandException {
-        if (args.length < 5) {
-            send(sender, GuidebookText.CommandImportStructureUsage);
-            return;
-        }
-
-        EntityPlayerMP player = requirePlayer(sender);
-        if (!player.canCommandSenderUseCommand(3, getCommandName())) {
-            send(sender, GuidebookText.CommandStructurePermissionDenied);
-            return;
-        }
-
-        int baseX = MathHelper.floor_double(player.posX);
-        int baseY = MathHelper.floor_double(player.posY);
-        int baseZ = MathHelper.floor_double(player.posZ);
-        int x = GuideStructureCoordinateParser.parsePosition(baseX, args[1]);
-        int y = GuideStructureCoordinateParser.parsePosition(baseY, args[2]);
-        int z = GuideStructureCoordinateParser.parsePosition(baseZ, args[3]);
-        String filePath = args[4];
-        GuideNhNetwork.channel()
-            .sendTo(GuideNhClientBridgeMessage.importStructure(x, y, z, filePath), player);
     }
 
     private void placeAllStructures(ICommandSender sender, String[] args) throws CommandException {
