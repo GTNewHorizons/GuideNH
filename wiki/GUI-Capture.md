@@ -75,7 +75,7 @@ PNG sprite sheets include JSON with frame positions and timing. GIF transparency
 
 Active recording updates the editor preview, system cursor, and tooltip position in real time, even when static preview freezing is enabled. The preview shows the complete source during recording; the export retains its original selection and output dimensions. Pausing or finishing returns to the configured preview behavior.
 
-The recommended GIF alpha threshold is 128. A threshold of 255 discards native button textures whose alpha is 253. Fully transparent pixels remain transparent at every threshold; use background blending when partial transparency needs a solid background.
+Start with a GIF alpha threshold of 128. Use background blending when the image contains partial transparency.
 
 Schedules support a delay, a specified local time, and repeating intervals. If the game loses focus or the target becomes unavailable, choose whether to wait, skip, or end the task. Recording queues and temporary output follow the configured resource budgets.
 
@@ -104,19 +104,19 @@ Some targets require mod integration or the server capture protocol. Unavailable
 
 Contact sheets arrange batch results into paginated thumbnails, optionally grouped by provider.
 
-Scroll images support GuideNH, NEI, MUI1, MUI2, and BetterQuesting interfaces. Slices follow document positions; fixed controls remain in the original viewport capture. MUI1 and MUI2 support nested tabs and horizontal and vertical scroll controls. MUI2 also discovers widgets created when a page opens, reveals nested scroll panes, and waits for scrolling animations to settle. Scrollbars and edge shadows are excluded from its scroll images; their original settings and scroll positions are restored afterwards. Expansion limits retain the number of omitted targets and produce partial results.
+Scroll images capture the complete selected scrollable content while keeping fixed controls in the viewport capture. The original page and scroll positions are restored afterwards. Target limits produce partial results and report omitted content.
 
 ### BetterQuesting Pages
 
 `betterquesting_pages` starts from the quest home screen, chapter reader, or quest detail screen. It traverses accessible chapters and visible quests and captures descriptions, tasks, rewards, and maps. Close modal popups before navigation.
 
-Hidden content is excluded, and locked visible chapters are marked unavailable. Map bounds follow actual components and support negative coordinates. The original chapter, bookmarks, zoom, and scroll state are restored. Capture does not claim quests, grant rewards, or enable editing mode.
+Hidden content is excluded, and locked chapters are marked unavailable. Capture preserves chapter, bookmark, zoom, and scroll settings and does not claim quests or grant rewards.
 
 ### Thaumcraft Pages
 
 `thaumcraft_pages` starts from the research browser or recipe book. It lists accessible categories and visible research and captures the actual two-page spreads of completed research.
 
-Hidden research is excluded, and incomplete visible research is marked unavailable. Category maps use visible research bounds and native pan limits within the 224 × 196 map area. Categories, map positions, and recipe history are restored. Capture does not unlock research or consume research resources.
+Hidden research is excluded, and incomplete research is marked unavailable. Capture preserves the selected category, map position, and recipe history and does not unlock research or consume research resources.
 
 ### Output Files
 
@@ -127,8 +127,6 @@ Results are marked partial when target limits or missing slices leave uncovered 
 ## Developer Integration
 
 Capture interfaces support geometry providers, GUI renderers, capture sources, pixel readers, batch providers, and output encoders independently.
-
-`CaptureLayoutOptions` carries a `CaptureAlignment`; its three- and four-argument constructors use `TOP_LEFT`. `CaptureRecordingOptions` carries a `CaptureTargetChangePolicy`; its fourteen-argument constructor uses `PAUSE`. `CaptureSetting` carries its section explicitly, and `withSection` selects a section without changing its value, choices, or slider.
 
 | API | Purpose |
 | --- | --- |
@@ -150,7 +148,7 @@ Batch hosts implement `CaptureBatchHost.requestFrame` to invalidate pixels from 
 
 Register encoders through `CaptureRuntime.registry()` on the client thread. Format IDs use letters, digits, underscores, and hyphens, start with a letter, and act as file extensions; `regions` is reserved. A format belongs to either still images or animation. Registering another encoder for the same format replaces it for future tasks. Each export or recording retains the encoder instance selected at its start.
 
-`CaptureFormatCatalog` exposes the current format choices and animation classification to the settings model. `CaptureOptions.format` retains the selected ID; its five- and six-argument constructors select PNG. Static formats work with save, scheduled capture, batch capture, and independent region output. The recording action uses GIF when a static format is selected.
+`CaptureFormatCatalog` exposes format choices and animation classification to the settings model. Static formats work with save, scheduled capture, batch capture, and independent region output. The recording action uses GIF when a static format is selected.
 
 Implement `CaptureRowExporter` for tiled high-resolution output. The worker owns and closes the `CaptureRows` stream; the encoder reads it without retaining or closing it. Strict enlarged output requires row-streaming support; automatic quality uses compatible frame export when it is unavailable. Region writers receive the selected region, erase masks, exact output dimensions, and remaining disk budget. They must preserve these dimensions and respect the budget. `CaptureRegionWriter` supports custom row-based region output while sharing the region manifest and crop logic.
 
@@ -170,9 +168,3 @@ Sources receive paired GUI begin and finish callbacks and return viewport-sized 
 `CapturePixelReader.enqueue` and `CaptureLayerSource.enqueueGuiLayer` return caller-owned `CaptureReadback` handles. Poll, consume, and release each handle on its submitting render thread. Consume it once and close it on cancellation. Readers return straight ARGB and release resources when the session closes.
 
 Snapshots that already apply content filtering declare `filtersContent()`. Batch readiness revisions describe prepared content; `CaptureBatchReadiness.viewRevision(context.capture())` supplies a base screen and viewport revision.
-
-### Backends and Compatibility
-
-Angelica registers the `angelica` reader for the active `RenderBackend`, and automatic selection prefers it. Backend callbacks fill bottom-up ARGB values and restore modified pixel-pack settings and buffer bindings. `CaptureBufferPixelReader` supplies shared buffer reuse, row orientation, and alpha conversion.
-
-Custom shaders and drawing paths unsupported by generic redraw require a dedicated snapshot provider. Availability and quality depend on mod versions and the backend. Capture does not automatically change rendering backend or shader preferences.

@@ -6,6 +6,7 @@ import java.util.List;
 import org.joml.Matrix4f;
 
 import com.cleanroommc.modularui.api.IMuiScreen;
+import com.cleanroommc.modularui.api.drawable.IDrawable;
 import com.cleanroommc.modularui.api.layout.IViewport;
 import com.cleanroommc.modularui.api.widget.IWidget;
 import com.cleanroommc.modularui.screen.ModularPanel;
@@ -20,6 +21,7 @@ import com.hfstudio.guidenh.client.capture.api.CaptureGeometry;
 import com.hfstudio.guidenh.client.capture.api.CaptureGeometryProvider;
 import com.hfstudio.guidenh.client.capture.api.CaptureRect;
 import com.hfstudio.guidenh.client.capture.api.CaptureTarget;
+import com.hfstudio.guidenh.client.capture.geometry.CaptureTargetOcclusion;
 
 public class Mui2CaptureGeometryProvider implements CaptureGeometryProvider {
 
@@ -44,6 +46,7 @@ public class Mui2CaptureGeometryProvider implements CaptureGeometryProvider {
     public CaptureGeometry collect(CaptureContext context) {
         IMuiScreen screen = (IMuiScreen) context.screen();
         List<CaptureTarget> targets = new ArrayList<>();
+        List<CaptureTarget> windows = new ArrayList<>();
         transforms.reset();
         transforms.pushViewport(
             null,
@@ -61,8 +64,11 @@ public class Mui2CaptureGeometryProvider implements CaptureGeometryProvider {
                 .getReverseOpenPanels()) {
                 panelIndex++;
                 if (panel.getAlpha() <= 0) continue;
+                if (panel.getClass() == ModularPanel.class && !panel.hasChildren()
+                    && (panel.getBackground() == IDrawable.EMPTY || panel.getBackground() == IDrawable.NONE)) continue;
                 String name = panel.getName();
                 String root = "mui2:" + (name == null ? Integer.toString(panelIndex) : name);
+                int firstTarget = targets.size();
                 collectWidget(
                     panel,
                     root,
@@ -72,11 +78,22 @@ public class Mui2CaptureGeometryProvider implements CaptureGeometryProvider {
                     context.viewport()
                         .bounds(),
                     targets);
+                if (occludesComponents(panel) && targets.size() > firstTarget) {
+                    CaptureTarget window = targets.get(firstTarget);
+                    if (window.kind()
+                        .equals(CaptureTarget.WINDOW)) windows.add(window);
+                }
             }
         } finally {
             transforms.popViewport(null);
         }
-        return new CaptureGeometry(targets.hashCode(), context.viewport(), targets);
+        List<CaptureTarget> visible = CaptureTargetOcclusion.clipComponents(targets, windows);
+        return new CaptureGeometry(visible.hashCode(), context.viewport(), visible);
+    }
+
+    protected boolean occludesComponents(ModularPanel panel) {
+        return panel.getAlpha() >= 1 && panel.getBackground() != IDrawable.EMPTY
+            && panel.getBackground() != IDrawable.NONE;
     }
 
     private void collectWidget(IWidget widget, String id, String parentId, int panelIndex, int depth, CaptureRect clip,
