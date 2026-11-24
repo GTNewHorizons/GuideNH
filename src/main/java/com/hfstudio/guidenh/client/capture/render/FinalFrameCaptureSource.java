@@ -3,11 +3,11 @@ package com.hfstudio.guidenh.client.capture.render;
 import com.hfstudio.guidenh.client.capture.api.CaptureContentOptions;
 import com.hfstudio.guidenh.client.capture.api.CaptureContext;
 import com.hfstudio.guidenh.client.capture.api.CaptureFrame;
+import com.hfstudio.guidenh.client.capture.api.CaptureLayerSource;
 import com.hfstudio.guidenh.client.capture.api.CapturePixelReader;
 import com.hfstudio.guidenh.client.capture.api.CaptureProviderAvailability;
-import com.hfstudio.guidenh.client.capture.api.CaptureSource;
 
-public class FinalFrameCaptureSource implements CaptureSource {
+public class FinalFrameCaptureSource implements CaptureLayerSource {
 
     private final GuiLayerCaptureSource guiLayer = new GuiLayerCaptureSource();
     private long completedFrame = Long.MIN_VALUE;
@@ -43,6 +43,11 @@ public class FinalFrameCaptureSource implements CaptureSource {
     @Override
     public CaptureFrame captureCompletedFrame(CaptureContext context, CapturePixelReader reader, long timestamp) {
         return guiLayer.captureCompletedFrame(context, reader, timestamp);
+    }
+
+    @Override
+    public CaptureFrame captureGuiLayer(CaptureContext context, CapturePixelReader reader, long timestamp) {
+        return guiLayer.captureGuiLayer(context, reader, timestamp);
     }
 
     @Override

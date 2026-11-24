@@ -42,7 +42,8 @@ public enum Mixins implements IMixins {
         "compat.mui.MixinCaptureMuiTooltip"),
 
     MUI2_CAPTURE_TOOLTIP(Side.CLIENT, Phase.LATE, Mods.ModularUI2, "compat.mui2.MixinCaptureMui2Tooltip",
-        "compat.mui2.MixinCaptureMui2TooltipVisibility"),
+        "compat.mui2.MixinCaptureMui2TooltipVisibility", "compat.mui2.MixinCaptureMui2Background",
+        "compat.mui2.MixinCaptureMui2Alpha", "compat.mui2.MixinCaptureMui2Blend"),
 
     SERVER_CAPTURE_CONTAINER(new MixinBuilder()
         .addCommonMixins("minecraft.MixinCaptureServerContainer", "minecraft.AccessorCaptureEnderInventory")

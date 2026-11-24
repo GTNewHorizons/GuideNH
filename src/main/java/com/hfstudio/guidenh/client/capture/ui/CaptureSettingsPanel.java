@@ -45,6 +45,7 @@ public class CaptureSettingsPanel {
     private String filterLanguage = "";
     private int contentHeight;
     private CaptureRect content = new CaptureRect(0, 0, 0, 0);
+    private CaptureRect clearSearch = new CaptureRect(0, 0, 0, 0);
     private int draggingSlider = -1;
     private boolean draggingScrollbar;
     private float scrollbarGrab;
@@ -135,6 +136,12 @@ public class CaptureSettingsPanel {
         toggle("snap_components", () -> config.snapComponents, value -> config.snapComponents = value, false);
         toggle("snap_windows", () -> config.snapWindows, value -> config.snapWindows = value, false);
         toggle("class_name", () -> config.showClassName, value -> config.showClassName = value, false);
+        toggle(
+            "selection_decorations",
+            () -> config.showSelectionDecorations,
+            value -> config.showSelectionDecorations = value,
+            false);
+        toggle("capture_area", () -> config.showCaptureArea, value -> config.showCaptureArea = value, false);
         toggle("freeze", () -> config.freezePreview, value -> config.freezePreview = value, true);
         toggle("close_after_save", () -> config.closeAfterSave, value -> config.closeAfterSave = value, false);
         toggle("refresh_before_save", () -> config.refreshBeforeSave, value -> config.refreshBeforeSave = value, false);
@@ -353,22 +360,35 @@ public class CaptureSettingsPanel {
         if (!open) return;
         bounds = new CaptureRect(x, y, width, height);
         Gui.drawRect(x, y, x + width, y + height, CaptureUiColors.SURFACE);
-        minecraft.fontRenderer.drawStringWithShadow(I18n.format("guidenh.capture.settings"), x + 8, y + 7, 0xFFFFFF);
-        search.layout(x + 8, y + 21, Math.max(16, width - 16), 18);
+        String title = minecraft.fontRenderer
+            .trimStringToWidth(I18n.format("guidenh.capture.settings"), Math.max(1, width / 3));
+        int searchX = x + 16 + minecraft.fontRenderer.getStringWidth(title);
+        int searchWidth = Math.max(16, x + width - 8 - searchX);
+        boolean hasSearch = !search.getText()
+            .isEmpty();
+        clearSearch = new CaptureRect(x + width - 28, y + 4, 20, 18);
+        minecraft.fontRenderer.drawStringWithShadow(title, x + 8, y + 9, 0xFFFFFF);
+        search.layout(searchX, y + 4, Math.max(16, searchWidth - (hasSearch ? 22 : 0)), 18);
         search.drawTextBox();
         if (search.getText()
             .isEmpty() && !search.isFocused())
             minecraft.fontRenderer.drawStringWithShadow(
                 minecraft.fontRenderer
-                    .trimStringToWidth(I18n.format("guidenh.capture.settings_search"), Math.max(1, width - 40)),
-                x + 12,
-                y + 26,
+                    .trimStringToWidth(I18n.format("guidenh.capture.settings_search"), Math.max(1, searchWidth - 24)),
+                searchX + 4,
+                y + 9,
                 0x919EAC);
-        if (!search.getText()
-            .isEmpty())
-            GuideIconButton.drawIcon(minecraft, CaptureIcons.CLOSE, x + width - 26, y + 22, 16, 16, 0xFFFFFFFF);
+        if (hasSearch) {
+            Gui.drawRect(
+                (int) clearSearch.x(),
+                (int) clearSearch.y(),
+                (int) clearSearch.right(),
+                (int) clearSearch.bottom(),
+                CaptureUiColors.INPUT);
+            GuideIconButton.drawIcon(minecraft, CaptureIcons.CLOSE, x + width - 26, y + 5, 16, 16, 0xFFFFFFFF);
+        }
         filter();
-        content = new CaptureRect(x + 4, y + 44, Math.max(1, width - 8), Math.max(1, height - 76));
+        content = new CaptureRect(x + 4, y + 28, Math.max(1, width - 8), Math.max(1, height - 60));
         scroll = Math.clamp(scroll, 0, Math.max(0, contentHeight - (float) content.height()));
         visualScroll.updateTowards(scroll, 20, 0.1f, 0.1f, Float.POSITIVE_INFINITY);
         GL11.glPushAttrib(GL11.GL_SCISSOR_BIT);
@@ -391,7 +411,7 @@ public class CaptureSettingsPanel {
                 drawRow(setting, index, x, rowY, width, rowHeight, mouseX, mouseY);
             }
             if (filtered.isEmpty()) minecraft.fontRenderer
-                .drawStringWithShadow(I18n.format("guidenh.capture.settings_no_results"), x + 8, y + 49, 0x919EAC);
+                .drawStringWithShadow(I18n.format("guidenh.capture.settings_no_results"), x + 8, y + 33, 0x919EAC);
         } finally {
             GL11.glPopAttrib();
         }
@@ -508,12 +528,16 @@ public class CaptureSettingsPanel {
 
     public void click(int x, int y, int button) {
         if (!contains(x, y)) return;
+        if (button == 0 && clearSearch.contains(x, y)
+            && !search.getText()
+                .isEmpty()) {
+            if (editing >= 0 && !applyEdit()) return;
+            search.setText("");
+            search.setFocused(true);
+            return;
+        }
         if (search.contains(x, y)) {
             if (editing >= 0 && !applyEdit()) return;
-            if (button == 0 && x >= bounds.right() - 28
-                && !search.getText()
-                    .isEmpty())
-                search.setText("");
             search.mouseClicked(x, y, button);
             search.setFocused(true);
             return;
@@ -606,7 +630,8 @@ public class CaptureSettingsPanel {
 
     public void scroll(int amount) {
         if (editing >= 0 && !applyEdit()) return;
-        float movement = Math.abs(amount) >= 120 ? amount / 120f * 36 : amount;
+        float notches = Math.abs((long) amount) >= 120 ? amount / 120f : amount;
+        float movement = notches * 72;
         scroll = Math.clamp(scroll - movement, 0, Math.max(0, contentHeight - (float) content.height()));
     }
 

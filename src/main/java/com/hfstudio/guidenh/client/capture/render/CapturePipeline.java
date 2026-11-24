@@ -7,6 +7,7 @@ import com.hfstudio.guidenh.client.capture.api.CaptureBackendSelection;
 import com.hfstudio.guidenh.client.capture.api.CaptureContentOptions;
 import com.hfstudio.guidenh.client.capture.api.CaptureContext;
 import com.hfstudio.guidenh.client.capture.api.CaptureFrame;
+import com.hfstudio.guidenh.client.capture.api.CaptureLayerSource;
 import com.hfstudio.guidenh.client.capture.api.CapturePixelReader;
 import com.hfstudio.guidenh.client.capture.api.CapturePixelReaderProvider;
 import com.hfstudio.guidenh.client.capture.api.CaptureProviderAvailability;
@@ -135,6 +136,20 @@ public class CapturePipeline implements AutoCloseable {
         return reader;
     }
 
+    public boolean supportsLayerCapture() {
+        return source instanceof CaptureLayerSource;
+    }
+
+    public CaptureFrame captureGuiLayer(CaptureContext context, CapturePixelReader pixelReader, long timestamp) {
+        if (!(source instanceof CaptureLayerSource layered))
+            throw new IllegalStateException("The capture source does not expose an isolated GUI layer");
+        if (context.phase() != source.capturePhase())
+            throw new IllegalStateException("The capture source phase is not ready");
+        CaptureProviderAvailability readiness = source.readiness(context);
+        if (!readiness.available()) throw new IllegalStateException(readiness.reason());
+        return validateFrame(context, layered.captureGuiLayer(context, pixelReader, timestamp));
+    }
+
     public CaptureRenderPhase capturePhase() {
         return source == null ? null : source.capturePhase();
     }
@@ -145,7 +160,11 @@ public class CapturePipeline implements AutoCloseable {
             throw new IllegalStateException("The capture source phase is not ready");
         CaptureProviderAvailability readiness = source.readiness(context);
         if (!readiness.available()) throw new IllegalStateException(readiness.reason());
-        CaptureFrame frame = Objects.requireNonNull(source.capture(context, pixelReader, timestamp));
+        return validateFrame(context, source.capture(context, pixelReader, timestamp));
+    }
+
+    private static CaptureFrame validateFrame(CaptureContext context, CaptureFrame result) {
+        CaptureFrame frame = Objects.requireNonNull(result);
         if (frame.width() != context.viewport()
             .pixelWidth() || frame.height()
                 != context.viewport()

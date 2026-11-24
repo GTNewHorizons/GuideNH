@@ -8,6 +8,7 @@ import com.hfstudio.guidenh.client.capture.render.GuiLayerCaptureSourceProvider;
 import com.hfstudio.guidenh.client.capture.server.CaptureClientConnection;
 import com.hfstudio.guidenh.client.hotkey.OpenGuiCaptureHotkey;
 import com.hfstudio.guidenh.integration.Mods;
+import com.hfstudio.guidenh.integration.angelica.capture.AngelicaCaptureAlpha;
 import com.hfstudio.guidenh.integration.angelica.capture.AngelicaCaptureBrightness;
 import com.hfstudio.guidenh.integration.angelica.capture.AngelicaCapturePixelReaderProvider;
 import com.hfstudio.guidenh.integration.angelica.capture.AngelicaCaptureRenderProbe;
@@ -49,6 +50,7 @@ public class GuiCaptureBootstrap {
         runtime.initialize();
         if (Mods.Angelica.isModLoaded()) {
             AngelicaCaptureBrightness.initialize();
+            AngelicaCaptureAlpha.initialize();
             runtime.renderProbe(new AngelicaCaptureRenderProbe(), true);
             runtime.registry()
                 .registerReader(new AngelicaOpenGlPixelReaderProvider());

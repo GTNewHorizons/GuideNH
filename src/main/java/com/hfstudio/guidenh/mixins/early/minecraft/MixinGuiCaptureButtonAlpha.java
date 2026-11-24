@@ -9,6 +9,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
 
 import com.hfstudio.guidenh.client.capture.CaptureRuntime;
+import com.hfstudio.guidenh.client.capture.render.CaptureAlphaBlend;
 
 @Mixin(GuiButton.class)
 public class MixinGuiCaptureButtonAlpha {
@@ -17,7 +18,7 @@ public class MixinGuiCaptureButtonAlpha {
         method = "drawButton",
         at = @At(value = "INVOKE", target = "Lorg/lwjgl/opengl/GL11;glBlendFunc(II)V", remap = false))
     private void guidenh$blendCaptureButton(int source, int destination) {
-        if (CaptureRuntime.instance()
+        if (CaptureAlphaBlend.sourceOver(source, destination) && CaptureRuntime.instance()
             .capturingGuiLayer()) {
             OpenGlHelper.glBlendFunc(source, destination, GL11.GL_ONE, GL11.GL_ONE_MINUS_SRC_ALPHA);
         } else GL11.glBlendFunc(source, destination);

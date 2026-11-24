@@ -4,6 +4,17 @@ public record CaptureContentOptions(boolean includeWorld, boolean includeGuiBack
     boolean includeDebug, boolean includeNei, int backgroundArgb, boolean includeHud, boolean includeCursor,
     boolean includeGui, boolean includePlayerInventory, boolean fullBrightness) {
 
+    public boolean sameGuiLayer(CaptureContentOptions other) {
+        return includeGuiBackdrop == other.includeGuiBackdrop && includeTooltips == other.includeTooltips
+            && includeDebug == other.includeDebug
+            && includeNei == other.includeNei
+            && includeHud == other.includeHud
+            && includeCursor == other.includeCursor
+            && includeGui == other.includeGui
+            && includePlayerInventory == other.includePlayerInventory
+            && fullBrightness == other.fullBrightness;
+    }
+
     public CaptureContentOptions(boolean includeWorld, boolean includeGuiBackdrop, boolean includeTooltips,
         boolean includeDebug, boolean includeNei, int backgroundArgb, boolean includeHud, boolean includeCursor) {
         this(

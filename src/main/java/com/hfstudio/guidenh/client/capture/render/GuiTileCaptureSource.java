@@ -20,6 +20,11 @@ public class GuiTileCaptureSource implements AutoCloseable {
 
     public static final int GUARD = 2;
     private Framebuffer framebuffer;
+    private boolean drawing;
+
+    public boolean drawing() {
+        return drawing;
+    }
 
     public void bindCurrent(boolean viewport) {
         framebuffer.bindFramebuffer(viewport);
@@ -75,8 +80,13 @@ public class GuiTileCaptureSource implements AutoCloseable {
             GL11.glColor4f(1, 1, 1, 1);
             OpenGlHelper
                 .glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA, GL11.GL_ONE, GL11.GL_ONE_MINUS_SRC_ALPHA);
-            snapshot.draw();
-            return reader.readPremultiplied(0, 0, width, height, timestamp);
+            drawing = true;
+            try {
+                snapshot.draw();
+                return reader.readPremultiplied(0, 0, width, height, timestamp);
+            } finally {
+                drawing = false;
+            }
         }
     }
 

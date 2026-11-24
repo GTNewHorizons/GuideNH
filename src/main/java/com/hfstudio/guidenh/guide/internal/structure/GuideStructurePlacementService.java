@@ -16,17 +16,14 @@ public class GuideStructurePlacementService {
         this(name -> (Block) Block.blockRegistry.getObject(name));
     }
 
-    GuideStructurePlacementService(StructureBlockResolver blockResolver) {
+    public GuideStructurePlacementService(StructureBlockResolver blockResolver) {
         this.blockResolver = blockResolver;
     }
 
     public GuideStructureData parse(String structureText) throws Exception {
         NBTTagCompound root = readStructureNbt(structureText.getBytes(StandardCharsets.UTF_8));
         int[] size = root.getIntArray("size");
-        int sizeX = size.length > 0 ? size[0] : 0;
-        int sizeY = size.length > 1 ? size[1] : 0;
-        int sizeZ = size.length > 2 ? size[2] : 0;
-        return new GuideStructureData(root, sizeX, sizeY, sizeZ);
+        return new GuideStructureData(root, size[0], size[1], size[2]);
     }
 
     public void place(GuideStructurePlacementTarget target, GuideStructureData structure, int offsetX, int offsetY,

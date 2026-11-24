@@ -67,6 +67,12 @@ public class CaptureConfig {
     public boolean showClassName = true;
 
     @DefaultBoolean(true)
+    public boolean showSelectionDecorations = true;
+
+    @DefaultBoolean(false)
+    public boolean showCaptureArea;
+
+    @DefaultBoolean(true)
     public boolean freezePreview = true;
 
     @DefaultBoolean(false)

@@ -4,6 +4,7 @@ import net.minecraft.client.renderer.OpenGlHelper;
 import net.minecraft.client.renderer.Tessellator;
 
 import org.lwjgl.opengl.GL11;
+import org.lwjgl.opengl.GL14;
 import org.lwjgl.opengl.GL20;
 import org.lwjgl.opengl.GLContext;
 
@@ -17,6 +18,20 @@ public class CaptureTextureRenderer {
         OpenGlHelper.setActiveTexture(OpenGlHelper.lightmapTexUnit);
         GL11.glDisable(GL11.GL_TEXTURE_2D);
         OpenGlHelper.setActiveTexture(OpenGlHelper.defaultTexUnit);
+        GL11.glMatrixMode(GL11.GL_TEXTURE);
+        GL11.glLoadIdentity();
+        GL11.glMatrixMode(GL11.GL_MODELVIEW);
+        GL11.glTexEnvi(GL11.GL_TEXTURE_ENV, GL11.GL_TEXTURE_ENV_MODE, GL11.GL_MODULATE);
+        GL11.glDisable(GL11.GL_TEXTURE_GEN_S);
+        GL11.glDisable(GL11.GL_TEXTURE_GEN_T);
+        GL11.glDisable(GL11.GL_TEXTURE_GEN_R);
+        GL11.glDisable(GL11.GL_TEXTURE_GEN_Q);
+        GL11.glDisable(GL11.GL_SCISSOR_TEST);
+        GL11.glDisable(GL11.GL_STENCIL_TEST);
+        GL11.glDisable(GL11.GL_CULL_FACE);
+        GL11.glDisable(GL11.GL_COLOR_LOGIC_OP);
+        GL11.glColorMask(true, true, true, true);
+        if (GLContext.getCapabilities().OpenGL14) GL14.glBlendEquation(GL14.GL_FUNC_ADD);
         GL11.glDisable(GL11.GL_LIGHTING);
         GL11.glDisable(GL11.GL_FOG);
         GL11.glDisable(GL11.GL_DEPTH_TEST);

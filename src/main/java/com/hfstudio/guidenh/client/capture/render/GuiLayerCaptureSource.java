@@ -9,13 +9,13 @@ import org.lwjgl.opengl.GL11;
 import com.hfstudio.guidenh.client.capture.api.CaptureContentOptions;
 import com.hfstudio.guidenh.client.capture.api.CaptureContext;
 import com.hfstudio.guidenh.client.capture.api.CaptureFrame;
+import com.hfstudio.guidenh.client.capture.api.CaptureLayerSource;
 import com.hfstudio.guidenh.client.capture.api.CapturePixelReader;
 import com.hfstudio.guidenh.client.capture.api.CaptureProviderAvailability;
-import com.hfstudio.guidenh.client.capture.api.CaptureSource;
 import com.hfstudio.guidenh.client.capture.api.CaptureViewport;
 import com.hfstudio.guidenh.guide.render.GuiRenderVisibility;
 
-public class GuiLayerCaptureSource implements CaptureSource {
+public class GuiLayerCaptureSource implements CaptureLayerSource {
 
     private Framebuffer framebuffer;
     private CaptureRenderScope scope;
@@ -53,18 +53,12 @@ public class GuiLayerCaptureSource implements CaptureSource {
     @Override
     public CaptureFrame captureCompletedFrame(CaptureContext context, CapturePixelReader reader, long timestamp) {
         if (!includeWorld) return read(reader, timestamp);
-        try (CaptureRenderScope reading = new CaptureRenderScope()) {
-            if (OpenGlHelper.framebufferSupported) OpenGlHelper.func_153171_g(OpenGlHelper.field_153198_e, 0);
-            GL11.glReadBuffer(GL11.GL_BACK);
-            return reader.readOpaque(
-                0,
-                0,
-                context.viewport()
-                    .pixelWidth(),
-                context.viewport()
-                    .pixelHeight(),
-                timestamp);
-        }
+        return CaptureWorldReader.read(context, reader, timestamp);
+    }
+
+    @Override
+    public CaptureFrame captureGuiLayer(CaptureContext context, CapturePixelReader reader, long timestamp) {
+        return read(reader, timestamp);
     }
 
     @Override
@@ -112,6 +106,8 @@ public class GuiLayerCaptureSource implements CaptureSource {
         restoreScope();
         if (!captured) return;
         try (CaptureRenderScope composite = new CaptureRenderScope()) {
+            minecraft.getFramebuffer()
+                .bindFramebuffer(true);
             minecraft.entityRenderer.setupOverlayRendering();
             CaptureTextureRenderer.prepareOverlay();
             CaptureTextureRenderer.draw(
