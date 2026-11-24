@@ -95,7 +95,6 @@ public class GuideTextNbtCodec {
             }
         }
 
-        GuideStructureSchema.validate(root);
         rewriteStructureTileTags(root, false);
         rewriteStructureEntityTags(root, false);
         return root;
