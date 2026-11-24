@@ -38,6 +38,7 @@ import com.hfstudio.guidenh.client.capture.api.CaptureClientGuiFactory;
 import com.hfstudio.guidenh.client.capture.api.CaptureContentOptions;
 import com.hfstudio.guidenh.client.capture.api.CaptureContext;
 import com.hfstudio.guidenh.client.capture.api.CaptureExportRequest;
+import com.hfstudio.guidenh.client.capture.api.CaptureExporter;
 import com.hfstudio.guidenh.client.capture.api.CaptureFrame;
 import com.hfstudio.guidenh.client.capture.api.CaptureFrameIdentity;
 import com.hfstudio.guidenh.client.capture.api.CaptureGeometry;
@@ -55,9 +56,12 @@ import com.hfstudio.guidenh.client.capture.api.CaptureRenderPhase;
 import com.hfstudio.guidenh.client.capture.api.CaptureRenderProbe;
 import com.hfstudio.guidenh.client.capture.api.CaptureRenderSnapshot;
 import com.hfstudio.guidenh.client.capture.api.CaptureRenderState;
+import com.hfstudio.guidenh.client.capture.api.CaptureRowExporter;
 import com.hfstudio.guidenh.client.capture.api.CaptureRows;
+import com.hfstudio.guidenh.client.capture.api.CaptureScheduleCondition;
 import com.hfstudio.guidenh.client.capture.api.CaptureSessionState;
 import com.hfstudio.guidenh.client.capture.api.CaptureTarget;
+import com.hfstudio.guidenh.client.capture.api.CaptureTargetChangePolicy;
 import com.hfstudio.guidenh.client.capture.api.CaptureViewport;
 import com.hfstudio.guidenh.client.capture.batch.CaptureBatchEngine;
 import com.hfstudio.guidenh.client.capture.cursor.CaptureSystemCursor;
@@ -135,7 +139,7 @@ public class CaptureRuntime implements CaptureBackendControls, IResourceManagerR
     private CaptureRenderState pendingTarget;
     private CaptureRenderPhase pendingPhase;
     private boolean backendPresentationHook;
-    private final CaptureExportWorker exporter = new CaptureExportWorker();
+    private final CaptureExportWorker exporter = new CaptureExportWorker(registry);
     private volatile CaptureSession session;
     private Thread captureThread;
     private CaptureOverlay overlay;
@@ -149,6 +153,7 @@ public class CaptureRuntime implements CaptureBackendControls, IResourceManagerR
     private boolean nativeKeyboard;
     private final GuiTileCaptureSource tileSource = new GuiTileCaptureSource();
     private CaptureHighResolutionJob highResolution;
+    private CaptureRowExporter highResolutionEncoder;
     private boolean pendingSave;
     private boolean drawingTile;
     private int sourceMouseX;
@@ -204,6 +209,9 @@ public class CaptureRuntime implements CaptureBackendControls, IResourceManagerR
     }
 
     private long memoryBudget() {
+        if (session != null && session.recording() != null) return session.recording()
+            .options()
+            .memoryBudgetBytes();
         return batch != null && batch.busy() ? batch.catalog()
             .options()
             .memoryBudgetBytes()
@@ -212,6 +220,12 @@ public class CaptureRuntime implements CaptureBackendControls, IResourceManagerR
     }
 
     private void discardPendingFrame() {
+        if (batch != null) {
+            if (pendingReadback != null) batch.discardFrame(
+                pendingReadback.context()
+                    .frameId());
+            else if (pendingFrame != null) batch.discardFrame(frameId);
+        }
         if (pendingReadback != null) pendingReadback.close();
         pendingReadback = null;
         if (pendingFrame != null) pendingFrame.close();
@@ -255,6 +269,7 @@ public class CaptureRuntime implements CaptureBackendControls, IResourceManagerR
                 CaptureReadback readback = pipeline.enqueueGuiLayer(context, reader, timestamp, memoryBudget());
                 try {
                     collectRenderedGeometry(null);
+                    prepareBatchFrame(context);
                     CaptureFrameIdentity identity = new CaptureFrameIdentity(
                         pipeline.selection(),
                         previewSelection(),
@@ -273,6 +288,7 @@ public class CaptureRuntime implements CaptureBackendControls, IResourceManagerR
                         drawRecorder.take());
                     pendingWorld = null;
                 } catch (RuntimeException error) {
+                    if (batch != null) batch.discardFrame(context.frameId());
                     readback.close();
                     throw error;
                 }
@@ -282,6 +298,7 @@ public class CaptureRuntime implements CaptureBackendControls, IResourceManagerR
                 pendingFrame = pipeline.capture(context, reader, System.nanoTime());
                 collectRenderedGeometry(null);
             }
+            prepareBatchFrame(context);
             pendingIdentity = new CaptureFrameIdentity(pipeline.selection(), previewSelection(), content());
             pendingTarget = reusingLayers ? frozenLayers.target() : reader.target();
             pendingPhase = phase;
@@ -344,6 +361,9 @@ public class CaptureRuntime implements CaptureBackendControls, IResourceManagerR
                 }
             }
         } catch (RuntimeException error) {
+            if (batch != null) batch.discardFrame(
+                queued.context()
+                    .frameId());
             captureFailed(error);
         }
     }
@@ -391,6 +411,12 @@ public class CaptureRuntime implements CaptureBackendControls, IResourceManagerR
                 capturedContext,
                 captured == null ? batchHost.context()
                     .geometry() : captured));
+    }
+
+    private void prepareBatchFrame(CaptureContext context) {
+        if (batch == null || !batch.busy()) return;
+        batch.framePrepared(
+            new CaptureBatchContext(context, renderedGeometry == null ? registry.collect(context) : renderedGeometry));
     }
 
     public String readerId() {
@@ -651,7 +677,7 @@ public class CaptureRuntime implements CaptureBackendControls, IResourceManagerR
         previousKeyRepeat = Keyboard.areRepeatEventsEnabled();
         captureThread = Thread.currentThread();
         Keyboard.enableRepeatEvents(true);
-        session = new CaptureSession(source, viewport, gameplay);
+        session = new CaptureSession(source, viewport, gameplay, registry);
         OpenGuiCaptureHotkey.captureOpened();
         updateSourcePointer(session.viewport(), true);
         sourceVisible = true;
@@ -768,14 +794,14 @@ public class CaptureRuntime implements CaptureBackendControls, IResourceManagerR
         long sampleTime = System.nanoTime();
         if (batchRecording != null) {
             batchRecording.tick(sampleTime);
-            if (!batchRecording.finished() && !batchRecording.paused()
-                && !viewport.equals(
-                    batchRecording.request()
-                        .viewport()))
-                batchRecording.togglePause(sampleTime);
+            if (!batchRecording.finished() && !viewport.equals(
+                batchRecording.request()
+                    .viewport()))
+                batchRecordingTargetChanged(sampleTime);
         }
-        boolean wanted = session.wantsFrame(sampleTime)
-            || batchRecording != null && batchRecording.needsFrame(sampleTime);
+        boolean batchFrame = batchRecording != null && batchRecording.needsFrame(sampleTime);
+        boolean wanted = session.wantsFrame(sampleTime, batchRecording != null && batchRecording.sampling())
+            || batchFrame;
         frameRequested = wanted && pendingReadback == null && highResolution == null;
         reusingLayers = session.settings()
             .config().freezePreview
@@ -799,10 +825,11 @@ public class CaptureRuntime implements CaptureBackendControls, IResourceManagerR
             && renderProbe.capture(captureContext(), memoryBudget())
                 .openGl())
             drawRecorder.begin(captureContext(), content(), memoryBudget());
-        updateSourcePointer(
-            viewport,
-            !session.settings()
-                .config().freezePreview);
+        updateSourcePointer(viewport, livePreview());
+    }
+
+    private boolean livePreview() {
+        return session != null && (session.livePreview() || batchRecording != null && batchRecording.sampling());
     }
 
     private void updateSourcePointer(CaptureViewport viewport, boolean sample) {
@@ -820,13 +847,11 @@ public class CaptureRuntime implements CaptureBackendControls, IResourceManagerR
     }
 
     public int captureMouseX(int original) {
-        return session != null && session.settings()
-            .config().freezePreview ? sourceMouseX : original;
+        return session != null && !livePreview() ? sourceMouseX : original;
     }
 
     public int captureMouseY(int original) {
-        return session != null && session.settings()
-            .config().freezePreview ? sourceMouseY : original;
+        return session != null && !livePreview() ? sourceMouseY : original;
     }
 
     public void worldReady() {
@@ -1155,8 +1180,11 @@ public class CaptureRuntime implements CaptureBackendControls, IResourceManagerR
                     if (highResolution.step(tileSource, pipeline.reader())) {
                         CaptureRows rows = highResolution.takeRows();
                         CompletableFuture<CaptureOutputArtifact> completion = highResolutionCompletion;
-                        CompletableFuture<CaptureOutputArtifact> writing = exporter
-                            .submitRows(highResolution.request(), rows, highResolution.timestampNanos());
+                        CompletableFuture<CaptureOutputArtifact> writing = exporter.submitRows(
+                            highResolution.request(),
+                            rows,
+                            highResolution.timestampNanos(),
+                            highResolutionEncoder);
                         completion
                             .whenComplete((artifact, error) -> { if (completion.isCancelled()) writing.cancel(true); });
                         writing.whenComplete((artifact, error) -> {
@@ -1166,6 +1194,7 @@ public class CaptureRuntime implements CaptureBackendControls, IResourceManagerR
                         highResolutionCompletion = null;
                         highResolution.close();
                         highResolution = null;
+                        highResolutionEncoder = null;
                         tileSource.close();
                     } else session.notify(
                         I18n.format(
@@ -1216,6 +1245,14 @@ public class CaptureRuntime implements CaptureBackendControls, IResourceManagerR
             close();
             return;
         }
+        if (session.nextRecordingRequested() && session.recording() == null && captureAvailable()) {
+            if (!sourceMatches(Minecraft.getMinecraft().currentScreen)) {
+                adoptCurrentSource();
+                session.selections()
+                    .clearTracking();
+            }
+            if (session.canSave()) startRecording();
+        }
         updateSchedule(System.nanoTime());
         if (!sourceVisible) unavailableSource();
     }
@@ -1249,6 +1286,20 @@ public class CaptureRuntime implements CaptureBackendControls, IResourceManagerR
         inputEvents.clear();
         registry.opened(new CaptureContext(source, viewport, frameId, partialTicks));
         Keyboard.enableRepeatEvents(true);
+    }
+
+    private void adoptCurrentSource() {
+        Minecraft minecraft = Minecraft.getMinecraft();
+        if (sourceMatches(minecraft.currentScreen)) return;
+        boolean gameplay = minecraft.currentScreen == null;
+        if (gameplay && minecraft.theWorld == null) return;
+        GuiScreen source = gameplay ? new CaptureGameplayScreen() : minecraft.currentScreen;
+        CaptureViewport viewport = CaptureCoordinateMapper.current(minecraft);
+        if (gameplay) {
+            source.setWorldAndResolution(minecraft, viewport.logicalWidth(), viewport.logicalHeight());
+            minecraft.setIngameNotInFocus();
+        }
+        adoptSourceScreen(source, gameplay);
     }
 
     public void close() {
@@ -1312,8 +1363,8 @@ public class CaptureRuntime implements CaptureBackendControls, IResourceManagerR
 
     public void save() {
         if (!session.canSave()) return;
-        if (!session.settings()
-            .config().format.equals("png")) {
+        if (session.settings()
+            .animationFormat()) {
             startRecording();
             return;
         }
@@ -1408,10 +1459,8 @@ public class CaptureRuntime implements CaptureBackendControls, IResourceManagerR
                 .notify(I18n.format("guidenh.capture.countdown", schedule.secondsUntil(now), schedule.remaining()));
             return;
         }
-        boolean available = sourceVisible && Display.isActive() && Display.isVisible();
-        if (!available) {
-            String policy = session.settings()
-                .config().unavailablePolicy;
+        String policy = scheduleUnavailablePolicy();
+        if (policy != null) {
             if (policy.equals("skip")) schedule.consumed(now);
             else if (policy.equals("stop")) schedule.cancel();
             else session.notify(I18n.format("guidenh.capture.schedule_waiting"));
@@ -1419,25 +1468,58 @@ public class CaptureRuntime implements CaptureBackendControls, IResourceManagerR
         }
         if (!session.canSave()) return;
         schedule.consumed(now);
-        if (session.settings()
-            .config().format.equals("png")) {
+        if (!session.settings()
+            .animationFormat()) {
             pendingSave = true;
             session.requestRefresh();
         } else startRecording();
     }
 
+    private String scheduleUnavailablePolicy() {
+        Minecraft minecraft = Minecraft.getMinecraft();
+        String policy = null;
+        if (!Display.isActive()) policy = mergeSchedulePolicy(policy, CaptureScheduleCondition.FOCUS);
+        if (!Display.isVisible()) policy = mergeSchedulePolicy(policy, CaptureScheduleCondition.MINIMIZED);
+        boolean noGui = minecraft.currentScreen == null && (!session.settings()
+            .gameplay() || minecraft.theWorld == null);
+        if (noGui) policy = mergeSchedulePolicy(policy, CaptureScheduleCondition.NO_GUI);
+        if (minecraft.isGamePaused()) policy = mergeSchedulePolicy(policy, CaptureScheduleCondition.PAUSED);
+        if (!sourceVisible && !noGui || session.targetMissing())
+            policy = mergeSchedulePolicy(policy, CaptureScheduleCondition.TARGET);
+        return policy;
+    }
+
+    private String mergeSchedulePolicy(String existing, CaptureScheduleCondition condition) {
+        String policy = session.settings()
+            .schedulePolicy(condition);
+        if ("stop".equals(existing) || "stop".equals(policy)) return "stop";
+        if ("skip".equals(existing) || "skip".equals(policy)) return "skip";
+        return "wait";
+    }
+
     private void unavailableSource() {
         sourceVisible = false;
         if (batch != null && batch.busy()) {
-            if (batchRecording != null && !batchRecording.finished() && !batchRecording.paused())
-                batchRecording.togglePause(System.nanoTime());
+            batchRecordingTargetChanged(System.nanoTime());
             return;
         }
         CaptureRecording recording = session.recording();
-        if (recording != null && !recording.finished()) {
-            if (!recording.paused()) session.pauseRecording();
-            session.notify(I18n.format("guidenh.capture.target_changed"));
-        } else if (schedule == null) close();
+        if (recording != null) {
+            if (!recording.finished()) {
+                session.targetChanged();
+                if (recording.options()
+                    .targetChangePolicy() == CaptureTargetChangePolicy.PAUSE)
+                    session.notify(I18n.format("guidenh.capture.target_changed"));
+            }
+        } else if (schedule == null && !session.nextRecordingRequested()) close();
+    }
+
+    private void batchRecordingTargetChanged(long now) {
+        if (batchRecording == null || batchRecording.finished()) return;
+        if (batchRecording.options()
+            .targetChangePolicy() == CaptureTargetChangePolicy.PAUSE) {
+            if (!batchRecording.paused()) batchRecording.togglePause(now);
+        } else batchRecording.stop(now);
     }
 
     private void saveNow() {
@@ -1484,7 +1566,13 @@ public class CaptureRuntime implements CaptureBackendControls, IResourceManagerR
         String quality = request.options()
             .resolution()
             .qualityPolicy();
-        if (enlarged && !quality.equals("compatible")) {
+        CaptureExporter encoder = registry.exporter(
+            request.options()
+                .format());
+        CaptureRowExporter rowEncoder = encoder instanceof CaptureRowExporter supported ? supported : null;
+        if (enlarged && quality.equals("strict") && rowEncoder == null)
+            throw new IllegalArgumentException(I18n.format("guidenh.capture.no_row_exporter", encoder.format()));
+        if (enlarged && !quality.equals("compatible") && rowEncoder != null) {
             CaptureContext context = new CaptureContext(
                 session.sourceScreen(),
                 session.viewport(),
@@ -1530,6 +1618,7 @@ public class CaptureRuntime implements CaptureBackendControls, IResourceManagerR
                     snapshot.close();
                     throw error;
                 }
+                highResolutionEncoder = rowEncoder;
                 highResolutionCompletion = new CompletableFuture<>();
                 session.outputQuality("redrawn");
                 return highResolutionCompletion;
@@ -1538,7 +1627,7 @@ public class CaptureRuntime implements CaptureBackendControls, IResourceManagerR
                 throw new IllegalArgumentException(I18n.format("guidenh.capture.no_high_resolution"));
         }
         session.outputQuality(enlarged ? "resampled" : "native");
-        return exporter.submit(request, frame, "png");
+        return exporter.submit(request, frame, encoder);
     }
 
     public class RuntimeBatchHost implements CaptureBatchHost {
@@ -1607,17 +1696,12 @@ public class CaptureRuntime implements CaptureBackendControls, IResourceManagerR
 
         @Override
         public void adoptScreen() {
-            Minecraft minecraft = Minecraft.getMinecraft();
-            if (sourceMatches(minecraft.currentScreen)) return;
-            boolean gameplay = minecraft.currentScreen == null;
-            if (gameplay && minecraft.theWorld == null) return;
-            GuiScreen source = gameplay ? new CaptureGameplayScreen() : minecraft.currentScreen;
-            CaptureViewport viewport = CaptureCoordinateMapper.current(minecraft);
-            if (gameplay) {
-                source.setWorldAndResolution(minecraft, viewport.logicalWidth(), viewport.logicalHeight());
-                minecraft.setIngameNotInFocus();
-            }
-            adoptSourceScreen(source, gameplay);
+            adoptCurrentSource();
+        }
+
+        @Override
+        public void requestFrame() {
+            session.requestRefresh();
         }
 
         @Override
@@ -1702,6 +1786,7 @@ public class CaptureRuntime implements CaptureBackendControls, IResourceManagerR
         if (highResolutionCompletion != null)
             highResolutionCompletion.completeExceptionally(new CancellationException("Capture cancelled"));
         highResolutionCompletion = null;
+        highResolutionEncoder = null;
         try {
             if (highResolution != null) highResolution.close();
         } catch (IOException error) {
@@ -1715,6 +1800,8 @@ public class CaptureRuntime implements CaptureBackendControls, IResourceManagerR
     private void fallbackHighResolution(CaptureRedrawMismatchException mismatch) {
         CaptureHighResolutionJob failed = highResolution;
         CompletableFuture<CaptureOutputArtifact> completion = highResolutionCompletion;
+        CaptureRowExporter encoder = highResolutionEncoder;
+        highResolutionEncoder = null;
         highResolution = null;
         highResolutionCompletion = null;
         if (failed.originalRequest()
@@ -1735,7 +1822,7 @@ public class CaptureRuntime implements CaptureBackendControls, IResourceManagerR
             CaptureExportRequest request = failed.originalRequest();
             failed.close();
             session.outputQuality("resampled");
-            CompletableFuture<CaptureOutputArtifact> writing = exporter.submit(request, frame, "png");
+            CompletableFuture<CaptureOutputArtifact> writing = exporter.submit(request, frame, encoder);
             completion.whenComplete((artifact, error) -> { if (completion.isCancelled()) writing.cancel(true); });
             writing.whenComplete((artifact, error) -> {
                 if (error == null) completion.complete(artifact);

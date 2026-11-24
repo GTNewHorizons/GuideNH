@@ -62,6 +62,7 @@ public class CaptureBatchEngine implements CaptureBatchController, AutoCloseable
     private final Map<String, CaptureBatchNavigator> navigators = new LinkedHashMap<>();
     private final Set<String> expanded = new HashSet<>();
     private final Map<String, CaptureBatchResult> results = new LinkedHashMap<>();
+    private final Map<Long, FrameReadiness> preparedFrames = new LinkedHashMap<>();
     private CaptureBatchCatalog catalog;
     private List<CaptureTargetDescriptor> selected = List.of();
     private Stage stage = Stage.IDLE;
@@ -88,6 +89,14 @@ public class CaptureBatchEngine implements CaptureBatchController, AutoCloseable
     private String restorationReason = "";
     private List<CaptureBatchNavigator> restoring = List.of();
     private int restorationIndex;
+
+    public record FrameReadiness(String targetId, CaptureBatchReadiness readiness, List<CaptureRect> regions,
+        CaptureScrollGeometry scrollGeometry, String failure) {
+
+        public FrameReadiness {
+            regions = List.copyOf(regions);
+        }
+    }
 
     public CaptureBatchEngine(CaptureRegistry registry, CaptureBatchHost host) {
         this.registry = registry;
@@ -120,6 +129,7 @@ public class CaptureBatchEngine implements CaptureBatchController, AutoCloseable
         }
         close();
         results.clear();
+        preparedFrames.clear();
         manifest = null;
         expanded.clear();
         selected = catalog.targets()
@@ -363,6 +373,7 @@ public class CaptureBatchEngine implements CaptureBatchController, AutoCloseable
                 host.adoptScreen();
                 deadline = now + catalog.options()
                     .timeoutSeconds() * 1_000_000_000L;
+                host.requestFrame();
                 lastRevision = lastFrame = Long.MIN_VALUE;
                 stableFrames = 0;
                 reason = "";
@@ -375,7 +386,34 @@ public class CaptureBatchEngine implements CaptureBatchController, AutoCloseable
         stage = Stage.RESTORING;
     }
 
+    public void framePrepared(CaptureBatchContext context) {
+        if (stage != Stage.WAITING || cancelRequested || current == null) return;
+        long frame = context.capture()
+            .frameId();
+        try {
+            CaptureBatchNavigator navigator = navigators.get(current.providerId());
+            CaptureBatchReadiness readiness = navigator.readiness(context);
+            preparedFrames.put(
+                frame,
+                new FrameReadiness(
+                    current.id(),
+                    readiness,
+                    readiness.ready() ? navigator.regions(context) : List.of(),
+                    readiness.ready() ? navigator.scrollGeometry(context) : null,
+                    ""));
+        } catch (RuntimeException error) {
+            preparedFrames.put(frame, new FrameReadiness(current.id(), null, List.of(), null, error.toString()));
+        }
+    }
+
+    public void discardFrame(long frameId) {
+        preparedFrames.remove(frameId);
+    }
+
     public void frameReady(CaptureBatchContext context) {
+        FrameReadiness prepared = preparedFrames.remove(
+            context.capture()
+                .frameId());
         if (stage == Stage.RESTORE_WAIT) {
             checkRestoration(context);
             return;
@@ -384,11 +422,15 @@ public class CaptureBatchEngine implements CaptureBatchController, AutoCloseable
             || context.capture()
                 .frameId() == lastFrame)
             return;
+        if (prepared != null && !prepared.targetId()
+            .equals(current.id())) return;
         lastFrame = context.capture()
             .frameId();
         try {
             CaptureBatchNavigator navigator = navigators.get(current.providerId());
-            CaptureBatchReadiness readiness = navigator.readiness(context);
+            if (prepared != null && !prepared.failure()
+                .isEmpty()) throw new IllegalStateException(prepared.failure());
+            CaptureBatchReadiness readiness = prepared == null ? navigator.readiness(context) : prepared.readiness();
             reason = readiness.reason();
             if (!readiness.ready()) {
                 stableFrames = 0;
@@ -418,7 +460,7 @@ public class CaptureBatchEngine implements CaptureBatchController, AutoCloseable
                     selected = List.copyOf(pending);
                 }
             }
-            List<CaptureRect> rectangles = navigator.regions(context);
+            List<CaptureRect> rectangles = prepared == null ? navigator.regions(context) : prepared.regions();
             if (rectangles.isEmpty()) {
                 result(current, "unavailable", "The target has no visible capture area", null);
                 stage = Stage.SELECTING;
@@ -459,11 +501,13 @@ public class CaptureBatchEngine implements CaptureBatchController, AutoCloseable
                     settings.layout(),
                     output,
                     remainingBytes(),
-                    identity.backend()));
+                    identity.backend(),
+                    settings.format()));
             if (catalog.options()
                 .layout()
                 .scrollImages()) {
-                CaptureScrollGeometry scroll = navigator.scrollGeometry(context);
+                CaptureScrollGeometry scroll = prepared == null ? navigator.scrollGeometry(context)
+                    : prepared.scrollGeometry();
                 if (scroll != null) {
                     CaptureScrollSlice slice = CaptureScrollSlice.from(
                         request,
@@ -558,6 +602,7 @@ public class CaptureBatchEngine implements CaptureBatchController, AutoCloseable
                     .restoreOriginal()) navigator.restore();
                 else navigator.finish();
                 host.adoptScreen();
+                host.requestFrame();
                 deadline = now + catalog.options()
                     .timeoutSeconds() * 1_000_000_000L;
                 stage = Stage.RESTORE_WAIT;
@@ -594,6 +639,7 @@ public class CaptureBatchEngine implements CaptureBatchController, AutoCloseable
             }
         }
         navigators.clear();
+        preparedFrames.clear();
         restoring = List.of();
         host.adoptScreen();
         host.endBatch(
@@ -640,6 +686,7 @@ public class CaptureBatchEngine implements CaptureBatchController, AutoCloseable
         composition = null;
         for (CaptureBatchNavigator navigator : navigators.values()) navigator.close();
         navigators.clear();
+        preparedFrames.clear();
         if (visibleFrame != null) visibleFrame.close();
         visibleFrame = null;
     }

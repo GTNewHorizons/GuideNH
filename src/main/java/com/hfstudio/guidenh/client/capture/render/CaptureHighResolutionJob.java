@@ -91,8 +91,8 @@ public class CaptureHighResolutionJob implements AutoCloseable {
                     .height());
         CaptureOptions options = request.options();
         long outputBudget = options.temporaryBudgetBytes() - size.rgbaBytes();
-        if (outputBudget <= 0)
-            throw new IllegalArgumentException("The high-resolution source leaves no disk space for the PNG output");
+        if (outputBudget <= 0) throw new IllegalArgumentException(
+            "The high-resolution source leaves no disk space for the encoded output");
         this.request = new CaptureExportRequest(
             request.taskId(),
             request.sourceId(),
@@ -104,7 +104,8 @@ public class CaptureHighResolutionJob implements AutoCloseable {
                 options.layout(),
                 options.outputDirectory(),
                 outputBudget,
-                options.backend()));
+                options.backend(),
+                options.format()));
         tiles = CaptureTilePlanner.plan(request, composition, size, tileSize);
         if (reference != null) {
             CaptureViewport viewport = request.viewport();

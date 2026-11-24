@@ -13,12 +13,15 @@ import net.minecraft.client.resources.I18n;
 import com.hfstudio.guidenh.client.capture.api.CaptureBackendSelection;
 import com.hfstudio.guidenh.client.capture.api.CaptureContentOptions;
 import com.hfstudio.guidenh.client.capture.api.CaptureExportRequest;
+import com.hfstudio.guidenh.client.capture.api.CaptureFormatCatalog;
+import com.hfstudio.guidenh.client.capture.api.CaptureFormatSnapshot;
 import com.hfstudio.guidenh.client.capture.api.CaptureFrame;
 import com.hfstudio.guidenh.client.capture.api.CaptureFrameIdentity;
 import com.hfstudio.guidenh.client.capture.api.CaptureOutputArtifact;
 import com.hfstudio.guidenh.client.capture.api.CaptureOutputSize;
 import com.hfstudio.guidenh.client.capture.api.CaptureSessionState;
 import com.hfstudio.guidenh.client.capture.api.CaptureTarget;
+import com.hfstudio.guidenh.client.capture.api.CaptureTargetChangePolicy;
 import com.hfstudio.guidenh.client.capture.api.CaptureViewport;
 import com.hfstudio.guidenh.client.capture.export.CaptureComposition;
 import com.hfstudio.guidenh.client.capture.export.CaptureExportWorker;
@@ -49,16 +52,22 @@ public class CaptureSession implements AutoCloseable {
     private boolean previewRequested;
     private boolean keepOpenAfterSave;
     private boolean targetMissing;
+    private boolean nextRecordingRequested;
 
     public CaptureSession(GuiScreen sourceScreen, CaptureViewport viewport) {
         this(sourceScreen, viewport, false);
     }
 
     public CaptureSession(GuiScreen sourceScreen, CaptureViewport viewport, boolean gameplay) {
+        this(sourceScreen, viewport, gameplay, CaptureFormatSnapshot.STANDARD);
+    }
+
+    public CaptureSession(GuiScreen sourceScreen, CaptureViewport viewport, boolean gameplay,
+        CaptureFormatCatalog formats) {
         this.sourceScreen = sourceScreen;
         this.viewport = viewport;
         selections = new CaptureSelectionController(viewport.bounds());
-        settings = new CaptureSettingsModel(ModConfig.capture, gameplay);
+        settings = new CaptureSettingsModel(ModConfig.capture, gameplay, formats);
     }
 
     public GuiScreen sourceScreen() {
@@ -133,7 +142,7 @@ public class CaptureSession implements AutoCloseable {
     public void updateViewport(CaptureViewport current) {
         if (viewport.equals(current)) return;
         viewport = current;
-        if (recording != null && !recording.finished() && !recording.paused()) pauseRecording();
+        if (recording != null && !recording.finished()) targetChanged();
         selections.setBounds(current.bounds());
         previewInvalidated = true;
         requestRefresh();
@@ -159,15 +168,16 @@ public class CaptureSession implements AutoCloseable {
         targetMissing = !selections.follow(resolve)
             .isEmpty();
         if (targetMissing) {
-            if (recording != null && !recording.finished() && !recording.paused()) pauseRecording();
-            message = I18n.format("guidenh.capture.follow_missing");
-        } else if (selections.following() && recording != null
-            && !recording.finished()
-            && !recording.paused()
-            && !recordingSizeMatches()) {
-                pauseRecording();
-                message = I18n.format("guidenh.capture.follow_resized");
-            }
+            if (recording != null && !recording.finished()) targetChanged();
+            message = I18n.format(
+                recording != null && recording.finished() ? "guidenh.capture.recording_segment_finishing"
+                    : "guidenh.capture.follow_missing");
+        } else if (selections.following() && recording != null && !recording.finished() && !recordingSizeMatches()) {
+            targetChanged();
+            message = I18n.format(
+                recording != null && recording.finished() ? "guidenh.capture.recording_segment_finishing"
+                    : "guidenh.capture.follow_resized");
+        }
     }
 
     private boolean recordingSizeMatches() {
@@ -195,13 +205,22 @@ public class CaptureSession implements AutoCloseable {
     }
 
     public boolean wantsFrame(long now) {
-        previewRequested = preview == null || refresh
-            || (!settings.config().freezePreview || selections.following()) && now - lastPreviewTime >= 100_000_000L;
+        return wantsFrame(now, false);
+    }
+
+    public boolean livePreview() {
+        return !settings.config().freezePreview || recording != null && recording.sampling();
+    }
+
+    public boolean wantsFrame(long now, boolean liveSource) {
         if (recording != null) {
             recording.tick(now);
             if (recording.finished() && !state.equals(CaptureSessionState.SAVING)) state = CaptureSessionState.SAVING;
         }
-        return previewRequested || recording != null && recording.needsFrame(now);
+        boolean recordingFrame = recording != null && recording.needsFrame(now);
+        previewRequested = preview == null || refresh
+            || (liveSource || livePreview() || selections.following()) && now - lastPreviewTime >= 100_000_000L;
+        return previewRequested || recordingFrame;
     }
 
     public boolean previewRequested() {
@@ -254,8 +273,30 @@ public class CaptureSession implements AutoCloseable {
         return recording;
     }
 
+    public boolean nextRecordingRequested() {
+        return nextRecordingRequested;
+    }
+
+    public boolean targetMissing() {
+        return targetMissing;
+    }
+
+    public void targetChanged() {
+        if (recording == null || recording.finished()) return;
+        CaptureTargetChangePolicy policy = recording.options()
+            .targetChangePolicy();
+        if (policy == CaptureTargetChangePolicy.PAUSE) {
+            if (!recording.paused()) pauseRecording();
+        } else {
+            nextRecordingRequested = policy == CaptureTargetChangePolicy.NEXT_SEGMENT;
+            stopRecording();
+            message = I18n.format("guidenh.capture.recording_segment_finishing");
+        }
+    }
+
     public void startRecording(CaptureExportWorker worker, Path gameDirectory) {
         if (!canSave()) return;
+        nextRecordingRequested = false;
         CaptureRecording created = new CaptureRecording(
             request(gameDirectory),
             settings.recording(),
@@ -353,12 +394,15 @@ public class CaptureSession implements AutoCloseable {
                     .toString())
                 + " · "
                 + I18n.format("guidenh.capture.quality." + outputQuality);
-            state = settings.config().closeAfterSave && !keepOpenAfterSave ? CaptureSessionState.CLOSED
+            state = settings.config().closeAfterSave && !keepOpenAfterSave && !nextRecordingRequested
+                ? CaptureSessionState.CLOSED
                 : CaptureSessionState.EDITING;
         } catch (CancellationException error) {
+            nextRecordingRequested = false;
             state = CaptureSessionState.EDITING;
             message = I18n.format("guidenh.capture.recording_cancelled");
         } catch (CompletionException error) {
+            nextRecordingRequested = false;
             state = CaptureSessionState.EDITING;
             message = I18n.format(
                 "guidenh.capture.failed",
@@ -372,6 +416,7 @@ public class CaptureSession implements AutoCloseable {
     @Override
     public void close() {
         state = CaptureSessionState.CLOSED;
+        nextRecordingRequested = false;
         if (export != null) export.cancel(true);
         if (recording != null) recording.close();
         if (preview != null) preview.close();

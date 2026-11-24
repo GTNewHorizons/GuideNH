@@ -88,6 +88,10 @@ public class CaptureRecording implements AutoCloseable {
         return finished;
     }
 
+    public boolean sampling() {
+        return !finished && !paused();
+    }
+
     public boolean cancelled() {
         return cancelled;
     }
@@ -105,8 +109,7 @@ public class CaptureRecording implements AutoCloseable {
     }
 
     public boolean needsFrame(long now) {
-        return !finished && !paused()
-            && now >= nextSample
+        return sampling() && now >= nextSample
             && queuedBytes.get() + (long) request.viewport()
                 .pixelWidth() * request.viewport()
                     .pixelHeight()

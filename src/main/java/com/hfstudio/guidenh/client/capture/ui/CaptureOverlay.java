@@ -203,7 +203,8 @@ public class CaptureOverlay implements AutoCloseable {
             session.settings()
                 .config().backgroundArgb,
             regions,
-            !peekSource(),
+            !peekSource() && !(session.recording() != null && session.recording()
+                .sampling() || batchController.recordingActive() && !batchController.recordingPaused()),
             session.settings()
                 .config().invertTransparencyGrid,
             previewTarget == null ? null : previewTarget.visibleBounds());
@@ -216,7 +217,9 @@ public class CaptureOverlay implements AutoCloseable {
             viewport,
             session.settings()
                 .config().maskOpacity,
-            minecraft.fontRenderer);
+            minecraft.fontRenderer,
+            session.settings()
+                .config().handleSize);
         if (batchPanel.isOpen()) {
             batchPanel.draw(viewport, mouseX, mouseY);
             return;
@@ -497,10 +500,28 @@ public class CaptureOverlay implements AutoCloseable {
                 return;
             }
             if ((session.busy() || batchController.busy())) return;
-            if (button == 1) session.selections()
-                .redraw();
-            else if (button == 0) session.selections()
-                .begin(x, y, additive || controlDown(), targetAt(x, y));
+            if (button == 1) {
+                session.selections()
+                    .redraw(
+                        session.settings()
+                            .config().redrawAllSelections);
+                additive = !session.selections()
+                    .regions()
+                    .isEmpty();
+            } else if (button == 0) {
+                double radius = session.settings()
+                    .config().handleSize / 2d + 1;
+                session.selections()
+                    .begin(
+                        x,
+                        y,
+                        additive || controlDown(),
+                        targetAt(x, y),
+                        radius / session.viewport()
+                            .scaleX(),
+                        radius / session.viewport()
+                            .scaleY());
+            }
         } else if (button == 0) {
             draggingToolbar = false;
             if ((session.busy() || batchController.busy())) return;
@@ -575,7 +596,12 @@ public class CaptureOverlay implements AutoCloseable {
             int dx = key == Keyboard.KEY_LEFT ? -step : key == Keyboard.KEY_RIGHT ? step : 0;
             int dy = key == Keyboard.KEY_UP ? -step : key == Keyboard.KEY_DOWN ? step : 0;
             if (dx != 0 || dy != 0) session.selections()
-                .nudge(dx, dy, control);
+                .nudge(
+                    dx / session.viewport()
+                        .scaleX(),
+                    dy / session.viewport()
+                        .scaleY(),
+                    control);
         }
     }
 

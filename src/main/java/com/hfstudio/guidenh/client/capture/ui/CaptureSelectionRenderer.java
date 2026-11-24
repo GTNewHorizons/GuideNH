@@ -21,6 +21,11 @@ public class CaptureSelectionRenderer {
 
     public void draw(List<CaptureRegion> regions, CaptureRegion active, CaptureTarget hovered, CaptureViewport viewport,
         int opacity, FontRenderer font) {
+        draw(regions, active, hovered, viewport, opacity, font, 6);
+    }
+
+    public void draw(List<CaptureRegion> regions, CaptureRegion active, CaptureTarget hovered, CaptureViewport viewport,
+        int opacity, FontRenderer font, int handleSize) {
         List<CaptureRect> holes = new ArrayList<>(
             CaptureSelectionAreas
                 .visible(CaptureSelectionAreas.preview(regions, hovered == null ? null : hovered.visibleBounds())));
@@ -32,7 +37,7 @@ public class CaptureSelectionRenderer {
             boolean selected = active != null && active.id() == region.id();
             CaptureRect rectangle = region.bounds();
             outline(rectangle, selected ? 0xFFFFFFFF : 0xFFABB3BC, region.erased());
-            if (selected) handles(rectangle);
+            if (selected) handles(rectangle, viewport, handleSize);
             String text = (region.erased() ? "−#" : "#") + number
                 + "  "
                 + (int) Math.round(rectangle.width())
@@ -120,15 +125,31 @@ public class CaptureSelectionRenderer {
         }
     }
 
-    private static void handles(CaptureRect rectangle) {
+    private static void handles(CaptureRect rectangle, CaptureViewport viewport, int size) {
+        double radiusX = size / (2d * viewport.scaleX());
+        double radiusY = size / (2d * viewport.scaleY());
+        double borderX = 1 / viewport.scaleX();
+        double borderY = 1 / viewport.scaleY();
+        GL11.glDisable(GL11.GL_TEXTURE_2D);
+        Tessellator tessellator = Tessellator.instance;
+        tessellator.startDrawingQuads();
         for (int x = 0; x < 3; x++) {
             for (int y = 0; y < 3; y++) {
                 if (x == 1 && y == 1) continue;
-                int centerX = (int) Math.round(rectangle.x() + rectangle.width() * x / 2);
-                int centerY = (int) Math.round(rectangle.y() + rectangle.height() * y / 2);
-                Gui.drawRect(centerX - 3, centerY - 3, centerX + 4, centerY + 4, 0xFF10151A);
-                Gui.drawRect(centerX - 2, centerY - 2, centerX + 3, centerY + 3, 0xFFFFFFFF);
+                double centerX = rectangle.x() + rectangle.width() * x / 2;
+                double centerY = rectangle.y() + rectangle.height() * y / 2;
+                tessellator.setColorOpaque_I(0x10151A);
+                quad(tessellator, centerX - radiusX, centerY - radiusY, centerX + radiusX, centerY + radiusY);
+                tessellator.setColorOpaque_I(0xFFFFFF);
+                quad(
+                    tessellator,
+                    centerX - radiusX + borderX,
+                    centerY - radiusY + borderY,
+                    centerX + radiusX - borderX,
+                    centerY + radiusY - borderY);
             }
         }
+        tessellator.draw();
+        GL11.glEnable(GL11.GL_TEXTURE_2D);
     }
 }

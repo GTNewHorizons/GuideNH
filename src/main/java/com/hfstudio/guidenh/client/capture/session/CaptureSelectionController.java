@@ -65,6 +65,10 @@ public class CaptureSelectionController {
     }
 
     public CaptureResizeEdges handleAt(double x, double y) {
+        return handleAt(x, y, 4, 4);
+    }
+
+    public CaptureResizeEdges handleAt(double x, double y, double radiusX, double radiusY) {
         CaptureRegion active = active();
         if (active == null || active.bounds()
             .isEmpty()) return CaptureResizeEdges.NONE;
@@ -73,22 +77,26 @@ public class CaptureSelectionController {
         double rightDistance = Math.abs(x - rectangle.right());
         double topDistance = Math.abs(y - rectangle.y());
         double bottomDistance = Math.abs(y - rectangle.bottom());
-        boolean nearX = x >= rectangle.x() - 4 && x <= rectangle.right() + 4;
-        boolean nearY = y >= rectangle.y() - 4 && y <= rectangle.bottom() + 4;
+        boolean nearX = x >= rectangle.x() - radiusX && x <= rectangle.right() + radiusX;
+        boolean nearY = y >= rectangle.y() - radiusY && y <= rectangle.bottom() + radiusY;
         return new CaptureResizeEdges(
-            nearY && leftDistance <= 4 && leftDistance <= rightDistance,
-            nearY && rightDistance <= 4 && rightDistance < leftDistance,
-            nearX && topDistance <= 4 && topDistance <= bottomDistance,
-            nearX && bottomDistance <= 4 && bottomDistance < topDistance);
+            nearY && leftDistance <= radiusX && leftDistance <= rightDistance,
+            nearY && rightDistance <= radiusX && rightDistance < leftDistance,
+            nearX && topDistance <= radiusY && topDistance <= bottomDistance,
+            nearX && bottomDistance <= radiusY && bottomDistance < topDistance);
     }
 
     public void begin(double x, double y, boolean additive, CaptureTarget target) {
+        begin(x, y, additive, target, 4, 4);
+    }
+
+    public void begin(double x, double y, boolean additive, CaptureTarget target, double radiusX, double radiusY) {
         history.record(snapshot());
         snapResolver.reset();
         CaptureRegion selected = active();
         CaptureResizeEdges edges = additive || erasing && selected != null && !selected.erased()
             ? CaptureResizeEdges.NONE
-            : handleAt(x, y);
+            : handleAt(x, y, radiusX, radiusY);
         if (!edges.isEmpty() && selected != null) {
             drag = new CaptureSelectionDrag(
                 selected.id(),
@@ -214,9 +222,13 @@ public class CaptureSelectionController {
     }
 
     public void redraw() {
+        redraw(false);
+    }
+
+    public void redraw(boolean all) {
         if (regions.isEmpty()) return;
         history.record(snapshot());
-        if (regions.size() > 1) removeActive();
+        if (!all && regions.size() > 1) removeActive();
         else {
             regions.clear();
             activeId = -1;
@@ -254,6 +266,13 @@ public class CaptureSelectionController {
     public boolean following() {
         return regions.stream()
             .anyMatch(CaptureRegion::followTarget);
+    }
+
+    public void clearTracking() {
+        for (int index = 0; index < regions.size(); index++) {
+            CaptureRegion region = regions.get(index);
+            regions.set(index, new CaptureRegion(region.id(), region.bounds(), "", false, region.erased()));
+        }
     }
 
     public void toggleFollow() {

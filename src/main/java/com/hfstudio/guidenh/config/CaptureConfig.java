@@ -59,6 +59,13 @@ public class CaptureConfig {
     public boolean snapWindows = true;
 
     @DefaultInt(6)
+    @RangeInt(min = 4, max = 32)
+    public int handleSize = 6;
+
+    @DefaultBoolean(false)
+    public boolean redrawAllSelections;
+
+    @DefaultInt(6)
     @RangeInt(min = 1, max = 32)
     public int snapDistance = 6;
 
@@ -105,6 +112,9 @@ public class CaptureConfig {
 
     @DefaultString("original")
     public String arrangement = "original";
+
+    @DefaultString("top_left")
+    public String alignment = "top_left";
 
     @DefaultBoolean(false)
     public boolean separateRegions;
@@ -164,11 +174,29 @@ public class CaptureConfig {
     @DefaultBoolean(false)
     public boolean strictRecordingQueue;
 
+    @DefaultString("pause")
+    public String recordingTargetChangePolicy = "pause";
+
     @DefaultString("")
     public String scheduledTime = "";
 
     @DefaultString("wait")
     public String unavailablePolicy = "wait";
+
+    @DefaultString("inherit")
+    public String scheduleFocusPolicy = "inherit";
+
+    @DefaultString("inherit")
+    public String scheduleMinimizedPolicy = "inherit";
+
+    @DefaultString("inherit")
+    public String scheduleNoGuiPolicy = "inherit";
+
+    @DefaultString("inherit")
+    public String schedulePausedPolicy = "inherit";
+
+    @DefaultString("inherit")
+    public String scheduleTargetPolicy = "inherit";
 
     @DefaultInt(0)
     @RangeInt(min = 0, max = 86400)
@@ -209,6 +237,13 @@ public class CaptureConfig {
 
     @DefaultBoolean(false)
     public boolean batchScrollImages;
+
+    @DefaultString("none")
+    public String batchPageFormat = "none";
+
+    @DefaultInt(1000)
+    @RangeInt(min = 100, max = 10000)
+    public int batchPageDelayMillis = 1000;
 
     @DefaultBoolean(true)
     public boolean batchGroupByProvider = true;

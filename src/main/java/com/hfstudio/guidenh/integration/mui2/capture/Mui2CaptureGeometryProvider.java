@@ -148,18 +148,6 @@ public class Mui2CaptureGeometryProvider implements CaptureGeometryProvider {
     }
 
     private static CaptureRect transformedBounds(Matrix4f matrix, int width, int height) {
-        double x0 = matrix.m30();
-        double y0 = matrix.m31();
-        double x1 = x0 + matrix.m00() * width;
-        double y1 = y0 + matrix.m01() * width;
-        double x2 = x0 + matrix.m10() * height;
-        double y2 = y0 + matrix.m11() * height;
-        double x3 = x1 + matrix.m10() * height;
-        double y3 = y1 + matrix.m11() * height;
-        return CaptureRect.between(
-            Math.min(Math.min(x0, x1), Math.min(x2, x3)),
-            Math.min(Math.min(y0, y1), Math.min(y2, y3)),
-            Math.max(Math.max(x0, x1), Math.max(x2, x3)),
-            Math.max(Math.max(y0, y1), Math.max(y2, y3)));
+        return Mui2CaptureProjection.bounds(matrix, width, height);
     }
 }

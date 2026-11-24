@@ -2,6 +2,7 @@ package com.hfstudio.guidenh.client.capture.ui;
 
 import java.time.DateTimeException;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -20,12 +21,17 @@ import org.lwjgl.input.Keyboard;
 import org.lwjgl.opengl.GL11;
 
 import com.hfstudio.guidenh.capture.server.api.CaptureServerArea;
+import com.hfstudio.guidenh.client.capture.api.CaptureAlignment;
 import com.hfstudio.guidenh.client.capture.api.CaptureBackendControls;
 import com.hfstudio.guidenh.client.capture.api.CaptureRect;
+import com.hfstudio.guidenh.client.capture.api.CaptureRegion;
+import com.hfstudio.guidenh.client.capture.api.CaptureScheduleCondition;
+import com.hfstudio.guidenh.client.capture.api.CaptureTargetChangePolicy;
 import com.hfstudio.guidenh.client.capture.session.CaptureSchedule;
 import com.hfstudio.guidenh.client.capture.session.CaptureSession;
 import com.hfstudio.guidenh.client.capture.session.CaptureSettingsModel;
 import com.hfstudio.guidenh.config.CaptureConfig;
+import com.hfstudio.guidenh.config.ModConfig;
 import com.hfstudio.guidenh.guide.internal.screen.GuideIconButton;
 import com.hfstudio.guidenh.guide.internal.util.SmoothFloatState;
 
@@ -47,6 +53,8 @@ public class CaptureSettingsPanel {
     private int contentHeight;
     private CaptureRect content = new CaptureRect(0, 0, 0, 0);
     private CaptureRect clearSearch = new CaptureRect(0, 0, 0, 0);
+    private CaptureRect nextRecording = new CaptureRect(0, 0, 0, 0);
+    private CaptureRect stopAndApply = new CaptureRect(0, 0, 0, 0);
     private int draggingSlider = -1;
     private boolean draggingScrollbar;
     private float scrollbarGrab;
@@ -64,17 +72,15 @@ public class CaptureSettingsPanel {
         visualScroll.snapTo(0);
         CaptureSettingsModel model = session.settings();
         CaptureConfig config = model.config();
-        settings
-            .add(new CaptureSetting("source", () -> config.sourceId, backend::selectSource, backend::sourceIds, true));
-        settings
-            .add(new CaptureSetting("reader", () -> config.readerId, backend::selectReader, backend::readerIds, true));
-        settings.add(
-            new CaptureSetting(
-                "format",
-                () -> config.format,
-                value -> config.format = value,
-                List.of("png", "gif", "sprites", "frames"),
-                false));
+        settings.add(new CaptureSetting("source", () -> config.sourceId, value -> {
+            if (session.busy()) config.sourceId = value;
+            else backend.selectSource(value);
+        }, backend::sourceIds, true));
+        settings.add(new CaptureSetting("reader", () -> config.readerId, value -> {
+            if (session.busy()) config.readerId = value;
+            else backend.selectReader(value);
+        }, backend::readerIds, true));
+        settings.add(new CaptureSetting("format", () -> config.format, model::setFormat, model::formats, false));
         settings.add(
             new CaptureSetting(
                 "quality",
@@ -102,6 +108,10 @@ public class CaptureSettingsPanel {
                 List.of(),
                 false));
         toggle("keep_ratio", model::keepAspectRatio, model::setKeepAspectRatio, false);
+        selection("selection_x");
+        selection("selection_y");
+        selection("selection_width");
+        selection("selection_height");
         toggle("separate_regions", () -> config.separateRegions, value -> config.separateRegions = value, false);
         settings.add(
             new CaptureSetting(
@@ -109,6 +119,14 @@ public class CaptureSettingsPanel {
                 () -> config.arrangement,
                 value -> config.arrangement = value,
                 List.of("original", "horizontal", "vertical", "grid"),
+                false));
+        settings.add(
+            new CaptureSetting(
+                "alignment",
+                () -> config.alignment,
+                value -> config.alignment = CaptureAlignment.byId(value)
+                    .id(),
+                CaptureAlignment.ids(),
                 false));
         settings.add(new CaptureSetting("columns", () -> Integer.toString(config.columns), value -> {
             int columns = Integer.parseInt(value);
@@ -140,6 +158,8 @@ public class CaptureSettingsPanel {
         toggle("snap_slots", () -> config.snapSlots, value -> config.snapSlots = value, false);
         toggle("snap_components", () -> config.snapComponents, value -> config.snapComponents = value, false);
         toggle("snap_windows", () -> config.snapWindows, value -> config.snapWindows = value, false);
+        integer("handle_size", () -> config.handleSize, value -> config.handleSize = value, 4, 32);
+        toggle("redraw_all", () -> config.redrawAllSelections, value -> config.redrawAllSelections = value, false);
         toggle("class_name", () -> config.showClassName, value -> config.showClassName = value, false);
         toggle(
             "selection_decorations",
@@ -185,11 +205,28 @@ public class CaptureSettingsPanel {
                 value -> config.unavailablePolicy = value,
                 List.of("wait", "skip", "stop"),
                 false));
+        for (CaptureScheduleCondition condition : CaptureScheduleCondition.values()) {
+            settings.add(
+                new CaptureSetting(
+                    "schedule_" + condition.id(),
+                    () -> model.configuredSchedulePolicy(condition),
+                    value -> model.setSchedulePolicy(condition, value),
+                    List.of("inherit", "wait", "skip", "stop"),
+                    false));
+        }
         integer("memory_budget", () -> config.memoryBudgetMiB, value -> config.memoryBudgetMiB = value, 32, 4096);
         integer("tile_size", () -> config.tileSize, value -> config.tileSize = value, 256, 8192);
         integer("queue_frames", () -> config.queueFrames, value -> config.queueFrames = value, 1, 16);
         integer("disk_budget", () -> config.temporaryBudgetMiB, value -> config.temporaryBudgetMiB = value, 128, 65536);
         toggle("strict_queue", () -> config.strictRecordingQueue, value -> config.strictRecordingQueue = value, false);
+        settings.add(
+            new CaptureSetting(
+                "target_change",
+                () -> config.recordingTargetChangePolicy,
+                value -> config.recordingTargetChangePolicy = CaptureTargetChangePolicy.byId(value)
+                    .id(),
+                CaptureTargetChangePolicy.ids(),
+                false));
         toggle("batch_visible", () -> config.captureVisibleLayers, value -> config.captureVisibleLayers = value, false);
         toggle("batch_pages", () -> config.capturePages, value -> config.capturePages = value, false);
         toggle(
@@ -201,6 +238,19 @@ public class CaptureSettingsPanel {
         toggle("batch_variants", () -> config.includeVariants, value -> config.includeVariants = value, false);
         toggle("batch_restore", () -> config.restoreOriginal, value -> config.restoreOriginal = value, false);
         toggle("batch_contact_sheet", () -> config.batchContactSheet, value -> config.batchContactSheet = value, false);
+        settings.add(
+            new CaptureSetting(
+                "batch_page_format",
+                () -> config.batchPageFormat,
+                model::setPageAnimationFormat,
+                model::pageAnimationFormats,
+                false));
+        integer(
+            "batch_page_delay",
+            () -> config.batchPageDelayMillis,
+            value -> config.batchPageDelayMillis = value,
+            100,
+            10000);
         toggle("batch_scroll_images", () -> config.batchScrollImages, value -> config.batchScrollImages = value, false);
         toggle(
             "batch_group_provider",
@@ -290,6 +340,10 @@ public class CaptureSettingsPanel {
             };
             settings.set(index, numeric);
         }
+        settings.sort(
+            Comparator.comparingInt(
+                setting -> setting.section()
+                    .ordinal()));
     }
 
     private void integer(String key, IntSupplier value, IntConsumer update, int min, int max) {
@@ -298,6 +352,56 @@ public class CaptureSettingsPanel {
             if (parsed < min || parsed > max) throw new IllegalArgumentException(min + "–" + max);
             update.accept(parsed);
         }, List.of(), false).withSlider(min, max, 1));
+    }
+
+    private void selection(String key) {
+        settings.add(new CaptureSetting(key, () -> {
+            CaptureRegion active = session.selections()
+                .active();
+            if (active == null) return "";
+            CaptureRect rectangle = active.bounds();
+            double value = switch (key) {
+                case "selection_x" -> rectangle.x() * session.viewport()
+                    .scaleX();
+                case "selection_y" -> rectangle.y() * session.viewport()
+                    .scaleY();
+                case "selection_width" -> rectangle.width() * session.viewport()
+                    .scaleX();
+                case "selection_height" -> rectangle.height() * session.viewport()
+                    .scaleY();
+                default -> throw new IllegalArgumentException("Unknown selection coordinate: " + key);
+            };
+            return Double.toString(value);
+        }, text -> {
+            CaptureRegion active = session.selections()
+                .active();
+            if (active == null) throw new IllegalStateException(I18n.format("guidenh.capture.selection_required"));
+            if (session.busy() || session.selections()
+                .dragging()) throw new IllegalStateException(I18n.format("guidenh.capture.selection_locked"));
+            double value = Double.parseDouble(text);
+            boolean horizontal = key.equals("selection_x") || key.equals("selection_width");
+            int maximum = horizontal ? session.viewport()
+                .pixelWidth()
+                : session.viewport()
+                    .pixelHeight();
+            boolean dimension = key.equals("selection_width") || key.equals("selection_height");
+            if (!Double.isFinite(value) || value < 0 || value > maximum || dimension && value == 0)
+                throw new IllegalArgumentException((dimension ? "0 < value ≤ " : "0–") + maximum);
+            double coordinate = value / (horizontal ? session.viewport()
+                .scaleX()
+                : session.viewport()
+                    .scaleY());
+            CaptureRect rectangle = active.bounds();
+            CaptureRect changed = switch (key) {
+                case "selection_x" -> new CaptureRect(coordinate, rectangle.y(), rectangle.width(), rectangle.height());
+                case "selection_y" -> new CaptureRect(rectangle.x(), coordinate, rectangle.width(), rectangle.height());
+                case "selection_width" -> new CaptureRect(rectangle.x(), rectangle.y(), coordinate, rectangle.height());
+                case "selection_height" -> new CaptureRect(rectangle.x(), rectangle.y(), rectangle.width(), coordinate);
+                default -> throw new IllegalArgumentException("Unknown selection coordinate: " + key);
+            };
+            session.selections()
+                .adjustActive(changed);
+        }, List.of(), false));
     }
 
     private void toggle(String key, BooleanSupplier value, Consumer<Boolean> update, boolean recapture) {
@@ -347,16 +451,23 @@ public class CaptureSettingsPanel {
         List<Integer> visible = new ArrayList<>();
         List<Integer> offsets = new ArrayList<>();
         int height = 0;
+        CaptureSettingSection previousSection = null;
         for (int index = 0; index < settings.size(); index++) {
             CaptureSetting setting = settings.get(index);
-            String label = (setting.key() + " " + I18n.format("guidenh.capture.setting." + setting.key()))
-                .toLowerCase(Locale.ROOT);
+            String label = (setting.key() + " "
+                + I18n.format("guidenh.capture.setting." + setting.key())
+                + " "
+                + I18n.format(
+                    "guidenh.capture.section." + setting.section()
+                        .id())).toLowerCase(Locale.ROOT);
             boolean matches = true;
             for (String word : words) matches &= label.contains(word);
             if (!matches) continue;
+            if (setting.section() != previousSection) height += 20;
             visible.add(index);
             offsets.add(height);
             height += setting.slider() == null ? 24 : 32;
+            previousSection = setting.section();
         }
         filtered = List.copyOf(visible);
         rowOffsets = List.copyOf(offsets);
@@ -397,9 +508,20 @@ public class CaptureSettingsPanel {
             GuideIconButton.drawIcon(minecraft, CaptureIcons.CLOSE, x + width - 26, y + 5, 16, 16, 0xFFFFFFFF);
         }
         filter();
-        content = new CaptureRect(x + 4, y + 28, Math.max(1, width - 8), Math.max(1, height - 60));
+        boolean recording = recordingActive();
+        content = new CaptureRect(x + 4, y + 28, Math.max(1, width - 8), Math.max(1, height - (recording ? 90 : 60)));
+        nextRecording = recording ? new CaptureRect(x + 8, y + height - 54, Math.max(1, (width - 22) / 2), 22)
+            : new CaptureRect(0, 0, 0, 0);
+        stopAndApply = recording
+            ? new CaptureRect(
+                nextRecording.right() + 6,
+                y + height - 54,
+                Math.max(1, x + width - 8 - nextRecording.right() - 6),
+                22)
+            : new CaptureRect(0, 0, 0, 0);
         scroll = Math.clamp(scroll, 0, Math.max(0, contentHeight - (float) content.height()));
         visualScroll.updateTowards(scroll, 20, 0.1f, 0.1f, Float.POSITIVE_INFINITY);
+        String settingHint = "";
         GL11.glPushAttrib(GL11.GL_SCISSOR_BIT);
         try {
             CaptureRect pixels = session.viewport()
@@ -416,8 +538,22 @@ public class CaptureSettingsPanel {
                 CaptureSetting setting = settings.get(index);
                 int rowY = (int) content.y() + rowOffsets.get(row) - visualScroll.rounded();
                 int rowHeight = setting.slider() == null ? 24 : 32;
-                if (rowY + rowHeight <= content.y() || rowY >= content.bottom()) continue;
+                boolean sectionStart = row == 0 || settings.get(filtered.get(row - 1))
+                    .section() != setting.section();
+                if (rowY + rowHeight <= content.y() || rowY - (sectionStart ? 20 : 0) >= content.bottom()) continue;
+                if (sectionStart) minecraft.fontRenderer.drawStringWithShadow(
+                    I18n.format(
+                        "guidenh.capture.section." + setting.section()
+                            .id()),
+                    x + 8,
+                    rowY - 14,
+                    0x91B8D9);
                 drawRow(setting, index, x, rowY, width, rowHeight, mouseX, mouseY);
+                if (setting.key()
+                    .equals("alpha_threshold")
+                    && (editing == index || draggingSlider == index
+                        || content.contains(mouseX, mouseY) && mouseY >= rowY && mouseY < rowY + rowHeight))
+                    settingHint = I18n.format("guidenh.capture.alpha_threshold_hint");
             }
             if (filtered.isEmpty()) minecraft.fontRenderer
                 .drawStringWithShadow(I18n.format("guidenh.capture.settings_no_results"), x + 8, y + 33, 0x919EAC);
@@ -442,8 +578,14 @@ public class CaptureSettingsPanel {
                 Math.round(top + thumb),
                 CaptureUiColors.BORDER);
         }
+        if (recording) {
+            drawRecordingAction(nextRecording, "guidenh.capture.apply_next_recording", mouseX, mouseY);
+            drawRecordingAction(stopAndApply, "guidenh.capture.stop_and_apply", mouseX, mouseY);
+        }
         String footer = validation.isEmpty() ? I18n.format("guidenh.capture.settings_hint") : validation;
-        if (validation.isEmpty() && backend.activeBackend() != null) footer = I18n.format(
+        if (validation.isEmpty() && !settingHint.isEmpty()) footer = settingHint;
+        else if (validation.isEmpty() && recording) footer = I18n.format("guidenh.capture.recording_settings_locked");
+        else if (validation.isEmpty() && backend.activeBackend() != null) footer = I18n.format(
             "guidenh.capture.active_backend",
             backendName(
                 backend.activeBackend()
@@ -535,8 +677,37 @@ public class CaptureSettingsPanel {
         return -1;
     }
 
+    private boolean recordingActive() {
+        return session.recording() != null && !session.recording()
+            .finished();
+    }
+
+    private void drawRecordingAction(CaptureRect rectangle, String key, int mouseX, int mouseY) {
+        Gui.drawRect(
+            (int) rectangle.x(),
+            (int) rectangle.y(),
+            (int) rectangle.right(),
+            (int) rectangle.bottom(),
+            rectangle.contains(mouseX, mouseY) ? CaptureUiColors.HOVER : CaptureUiColors.INPUT);
+        String label = minecraft.fontRenderer
+            .trimStringToWidth(I18n.format(key), Math.max(1, (int) rectangle.width() - 8));
+        minecraft.fontRenderer.drawStringWithShadow(
+            label,
+            (int) rectangle.x()
+                + Math.max(4, ((int) rectangle.width() - minecraft.fontRenderer.getStringWidth(label)) / 2),
+            (int) rectangle.y() + 7,
+            0xFFFFFF);
+    }
+
     public void click(int x, int y, int button) {
         if (!contains(x, y)) return;
+        if (button == 0 && recordingActive() && (nextRecording.contains(x, y) || stopAndApply.contains(x, y))) {
+            if (editing >= 0 && !applyEdit()) return;
+            ModConfig.save();
+            if (stopAndApply.contains(x, y)) session.stopRecording();
+            else session.notify(I18n.format("guidenh.capture.next_recording_applied"));
+            return;
+        }
         if (button == 0 && clearSearch.contains(x, y)
             && !search.getText()
                 .isEmpty()) {
@@ -578,7 +749,7 @@ public class CaptureSettingsPanel {
             .isEmpty()) {
                 try {
                     setting.cycle(button == 1 ? -1 : 1);
-                    if (setting.recapture()) session.invalidatePreview();
+                    if (setting.recapture() && !session.busy()) session.invalidatePreview();
                     validation = "";
                 } catch (IllegalArgumentException | IllegalStateException error) {
                     validation = I18n.format("guidenh.capture.invalid_value", error.getMessage());
@@ -622,7 +793,7 @@ public class CaptureSettingsPanel {
                         .get())) {
                     setting.update()
                         .accept(value);
-                    if (setting.recapture()) session.invalidatePreview();
+                    if (setting.recapture() && !session.busy()) session.invalidatePreview();
                 }
                 validation = "";
             } catch (IllegalArgumentException | IllegalStateException error) {
@@ -677,7 +848,7 @@ public class CaptureSettingsPanel {
         try {
             setting.update()
                 .accept(editor.getText());
-            if (setting.recapture()) session.invalidatePreview();
+            if (setting.recapture() && !session.busy()) session.invalidatePreview();
             endEdit();
             return true;
         } catch (IllegalArgumentException | IllegalStateException | DateTimeException | ArithmeticException error) {

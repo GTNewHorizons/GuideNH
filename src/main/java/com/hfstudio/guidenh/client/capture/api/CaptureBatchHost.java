@@ -22,6 +22,8 @@ public interface CaptureBatchHost {
 
     void adoptScreen();
 
+    void requestFrame();
+
     CompletableFuture<CaptureOutputArtifact> capture(CaptureExportRequest request, CaptureBatchOptions options,
         CaptureFrame frame);
 

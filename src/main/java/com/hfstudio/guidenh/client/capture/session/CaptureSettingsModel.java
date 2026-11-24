@@ -1,8 +1,11 @@
 package com.hfstudio.guidenh.client.capture.session;
 
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -10,22 +13,28 @@ import net.minecraft.client.Minecraft;
 
 import com.hfstudio.guidenh.capture.server.api.CaptureServerArea;
 import com.hfstudio.guidenh.capture.server.api.CaptureServerQuery;
+import com.hfstudio.guidenh.client.capture.api.CaptureAlignment;
 import com.hfstudio.guidenh.client.capture.api.CaptureBackendSelection;
 import com.hfstudio.guidenh.client.capture.api.CaptureBatchLayoutOptions;
 import com.hfstudio.guidenh.client.capture.api.CaptureBatchOptions;
 import com.hfstudio.guidenh.client.capture.api.CaptureContentOptions;
+import com.hfstudio.guidenh.client.capture.api.CaptureFormatCatalog;
+import com.hfstudio.guidenh.client.capture.api.CaptureFormatSnapshot;
 import com.hfstudio.guidenh.client.capture.api.CaptureLayoutOptions;
 import com.hfstudio.guidenh.client.capture.api.CaptureOptions;
 import com.hfstudio.guidenh.client.capture.api.CaptureRecordingOptions;
 import com.hfstudio.guidenh.client.capture.api.CaptureResolution;
+import com.hfstudio.guidenh.client.capture.api.CaptureScheduleCondition;
 import com.hfstudio.guidenh.client.capture.api.CaptureSnapOptions;
 import com.hfstudio.guidenh.client.capture.api.CaptureTarget;
+import com.hfstudio.guidenh.client.capture.api.CaptureTargetChangePolicy;
 import com.hfstudio.guidenh.config.CaptureConfig;
 import com.hfstudio.guidenh.network.capture.CaptureCapabilityMessage;
 
 public class CaptureSettingsModel {
 
     private final CaptureConfig config;
+    private final CaptureFormatCatalog formats;
     private boolean gameplay;
     private int requestedWidth;
     private int requestedHeight;
@@ -36,8 +45,45 @@ public class CaptureSettingsModel {
     }
 
     public CaptureSettingsModel(CaptureConfig config, boolean gameplay) {
-        this.config = config;
+        this(config, gameplay, CaptureFormatSnapshot.STANDARD);
+    }
+
+    public CaptureSettingsModel(CaptureConfig config, boolean gameplay, CaptureFormatCatalog formats) {
+        this.config = Objects.requireNonNull(config);
         this.gameplay = gameplay;
+        this.formats = Objects.requireNonNull(formats);
+    }
+
+    public List<String> formats() {
+        return List.copyOf(formats.formats());
+    }
+
+    public boolean animationFormat() {
+        return formats.animationFormat(config.format);
+    }
+
+    public List<String> pageAnimationFormats() {
+        List<String> choices = new ArrayList<>();
+        choices.add("none");
+        formats().stream()
+            .filter(formats::animationFormat)
+            .forEach(choices::add);
+        return List.copyOf(choices);
+    }
+
+    public void setPageAnimationFormat(String format) {
+        if (!pageAnimationFormats().contains(format))
+            throw new IllegalArgumentException("Unknown page animation format: " + format);
+        config.batchPageFormat = format;
+    }
+
+    public void setFormat(String format) {
+        requireFormat(format);
+        config.format = format;
+    }
+
+    private void requireFormat(String format) {
+        if (!formats().contains(format)) throw new IllegalArgumentException("Unknown capture format: " + format);
     }
 
     public boolean gameplay() {
@@ -90,6 +136,7 @@ public class CaptureSettingsModel {
     }
 
     public CaptureOptions snapshot(Path gameDirectory) {
+        requireFormat(config.format);
         CaptureResolution resolution = new CaptureResolution(
             config.scale,
             config.scale,
@@ -102,7 +149,8 @@ public class CaptureSettingsModel {
             config.arrangement,
             config.columns,
             config.spacing,
-            config.separateRegions);
+            config.separateRegions,
+            CaptureAlignment.byId(config.alignment));
         Path output = Path.of(config.outputDirectory);
         if (!output.isAbsolute()) output = gameDirectory.resolve(output);
         return new CaptureOptions(
@@ -111,7 +159,8 @@ public class CaptureSettingsModel {
             layout,
             output.normalize(),
             (long) config.temporaryBudgetMiB << 20,
-            backend());
+            backend(),
+            config.format);
     }
 
     public CaptureBackendSelection backend() {
@@ -154,7 +203,7 @@ public class CaptureSettingsModel {
             config.tileSize,
             (long) config.memoryBudgetMiB << 20,
             snapshot(gameDirectory),
-            config.format.equals("png") ? null : recording(),
+            animationFormat() ? recording() : null,
             new CaptureServerQuery(
                 config.serverCaptureRadius,
                 Math.min(config.maxTargets, CaptureCapabilityMessage.MAX_TARGETS),
@@ -168,12 +217,21 @@ public class CaptureSettingsModel {
                 config.batchSheetColumns,
                 config.batchThumbnailSize,
                 config.batchSheetPageSize,
-                config.batchScrollImages));
+                config.batchScrollImages,
+                config.batchPageFormat.equals("none") ? null : recording(config.batchPageFormat),
+                config.batchPageDelayMillis));
     }
 
     public CaptureRecordingOptions recording() {
+        return recording(animationFormat() ? config.format : "gif");
+    }
+
+    public CaptureRecordingOptions recording(String format) {
+        requireFormat(format);
+        if (!formats.animationFormat(format))
+            throw new IllegalArgumentException("This capture format does not support animation: " + format);
         return new CaptureRecordingOptions(
-            config.format.equals("png") ? "gif" : config.format,
+            format,
             config.fps,
             config.recordingSeconds,
             config.frameLimit,
@@ -186,7 +244,35 @@ public class CaptureSettingsModel {
             config.spritePageSize,
             config.queueFrames,
             (long) config.memoryBudgetMiB << 20,
-            config.strictRecordingQueue);
+            config.strictRecordingQueue,
+            CaptureTargetChangePolicy.byId(config.recordingTargetChangePolicy));
+    }
+
+    public String schedulePolicy(CaptureScheduleCondition condition) {
+        String policy = configuredSchedulePolicy(condition);
+        return policy.equals("inherit") ? config.unavailablePolicy : policy;
+    }
+
+    public String configuredSchedulePolicy(CaptureScheduleCondition condition) {
+        return switch (condition) {
+            case FOCUS -> config.scheduleFocusPolicy;
+            case MINIMIZED -> config.scheduleMinimizedPolicy;
+            case NO_GUI -> config.scheduleNoGuiPolicy;
+            case PAUSED -> config.schedulePausedPolicy;
+            case TARGET -> config.scheduleTargetPolicy;
+        };
+    }
+
+    public void setSchedulePolicy(CaptureScheduleCondition condition, String policy) {
+        if (!List.of("inherit", "wait", "skip", "stop")
+            .contains(policy)) throw new IllegalArgumentException("Unknown scheduled capture policy: " + policy);
+        switch (condition) {
+            case FOCUS -> config.scheduleFocusPolicy = policy;
+            case MINIMIZED -> config.scheduleMinimizedPolicy = policy;
+            case NO_GUI -> config.scheduleNoGuiPolicy = policy;
+            case PAUSED -> config.schedulePausedPolicy = policy;
+            case TARGET -> config.scheduleTargetPolicy = policy;
+        }
     }
 
     public CaptureSnapOptions snapping(boolean temporarilyDisabled) {

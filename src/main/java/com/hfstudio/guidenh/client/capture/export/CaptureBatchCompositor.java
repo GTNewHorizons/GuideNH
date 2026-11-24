@@ -2,7 +2,6 @@ package com.hfstudio.guidenh.client.capture.export;
 
 import java.io.IOException;
 import java.io.OutputStreamWriter;
-import java.io.Reader;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -15,8 +14,7 @@ import java.util.Map;
 import java.util.concurrent.CancellationException;
 
 import com.google.gson.GsonBuilder;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonParser;
+import com.hfstudio.guidenh.client.capture.api.CaptureAnimationExporter;
 import com.hfstudio.guidenh.client.capture.api.CaptureBatchLayoutOptions;
 import com.hfstudio.guidenh.client.capture.api.CaptureBatchManifest;
 import com.hfstudio.guidenh.client.capture.api.CaptureBatchOptions;
@@ -33,11 +31,28 @@ public class CaptureBatchCompositor {
 
     public static List<CaptureBatchOutput> compose(CaptureBatchManifest manifest, CaptureBatchOptions options,
         Path directory, long remainingBytes) throws IOException {
+        CaptureAnimationExporter encoder = options.layout()
+            .pageRecording() == null ? null
+                : switch (options.layout()
+                    .pageRecording()
+                    .format()) {
+                case "gif" -> new GifCaptureExporter();
+                case "sprites", "frames" -> new PngSequenceCaptureExporter(
+                    options.layout()
+                        .pageRecording()
+                        .format());
+                default -> throw new IllegalArgumentException("A registered page animation exporter is required");
+                };
+        return compose(manifest, options, directory, remainingBytes, encoder);
+    }
+
+    public static List<CaptureBatchOutput> compose(CaptureBatchManifest manifest, CaptureBatchOptions options,
+        Path directory, long remainingBytes, CaptureAnimationExporter pageEncoder) throws IOException {
         if (!options.layout()
             .contactSheet()
             && !options.layout()
-                .scrollImages())
-            return List.of();
+                .scrollImages()
+            && pageEncoder == null) return List.of();
         Map<String, List<CaptureContactSheetEntry>> groups = new LinkedHashMap<>();
         List<CaptureBatchOutput> outputs = new ArrayList<>();
         if (options.layout()
@@ -46,11 +61,10 @@ public class CaptureBatchCompositor {
                     .equals("success") || result.file()
                         .isEmpty())
                     continue;
-                String group = options.layout()
-                    .groupByProvider() ? result.providerId() : "all";
+                String group = CaptureBatchOutputEntries.group(result, options.layout());
                 try {
                     groups.computeIfAbsent(group, ignored -> new ArrayList<>())
-                        .addAll(entries(result, directory));
+                        .addAll(CaptureBatchOutputEntries.entries(result, directory));
                 } catch (IOException | RuntimeException error) {
                     outputs.add(
                         new CaptureBatchOutput(
@@ -66,7 +80,7 @@ public class CaptureBatchCompositor {
                 }
             }
         if (groups.isEmpty() && !options.layout()
-            .scrollImages()) return List.copyOf(outputs);
+            .scrollImages() && pageEncoder == null) return List.copyOf(outputs);
         Path staging = Files.createTempDirectory(directory, ".guidenh_batch_layout_");
         Path published = CaptureOutputPaths.next(
             directory,
@@ -105,6 +119,12 @@ public class CaptureBatchCompositor {
                             error.toString()));
                 }
             }
+            if (pageEncoder != null) {
+                List<CaptureBatchOutput> pageOutputs = CaptureBatchPageCompositor
+                    .compose(manifest, options, directory, staging, remainingBytes, pageEncoder);
+                outputs.addAll(pageOutputs);
+                for (CaptureBatchOutput output : pageOutputs) remainingBytes -= output.byteSize();
+            }
             if (options.layout()
                 .scrollImages()) {
                 outputs.addAll(CaptureScrollCompositor.compose(manifest, options, directory, staging, remainingBytes));
@@ -138,38 +158,6 @@ public class CaptureBatchCompositor {
         } finally {
             removeTemporary(staging);
         }
-    }
-
-    private static List<CaptureContactSheetEntry> entries(CaptureBatchResult result, Path directory)
-        throws IOException {
-        Path source = directory.resolve(result.file());
-        if (!Files.isDirectory(source))
-            return List.of(new CaptureContactSheetEntry(result.targetId(), result.label(), source));
-        Path regions = source.resolve("regions.json");
-        if (Files.exists(regions)) {
-            List<CaptureContactSheetEntry> entries = new ArrayList<>();
-            try (Reader reader = Files.newBufferedReader(regions, StandardCharsets.UTF_8)) {
-                for (JsonElement element : new JsonParser().parse(reader)
-                    .getAsJsonObject()
-                    .getAsJsonArray("regions")) {
-                    String file = element.getAsJsonObject()
-                        .get("file")
-                        .getAsString();
-                    String id = element.getAsJsonObject()
-                        .get("id")
-                        .getAsString();
-                    entries.add(
-                        new CaptureContactSheetEntry(
-                            result.targetId() + "/" + id,
-                            result.label() + " #" + id,
-                            source.resolve(file)));
-                }
-            }
-            return List.copyOf(entries);
-        }
-        Path poster = source.resolve("frame_000000.png");
-        if (!Files.exists(poster)) poster = source.resolve("sprites_0000.png");
-        return List.of(new CaptureContactSheetEntry(result.targetId(), result.label(), poster));
     }
 
     private static CaptureBatchOutput sheet(String group, List<CaptureContactSheetEntry> source,

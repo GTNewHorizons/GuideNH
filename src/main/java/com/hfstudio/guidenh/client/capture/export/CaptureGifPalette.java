@@ -44,7 +44,8 @@ public class CaptureGifPalette {
             rows.row(y, row);
             for (int x = 0; x < row.length; x++) {
                 int pixel = row[x];
-                if (!options.matteTransparency() && pixel >>> 24 < options.alphaThreshold()) {
+                int alpha = pixel >>> 24;
+                if (!options.matteTransparency() && (alpha == 0 || alpha < options.alphaThreshold())) {
                     pixels[y * row.length + x] = 0;
                     continue;
                 }

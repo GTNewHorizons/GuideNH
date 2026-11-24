@@ -3,7 +3,16 @@ package com.hfstudio.guidenh.client.capture.api;
 import java.nio.file.Path;
 
 public record CaptureOptions(CaptureResolution resolution, CaptureContentOptions content, CaptureLayoutOptions layout,
-    Path outputDirectory, long temporaryBudgetBytes, CaptureBackendSelection backend) {
+    Path outputDirectory, long temporaryBudgetBytes, CaptureBackendSelection backend, String format) {
+
+    public CaptureOptions(CaptureResolution resolution, CaptureContentOptions content, CaptureLayoutOptions layout,
+        Path outputDirectory, long temporaryBudgetBytes, CaptureBackendSelection backend) {
+        this(resolution, content, layout, outputDirectory, temporaryBudgetBytes, backend, "png");
+    }
+
+    public CaptureOptions {
+        if (format == null || format.isBlank()) throw new IllegalArgumentException("An output format is required");
+    }
 
     public CaptureOptions(CaptureResolution resolution, CaptureContentOptions content, CaptureLayoutOptions layout,
         Path outputDirectory, long temporaryBudgetBytes) {
@@ -11,6 +20,13 @@ public record CaptureOptions(CaptureResolution resolution, CaptureContentOptions
     }
 
     public CaptureOptions withBackend(CaptureBackendSelection selection) {
-        return new CaptureOptions(resolution, content, layout, outputDirectory, temporaryBudgetBytes, selection);
+        return new CaptureOptions(
+            resolution,
+            content,
+            layout,
+            outputDirectory,
+            temporaryBudgetBytes,
+            selection,
+            format);
     }
 }

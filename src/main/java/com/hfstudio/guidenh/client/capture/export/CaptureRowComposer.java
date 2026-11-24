@@ -91,7 +91,14 @@ public class CaptureRowComposer implements CaptureRows {
         int[] xs = offsets(widths, layout.spacing());
         int[] ys = offsets(heights, layout.spacing());
         for (int index = 0; index < crops.size(); index++) {
-            placements.add(placement(crops.get(index), xs[index % columns], ys[index / columns]));
+            CaptureRect crop = crops.get(index);
+            int column = index % columns;
+            int row = index / columns;
+            int x = xs[column] + layout.alignment()
+                .offsetX(widths[column] - (int) crop.width());
+            int y = ys[row] + layout.alignment()
+                .offsetY(heights[row] - (int) crop.height());
+            placements.add(placement(crop, x, y));
         }
         return new CaptureComposition(
             new CaptureOutputSize(

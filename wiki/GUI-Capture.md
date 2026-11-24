@@ -28,6 +28,8 @@ The default output combines selections into their enclosing rectangle while pres
 
 Click the save icon or press Enter to save. Settings control the output directory, dimensions, format, background, content layers, snapping, and resource budgets.
 
+Selection X, Y, width, and height accept display-pixel values in settings and participate in undo history. Handle size also uses display pixels. Right click redraws the active selection by default; enable the redraw-all setting to clear every selection. Horizontal, vertical, and grid layouts support nine cell alignments without stretching the selected content.
+
 ### Keyboard Shortcuts
 
 | Key | Action |
@@ -38,9 +40,9 @@ Click the save icon or press Enter to save. Settings control the output director
 | Ctrl+Z / Ctrl+Y | Undo / redo selection edits |
 | Ctrl+D | Duplicate the active selection |
 | Ctrl+A | Select the entire GUI viewport |
-| Arrow keys | Move the active selection by one GUI pixel |
-| Shift+arrow keys | Move by ten GUI pixels |
-| Ctrl+arrow keys | Resize the active selection |
+| Arrow keys | Move the active selection by one display pixel |
+| Shift+arrow keys | Move by ten display pixels |
+| Ctrl+arrow keys | Move all selections together |
 | Space during recording | Pause / resume |
 
 ### Content and Display
@@ -50,6 +52,8 @@ GUI, HUD, player inventory, world, tooltips, NEI, debug information, and the GUI
 **Invert transparency grid** is enabled by default and uses a light checkerboard. Disable it for a dark checkerboard. It changes the preview background only.
 
 Each capture session opens with the toolbar visible. Press the opening shortcut again or use the visibility button to hide or restore it; the bottom-right eye button remains available while hidden. Selection-decoration visibility and complete-source preview are remembered separately. Settings support Ctrl+F search, sliders, direct numeric entry, and smooth scrolling.
+
+Settings are grouped into Output, Content, Snapping, Interaction, Recording, Schedule, and Batch capture. Search matches both setting names and section names.
 
 ### Capture Sources and Output Quality
 
@@ -63,9 +67,19 @@ Output resolution is limited to 32 times the source size on each axis. Interface
 
 Recording supports GIF, PNG sprite sheets, and PNG frame sequences. Set the frame rate, duration, or maximum frame count before starting; pause, resume, stop, or cancel while recording.
 
+During recording, setting edits are reserved for the next segment. **Apply to next segment** keeps the current segment running with its initial settings. **Stop and apply** finishes the current segment and uses the edited settings after encoding completes. Capture sources, readers, output size, content, and memory budget remain fixed within the active segment.
+
+When the screen, viewport, or followed component changes, choose whether to pause until restored, finish the current segment, or finish and start a new segment. The next segment waits for a valid preview and selection. Changing screens clears tracking IDs from the previous screen while keeping the selected rectangles; a missing followed component in the same screen waits until it returns. Encoding failure or cancellation prevents automatic continuation. Batch recording continues with the next selected batch target after finishing its current segment.
+
 PNG sprite sheets include JSON with frame positions and timing. GIF transparency can use a configured threshold or background color.
 
+Active recording updates the editor preview, system cursor, and tooltip position in real time, even when static preview freezing is enabled. The preview shows the complete source during recording; the export retains its original selection and output dimensions. Pausing or finishing returns to the configured preview behavior.
+
+The recommended GIF alpha threshold is 128. A threshold of 255 discards native button textures whose alpha is 253. Fully transparent pixels remain transparent at every threshold; use background blending when partial transparency needs a solid background.
+
 Schedules support a delay, a specified local time, and repeating intervals. If the game loses focus or the target becomes unavailable, choose whether to wait, skip, or end the task. Recording queues and temporary output follow the configured resource budgets.
+
+Loss of focus, minimization, missing source, game pause, and target disappearance each have an independent schedule policy. They inherit the default unavailable policy unless overridden. Gameplay is a valid source while a world is loaded. When multiple conditions apply, stopping takes priority over skipping, then waiting.
 
 ## Batch Capture
 
@@ -86,7 +100,7 @@ Some targets require mod integration or the server capture protocol. Unavailable
 
 Contact sheets arrange batch results into paginated thumbnails, optionally grouped by provider.
 
-Scroll images support GuideNH, NEI, MUI1, and BetterQuesting interfaces. Slices follow document positions; fixed controls remain in the original viewport capture. MUI1 supports nested tabs, horizontal and vertical scroll controls, and lists. Tabs and scroll positions are restored afterwards.
+Scroll images support GuideNH, NEI, MUI1, MUI2, and BetterQuesting interfaces. Slices follow document positions; fixed controls remain in the original viewport capture. MUI1 and MUI2 support nested tabs and horizontal and vertical scroll controls. MUI2 also discovers widgets created when a page opens, reveals nested scroll panes, and waits for scrolling animations to settle. Scrollbars and edge shadows are excluded from its scroll images; their original settings and scroll positions are restored afterwards. Expansion limits retain the number of omitted targets and produce partial results.
 
 ### BetterQuesting Pages
 
@@ -102,25 +116,39 @@ Hidden research is excluded, and incomplete visible research is marked unavailab
 
 ### Output Files
 
-`batch.json` records target results, restoration state, and composed outputs. Scroll images include `scroll.png` and `scroll.json`; the latter records crops, destination rectangles, pixel scale, and coverage.
+`batch.json` records target results, restoration state, and composed outputs. Grouped page previews export one captioned preview per target or independent region as GIF, sprites, or a registered animation format. The preview size uses the contact / page preview setting; the page duration is configurable in milliseconds. Original captures retain their selected resolution. Groups use the supplied `mod_id`, the target's capture `provider`, or its batch provider ID. Disabling grouping creates one group. Sprite inputs use the first frame rectangle from `animation.json`. Scroll images include `scroll.png` and `scroll.json`; the latter records crops, destination rectangles, pixel scale, and coverage.
 
-Results are marked partial when target limits or missing slices leave uncovered areas. Contact sheets and scroll images share the batch task's remaining disk budget. Cancellation or failure cleans up unpublished temporary output.
+Results are marked partial when target limits or missing slices leave uncovered areas. Contact sheets and scroll images share the batch task's remaining disk budget. Cancellation or failure cleans up unpublished temporary output. Each grouped page output includes `pages.json` with target IDs, source files, source rectangles, and page timing. GIF data is stored in `pages.gif`; directory encoders use the `animation` subdirectory.
 
 ## Developer Integration
 
 Capture interfaces support geometry providers, GUI renderers, capture sources, pixel readers, batch providers, and output encoders independently.
+
+`CaptureLayoutOptions` carries a `CaptureAlignment`; its three- and four-argument constructors use `TOP_LEFT`. `CaptureRecordingOptions` carries a `CaptureTargetChangePolicy`; its fourteen-argument constructor uses `PAUSE`. `CaptureSetting` carries its section explicitly, and `withSection` selects a section without changing its value, choices, or slider.
 
 | API | Purpose |
 | --- | --- |
 | `CaptureRegistry.registerSource` | Register a `CaptureSourceProvider` |
 | `CaptureRegistry.registerReader` | Register a `CapturePixelReaderProvider` |
 | `CaptureRegistry.registerPhaseListener` | Register a phase listener |
+| `CaptureRegistry.registerExporter` | Register a still-image `CaptureExporter` |
+| `CaptureRegistry.registerAnimationExporter` | Register a `CaptureAnimationExporter` |
 | `CaptureRuntime.selectSource` / `selectReader` | Select an implementation by ID |
 | `CaptureBatchReadiness` | Declare batch target readiness |
 | `CaptureBatchNavigator.scrollGeometry` | Provide `CaptureScrollGeometry` |
 | `StandaloneContainerScreen` | Provide `updateStandaloneScreen` for an independently updated container screen |
 
 Registration and implementation selection run on the client thread. Selection requires no active capture task. Providers report availability without allocating buffers; resource context keys include screen identity, rendering context, and capability generation. Automatic selection prioritizes the last registered available provider.
+
+Batch hosts implement `CaptureBatchHost.requestFrame` to invalidate pixels from the previous navigation state. Asynchronous hosts call `CaptureBatchEngine.framePrepared` when capturing pixels, then `frameReady` when those pixels are available; cancellation calls `discardFrame`. Readiness checks remain read-only. The prepared frame carries its readiness, capture rectangles, and scroll geometry together.
+
+### Output Encoders
+
+Register encoders through `CaptureRuntime.registry()` on the client thread. Format IDs use letters, digits, underscores, and hyphens, start with a letter, and act as file extensions; `regions` is reserved. A format belongs to either still images or animation. Registering another encoder for the same format replaces it for future tasks. Each export or recording retains the encoder instance selected at its start.
+
+`CaptureFormatCatalog` exposes the current format choices and animation classification to the settings model. `CaptureOptions.format` retains the selected ID; its five- and six-argument constructors select PNG. Static formats work with save, scheduled capture, batch capture, and independent region output. The recording action uses GIF when a static format is selected.
+
+Implement `CaptureRowExporter` for tiled high-resolution output. The worker owns and closes the `CaptureRows` stream; the encoder reads it without retaining or closing it. Strict enlarged output requires row-streaming support; automatic quality uses compatible frame export when it is unavailable. Region writers receive the selected region, erase masks, exact output dimensions, and remaining disk budget. They must preserve these dimensions and respect the budget. `CaptureRegionWriter` supports custom row-based region output while sharing the region manifest and crop logic.
 
 ### Capture Phases and Resource Lifecycle
 

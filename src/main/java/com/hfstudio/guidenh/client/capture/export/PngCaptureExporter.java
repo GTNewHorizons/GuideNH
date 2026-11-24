@@ -12,13 +12,13 @@ import java.util.zip.Deflater;
 import java.util.zip.DeflaterOutputStream;
 
 import com.hfstudio.guidenh.client.capture.api.CaptureExportRequest;
-import com.hfstudio.guidenh.client.capture.api.CaptureExporter;
 import com.hfstudio.guidenh.client.capture.api.CaptureFrame;
 import com.hfstudio.guidenh.client.capture.api.CaptureOutputArtifact;
 import com.hfstudio.guidenh.client.capture.api.CaptureOutputSize;
+import com.hfstudio.guidenh.client.capture.api.CaptureRowExporter;
 import com.hfstudio.guidenh.client.capture.api.CaptureRows;
 
-public class PngCaptureExporter implements CaptureExporter {
+public class PngCaptureExporter implements CaptureRowExporter {
 
     @Override
     public String format() {
@@ -31,6 +31,7 @@ public class PngCaptureExporter implements CaptureExporter {
         return exportRows(request, new CaptureRowComposer(request, frame), target);
     }
 
+    @Override
     public CaptureOutputArtifact exportRows(CaptureExportRequest request, CaptureRows rows, Path target)
         throws IOException {
         return exportRows(

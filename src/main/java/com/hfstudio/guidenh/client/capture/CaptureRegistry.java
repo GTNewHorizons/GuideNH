@@ -9,12 +9,15 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 
+import com.hfstudio.guidenh.client.capture.api.CaptureAnimationExporter;
 import com.hfstudio.guidenh.client.capture.api.CaptureBatchCatalog;
 import com.hfstudio.guidenh.client.capture.api.CaptureBatchContext;
 import com.hfstudio.guidenh.client.capture.api.CaptureBatchOptions;
 import com.hfstudio.guidenh.client.capture.api.CaptureBatchProvider;
 import com.hfstudio.guidenh.client.capture.api.CaptureContentOptions;
 import com.hfstudio.guidenh.client.capture.api.CaptureContext;
+import com.hfstudio.guidenh.client.capture.api.CaptureExporter;
+import com.hfstudio.guidenh.client.capture.api.CaptureFormatCatalog;
 import com.hfstudio.guidenh.client.capture.api.CaptureGeometry;
 import com.hfstudio.guidenh.client.capture.api.CaptureGeometryProvider;
 import com.hfstudio.guidenh.client.capture.api.CaptureGuiRenderer;
@@ -26,7 +29,7 @@ import com.hfstudio.guidenh.client.capture.api.CaptureSourceProvider;
 import com.hfstudio.guidenh.client.capture.api.CaptureTarget;
 import com.hfstudio.guidenh.client.capture.api.CaptureTargetDescriptor;
 
-public class CaptureRegistry {
+public class CaptureRegistry implements CaptureFormatCatalog {
 
     private final List<CaptureGeometryProvider> geometryProviders = new ArrayList<>();
     private final List<CaptureLifecycleListener> lifecycleListeners = new ArrayList<>();
@@ -36,6 +39,53 @@ public class CaptureRegistry {
     private final Map<String, CaptureSourceProvider> sourceProviders = new LinkedHashMap<>();
     private long backendRevision;
     private final List<CapturePhaseListener> phaseListeners = new ArrayList<>();
+    private final Map<String, CaptureExporter> exporters = new LinkedHashMap<>();
+    private final Map<String, CaptureAnimationExporter> animationExporters = new LinkedHashMap<>();
+
+    public void registerExporter(CaptureExporter exporter) {
+        Objects.requireNonNull(exporter);
+        validateFormat(exporter.format());
+        if (animationExporters.containsKey(exporter.format())) throw new IllegalArgumentException(
+            "This capture format is already registered for animation: " + exporter.format());
+        exporters.put(exporter.format(), exporter);
+    }
+
+    public void registerAnimationExporter(CaptureAnimationExporter exporter) {
+        Objects.requireNonNull(exporter);
+        validateFormat(exporter.format());
+        if (exporters.containsKey(exporter.format())) throw new IllegalArgumentException(
+            "This capture format is already registered for still images: " + exporter.format());
+        animationExporters.put(exporter.format(), exporter);
+    }
+
+    private static void validateFormat(String format) {
+        if (format == null || !format.matches("[A-Za-z][A-Za-z0-9_-]*") || format.equals("regions"))
+            throw new IllegalArgumentException("A capture format needs a valid non-reserved file extension");
+    }
+
+    @Override
+    public List<String> formats() {
+        List<String> formats = new ArrayList<>(exporters.keySet());
+        formats.addAll(animationExporters.keySet());
+        return List.copyOf(formats);
+    }
+
+    @Override
+    public boolean animationFormat(String format) {
+        return animationExporters.containsKey(format);
+    }
+
+    public CaptureExporter exporter(String format) {
+        CaptureExporter exporter = exporters.get(format);
+        if (exporter == null) throw new IllegalArgumentException("Unknown still capture format: " + format);
+        return exporter;
+    }
+
+    public CaptureAnimationExporter animationExporter(String format) {
+        CaptureAnimationExporter exporter = animationExporters.get(format);
+        if (exporter == null) throw new IllegalArgumentException("Unknown animation capture format: " + format);
+        return exporter;
+    }
 
     public void registerPhaseListener(CapturePhaseListener listener) {
         phaseListeners.add(Objects.requireNonNull(listener));

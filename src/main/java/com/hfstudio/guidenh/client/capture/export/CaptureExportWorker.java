@@ -8,9 +8,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Comparator;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
@@ -21,6 +20,7 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.function.Supplier;
 
 import com.google.gson.GsonBuilder;
+import com.hfstudio.guidenh.client.capture.CaptureRegistry;
 import com.hfstudio.guidenh.client.capture.api.CaptureAnimationExporter;
 import com.hfstudio.guidenh.client.capture.api.CaptureAnimationWriter;
 import com.hfstudio.guidenh.client.capture.api.CaptureBatchManifest;
@@ -31,13 +31,13 @@ import com.hfstudio.guidenh.client.capture.api.CaptureExporter;
 import com.hfstudio.guidenh.client.capture.api.CaptureFrame;
 import com.hfstudio.guidenh.client.capture.api.CaptureOutputArtifact;
 import com.hfstudio.guidenh.client.capture.api.CaptureRecordedFrame;
+import com.hfstudio.guidenh.client.capture.api.CaptureRowExporter;
 import com.hfstudio.guidenh.client.capture.api.CaptureRows;
 import com.hfstudio.guidenh.client.capture.recording.CaptureRecording;
 
 public class CaptureExportWorker implements AutoCloseable {
 
-    private final Map<String, CaptureExporter> exporters = new LinkedHashMap<>();
-    private final Map<String, CaptureAnimationExporter> animationExporters = new LinkedHashMap<>();
+    private final CaptureRegistry registry;
     private final Set<CaptureExportTask<?>> tasks = ConcurrentHashMap.newKeySet();
     private final ExecutorService executor = Executors.newSingleThreadExecutor(task -> {
         Thread thread = new Thread(task, "GuideNH GUI export");
@@ -46,14 +46,23 @@ public class CaptureExportWorker implements AutoCloseable {
     });
 
     public CaptureExportWorker() {
-        register(new PngCaptureExporter());
-        registerAnimation(new GifCaptureExporter());
-        registerAnimation(new PngSequenceCaptureExporter("frames"));
-        registerAnimation(new PngSequenceCaptureExporter("sprites"));
+        this(new CaptureRegistry());
+    }
+
+    public CaptureExportWorker(CaptureRegistry registry) {
+        this.registry = Objects.requireNonNull(registry);
+        if (!registry.formats()
+            .contains("png")) register(new PngCaptureExporter());
+        if (!registry.formats()
+            .contains("gif")) registerAnimation(new GifCaptureExporter());
+        if (!registry.formats()
+            .contains("frames")) registerAnimation(new PngSequenceCaptureExporter("frames"));
+        if (!registry.formats()
+            .contains("sprites")) registerAnimation(new PngSequenceCaptureExporter("sprites"));
     }
 
     public void register(CaptureExporter exporter) {
-        exporters.put(exporter.format(), exporter);
+        registry.registerExporter(exporter);
     }
 
     public int pendingTasks() {
@@ -61,7 +70,7 @@ public class CaptureExportWorker implements AutoCloseable {
     }
 
     public void registerAnimation(CaptureAnimationExporter exporter) {
-        animationExporters.put(exporter.format(), exporter);
+        registry.registerAnimationExporter(exporter);
     }
 
     public CompletableFuture<Path> writeManifest(CaptureBatchManifest manifest, Path directory) {
@@ -99,9 +108,15 @@ public class CaptureExportWorker implements AutoCloseable {
 
     public CompletableFuture<List<CaptureBatchOutput>> compose(CaptureBatchManifest manifest,
         CaptureBatchOptions options, Path directory, long remainingBytes) {
+        CaptureAnimationExporter pageEncoder = options.layout()
+            .pageRecording() == null ? null
+                : registry.animationExporter(
+                    options.layout()
+                        .pageRecording()
+                        .format());
         return submitTask(() -> {
             try {
-                return CaptureBatchCompositor.compose(manifest, options, directory, remainingBytes);
+                return CaptureBatchCompositor.compose(manifest, options, directory, remainingBytes, pageEncoder);
             } catch (IOException error) {
                 throw new UncheckedIOException(error);
             }
@@ -109,11 +124,8 @@ public class CaptureExportWorker implements AutoCloseable {
     }
 
     public void startRecording(CaptureRecording recording) {
-        CaptureAnimationExporter exporter = animationExporters.get(
+        CaptureAnimationExporter exporter = registry.animationExporter(
             recording.options()
-                .format());
-        if (exporter == null) throw new IllegalArgumentException(
-            "Unknown animation format: " + recording.options()
                 .format());
         recording.completion(submitTask(() -> {
             try {
@@ -178,6 +190,17 @@ public class CaptureExportWorker implements AutoCloseable {
 
     public CompletableFuture<CaptureOutputArtifact> submitRows(CaptureExportRequest request, CaptureRows rows,
         long timestampNanos) {
+        CaptureExporter encoder = registry.exporter(
+            request.options()
+                .format());
+        if (!(encoder instanceof CaptureRowExporter rowEncoder)) throw new IllegalArgumentException(
+            "This capture format does not support row streaming: " + encoder.format());
+        return submitRows(request, rows, timestampNanos, rowEncoder);
+    }
+
+    public CompletableFuture<CaptureOutputArtifact> submitRows(CaptureExportRequest request, CaptureRows rows,
+        long timestampNanos, CaptureRowExporter encoder) {
+        Objects.requireNonNull(encoder);
         return submitTask(() -> {
             Path temporary = null;
             try (rows) {
@@ -186,12 +209,14 @@ public class CaptureExportWorker implements AutoCloseable {
                 boolean separate = request.options()
                     .layout()
                     .separateRegions();
-                Path target = CaptureOutputPaths.next(directory, request.sourceId(), separate ? "regions" : "png");
+                Path target = CaptureOutputPaths
+                    .next(directory, request.sourceId(), separate ? "regions" : encoder.format());
                 temporary = separate ? Files.createTempDirectory(directory, ".guidenh_regions_")
                     : Files.createTempFile(directory, ".guidenh_capture_", ".part");
                 CaptureOutputArtifact artifact = separate
-                    ? CaptureRegionExporter.export(request, rows, temporary, timestampNanos)
-                    : new PngCaptureExporter().exportRows(request, rows, temporary);
+                    ? CaptureRegionExporter
+                        .export(request, rows, temporary, timestampNanos, encoder.format(), encoder::exportRows)
+                    : encoder.exportRows(request, rows, temporary);
                 publish(temporary, target);
                 return new CaptureOutputArtifact(
                     target,
@@ -222,8 +247,12 @@ public class CaptureExportWorker implements AutoCloseable {
 
     public CompletableFuture<CaptureOutputArtifact> submit(CaptureExportRequest request, CaptureFrame frame,
         String format) {
-        CaptureExporter exporter = exporters.get(format);
-        if (exporter == null) throw new IllegalArgumentException("Unknown capture format: " + format);
+        return submit(request, frame, registry.exporter(format));
+    }
+
+    public CompletableFuture<CaptureOutputArtifact> submit(CaptureExportRequest request, CaptureFrame frame,
+        CaptureExporter exporter) {
+        Objects.requireNonNull(exporter);
         CaptureFrame owned = frame.retain();
         return submitTask(() -> {
             try (owned) {
@@ -238,19 +267,36 @@ public class CaptureExportWorker implements AutoCloseable {
         throws IOException {
         Path directory = request.options()
             .outputDirectory();
-        boolean separate = exporter.format()
-            .equals("png")
-            && request.options()
-                .layout()
-                .separateRegions();
+        boolean separate = request.options()
+            .layout()
+            .separateRegions();
         Path target = CaptureOutputPaths.next(directory, request.sourceId(), separate ? "regions" : exporter.format());
         Path temporary = separate ? Files.createTempDirectory(directory, ".guidenh_regions_")
             : Files.createTempFile(directory, ".guidenh_capture_", ".part");
         try {
-            CaptureOutputArtifact artifact = separate
-                ? CaptureRegionExporter
-                    .export(request, new CaptureRowComposer(request, frame), temporary, frame.timestampNanos())
-                : exporter.export(request, frame, temporary);
+            CaptureOutputArtifact artifact;
+            if (!separate) artifact = exporter.export(request, frame, temporary);
+            else if (exporter instanceof CaptureRowExporter rowEncoder) {
+                try (CaptureRows rows = new CaptureRowComposer(request, frame)) {
+                    artifact = CaptureRegionExporter.export(
+                        request,
+                        rows,
+                        temporary,
+                        frame.timestampNanos(),
+                        exporter.format(),
+                        rowEncoder::exportRows);
+                }
+            } else {
+                try (CaptureRows rows = new CaptureRowComposer(request, frame)) {
+                    artifact = CaptureRegionExporter.export(
+                        request,
+                        rows,
+                        temporary,
+                        frame.timestampNanos(),
+                        exporter.format(),
+                        (bounded, selected, targetFile) -> exporter.export(bounded, frame, targetFile));
+                }
+            }
             publish(temporary, target);
             return new CaptureOutputArtifact(
                 target,

@@ -3,6 +3,7 @@ package com.hfstudio.guidenh.client.capture.export;
 import java.awt.AlphaComposite;
 import java.awt.Color;
 import java.awt.Graphics2D;
+import java.awt.Rectangle;
 import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
@@ -17,6 +18,7 @@ import javax.imageio.ImageReader;
 import javax.imageio.stream.ImageInputStream;
 
 import com.hfstudio.guidenh.client.capture.api.CaptureOutputSize;
+import com.hfstudio.guidenh.client.capture.api.CaptureRect;
 import com.hfstudio.guidenh.client.capture.api.CaptureRows;
 
 public class CaptureContactSheetRows implements CaptureRows {
@@ -92,6 +94,14 @@ public class CaptureContactSheetRows implements CaptureRows {
                 if (width * 16L > memoryBudget / 2)
                     throw new IOException("The source scanline exceeds the contact sheet memory budget");
                 ImageReadParam parameters = reader.getDefaultReadParam();
+                if (entry.sourceBounds() != null) {
+                    CaptureRect crop = entry.sourceBounds()
+                        .intersect(new CaptureRect(0, 0, width, height));
+                    if (crop.isEmpty()) throw new IOException("The animation poster lies outside its source image");
+                    width = (int) crop.width();
+                    height = (int) crop.height();
+                    parameters.setSourceRegion(new Rectangle((int) crop.x(), (int) crop.y(), width, height));
+                }
                 int sample = (int) Math.max(1, ((long) Math.max(width, height) + thumbnailSize - 1) / thumbnailSize);
                 parameters.setSourceSubsampling(sample, sample, 0, 0);
                 sampled = reader.read(0, parameters);

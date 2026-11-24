@@ -5,7 +5,16 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 public record CaptureSetting(String key, Supplier<String> value, Consumer<String> update,
-    Supplier<List<String>> choiceSource, boolean recapture, CaptureSliderRange slider) {
+    Supplier<List<String>> choiceSource, boolean recapture, CaptureSliderRange slider, CaptureSettingSection section) {
+
+    public CaptureSetting(String key, Supplier<String> value, Consumer<String> update,
+        Supplier<List<String>> choiceSource, boolean recapture, CaptureSliderRange slider) {
+        this(key, value, update, choiceSource, recapture, slider, CaptureSettingSection.forKey(key));
+    }
+
+    public CaptureSetting {
+        if (section == null) throw new IllegalArgumentException("A setting section is required");
+    }
 
     public CaptureSetting(String key, Supplier<String> value, Consumer<String> update,
         Supplier<List<String>> choiceSource, boolean recapture) {
@@ -24,7 +33,8 @@ public record CaptureSetting(String key, Supplier<String> value, Consumer<String
             update,
             choiceSource,
             recapture,
-            new CaptureSliderRange(minimum, maximum, step));
+            new CaptureSliderRange(minimum, maximum, step),
+            section);
     }
 
     private static Supplier<List<String>> immutableChoices(List<String> choices) {
@@ -34,6 +44,10 @@ public record CaptureSetting(String key, Supplier<String> value, Consumer<String
 
     public List<String> choices() {
         return List.copyOf(choiceSource.get());
+    }
+
+    public CaptureSetting withSection(CaptureSettingSection section) {
+        return new CaptureSetting(key, value, update, choiceSource, recapture, slider, section);
     }
 
     public void cycle(int direction) {
