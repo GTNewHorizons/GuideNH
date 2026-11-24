@@ -1,5 +1,8 @@
 package com.hfstudio.guidenh.network;
 
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.network.NetHandlerPlayClient;
+
 import com.hfstudio.guidenh.client.GuideNhClientTaskScheduler;
 import com.hfstudio.guidenh.client.command.GuideNhClientBridgeController;
 
@@ -14,9 +17,14 @@ public class GuideNhRegionExportClientHandler implements IMessageHandler<GuideNh
 
     @Override
     public IMessage onMessage(GuideNhRegionExportReplyMessage message, MessageContext ctx) {
-        GuideNhClientTaskScheduler.execute(
-            () -> GuideNhClientBridgeController.getInstance()
-                .handleRegionExportReply(message));
+        NetHandlerPlayClient connection = ctx.getClientHandler();
+        GuideNhClientTaskScheduler.execute(() -> {
+            if (Minecraft.getMinecraft()
+                .getNetHandler() == connection) {
+                GuideNhClientBridgeController.getInstance()
+                    .handleRegionExportReply(message);
+            }
+        });
         return null;
     }
 }

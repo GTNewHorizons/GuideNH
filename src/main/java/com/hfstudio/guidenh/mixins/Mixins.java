@@ -17,10 +17,65 @@ public enum Mixins implements IMixins {
         "minecraft.AccessorSimpleReloadableResourceManager", "minecraft.MixinResourcePackReload",
         "forge.AccessorShapedOreRecipe", "forge.AccessorShapelessOreRecipe", "minecraft.AccessorTextureManager",
         "minecraft.AccessorTextureMap", "minecraft.AccessorTextureAtlasSprite",
-        "minecraft.MixinTessellatorSceneExportCapture", "minecraft.MixinModelRendererSceneExportCapture"),
+        "minecraft.MixinTessellatorSceneExportCapture", "minecraft.MixinModelRendererSceneExportCapture",
+        "minecraft.AccessorGuiCaptureScreen", "minecraft.AccessorGuiCaptureContainer",
+        "minecraft.AccessorCaptureBookScreen", "minecraft.MixinGuiCaptureInput", "minecraft.MixinGuiCaptureRender",
+        "minecraft.MixinGuiCaptureLayer", "minecraft.MixinGuiCaptureBackground", "minecraft.MixinGuiCaptureHud",
+        "forge.MixinGuiCaptureForgeHud", "minecraft.MixinGuiCaptureAlpha", "minecraft.MixinGuiCaptureButtonAlpha",
+        "minecraft.MixinCaptureOverlayDraws", "minecraft.MixinCaptureOverlayText",
+        "minecraft.AccessorCaptureFontStrings", "minecraft.MixinGuiCaptureFramebuffer",
+        "minecraft.MixinGuiCaptureMainMenu", "minecraft.MixinStandaloneContainerScreen",
+        "minecraft.MixinCaptureContainerSynchronization"),
 
     AE2_EXTERNAL_CABLE_PARTS(Side.CLIENT, Phase.LATE, Mods.AE2, "compat.ae2.MixinPartQuartzFiber",
         "compat.ae2.MixinPartP2PTunnelME", "compat.ae2.MixinPartToggleBus"),
+
+    AE2_CAPTURE_BUTTONS(Side.CLIENT, Phase.LATE, Mods.AE2, "compat.ae2.MixinCaptureAe2Buttons"),
+
+    CHROMATIC_CAPTURE_TOOLTIP(Side.CLIENT, Phase.LATE, Mods.ChromaticTooltips,
+        "compat.chromatictooltips.MixinCaptureChromaticTooltip",
+        "compat.chromatictooltips.MixinCaptureChromaticTooltipRequest"),
+
+    ANGELICA_CAPTURE_FRAME_END(new MixinBuilder()
+        .addClientMixins("compat.angelica.MixinCaptureFrameEnd", "compat.angelica.MixinCaptureHudCache")
+        .setPhase(Phase.EARLY)
+        .setApplyIf(
+            () -> Mixins.class.getClassLoader()
+                .getResource("com/gtnewhorizons/angelica/glsm/hooks/FrameHooks.class") != null)),
+
+    LWJGL_CAPTURE_INPUT(Side.CLIENT, Phase.EARLY, Mods.Lwjgl3ify, "compat.lwjgl3ify.MixinCaptureInputEvents",
+        "compat.lwjgl3ify.AccessorCaptureTextInput"),
+
+    MUI_CAPTURE_GEOMETRY(Side.CLIENT, Phase.LATE, Mods.ModularUI, "compat.mui.AccessorCaptureModularWindow",
+        "compat.mui.MixinCaptureMuiTooltip"),
+
+    MUI2_CAPTURE_TOOLTIP(Side.CLIENT, Phase.LATE, Mods.ModularUI2, "compat.mui2.MixinCaptureMui2Tooltip",
+        "compat.mui2.MixinCaptureMui2TooltipVisibility", "compat.mui2.MixinCaptureMui2Background",
+        "compat.mui2.MixinCaptureMui2Alpha", "compat.mui2.MixinCaptureMui2Blend"),
+
+    SERVER_CAPTURE_CONTAINER(new MixinBuilder()
+        .addCommonMixins(
+            "minecraft.MixinCaptureServerContainer",
+            "minecraft.AccessorCaptureEnderInventory",
+            "minecraft.AccessorCaptureHorseContainer",
+            "minecraft.AccessorCaptureMerchantContainer")
+        .setPhase(Phase.EARLY)),
+
+    MUI_CAPTURE_FACTORY(new MixinBuilder().addCommonMixins("compat.mui.MixinCaptureMuiFactory")
+        .setPhase(Phase.LATE)
+        .addRequiredMod(Mods.ModularUI)),
+
+    MUI2_CAPTURE_FACTORY(new MixinBuilder().addCommonMixins("compat.mui2.MixinCaptureMui2Factory")
+        .setPhase(Phase.LATE)
+        .addRequiredMod(Mods.ModularUI2)),
+
+    NEI_CAPTURE_GUI(Side.CLIENT, Phase.LATE, Mods.NotEnoughItems, "compat.nei.AccessorCaptureNeiLayout",
+        "compat.nei.AccessorCaptureNeiRecipe", "compat.nei.AccessorCaptureNeiTask", "compat.nei.AccessorCaptureNeiText",
+        "compat.nei.MixinCaptureNeiLayers", "compat.nei.MixinCaptureNeiTooltip"),
+
+    BQ_CAPTURE_GUI(Side.CLIENT, Phase.LATE, Mods.BetterQuesting, "compat.betterquesting.AccessorCaptureBqCanvas",
+        "compat.betterquesting.AccessorCaptureBqQuest", "compat.betterquesting.AccessorCaptureBqQuestLines",
+        "compat.betterquesting.MixinCaptureBqIconFramebuffer"),
 
     ANGELICA_SCENE_EXPORT(Side.CLIENT, Phase.LATE, Mods.Angelica,
         "compat.angelica.MixinVanillaModelMeshesSceneExportCapture"),

@@ -3,6 +3,7 @@ package com.hfstudio.guidenh;
 import static com.hfstudio.guidenh.GuideNH.MODID;
 import static com.hfstudio.guidenh.GuideNH.MODNAME;
 
+import com.hfstudio.guidenh.capture.server.CaptureServerCoordinator;
 import com.hfstudio.guidenh.guide.internal.GuideCommand;
 import com.hfstudio.guidenh.guide.internal.GuideNhBridgeCommand;
 
@@ -14,6 +15,7 @@ import cpw.mods.fml.common.event.FMLMissingMappingsEvent;
 import cpw.mods.fml.common.event.FMLPostInitializationEvent;
 import cpw.mods.fml.common.event.FMLPreInitializationEvent;
 import cpw.mods.fml.common.event.FMLServerStartingEvent;
+import cpw.mods.fml.common.event.FMLServerStoppedEvent;
 import cpw.mods.fml.common.registry.GameRegistry;
 
 @Mod(
@@ -62,6 +64,12 @@ public class GuideNH {
     public void serverStarting(FMLServerStartingEvent event) {
         event.registerServerCommand(new GuideCommand());
         event.registerServerCommand(new GuideNhBridgeCommand());
+    }
+
+    @Mod.EventHandler
+    public void serverStopped(FMLServerStoppedEvent event) {
+        CaptureServerCoordinator.instance()
+            .stop();
     }
 
     @Mod.EventHandler

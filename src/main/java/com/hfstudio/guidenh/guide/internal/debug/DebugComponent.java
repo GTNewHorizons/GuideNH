@@ -5,6 +5,7 @@ import java.util.List;
 import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.document.LytRect;
+import com.hfstudio.guidenh.guide.document.block.LytDocument;
 
 /**
  * Exposes controls and other pickable components outside the LytNode tree to the debug overlay.
@@ -15,6 +16,12 @@ public interface DebugComponent {
      * Returns currently pickable components.
      */
     List<ComponentEntry> getDebugComponents();
+
+    default List<DocumentGeometry> getDebugDocuments() {
+        return List.of();
+    }
+
+    public record DocumentGeometry(LytDocument document, LytRect viewport, LytRect clip, float scrollY, float zoom) {}
 
     /**
      * Pickable component bounds and metadata.

@@ -1,6 +1,5 @@
 package com.hfstudio.guidenh.guide.scene.cache;
 
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -210,12 +209,7 @@ public class GuideSceneStructureFingerprintResolver {
             return null;
         }
         try {
-            Path path = SceneEditorStructureCache.resolveSceneStructurePath(workingRoot, normalizedSource)
-                .orElse(null);
-            if (path == null || !Files.exists(path)) {
-                return null;
-            }
-            return Files.readString(path);
+            return SceneEditorStructureCache.readSceneStructure(workingRoot, normalizedSource);
         } catch (Exception ignored) {
             return null;
         }

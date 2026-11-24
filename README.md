@@ -31,6 +31,7 @@
 * Interactive 3D GameScene previews with block/entity placement, StructureLib import, Ponder playback, layer sliders, grid controls, annotations, and block statistics.
 * Live guide editing mode with split editor/preview, toolbar actions, debounced saving, external-change handling, and resource-pack page creation.
 * Multi-language guide folders with fallback, item and fluid index navigation, search, server integration, and resource reload support.
+* [GUI capture](wiki/GUI-Capture.md) with snapping, enclosing selections and erasure, PNG export up to 32x, animation recording, scheduling, and configurable batch outputs.
 
 ## **Authors**
 
