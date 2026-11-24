@@ -18,12 +18,12 @@ public class CaptureContentSnapshot implements CaptureRenderSnapshot {
         CaptureContentOptions content) {
         this.delegate = delegate;
         includeGui = content.includeGui();
-        masks = CaptureContentGeometry.inventoryMask(geometry, content);
+        masks = delegate.filtersContent() ? List.of() : CaptureContentGeometry.inventoryMask(geometry, content);
     }
 
     @Override
     public void draw() {
-        if (!includeGui) return;
+        if (!includeGui && !delegate.includesHud()) return;
         if (masks.isEmpty()) {
             delegate.draw();
             return;
@@ -37,5 +37,15 @@ public class CaptureContentSnapshot implements CaptureRenderSnapshot {
     @Override
     public void close() {
         delegate.close();
+    }
+
+    @Override
+    public boolean includesHud() {
+        return delegate.includesHud();
+    }
+
+    @Override
+    public boolean filtersContent() {
+        return true;
     }
 }

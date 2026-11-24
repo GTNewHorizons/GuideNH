@@ -15,8 +15,11 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.world.WorldServer;
 
+import com.hfstudio.guidenh.capture.server.api.CaptureGuiLocation;
 import com.hfstudio.guidenh.capture.server.api.CaptureServerContext;
+import com.hfstudio.guidenh.capture.server.api.CaptureServerGuiAction;
 import com.hfstudio.guidenh.capture.server.api.CaptureServerGuiProvider;
+import com.hfstudio.guidenh.capture.server.api.CaptureServerObjectTarget;
 import com.hfstudio.guidenh.capture.server.api.CaptureServerQuery;
 import com.hfstudio.guidenh.capture.server.api.CaptureServerReopen;
 import com.hfstudio.guidenh.capture.server.api.CaptureServerReply;
@@ -24,6 +27,7 @@ import com.hfstudio.guidenh.capture.server.api.CaptureServerRequest;
 import com.hfstudio.guidenh.capture.server.api.CaptureServerTarget;
 import com.hfstudio.guidenh.integration.Mods;
 import com.hfstudio.guidenh.integration.ae2.capture.Ae2ServerGuiProvider;
+import com.hfstudio.guidenh.integration.capture.VanillaEntityGuiProvider;
 import com.hfstudio.guidenh.integration.capture.VanillaServerGuiProvider;
 import com.hfstudio.guidenh.integration.gregtech.capture.GregTechServerGuiProvider;
 import com.hfstudio.guidenh.integration.mui.capture.MuiServerGuiProvider;
@@ -56,6 +60,7 @@ public class CaptureServerCoordinator {
 
     public void initialize() {
         registry.register(new VanillaServerGuiProvider());
+        registry.registerObjects(new VanillaEntityGuiProvider());
         if (Mods.GregTech.isModLoaded()) registry.register(new GregTechServerGuiProvider());
         if (Mods.AE2.isModLoaded()) registry.register(new Ae2ServerGuiProvider());
         if (Mods.ModularUI.isModLoaded()) registry.register(new MuiServerGuiProvider());
@@ -75,6 +80,11 @@ public class CaptureServerCoordinator {
 
     public void forgetOrigin(EntityPlayerMP player) {
         origins.remove(player.getUniqueID());
+    }
+
+    public void recordObjectOrigin(EntityPlayerMP player, CaptureServerGuiAction factory) {
+        if (player.openContainer != player.inventoryContainer)
+            origins.put(player.getUniqueID(), new OriginFactory(player.openContainer, null, factory));
     }
 
     @SubscribeEvent
@@ -168,13 +178,27 @@ public class CaptureServerCoordinator {
                 throw new IllegalArgumentException(
                     "Temporary travel requires a creative player in an integrated server");
             OriginFactory original = origins.get(playerId);
+            if (query.area() != null && (query.area()
+                .dimension() != player.dimension
+                || (long) query.area()
+                    .maxX() - query.area()
+                        .minX()
+                    >= CaptureCapabilityMessage.MAX_RADIUS * 2L
+                || (long) query.area()
+                    .maxZ() - query.area()
+                        .minZ()
+                    >= CaptureCapabilityMessage.MAX_RADIUS * 2L))
+                throw new IllegalArgumentException("The selected capture region exceeds the advertised bounds");
+            CaptureServerContext scope = context(server, player, query);
             catalogs.put(
                 playerId,
                 new ServerCatalog(
                     request.id(),
-                    context(server, player, query),
+                    scope,
                     tick,
-                    original != null && original.container() == player.openContainer ? original.factory() : null));
+                    original != null && original.container() == player.openContainer ? original.factory() : null,
+                    original != null && original.container() == player.openContainer ? original.objectFactory() : null,
+                    registry.objects(scope)));
             return;
         }
         NavigationLease lease = leases.get(playerId);
@@ -217,7 +241,9 @@ public class CaptureServerCoordinator {
                 throw new IllegalStateException("The original container changed; refresh the catalog");
             if (player.inventory.getItemStack() != null)
                 throw new IllegalStateException("Put down the carried item before navigating");
-            if (catalog.origin != player.inventoryContainer && catalog.original == null && catalog.reopen == null)
+            if (catalog.origin != player.inventoryContainer && catalog.original == null
+                && catalog.reopen == null
+                && catalog.objectReopen == null)
                 throw new IllegalStateException("The original container has no registered restoration factory");
             lease = new NavigationLease(catalog, player, tick);
             leases.put(playerId, lease);
@@ -233,6 +259,19 @@ public class CaptureServerCoordinator {
     private void scan(EntityPlayerMP player, ServerCatalog catalog) {
         List<CaptureServerTarget> page = new ArrayList<>();
         int visited = 0;
+        while (catalog.objectCursor < catalog.objects.size() && visited++ < 128
+            && catalog.entries.size() < catalog.context.query()
+                .maxTargets()) {
+            CaptureServerObjectTarget object = catalog.objects.get(catalog.objectCursor++);
+            ServerEntry entry = new ServerEntry(object.target(), null, object.action());
+            catalog.entries.put(
+                entry.target()
+                    .id(),
+                entry);
+            page.add(entry.target());
+            if (catalog.original == null && object.action()
+                .owns(catalog.context, catalog.origin)) catalog.original = entry;
+        }
         while (catalog.cursor < catalog.tiles.size() && visited++ < 128
             && catalog.entries.size() < catalog.context.query()
                 .maxTargets()) {
@@ -275,9 +314,11 @@ public class CaptureServerCoordinator {
                     catalog.original = entry;
             }
         }
-        catalog.complete = catalog.cursor >= catalog.tiles.size() || catalog.entries.size() >= catalog.context.query()
-            .maxTargets();
-        boolean limited = catalog.complete && catalog.cursor < catalog.tiles.size();
+        catalog.complete = catalog.cursor >= catalog.tiles.size() && catalog.objectCursor >= catalog.objects.size()
+            || catalog.entries.size() >= catalog.context.query()
+                .maxTargets();
+        boolean limited = catalog.complete
+            && (catalog.cursor < catalog.tiles.size() || catalog.objectCursor < catalog.objects.size());
         for (int offset = 0; offset < page.size() || offset == 0 && page.isEmpty() && catalog.complete; offset += 128) {
             boolean last = offset + 128 >= page.size();
             send(
@@ -300,13 +341,25 @@ public class CaptureServerCoordinator {
         UUID requestId) {
         TileEntity tile = entry.tile();
         CaptureServerContext context = context(server, player, lease.catalog.context.query());
-        if (tile.isInvalid() || tile.getWorldObj() != player.worldObj
+        if (entry.action() != null) {
+            String access = entry.action()
+                .accessReason(context);
+            if (!access.isEmpty()) throw new IllegalStateException(access);
+        } else if (tile == null || tile.isInvalid()
+            || tile.getWorldObj() != player.worldObj
             || !context.world()
                 .blockExists(tile.xCoord, tile.yCoord, tile.zCoord)
             || context.world()
                 .getTileEntity(tile.xCoord, tile.yCoord, tile.zCoord) != tile)
             throw new IllegalStateException("The target tile was removed or replaced");
-        if (distance(player, tile) >= 64) {
+        CaptureGuiLocation location = entry.action() == null
+            ? new CaptureGuiLocation(player.dimension, tile.xCoord, tile.yCoord, tile.zCoord)
+            : entry.action()
+                .location(context);
+        if (location.dimension() != player.dimension || !context.world()
+            .blockExists(location.x(), location.y(), location.z()))
+            throw new IllegalStateException("The target location is no longer loaded");
+        if (player.getDistanceSq(location.x() + 0.5, location.y() + 0.5, location.z() + 0.5) >= 64) {
             if (!context.query()
                 .temporaryTravel() || !context.integrated() || !player.capabilities.isCreativeMode)
                 throw new IllegalStateException("This target is outside interaction distance");
@@ -314,9 +367,9 @@ public class CaptureServerCoordinator {
             player.capabilities.isFlying = true;
             player.sendPlayerAbilities();
             player.playerNetServerHandler.setPlayerLocation(
-                tile.xCoord + 0.5,
-                tile.yCoord + 1.5,
-                tile.zCoord + 0.5,
+                location.x() + 0.5,
+                location.y() + 1.5,
+                location.z() + 0.5,
                 player.rotationYaw,
                 player.rotationPitch);
             player.fallDistance = 0;
@@ -325,22 +378,35 @@ public class CaptureServerCoordinator {
             reply(player, requestId, "positioned", "Waiting for the target chunk on the client", -1);
             return;
         }
-        CaptureServerGuiProvider provider = registry.provider(
+        CaptureServerGuiProvider provider = entry.action() == null ? registry.provider(
             entry.target()
-                .providerId());
-        String access = provider.accessReason(
-            context,
-            tile,
-            entry.target()
-                .variant());
+                .providerId())
+            : null;
+        String access = entry.action() != null ? entry.action()
+            .accessReason(context)
+            : provider.accessReason(
+                context,
+                tile,
+                entry.target()
+                    .variant());
         if (!access.isEmpty()) throw new IllegalStateException(access);
         if (player.openContainer != player.inventoryContainer) player.closeScreen();
-        provider.open(
+        if (entry.action() != null) entry.action()
+            .open(context);
+        else provider.open(
             context,
             tile,
             entry.target()
                 .variant());
-        if (player.openContainer == player.inventoryContainer || !player.openContainer.canInteractWith(player)) {
+        if (player.openContainer == player.inventoryContainer || !player.openContainer.canInteractWith(player)
+            || (entry.action() != null ? !entry.action()
+                .owns(context, player.openContainer)
+                : !provider.owns(
+                    context,
+                    tile,
+                    player.openContainer,
+                    entry.target()
+                        .variant()))) {
             if (player.openContainer != player.inventoryContainer) player.closeScreen();
             throw new IllegalStateException("The registered factory did not open a usable container");
         }
@@ -357,10 +423,26 @@ public class CaptureServerCoordinator {
         restorePosition(player, lease);
         lease.lastUsed = tick;
         try {
-            if (reopen && (lease.catalog.reopen != null || lease.catalog.original != null)) {
+            if (reopen && (lease.catalog.reopen != null || lease.catalog.original != null
+                || lease.catalog.objectReopen != null)) {
                 if (player.openContainer != player.inventoryContainer && player.openContainer != lease.active)
                     throw new IllegalStateException("Another container replaced the capture target");
-                if (lease.catalog.reopen != null) {
+                if (lease.catalog.objectReopen != null) {
+                    CaptureServerContext context = context(server, player, lease.catalog.context.query());
+                    CaptureServerGuiAction factory = lease.catalog.objectReopen;
+                    String reason = factory.accessReason(context);
+                    CaptureGuiLocation location = factory.location(context);
+                    if (!reason.isEmpty() || location.dimension() != player.dimension
+                        || player.getDistanceSq(location.x() + 0.5, location.y() + 0.5, location.z() + 0.5) >= 64)
+                        throw new IllegalStateException(
+                            reason.isEmpty() ? "The original entity moved out of reach" : reason);
+                    factory.open(context);
+                    lease.active = player.openContainer;
+                    if (lease.active == player.inventoryContainer || !lease.active.canInteractWith(player))
+                        throw new IllegalStateException("The original entity GUI could not reopen");
+                    lease.pending = requestId;
+                    lease.readyTick = tick + 3;
+                } else if (lease.catalog.reopen != null) {
                     CaptureServerReopen factory = lease.catalog.reopen;
                     TileEntity tile = factory.source();
                     CaptureServerContext context = context(server, player, lease.catalog.context.query());
@@ -450,9 +532,20 @@ public class CaptureServerCoordinator {
 
     public record QueuedRequest(UUID playerId, CaptureServerRequest request) {}
 
-    public record ServerEntry(CaptureServerTarget target, TileEntity tile) {}
+    public record ServerEntry(CaptureServerTarget target, TileEntity tile, CaptureServerGuiAction action) {
 
-    public record OriginFactory(Container container, CaptureServerReopen factory) {}
+        public ServerEntry(CaptureServerTarget target, TileEntity tile) {
+            this(target, tile, null);
+        }
+    }
+
+    public record OriginFactory(Container container, CaptureServerReopen factory,
+        CaptureServerGuiAction objectFactory) {
+
+        public OriginFactory(Container container, CaptureServerReopen factory) {
+            this(container, factory, null);
+        }
+    }
 
     public static class ServerCatalog {
 
@@ -463,25 +556,39 @@ public class CaptureServerCoordinator {
         private final Container origin;
         private final TileEntity originTile;
         private final CaptureServerReopen reopen;
+        private final CaptureServerGuiAction objectReopen;
+        private final List<CaptureServerObjectTarget> objects;
+        private int objectCursor;
         private ServerEntry original;
         private int cursor;
         private boolean complete;
         private long lastUsed;
 
         public ServerCatalog(UUID id, CaptureServerContext context, long tick, CaptureServerReopen reopen) {
+            this(id, context, tick, reopen, null, List.of());
+        }
+
+        public ServerCatalog(UUID id, CaptureServerContext context, long tick, CaptureServerReopen reopen,
+            CaptureServerGuiAction objectReopen, List<CaptureServerObjectTarget> objects) {
             this.id = id;
             this.context = context;
             this.reopen = reopen;
+            this.objectReopen = objectReopen;
+            this.objects = List.copyOf(objects);
             lastUsed = tick;
             origin = context.player().openContainer;
             originTile = Mods.ModularUI2.isModLoaded() ? Mui2ServerContainerIdentity.tile(origin) : null;
-            int radius = context.query()
-                .radius();
             for (Object value : context.world().loadedTileEntityList) {
                 TileEntity tile = (TileEntity) value;
-                if (Math.abs(tile.xCoord + 0.5 - context.player().posX) <= radius
-                    && Math.abs(tile.yCoord + 0.5 - context.player().posY) <= radius
-                    && Math.abs(tile.zCoord + 0.5 - context.player().posZ) <= radius) tiles.add(tile);
+                if (context.query()
+                    .includes(
+                        tile.xCoord + 0.5,
+                        tile.yCoord + 0.5,
+                        tile.zCoord + 0.5,
+                        context.player().posX,
+                        context.player().posY,
+                        context.player().posZ))
+                    tiles.add(tile);
             }
             tiles.sort(
                 Comparator.comparingDouble(

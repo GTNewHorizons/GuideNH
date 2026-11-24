@@ -1,6 +1,7 @@
 package com.hfstudio.guidenh.client.capture.render;
 
 import java.nio.IntBuffer;
+import java.util.function.Supplier;
 
 import net.minecraft.client.renderer.OpenGlHelper;
 import net.minecraft.client.shader.Framebuffer;
@@ -9,8 +10,10 @@ import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.EXTFramebufferObject;
 import org.lwjgl.opengl.GL11;
 
+import com.hfstudio.guidenh.client.capture.api.CaptureAlphaMode;
 import com.hfstudio.guidenh.client.capture.api.CaptureFrame;
 import com.hfstudio.guidenh.client.capture.api.CapturePixelReader;
+import com.hfstudio.guidenh.client.capture.api.CaptureReadback;
 import com.hfstudio.guidenh.client.capture.api.CaptureRect;
 import com.hfstudio.guidenh.client.capture.api.CaptureRenderSnapshot;
 import com.hfstudio.guidenh.client.capture.api.CaptureTile;
@@ -43,6 +46,30 @@ public class GuiTileCaptureSource implements AutoCloseable {
 
     public CaptureFrame render(CaptureTile tile, CaptureRenderSnapshot snapshot, CapturePixelReader reader,
         boolean includeDebug, long timestamp) {
+        return draw(
+            tile,
+            snapshot,
+            includeDebug,
+            () -> reader.readPremultiplied(0, 0, tile.width() + GUARD * 2, tile.height() + GUARD * 2, timestamp));
+    }
+
+    public CaptureReadback enqueue(CaptureTile tile, CaptureRenderSnapshot snapshot, CapturePixelReader reader,
+        boolean includeDebug, long timestamp, long memoryBudget) {
+        return draw(
+            tile,
+            snapshot,
+            includeDebug,
+            () -> reader.enqueue(
+                0,
+                0,
+                tile.width() + GUARD * 2,
+                tile.height() + GUARD * 2,
+                timestamp,
+                CaptureAlphaMode.PREMULTIPLIED,
+                memoryBudget));
+    }
+
+    private <T> T draw(CaptureTile tile, CaptureRenderSnapshot snapshot, boolean includeDebug, Supplier<T> readback) {
         int width = tile.width() + GUARD * 2;
         int height = tile.height() + GUARD * 2;
         CaptureRect logical = tile.logicalBounds();
@@ -83,7 +110,7 @@ public class GuiTileCaptureSource implements AutoCloseable {
             drawing = true;
             try {
                 snapshot.draw();
-                return reader.readPremultiplied(0, 0, width, height, timestamp);
+                return readback.get();
             } finally {
                 drawing = false;
             }

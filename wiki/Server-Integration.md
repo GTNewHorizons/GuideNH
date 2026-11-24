@@ -19,7 +19,7 @@ Run these commands as a player. Coordinates accept relative `~` notation:
 
 | Command | Purpose |
 | --- | --- |
-| `/guidenh importstructure <x> <y> <z>` | Open the client's structure import dialog with the target coordinates |
+| `/guidenhc importstructure <x> <y> <z> <file.snbt>` | Import on the client from `config/guidenh/structures`, then approve the upload |
 | `/guidenh placeallstructures <x> <y> <z>` | Place that player's cached structures along the X axis from the target position |
 
 Both commands and single-structure placement require command permission level 3. Import and batch placement use a per-player login-session cache, cleared on logout; it is not persistent server storage.

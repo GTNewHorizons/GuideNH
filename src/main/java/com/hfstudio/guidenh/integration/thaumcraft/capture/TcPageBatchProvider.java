@@ -317,8 +317,7 @@ public class TcPageBatchProvider implements CaptureBatchProvider {
                 .screen() == origin && original.restored();
             return new CaptureBatchReadiness(
                 ready,
-                context.geometry()
-                    .revision(),
+                CaptureBatchReadiness.viewRevision(context.capture()),
                 ready ? "" : "Waiting for the original research GUI");
         }
     }

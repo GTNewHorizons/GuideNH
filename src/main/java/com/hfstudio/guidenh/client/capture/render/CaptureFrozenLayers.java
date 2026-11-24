@@ -17,6 +17,7 @@ public class CaptureFrozenLayers implements AutoCloseable {
     private CaptureContentOptions content;
     private CaptureRenderState target;
     private long revision;
+    private CaptureRecordedSnapshot snapshot;
 
     public boolean matches(CaptureContext context, CaptureContentOptions options, long refreshRevision) {
         return gui != null && screen == context.screen()
@@ -28,6 +29,12 @@ public class CaptureFrozenLayers implements AutoCloseable {
     // Take ownership of the GUI and its optional composed world preview.
     public void replace(CaptureFrame guiFrame, CaptureFrame worldFrame, CaptureContext context,
         CaptureContentOptions options, long refreshRevision, CaptureRenderState readTarget) {
+        replace(guiFrame, worldFrame, context, options, refreshRevision, readTarget, null);
+    }
+
+    public void replace(CaptureFrame guiFrame, CaptureFrame worldFrame, CaptureContext context,
+        CaptureContentOptions options, long refreshRevision, CaptureRenderState readTarget,
+        CaptureRecordedSnapshot recorded) {
         if (guiFrame.width() != context.viewport()
             .pixelWidth() || guiFrame.height()
                 != context.viewport()
@@ -43,6 +50,15 @@ public class CaptureFrozenLayers implements AutoCloseable {
         content = options;
         revision = refreshRevision;
         target = readTarget;
+        snapshot = recorded;
+    }
+
+    public CaptureRecordedSnapshot snapshot(CaptureContext context, CaptureContentOptions content) {
+        return snapshot != null && snapshot.matches(context, content) ? snapshot : null;
+    }
+
+    public CaptureRecordedSnapshot snapshot(CaptureContext context) {
+        return content == null ? null : snapshot(context, content);
     }
 
     public CaptureRenderState target() {
@@ -65,6 +81,8 @@ public class CaptureFrozenLayers implements AutoCloseable {
 
     @Override
     public void close() {
+        if (snapshot != null) snapshot.close();
+        snapshot = null;
         if (gui != null) gui.close();
         if (worldPreview != null) worldPreview.close();
         gui = null;

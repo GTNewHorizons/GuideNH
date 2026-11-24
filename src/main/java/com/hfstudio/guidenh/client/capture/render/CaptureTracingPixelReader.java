@@ -4,6 +4,7 @@ import com.hfstudio.guidenh.client.capture.api.CaptureAlphaMode;
 import com.hfstudio.guidenh.client.capture.api.CaptureContext;
 import com.hfstudio.guidenh.client.capture.api.CaptureFrame;
 import com.hfstudio.guidenh.client.capture.api.CapturePixelReader;
+import com.hfstudio.guidenh.client.capture.api.CaptureReadback;
 import com.hfstudio.guidenh.client.capture.api.CaptureRenderProbe;
 import com.hfstudio.guidenh.client.capture.api.CaptureRenderState;
 
@@ -31,6 +32,13 @@ public class CaptureTracingPixelReader implements CapturePixelReader {
 
     public CaptureRenderState target() {
         return target;
+    }
+
+    @Override
+    public CaptureReadback enqueue(int x, int y, int width, int height, long timestamp, CaptureAlphaMode alphaMode,
+        long memoryBudget) {
+        target = probe.capture(context, budget);
+        return delegate.enqueue(x, y, width, height, timestamp, alphaMode, memoryBudget);
     }
 
     @Override

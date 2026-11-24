@@ -40,10 +40,10 @@ public class CaptureLayerMask {
                     top = Math.max(top, point.get(1));
                 }
                 if (!Double.isFinite(left)) continue;
-                int x = Math.max(viewport.get(0), (int) Math.floor(left));
-                int y = Math.max(viewport.get(1), (int) Math.floor(bottom));
-                int w = Math.max(0, Math.min(viewport.get(0) + viewport.get(2), (int) Math.ceil(right)) - x);
-                int h = Math.max(0, Math.min(viewport.get(1) + viewport.get(3), (int) Math.ceil(top)) - y);
+                int x = Math.max(viewport.get(0), CapturePixelEdges.floor(left));
+                int y = Math.max(viewport.get(1), CapturePixelEdges.floor(bottom));
+                int w = Math.max(0, Math.min(viewport.get(0) + viewport.get(2), CapturePixelEdges.ceil(right)) - x);
+                int h = Math.max(0, Math.min(viewport.get(1) + viewport.get(3), CapturePixelEdges.ceil(top)) - y);
                 GL11.glScissor(x, y, w, h);
                 GL11.glClear(GL11.GL_COLOR_BUFFER_BIT);
             }

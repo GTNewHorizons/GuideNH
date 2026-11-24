@@ -268,8 +268,7 @@ public class BqPageBatchProvider implements CaptureBatchProvider {
                 }
             return new CaptureBatchReadiness(
                 ready,
-                context.geometry()
-                    .revision(),
+                CaptureBatchReadiness.viewRevision(context.capture()),
                 ready ? "" : "Waiting for BQ page layout and scroll content");
         }
 
@@ -389,8 +388,7 @@ public class BqPageBatchProvider implements CaptureBatchProvider {
                 .screen() == origin && original.restored(origin);
             return new CaptureBatchReadiness(
                 ready,
-                context.geometry()
-                    .revision(),
+                CaptureBatchReadiness.viewRevision(context.capture()),
                 ready ? "" : "Waiting for the original BQ view");
         }
 

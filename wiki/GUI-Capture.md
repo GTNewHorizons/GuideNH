@@ -60,6 +60,10 @@ Recording and export retain snapshots of their capture source, pixel reader, and
 
 Output resolution is limited to 32 times the source size on each axis. GUIs that support safe redraw use tiled processing for large images.
 
+The capture layer can record fixed-function meshes and text from the original frame, retaining texture copies for tiled replay without rerunning GUI logic. Before exporting, replay is compared with the selected native pixels. Automatic quality falls back to the frozen native frame if the comparison fails; strict quality reports the mismatch. Custom shaders and unsupported drawing paths require a dedicated snapshot provider. Resource reload cancels pending redraws, releases retained textures, and refreshes the source.
+
+Content masks are retained in the original draw sequence, so high-resolution replay uses the same hidden-inventory boundaries and tooltip exclusions as the frozen image. Snapshot providers can report `filtersContent()` when their recorded output already applies the requested content filters.
+
 For sources that cannot be safely redrawn, the selected quality policy determines whether native capture or resampling is permitted. Check the displayed quality and backend capabilities when choosing a source or backend.
 
 ### Content and Display Settings
@@ -81,7 +85,7 @@ High-resolution HUD capture depends on safe redraw support:
 
 Use the visibility button to hide the toolbar. The button in the bottom-right corner restores it.
 
-The capture interface visibility shortcut defaults to F6 and can be rebound in the controls settings. While capture is active, the original opening shortcut can also toggle the interface.
+Every new session opens with the toolbar visible. Press the original opening shortcut again to hide or restore it; the bottom-right eye button remains available while it is hidden. Selection-decoration visibility and complete-source preview are remembered independently.
 
 Additional display controls include:
 
@@ -118,6 +122,8 @@ Recording queues and temporary output are subject to configurable resource budge
 
 Click the capture-all icon to review available targets before starting a batch.
 
+Capture waits for the requested interface, page, inventory synchronization, and scroll position to become ready. Visual animation does not keep an otherwise ready target waiting.
+
 The following scope settings are independent:
 
 - **Visible layers:** Determines which content layers participate in capture.
@@ -127,6 +133,10 @@ The following scope settings are independent:
 Provider selection, popup handling, variants, navigation timeout, target limits, and restoration behavior are configurable.
 
 Some targets require specific mod integrations or server support. For example, reachable server containers require the capture protocol and a valid server context. Unavailable targets and capture failures display their reasons in the results.
+
+Owned written and writable books have read-only previews; enabling Pages includes their remaining pages. Loaded adult villagers, tamed adult horses, and chest/hopper minecarts use server-owned opening actions with container identity and distance checks. The server area setting accepts two inclusive corners as `x,y,z:x,y,z` in the current dimension; leave it empty to use the radius. Only loaded targets inside the advertised query bounds are enumerated.
+
+Independent single/double chest and idle/burning furnace previews use copied inventories and temporary client tiles. Navigation never places or ticks those tiles in the save. Additional item factories and server object providers can register through the capture APIs. Guide navigation preserves the current editor instance, draft, selection and undo history while a separate read-only view visits pages; temporary navigation also supports screens that explicitly implement the navigation-owner contract.
 
 ### Contact Sheets
 
@@ -213,6 +223,8 @@ Contact sheets and scroll images share the remaining disk budget of the batch ta
 
 GUI Capture provides extensible interfaces for registering geometry providers, GUI renderers, capture sources, pixel readers, batch providers, and output encoders.
 
+Batch navigators declare readiness through `CaptureBatchReadiness`. Its revision should describe the prepared view rather than changing paint geometry. `CaptureBatchReadiness.viewRevision(context.capture())` provides a base revision for screen identity and viewport; providers can incorporate their own prepared-content generation.
+
 ### Registering Capture Sources and Readers
 
 Register a `CaptureSourceProvider` using `CaptureRegistry.registerSource`, and a `CapturePixelReaderProvider` using `registerReader`.
@@ -241,6 +253,8 @@ The default phase is `FRAME_READY`.
 The generic `capture` callback preserves compatibility with the legacy completed-frame callback.
 
 Sources return viewport-sized pixel data at their selected phase. Early captures remain owned by the runtime until the presentation stage. Sources that do not redirect GUI rendering also receive the finish callback.
+
+`CapturePixelReader.enqueue` and `CaptureLayerSource.enqueueGuiLayer` return owned `CaptureReadback` handles. OpenGL 2.1 with core or ARB sync uses a bounded reusable PBO/fence queue; other readers retain immediate readback. Poll readiness on the submitting render thread, consume a handle once, and close it when cancelled. Pixels, content identity and magnetic geometry are published together only after completion.
 
 A `CapturePhaseListener` can observe the four ordered phase boundaries. Register listeners on the client thread using `CaptureRegistry.registerPhaseListener`.
 

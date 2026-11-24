@@ -214,8 +214,7 @@ public class NeiPageBatchProvider implements CaptureBatchProvider {
             boolean ready = context.capture()
                 .screen() == gui && move(page, x, y)
                 && samePage;
-            long revision = context.geometry()
-                .revision() * 31 + pages.getNumRecipes() * 17L
+            long revision = CaptureBatchReadiness.viewRevision(context.capture()) * 31 + pages.getNumRecipes() * 17L
                 + pages.getCurrentPageIndex();
             return new CaptureBatchReadiness(ready, revision, ready ? "" : "Waiting for NEI filtering and page layout");
         }
@@ -339,8 +338,7 @@ public class NeiPageBatchProvider implements CaptureBatchProvider {
                 && samePage;
             return new CaptureBatchReadiness(
                 ready,
-                context.geometry()
-                    .revision(),
+                CaptureBatchReadiness.viewRevision(context.capture()),
                 ready ? "" : "Waiting for the original NEI filter, page, and scroll offsets");
         }
     }

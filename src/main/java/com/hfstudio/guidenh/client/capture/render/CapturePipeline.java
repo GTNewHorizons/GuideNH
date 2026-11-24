@@ -2,6 +2,9 @@ package com.hfstudio.guidenh.client.capture.render;
 
 import java.util.Objects;
 
+import org.lwjgl.opengl.EXTFramebufferObject;
+import org.lwjgl.opengl.GL11;
+
 import com.hfstudio.guidenh.client.capture.CaptureRegistry;
 import com.hfstudio.guidenh.client.capture.api.CaptureBackendSelection;
 import com.hfstudio.guidenh.client.capture.api.CaptureContentOptions;
@@ -11,6 +14,7 @@ import com.hfstudio.guidenh.client.capture.api.CaptureLayerSource;
 import com.hfstudio.guidenh.client.capture.api.CapturePixelReader;
 import com.hfstudio.guidenh.client.capture.api.CapturePixelReaderProvider;
 import com.hfstudio.guidenh.client.capture.api.CaptureProviderAvailability;
+import com.hfstudio.guidenh.client.capture.api.CaptureReadback;
 import com.hfstudio.guidenh.client.capture.api.CaptureRenderPhase;
 import com.hfstudio.guidenh.client.capture.api.CaptureSource;
 import com.hfstudio.guidenh.client.capture.api.CaptureSourceProvider;
@@ -120,6 +124,11 @@ public class CapturePipeline implements AutoCloseable {
         return guiOpen && source != null && source.drawing();
     }
 
+    public boolean drawingOnCurrentFramebuffer() {
+        return drawing()
+            && source.drawingOnFramebuffer(GL11.glGetInteger(EXTFramebufferObject.GL_FRAMEBUFFER_BINDING_EXT));
+    }
+
     public boolean guiOpen() {
         return guiOpen;
     }
@@ -134,6 +143,10 @@ public class CapturePipeline implements AutoCloseable {
 
     public CapturePixelReader reader() {
         return reader;
+    }
+
+    public boolean readerContextMatches(CaptureContext context) {
+        return readerProvider != null && Objects.equals(readerKey, readerProvider.contextKey(context));
     }
 
     public boolean supportsLayerCapture() {
@@ -152,6 +165,19 @@ public class CapturePipeline implements AutoCloseable {
 
     public CaptureRenderPhase capturePhase() {
         return source == null ? null : source.capturePhase();
+    }
+
+    public CaptureReadback enqueueGuiLayer(CaptureContext context, CapturePixelReader pixelReader, long timestamp,
+        long memoryBudget) {
+        if (!(source instanceof CaptureLayerSource layered))
+            throw new IllegalStateException("The capture source does not expose an isolated GUI layer");
+        if (context.phase() != source.capturePhase())
+            throw new IllegalStateException("The capture source phase is not ready");
+        CaptureProviderAvailability readiness = source.readiness(context);
+        if (!readiness.available()) throw new IllegalStateException(readiness.reason());
+        return new CaptureSizedReadback(
+            Objects.requireNonNull(layered.enqueueGuiLayer(context, pixelReader, timestamp, memoryBudget)),
+            context.viewport());
     }
 
     public CaptureFrame capture(CaptureContext context, CapturePixelReader pixelReader, long timestamp) {

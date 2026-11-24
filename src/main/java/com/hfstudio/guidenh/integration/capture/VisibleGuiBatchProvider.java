@@ -131,11 +131,7 @@ public class VisibleGuiBatchProvider implements CaptureBatchProvider {
 
         @Override
         public CaptureBatchReadiness restorationReadiness(CaptureBatchContext context) {
-            return new CaptureBatchReadiness(
-                true,
-                context.geometry()
-                    .revision(),
-                "");
+            return new CaptureBatchReadiness(true, CaptureBatchReadiness.viewRevision(context.capture()), "");
         }
     }
 }

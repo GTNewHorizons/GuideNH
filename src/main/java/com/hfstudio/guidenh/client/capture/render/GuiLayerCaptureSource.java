@@ -6,12 +6,14 @@ import net.minecraft.client.shader.Framebuffer;
 
 import org.lwjgl.opengl.GL11;
 
+import com.hfstudio.guidenh.client.capture.api.CaptureAlphaMode;
 import com.hfstudio.guidenh.client.capture.api.CaptureContentOptions;
 import com.hfstudio.guidenh.client.capture.api.CaptureContext;
 import com.hfstudio.guidenh.client.capture.api.CaptureFrame;
 import com.hfstudio.guidenh.client.capture.api.CaptureLayerSource;
 import com.hfstudio.guidenh.client.capture.api.CapturePixelReader;
 import com.hfstudio.guidenh.client.capture.api.CaptureProviderAvailability;
+import com.hfstudio.guidenh.client.capture.api.CaptureReadback;
 import com.hfstudio.guidenh.client.capture.api.CaptureViewport;
 import com.hfstudio.guidenh.guide.render.GuiRenderVisibility;
 
@@ -62,12 +64,33 @@ public class GuiLayerCaptureSource implements CaptureLayerSource {
     }
 
     @Override
+    public CaptureReadback enqueueGuiLayer(CaptureContext context, CapturePixelReader reader, long timestamp,
+        long memoryBudget) {
+        try (CaptureRenderScope reading = new CaptureRenderScope()) {
+            framebuffer.bindFramebuffer(true);
+            return reader.enqueue(
+                0,
+                0,
+                framebuffer.framebufferWidth,
+                framebuffer.framebufferHeight,
+                timestamp,
+                CaptureAlphaMode.PREMULTIPLIED,
+                memoryBudget);
+        }
+    }
+
+    @Override
     public boolean supportsRedraw() {
         return available();
     }
 
     public boolean drawing() {
         return visibility != null;
+    }
+
+    @Override
+    public boolean drawingOnFramebuffer(int target) {
+        return drawing() && framebuffer != null && target == framebuffer.framebufferObject;
     }
 
     public void bindCurrent(boolean viewport) {

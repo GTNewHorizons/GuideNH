@@ -5,7 +5,7 @@ import io.netty.buffer.ByteBuf;
 
 public class CaptureCapabilityMessage implements IMessage {
 
-    public static final int VERSION = 1;
+    public static final int VERSION = 2;
     public static final int MAX_RADIUS = 256;
     public static final int MAX_TARGETS = 5000;
     private int version;

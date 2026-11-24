@@ -19,6 +19,7 @@ import net.minecraft.client.resources.I18n;
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.opengl.GL11;
 
+import com.hfstudio.guidenh.capture.server.api.CaptureServerArea;
 import com.hfstudio.guidenh.client.capture.api.CaptureBackendControls;
 import com.hfstudio.guidenh.client.capture.api.CaptureRect;
 import com.hfstudio.guidenh.client.capture.session.CaptureSchedule;
@@ -228,6 +229,10 @@ public class CaptureSettingsPanel {
         integer("timeout", () -> config.timeoutSeconds, value -> config.timeoutSeconds = value, 1, 60);
         integer("target_limit", () -> config.maxTargets, value -> config.maxTargets = value, 1, 100000);
         integer("server_radius", () -> config.serverCaptureRadius, value -> config.serverCaptureRadius = value, 1, 256);
+        settings.add(new CaptureSetting("server_area", () -> config.serverCaptureArea, value -> {
+            CaptureServerArea.parse(value, 0);
+            config.serverCaptureArea = value.trim();
+        }, List.of(), false));
         toggle(
             "server_travel",
             () -> config.serverTemporaryTravel,

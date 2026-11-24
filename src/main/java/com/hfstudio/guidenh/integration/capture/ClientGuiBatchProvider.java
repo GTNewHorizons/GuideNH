@@ -10,6 +10,8 @@ import java.util.stream.Collectors;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.inventory.GuiContainer;
+import net.minecraft.client.gui.inventory.GuiContainerCreative;
+import net.minecraft.client.gui.inventory.GuiInventory;
 
 import com.hfstudio.guidenh.client.capture.api.CaptureBatchContext;
 import com.hfstudio.guidenh.client.capture.api.CaptureBatchNavigator;
@@ -17,6 +19,8 @@ import com.hfstudio.guidenh.client.capture.api.CaptureBatchOptions;
 import com.hfstudio.guidenh.client.capture.api.CaptureBatchProvider;
 import com.hfstudio.guidenh.client.capture.api.CaptureBatchReadiness;
 import com.hfstudio.guidenh.client.capture.api.CaptureClientGuiFactory;
+import com.hfstudio.guidenh.client.capture.api.CaptureNavigationOwner;
+import com.hfstudio.guidenh.client.capture.api.CaptureNavigationState;
 import com.hfstudio.guidenh.client.capture.api.CaptureRect;
 import com.hfstudio.guidenh.client.capture.api.CaptureTargetDescriptor;
 import com.hfstudio.guidenh.client.capture.ui.CaptureGameplayScreen;
@@ -61,7 +65,13 @@ public class ClientGuiBatchProvider implements CaptureBatchProvider {
         List<CaptureTargetDescriptor> targets = new ArrayList<>();
         for (CaptureClientGuiFactory factory : factories.values()) {
             boolean container = context.capture()
-                .screen() instanceof GuiContainer;
+                .screen() instanceof GuiContainer
+                && !(context.capture()
+                    .screen() instanceof CaptureNavigationOwner)
+                && !(context.capture()
+                    .screen() instanceof GuiInventory)
+                && !(context.capture()
+                    .screen() instanceof GuiContainerCreative);
             boolean available = !container && factory.available()
                 .test(context);
             targets.add(
@@ -115,10 +125,12 @@ public class ClientGuiBatchProvider implements CaptureBatchProvider {
         private final Map<String, CaptureClientGuiFactory> factories;
         private GuiScreen selected;
         private boolean changed;
+        private final CaptureNavigationState originState;
 
         public ClientNavigator(GuiScreen origin, Map<String, CaptureClientGuiFactory> factories) {
             this.origin = origin;
             this.factories = Map.copyOf(factories);
+            originState = origin instanceof CaptureNavigationOwner owner ? owner.preserveCaptureNavigation() : null;
         }
 
         @Override
@@ -134,6 +146,7 @@ public class ClientGuiBatchProvider implements CaptureBatchProvider {
             GuiScreen previous = minecraft.currentScreen;
             if (selected instanceof CaptureGameplayScreen && previous == null && minecraft.theWorld != null) return;
             if (previous != selected) {
+                if (previous == origin && originState != null) originState.depart();
                 changed = true;
                 minecraft.displayGuiScreen(selected);
                 GuiScreen opened = minecraft.currentScreen;
@@ -150,8 +163,7 @@ public class ClientGuiBatchProvider implements CaptureBatchProvider {
                 .screen() == selected;
             return new CaptureBatchReadiness(
                 ready,
-                context.geometry()
-                    .revision(),
+                CaptureBatchReadiness.viewRevision(context.capture()),
                 ready ? "" : "Waiting for the client GUI to open");
         }
 
@@ -166,12 +178,18 @@ public class ClientGuiBatchProvider implements CaptureBatchProvider {
         @Override
         public void restore() {
             if (!changed) return;
-            if (origin instanceof GuiContainer && Minecraft.getMinecraft().currentScreen != origin) {
+            if (origin instanceof GuiContainer && !(origin instanceof CaptureNavigationOwner)
+                && !(origin instanceof GuiInventory)
+                && !(origin instanceof GuiContainerCreative)
+                && Minecraft.getMinecraft().currentScreen != origin) {
                 throw new IllegalStateException(
                     "The original container closed and needs a registered reopening provider");
             }
-            if (Minecraft.getMinecraft().currentScreen != origin) Minecraft.getMinecraft()
-                .displayGuiScreen(origin);
+            if (Minecraft.getMinecraft().currentScreen != origin) {
+                if (originState != null) originState.returning();
+                Minecraft.getMinecraft()
+                    .displayGuiScreen(origin);
+            }
         }
 
         @Override
@@ -180,9 +198,13 @@ public class ClientGuiBatchProvider implements CaptureBatchProvider {
                 .screen() == origin;
             return new CaptureBatchReadiness(
                 ready,
-                context.geometry()
-                    .revision(),
+                CaptureBatchReadiness.viewRevision(context.capture()),
                 ready ? "" : "Waiting for the original client GUI");
+        }
+
+        @Override
+        public void close() {
+            if (originState != null) originState.close();
         }
     }
 }

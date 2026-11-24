@@ -6,8 +6,15 @@ import com.hfstudio.guidenh.client.capture.api.CaptureFrame;
 import com.hfstudio.guidenh.client.capture.api.CaptureLayerSource;
 import com.hfstudio.guidenh.client.capture.api.CapturePixelReader;
 import com.hfstudio.guidenh.client.capture.api.CaptureProviderAvailability;
+import com.hfstudio.guidenh.client.capture.api.CaptureReadback;
 
 public class FinalFrameCaptureSource implements CaptureLayerSource {
+
+    @Override
+    public CaptureReadback enqueueGuiLayer(CaptureContext context, CapturePixelReader reader, long timestamp,
+        long memoryBudget) {
+        return guiLayer.enqueueGuiLayer(context, reader, timestamp, memoryBudget);
+    }
 
     private final GuiLayerCaptureSource guiLayer = new GuiLayerCaptureSource();
     private long completedFrame = Long.MIN_VALUE;
@@ -27,6 +34,11 @@ public class FinalFrameCaptureSource implements CaptureLayerSource {
     @Override
     public boolean drawing() {
         return guiLayer.drawing();
+    }
+
+    @Override
+    public boolean drawingOnFramebuffer(int target) {
+        return guiLayer.drawingOnFramebuffer(target);
     }
 
     @Override

@@ -121,8 +121,9 @@ public class CaptureRecording implements AutoCloseable {
     public void offer(CaptureFrame frame, long now, List<CaptureRegion> regions) {
         if (finished || paused() || now < nextSample) return;
         long interval = 1_000_000_000L / options.fps();
-        nextSample += interval;
-        if (nextSample <= now) nextSample += (1 + (now - nextSample) / interval) * interval;
+        long missed = (now - nextSample) / interval;
+        skippedFrames = (int) Math.min(Integer.MAX_VALUE, (long) skippedFrames + missed);
+        nextSample += (missed + 1) * interval;
         long bytes = frame.byteSize();
         if (queuedBytes.addAndGet(bytes) > queueBudget) {
             queuedBytes.addAndGet(-bytes);

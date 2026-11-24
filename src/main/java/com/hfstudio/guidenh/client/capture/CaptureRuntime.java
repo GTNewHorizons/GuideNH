@@ -15,6 +15,9 @@ import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.client.resources.I18n;
+import net.minecraft.client.resources.IReloadableResourceManager;
+import net.minecraft.client.resources.IResourceManager;
+import net.minecraft.client.resources.IResourceManagerReloadListener;
 import net.minecraft.client.shader.Framebuffer;
 import net.minecraftforge.client.event.GuiOpenEvent;
 import net.minecraftforge.client.event.GuiScreenEvent;
@@ -41,9 +44,11 @@ import com.hfstudio.guidenh.client.capture.api.CaptureGeometry;
 import com.hfstudio.guidenh.client.capture.api.CaptureGuiRenderer;
 import com.hfstudio.guidenh.client.capture.api.CaptureInputEvent;
 import com.hfstudio.guidenh.client.capture.api.CaptureInputOptions;
+import com.hfstudio.guidenh.client.capture.api.CaptureItemGuiFactory;
 import com.hfstudio.guidenh.client.capture.api.CaptureOutputArtifact;
 import com.hfstudio.guidenh.client.capture.api.CaptureOutputSize;
 import com.hfstudio.guidenh.client.capture.api.CapturePhaseSnapshot;
+import com.hfstudio.guidenh.client.capture.api.CaptureReadback;
 import com.hfstudio.guidenh.client.capture.api.CaptureReadbackMetadata;
 import com.hfstudio.guidenh.client.capture.api.CaptureRect;
 import com.hfstudio.guidenh.client.capture.api.CaptureRenderPhase;
@@ -69,11 +74,16 @@ import com.hfstudio.guidenh.client.capture.geometry.CaptureTooltipCollector;
 import com.hfstudio.guidenh.client.capture.recording.CaptureRecording;
 import com.hfstudio.guidenh.client.capture.render.CaptureContentSnapshot;
 import com.hfstudio.guidenh.client.capture.render.CaptureDiscardOverlay;
+import com.hfstudio.guidenh.client.capture.render.CaptureDrawRecorder;
 import com.hfstudio.guidenh.client.capture.render.CaptureFramePhases;
 import com.hfstudio.guidenh.client.capture.render.CaptureFrozenLayers;
 import com.hfstudio.guidenh.client.capture.render.CaptureHighResolutionJob;
 import com.hfstudio.guidenh.client.capture.render.CaptureLayerMask;
 import com.hfstudio.guidenh.client.capture.render.CapturePipeline;
+import com.hfstudio.guidenh.client.capture.render.CaptureQueuedFrame;
+import com.hfstudio.guidenh.client.capture.render.CaptureRecordedGuiRenderer;
+import com.hfstudio.guidenh.client.capture.render.CaptureRecordedSnapshot;
+import com.hfstudio.guidenh.client.capture.render.CaptureRedrawMismatchException;
 import com.hfstudio.guidenh.client.capture.render.CaptureRenderScope;
 import com.hfstudio.guidenh.client.capture.render.CaptureTracingPixelReader;
 import com.hfstudio.guidenh.client.capture.render.CaptureWorldReader;
@@ -92,9 +102,11 @@ import com.hfstudio.guidenh.client.hotkey.OpenGuiCaptureHotkey;
 import com.hfstudio.guidenh.config.CaptureConfig;
 import com.hfstudio.guidenh.config.ModConfig;
 import com.hfstudio.guidenh.integration.capture.ClientGuiBatchProvider;
+import com.hfstudio.guidenh.integration.capture.ItemGuiBatchProvider;
 import com.hfstudio.guidenh.integration.capture.VanillaCaptureGeometryProvider;
 import com.hfstudio.guidenh.integration.capture.VanillaCaptureGuiRenderer;
 import com.hfstudio.guidenh.integration.capture.VanillaClientGuiFactories;
+import com.hfstudio.guidenh.integration.capture.VanillaPreviewGuiFactories;
 import com.hfstudio.guidenh.integration.capture.VisibleGuiBatchProvider;
 import com.hfstudio.guidenh.mixins.early.minecraft.AccessorGuiCaptureScreen;
 
@@ -102,7 +114,7 @@ import cpw.mods.fml.common.eventhandler.EventPriority;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
 
-public class CaptureRuntime implements CaptureBackendControls {
+public class CaptureRuntime implements CaptureBackendControls, IResourceManagerReloadListener {
 
     private static final CaptureRuntime INSTANCE = new CaptureRuntime();
     private final CaptureRegistry registry = new CaptureRegistry();
@@ -114,8 +126,10 @@ public class CaptureRuntime implements CaptureBackendControls {
     private CaptureRenderProbe renderProbe = new GlCaptureRenderProbe();
     private final CaptureFramePhases framePhases = new CaptureFramePhases();
     private CaptureFrame pendingFrame;
+    private CaptureQueuedFrame pendingReadback;
     private CaptureWorldSnapshot pendingWorld;
     private final CaptureFrozenLayers frozenLayers = new CaptureFrozenLayers();
+    private final CaptureDrawRecorder drawRecorder = new CaptureDrawRecorder();
     private boolean reusingLayers;
     private CaptureFrameIdentity pendingIdentity;
     private CaptureRenderState pendingTarget;
@@ -148,6 +162,7 @@ public class CaptureRuntime implements CaptureBackendControls {
     private CaptureBatchEngine batch;
     private final RuntimeBatchHost batchHost = new RuntimeBatchHost();
     private final ClientGuiBatchProvider clientGuis = new ClientGuiBatchProvider();
+    private final ItemGuiBatchProvider itemGuis = new ItemGuiBatchProvider();
     private CaptureRecording batchRecording;
     private CaptureGeometry geometry;
     private CaptureGeometry frameGeometry;
@@ -164,6 +179,7 @@ public class CaptureRuntime implements CaptureBackendControls {
     private CaptureSelectionSnapshot batchSelections;
     private CompletableFuture<CaptureOutputArtifact> highResolutionCompletion;
     private boolean closeAfterBatch;
+    private volatile boolean resourcesInvalidated;
 
     public static CaptureRuntime instance() {
         return INSTANCE;
@@ -196,6 +212,8 @@ public class CaptureRuntime implements CaptureBackendControls {
     }
 
     private void discardPendingFrame() {
+        if (pendingReadback != null) pendingReadback.close();
+        pendingReadback = null;
         if (pendingFrame != null) pendingFrame.close();
         if (pendingWorld != null) pendingWorld.close();
         pendingFrame = null;
@@ -213,7 +231,12 @@ public class CaptureRuntime implements CaptureBackendControls {
             CaptureContext context = framePhases.reach(phase, state, System.nanoTime());
             if (context == null) return;
             registry.phaseReached(context);
-            if (!frameRequested || pendingFrame != null || pipeline.capturePhase() != phase) return;
+            if (phase == CaptureRenderPhase.FRAME_READY && pendingReadback != null
+                && pendingReadback.context()
+                    .frameId() == frameId)
+                pendingReadback = pendingReadback.withPhases(framePhases.snapshots());
+            if (!frameRequested || pendingFrame != null || pendingReadback != null || pipeline.capturePhase() != phase)
+                return;
             if (phase == CaptureRenderPhase.GUI_END || phase == CaptureRenderPhase.FRAME_READY)
                 pipeline.finishGui(context);
             CaptureTracingPixelReader reader = new CaptureTracingPixelReader(
@@ -228,17 +251,32 @@ public class CaptureRuntime implements CaptureBackendControls {
                 }
                 pendingFrame = frozenLayers.compose(content().includeWorld());
             } else if (pipeline.supportsLayerCapture()) {
-                CaptureFrame gui = pipeline.captureGuiLayer(context, reader, System.nanoTime());
+                long timestamp = System.nanoTime();
+                CaptureReadback readback = pipeline.enqueueGuiLayer(context, reader, timestamp, memoryBudget());
                 try {
-                    collectRenderedGeometry(gui);
-                    CaptureFrame world = pendingWorld == null ? null : pendingWorld.compose(gui);
+                    collectRenderedGeometry(null);
+                    CaptureFrameIdentity identity = new CaptureFrameIdentity(
+                        pipeline.selection(),
+                        previewSelection(),
+                        content(),
+                        new CaptureReadbackMetadata(frameId, phase, reader.target(), framePhases.snapshots()));
+                    pendingReadback = new CaptureQueuedFrame(
+                        readback,
+                        context,
+                        identity,
+                        renderedGeometry,
+                        session.refreshRevision(),
+                        pendingWorld,
+                        cursorBounds,
+                        session.previewRequested(),
+                        timestamp,
+                        drawRecorder.take());
                     pendingWorld = null;
-                    frozenLayers.replace(gui, world, context, content(), session.refreshRevision(), reader.target());
                 } catch (RuntimeException error) {
-                    gui.close();
+                    readback.close();
                     throw error;
                 }
-                pendingFrame = frozenLayers.compose(content().includeWorld());
+                return;
             } else {
                 frozenLayers.close();
                 pendingFrame = pipeline.capture(context, reader, System.nanoTime());
@@ -250,6 +288,109 @@ public class CaptureRuntime implements CaptureBackendControls {
         } catch (RuntimeException error) {
             captureFailed(error);
         }
+    }
+
+    private void completePendingReadback() {
+        CaptureQueuedFrame queued = pendingReadback;
+        if (queued == null) return;
+        try {
+            if (!queued.readback()
+                .ready()) {
+                if (Display.isActive() && System.nanoTime() - queued.submittedAt() > 10_000_000_000L)
+                    throw new IllegalStateException("The GPU pixel readback did not finish within ten seconds");
+                return;
+            }
+            pendingReadback = null;
+            try (queued) {
+                CaptureFrame gui = queued.readback()
+                    .take();
+                CaptureFrame world = null;
+                CaptureRecordedSnapshot recorded = queued.snapshot() == null ? null
+                    : queued.snapshot()
+                        .retain();
+                boolean transferred = false;
+                try {
+                    CaptureGeometry captured = completeFrameGeometry(queued, gui);
+                    world = queued.world() == null ? null
+                        : queued.world()
+                            .compose(gui);
+                    frozenLayers.replace(
+                        gui,
+                        world,
+                        queued.context(),
+                        queued.identity()
+                            .content(),
+                        queued.revision(),
+                        queued.identity()
+                            .readback()
+                            .target(),
+                        recorded);
+                    transferred = true;
+                    acceptCapturedFrame(
+                        frozenLayers.compose(
+                            queued.identity()
+                                .content()
+                                .includeWorld()),
+                        queued.identity(),
+                        captured,
+                        queued.previewRequested(),
+                        queued.context());
+                } finally {
+                    if (!transferred) {
+                        gui.close();
+                        if (world != null) world.close();
+                        if (recorded != null) recorded.close();
+                    }
+                }
+            }
+        } catch (RuntimeException error) {
+            captureFailed(error);
+        }
+    }
+
+    private CaptureGeometry completeFrameGeometry(CaptureQueuedFrame queued, CaptureFrame isolated) {
+        if (queued.geometry() == null) return null;
+        CaptureViewport viewport = queued.context()
+            .viewport();
+        List<CaptureTarget> targets = new ArrayList<>(
+            queued.geometry()
+                .targets()
+                .stream()
+                .filter(
+                    target -> !target.className()
+                        .equals(CaptureDrawCollector.class.getName())
+                        || CaptureDrawCollector.covered(target.visibleBounds(), isolated, viewport))
+                .toList());
+        String layer = queued.context()
+            .screen() instanceof CaptureGameplayScreen
+            || !queued.identity()
+                .content()
+                .includeGui() ? CaptureTarget.HUD_LAYER : CaptureTarget.GUI_LAYER;
+        targets.addAll(CaptureAlphaGeometry.collect(isolated, viewport, layer, queued.cursorBounds()));
+        return CaptureContentGeometry.visible(
+            new CaptureGeometry(targets.hashCode(), viewport, targets),
+            queued.identity()
+                .content());
+    }
+
+    private void acceptCapturedFrame(CaptureFrame frame, CaptureFrameIdentity identity, CaptureGeometry captured,
+        boolean updatePreview, CaptureContext capturedContext) {
+        try {
+            if (captured != null) {
+                geometry = captured;
+                overlay.updateGeometry(captured);
+            }
+            if (batchRecording != null) batchRecording.offer(frame, frame.timestampNanos());
+            session.acceptFrame(frame, identity, updatePreview);
+        } catch (RuntimeException error) {
+            frame.close();
+            throw error;
+        }
+        if (batch != null && batch.busy()) batch.frameReady(
+            new CaptureBatchContext(
+                capturedContext,
+                captured == null ? batchHost.context()
+                    .geometry() : captured));
     }
 
     public String readerId() {
@@ -368,6 +509,8 @@ public class CaptureRuntime implements CaptureBackendControls {
     }
 
     private void captureFailed(RuntimeException error) {
+        drawRecorder.close();
+        pendingSave = false;
         discardedHud.end();
         discardPendingFrame();
         frozenLayers.close();
@@ -393,10 +536,41 @@ public class CaptureRuntime implements CaptureBackendControls {
     public void initialize() {
         registry.registerGeometry(new VanillaCaptureGeometryProvider());
         registry.registerRenderer(new VanillaCaptureGuiRenderer());
+        registry.registerRenderer(new CaptureRecordedGuiRenderer(frozenLayers));
         registry.registerBatch(new VisibleGuiBatchProvider());
         registry.registerBatch(clientGuis);
+        registry.registerBatch(itemGuis);
         VanillaClientGuiFactories.register(clientGuis);
+        VanillaPreviewGuiFactories.register(clientGuis);
+        if (Minecraft.getMinecraft()
+            .getResourceManager() instanceof IReloadableResourceManager manager) manager.registerReloadListener(this);
         guiAvailable = captureAvailable();
+    }
+
+    @Override
+    public void onResourceManagerReload(IResourceManager manager) {
+        resourcesInvalidated = true;
+    }
+
+    private void refreshResources() {
+        if (!resourcesInvalidated) return;
+        resourcesInvalidated = false;
+        discardPendingFrame();
+        drawRecorder.close();
+        releaseHighResolution();
+        discardedHud.end();
+        frozenLayers.close();
+        pipeline.close();
+        reusingLayers = false;
+        if (session.recording() != null && !session.recording()
+            .finished()
+            && !session.recording()
+                .paused())
+            session.pauseRecording();
+        if (batchRecording != null && !batchRecording.finished() && !batchRecording.paused())
+            batchRecording.togglePause(System.nanoTime());
+        session.invalidatePreview();
+        refreshBatchCatalog();
     }
 
     public void useNativeKeyboard() {
@@ -410,6 +584,10 @@ public class CaptureRuntime implements CaptureBackendControls {
 
     public void registerClientGui(CaptureClientGuiFactory factory) {
         clientGuis.register(factory);
+    }
+
+    public void registerItemGui(CaptureItemGuiFactory factory) {
+        itemGuis.register(factory);
     }
 
     public void refreshBatchCatalog() {
@@ -540,11 +718,29 @@ public class CaptureRuntime implements CaptureBackendControls {
 
     public void beginFrame(float partial) {
         if (session == null) return;
+        refreshResources();
+        drawRecorder.close();
         discardedHud.end();
-        discardPendingFrame();
+        Minecraft minecraft = Minecraft.getMinecraft();
+        CaptureViewport viewport = CaptureCoordinateMapper.current(minecraft);
+        if (pendingReadback != null) {
+            CaptureQueuedFrame queued = pendingReadback;
+            if (!sourceMatches(minecraft.currentScreen) || !viewport.equals(
+                queued.context()
+                    .viewport())
+                || !pipeline.readerContextMatches(queued.context())
+                || !content().equals(
+                    queued.identity()
+                        .content())
+                || !previewSelection().equals(
+                    queued.identity()
+                        .requestedBackend())
+                || session.refreshRevision() != queued.revision()) discardPendingFrame();
+            else completePendingReadback();
+        }
+        if (pendingReadback == null) discardPendingFrame();
         framePhases.close();
         if (renderProbe.shadowPass()) return;
-        Minecraft minecraft = Minecraft.getMinecraft();
         if (!sourceMatches(minecraft.currentScreen)) {
             unavailableSource();
             return;
@@ -558,7 +754,6 @@ public class CaptureRuntime implements CaptureBackendControls {
         tooltips.clear();
         drawnButtons.clear();
         partialTicks = partial;
-        CaptureViewport viewport = CaptureCoordinateMapper.current(minecraft);
         session.updateViewport(viewport);
         framePhases.begin(captureContext());
         try {
@@ -569,7 +764,7 @@ public class CaptureRuntime implements CaptureBackendControls {
             captureFailed(error);
             return;
         }
-        if (batch.needsFrame()) session.requestRefresh();
+        if (batch.needsFrame() && pendingReadback == null) session.requestRefresh();
         long sampleTime = System.nanoTime();
         if (batchRecording != null) {
             batchRecording.tick(sampleTime);
@@ -579,8 +774,9 @@ public class CaptureRuntime implements CaptureBackendControls {
                         .viewport()))
                 batchRecording.togglePause(sampleTime);
         }
-        frameRequested = session.wantsFrame(sampleTime)
+        boolean wanted = session.wantsFrame(sampleTime)
             || batchRecording != null && batchRecording.needsFrame(sampleTime);
+        frameRequested = wanted && pendingReadback == null && highResolution == null;
         reusingLayers = session.settings()
             .config().freezePreview
             && !session.selections()
@@ -589,6 +785,20 @@ public class CaptureRuntime implements CaptureBackendControls {
             && !batch.needsFrame()
             && pipeline.supportsLayerCapture()
             && frozenLayers.matches(captureContext(), content(), session.refreshRevision());
+        if (frameRequested && !reusingLayers
+            && pipeline.supportsLayerCapture()
+            && session.recording() == null
+            && batchRecording == null
+            && (batch == null || !batch.busy()
+                || batch.catalog()
+                    .options()
+                    .recording() == null)
+            && !session.selections()
+                .following()
+            && !content().includeWorld()
+            && renderProbe.capture(captureContext(), memoryBudget())
+                .openGl())
+            drawRecorder.begin(captureContext(), content(), memoryBudget());
         updateSourcePointer(
             viewport,
             !session.settings()
@@ -624,6 +834,7 @@ public class CaptureRuntime implements CaptureBackendControls {
         if (session == null || !framePhases.active()
             || framePhases.phase() != CaptureRenderPhase.WORLD_READY
             || pipeline.guiOpen()
+            || pendingReadback != null
             || !frameRequested
             || !content().includeWorld()
             || reusingLayers && frozenLayers.hasWorld()
@@ -670,8 +881,10 @@ public class CaptureRuntime implements CaptureBackendControls {
                     frameGeometry = registry.collect(captureContext());
                 if (frameGeometry != null) {
                     Minecraft.getMinecraft().entityRenderer.setupOverlayRendering();
-                    CaptureLayerMask
-                        .clear(CaptureContentGeometry.inventoryMask(tooltips.merge(frameGeometry), content()));
+                    List<CaptureRect> masks = CaptureContentGeometry
+                        .inventoryMask(tooltips.merge(frameGeometry), content());
+                    drawRecorder.mask(masks, session.viewport());
+                    CaptureLayerMask.clear(masks);
                 }
             }
         } catch (RuntimeException error) {
@@ -686,12 +899,28 @@ public class CaptureRuntime implements CaptureBackendControls {
             || drawingTile
             || drawingCursor
             || discardedHud.active()
-            || !pipeline.drawing()) return false;
+            || !pipeline.drawingOnCurrentFramebuffer()) return false;
         return CaptureTarget.HUD_LAYER.equals(drawingLayer) ? content().includeHud() : content().includeGui();
     }
 
     public void recordOverlayVertices(int[] vertices, int count, int used) {
         if (collectingOverlay()) overlayDraws.recordVertices(vertices, count, used, session.viewport(), drawingLayer);
+    }
+
+    public void recordOverlayDraw(int[] vertices, int count, int used, int mode, boolean texture, boolean color,
+        boolean brightness, boolean normals) {
+        if (!collectingOverlay()) return;
+        overlayDraws.recordVertices(vertices, count, used, session.viewport(), drawingLayer);
+        drawRecorder.mesh(vertices, count, used, mode, texture, color, brightness, normals);
+    }
+
+    public void beginOverlayText(FontRenderer font, String text, int x, int y, int color, boolean shadow) {
+        if (Thread.currentThread() == captureThread && session != null && !drawingTile)
+            drawRecorder.beginText(font, text, x, y, color, shadow, collectingOverlay());
+    }
+
+    public void endOverlayText() {
+        if (Thread.currentThread() == captureThread && session != null && !drawingTile) drawRecorder.endText();
     }
 
     public void recordOverlayText(String text, int x, int y, boolean shadow, FontRenderer font) {
@@ -892,16 +1121,7 @@ public class CaptureRuntime implements CaptureBackendControls {
             long now = System.nanoTime();
             reachPhase(CaptureRenderPhase.FRAME_READY);
             framePhases.presented();
-            if (!reusingLayers && (frameRequested || batch.needsFrame())
-                && (session.previewRequested() || batch.needsFrame()
-                    || session.selections()
-                        .following())) {
-                geometry = renderedGeometry == null ? CaptureContentGeometry.visible(
-                    tooltips.merge(
-                        drawnButtons.merge(frameGeometry == null ? registry.collect(captureContext()) : frameGeometry)),
-                    content()) : renderedGeometry;
-                overlay.updateGeometry(geometry);
-            }
+            completePendingReadback();
             if (pendingFrame != null) {
                 CaptureFrame frame = pendingFrame;
                 pendingFrame = null;
@@ -911,10 +1131,13 @@ public class CaptureRuntime implements CaptureBackendControls {
                     pendingIdentity.content(),
                     new CaptureReadbackMetadata(frameId, pendingPhase, pendingTarget, framePhases.snapshots()));
                 try {
-                    if (batchRecording != null) batchRecording.offer(frame, now);
-                    session.acceptFrame(frame, identity);
+                    acceptCapturedFrame(
+                        frame,
+                        identity,
+                        reusingLayers ? null : renderedGeometry,
+                        session.previewRequested(),
+                        captureContext());
                 } catch (RuntimeException error) {
-                    frame.close();
                     captureFailed(error);
                 }
                 pendingIdentity = null;
@@ -922,12 +1145,11 @@ public class CaptureRuntime implements CaptureBackendControls {
                 pendingPhase = null;
             }
             frameRequested = false;
-            if (batch.busy()) batch.frameReady(batchHost.context());
-            if (pendingSave) {
+            if (pendingSave && pendingReadback == null && session.canSave()) {
                 pendingSave = false;
                 saveNow();
             }
-            if (highResolution != null) {
+            if (highResolution != null && pendingReadback == null) {
                 try {
                     drawingTile = true;
                     if (highResolution.step(tileSource, pipeline.reader())) {
@@ -950,6 +1172,8 @@ public class CaptureRuntime implements CaptureBackendControls {
                             "guidenh.capture.rendering_tiles",
                             highResolution.completedTiles(),
                             highResolution.tileCount()));
+                } catch (CaptureRedrawMismatchException mismatch) {
+                    fallbackHighResolution(mismatch);
                 } catch (IOException | RuntimeException error) {
                     if (highResolutionCompletion != null) highResolutionCompletion.completeExceptionally(error);
                     releaseHighResolution();
@@ -1024,6 +1248,7 @@ public class CaptureRuntime implements CaptureBackendControls {
         sourceVisible = true;
         inputEvents.clear();
         registry.opened(new CaptureContext(source, viewport, frameId, partialTicks));
+        Keyboard.enableRepeatEvents(true);
     }
 
     public void close() {
@@ -1048,6 +1273,7 @@ public class CaptureRuntime implements CaptureBackendControls {
         }
         discardPendingFrame();
         frozenLayers.close();
+        drawRecorder.close();
         reusingLayers = false;
         framePhases.close();
         renderProbe.reset();
@@ -1264,13 +1490,13 @@ public class CaptureRuntime implements CaptureBackendControls {
                 session.viewport(),
                 frameId,
                 partialTicks);
-            CaptureGuiRenderer renderer = registry.renderer(context);
+            CaptureGuiRenderer renderer = registry.renderer(
+                context,
+                request.options()
+                    .content());
             if (renderer != null && !request.options()
                 .content()
                 .includeWorld()
-                && !request.options()
-                    .content()
-                    .includeHud()
                 && pipeline.supportsRedraw()
                 && request.options()
                     .backend()
@@ -1279,11 +1505,10 @@ public class CaptureRuntime implements CaptureBackendControls {
                     .equals(session.viewport())) {
                 CaptureRenderSnapshot snapshot = renderer.snapshot(
                     context,
-                    sourceMouseX,
-                    sourceMouseY,
                     request.options()
-                        .content()
-                        .includeGuiBackdrop());
+                        .content(),
+                    sourceMouseX,
+                    sourceMouseY);
                 try {
                     snapshot = new CaptureContentSnapshot(
                         snapshot,
@@ -1298,7 +1523,9 @@ public class CaptureRuntime implements CaptureBackendControls {
                         request,
                         snapshot,
                         tileSource.tileLimit(tileSize, memoryBudget),
-                        frame.timestampNanos());
+                        frame.timestampNanos(),
+                        memoryBudget,
+                        frame);
                 } catch (IOException | RuntimeException error) {
                     snapshot.close();
                     throw error;
@@ -1481,6 +1708,42 @@ public class CaptureRuntime implements CaptureBackendControls {
             session.outputFailed(error);
         } finally {
             highResolution = null;
+            tileSource.close();
+        }
+    }
+
+    private void fallbackHighResolution(CaptureRedrawMismatchException mismatch) {
+        CaptureHighResolutionJob failed = highResolution;
+        CompletableFuture<CaptureOutputArtifact> completion = highResolutionCompletion;
+        highResolution = null;
+        highResolutionCompletion = null;
+        if (failed.originalRequest()
+            .options()
+            .resolution()
+            .qualityPolicy()
+            .equals("strict")) {
+            try {
+                failed.close();
+            } catch (IOException cleanup) {
+                mismatch.addSuppressed(cleanup);
+            }
+            completion.completeExceptionally(mismatch);
+            tileSource.close();
+            return;
+        }
+        try (CaptureFrame frame = failed.reference()) {
+            CaptureExportRequest request = failed.originalRequest();
+            failed.close();
+            session.outputQuality("resampled");
+            CompletableFuture<CaptureOutputArtifact> writing = exporter.submit(request, frame, "png");
+            completion.whenComplete((artifact, error) -> { if (completion.isCancelled()) writing.cancel(true); });
+            writing.whenComplete((artifact, error) -> {
+                if (error == null) completion.complete(artifact);
+                else completion.completeExceptionally(error);
+            });
+        } catch (IOException | RuntimeException error) {
+            completion.completeExceptionally(error);
+        } finally {
             tileSource.close();
         }
     }

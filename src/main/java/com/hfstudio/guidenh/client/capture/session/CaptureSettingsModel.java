@@ -6,6 +6,9 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import net.minecraft.client.Minecraft;
+
+import com.hfstudio.guidenh.capture.server.api.CaptureServerArea;
 import com.hfstudio.guidenh.capture.server.api.CaptureServerQuery;
 import com.hfstudio.guidenh.client.capture.api.CaptureBackendSelection;
 import com.hfstudio.guidenh.client.capture.api.CaptureBatchLayoutOptions;
@@ -155,7 +158,10 @@ public class CaptureSettingsModel {
             new CaptureServerQuery(
                 config.serverCaptureRadius,
                 Math.min(config.maxTargets, CaptureCapabilityMessage.MAX_TARGETS),
-                config.serverTemporaryTravel),
+                config.serverTemporaryTravel,
+                CaptureServerArea.parse(
+                    config.serverCaptureArea,
+                    Minecraft.getMinecraft().thePlayer == null ? 0 : Minecraft.getMinecraft().thePlayer.dimension)),
             new CaptureBatchLayoutOptions(
                 config.batchContactSheet,
                 config.batchGroupByProvider,

@@ -172,8 +172,7 @@ public class MuiPageBatchProvider implements CaptureBatchProvider {
             }
             return new CaptureBatchReadiness(
                 ready,
-                context.geometry()
-                    .revision(),
+                CaptureBatchReadiness.viewRevision(context.capture()),
                 ready ? "" : "Waiting for MUI page layout and scrolling");
         }
 
@@ -295,8 +294,7 @@ public class MuiPageBatchProvider implements CaptureBatchProvider {
             }
             return new CaptureBatchReadiness(
                 ready,
-                context.geometry()
-                    .revision(),
+                CaptureBatchReadiness.viewRevision(context.capture()),
                 ready ? "" : "Waiting for the original MUI pages and scroll positions");
         }
     }

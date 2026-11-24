@@ -49,6 +49,8 @@ import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL12;
 
 import com.hfstudio.guidenh.ClientProxy;
+import com.hfstudio.guidenh.client.capture.api.CaptureNavigationOwner;
+import com.hfstudio.guidenh.client.capture.api.CaptureNavigationState;
 import com.hfstudio.guidenh.client.command.GuideNhClientBridgeController;
 import com.hfstudio.guidenh.client.gui.StandaloneContainerScreen;
 import com.hfstudio.guidenh.client.hotkey.GuidePageHistoryHotkey;
@@ -181,7 +183,7 @@ import com.hfstudio.guidenh.integration.nei.GuideScreenNeiBridge;
 import com.hfstudio.guidenh.libs.unist.UnistPoint;
 
 public class GuideScreen extends GuiContainer implements GuideUiHost, GuiYesNoCallback,
-    GuideScreenNeiBridge.EditorAccess, DebugComponent, StandaloneContainerScreen {
+    GuideScreenNeiBridge.EditorAccess, DebugComponent, StandaloneContainerScreen, CaptureNavigationOwner {
 
     public static final int PANEL_MARGIN = 20;
     public static final int PANEL_PADDING = 8;
@@ -450,6 +452,7 @@ public class GuideScreen extends GuiContainer implements GuideUiHost, GuiYesNoCa
     private long guideLastMouseEvent;
     private int guideTouchValue;
     private boolean temporaryScreenChangeExpected;
+    private long captureNavigationDepartedAt;
     private long lastVisualUpdateNanos;
 
     public static class SceneButtonHit {
@@ -748,59 +751,136 @@ public class GuideScreen extends GuiContainer implements GuideUiHost, GuiYesNoCa
     }
 
     public boolean canPreviewNavigation() {
-        return !isGuideEditorActive();
+        return !isGuideEditorActive() || guideEditorDraftPage != null && guideEditorDraftSource != null;
     }
 
     public NavigationPreview beginNavigationPreview() {
         return new NavigationPreview();
     }
 
+    @Override
+    public CaptureNavigationState preserveCaptureNavigation() {
+        return new CaptureNavigationLease();
+    }
+
+    public class CaptureNavigationLease implements CaptureNavigationState {
+
+        @Override
+        public void depart() {
+            if (captureNavigationDepartedAt != 0) return;
+            updateGuideEditorTextFromArea();
+            captureNavigationDepartedAt = System.currentTimeMillis();
+            prepareForTemporaryScreenChange();
+        }
+
+        @Override
+        public void returning() {
+            if (captureNavigationDepartedAt == 0) return;
+            guideEditorSkipNextInitDraftReload = true;
+            long delay = Math.max(0, System.currentTimeMillis() - captureNavigationDepartedAt);
+            if (guideEditorNextSaveAtMillis > 0) guideEditorNextSaveAtMillis += delay;
+            if (guideEditorNextSafetySaveAtMillis > 0) guideEditorNextSafetySaveAtMillis += delay;
+            if (guideEditorNextExternalCheckAtMillis > 0) guideEditorNextExternalCheckAtMillis += delay;
+            if (guideEditorNextNavigationRefreshAtMillis > 0) guideEditorNextNavigationRefreshAtMillis += delay;
+            captureNavigationDepartedAt = 0;
+        }
+
+        @Override
+        public void close() {
+            cancelTemporaryScreenChange();
+            if (mc.currentScreen == GuideScreen.this) returning();
+        }
+    }
+
     public class NavigationPreview implements AutoCloseable {
 
         private final GuideScreenViewState original = captureCurrentViewState();
         private final boolean previous = temporaryNavigation;
+        private final GuideScreen view;
+        private final boolean detached;
+        private final CaptureNavigationState navigation = preserveCaptureNavigation();
+        private boolean returned;
+        private boolean closed;
 
         public NavigationPreview() {
-            temporaryNavigation = true;
+            detached = isGuideEditorActive();
+            if (detached) {
+                if (!canPreviewNavigation()) throw new IllegalStateException("The editor draft is not ready");
+                updateGuideEditorTextFromArea();
+                ParsedGuidePage draft = PageCompiler.parse(
+                    guideEditorDraftPage.getSourcePack(),
+                    guideEditorDraftPage.getLanguage(),
+                    currentAnchor.pageId(),
+                    guideEditorDraftSource);
+                view = new GuideScreen(buildGuideEditorPreviewGuide(draft), currentAnchor, GuideScreen.this);
+                view.temporaryNavigation = true;
+                navigation.depart();
+                mc.displayGuiScreen(view);
+                if (mc.currentScreen != view) {
+                    navigation.close();
+                    throw new IllegalStateException("The temporary guide view could not open");
+                }
+            } else {
+                view = GuideScreen.this;
+                temporaryNavigation = true;
+            }
+        }
+
+        public GuideScreen screen() {
+            return view;
         }
 
         public void show(ResourceLocation guideId, ResourceLocation page, int offset) {
             GuideScreenRoute route = GuideScreenRoute.content(guideId, PageAnchor.page(page));
-            if (route.equals(currentRoute)) {
-                scrollY = Math.min(offset, getMaxScroll());
-                snapVisualScrollToTarget();
-            } else restoreViewState(GuideScreenViewState.of(route, offset));
+            if (route.equals(view.currentRoute)) {
+                view.scrollY = Math.min(offset, view.getMaxScroll());
+                view.snapVisualScrollToTarget();
+            } else view.restoreViewState(GuideScreenViewState.of(route, offset));
         }
 
         public boolean ready(ResourceLocation page, int offset) {
-            LytDocument active = getActiveDocument();
-            return !pageLoadInProgress && Objects.equals(getCurrentPageId(), page)
+            LytDocument active = view.getActiveDocument();
+            return !view.pageLoadInProgress && Objects.equals(view.getCurrentPageId(), page)
                 && active != null
-                && layoutDocument == active
-                && scrollY == Math.min(offset, getMaxScroll());
+                && view.layoutDocument == active
+                && view.scrollY == Math.min(offset, view.getMaxScroll());
         }
 
         public int maximumScroll() {
-            return getMaxScroll();
+            return view.getMaxScroll();
         }
 
         public int scrollStep() {
-            return Math.max(1, getDocumentViewportHeight());
+            return Math.max(1, view.getDocumentViewportHeight());
         }
 
         public float zoom() {
-            return currentZoom;
+            return view.currentZoom;
         }
 
         public LytRect viewport() {
-            return new LytRect(contentX, getDocumentViewportY(), contentW, contentH);
+            return new LytRect(view.contentX, view.getDocumentViewportY(), view.contentW, view.contentH);
         }
 
         public void restore() {
-            restoreViewState(original);
+            if (returned) return;
+            if (detached) {
+                // Keep draft text, selection, undo history and preview worlds on the original editor instance.
+                if (mc.currentScreen != GuideScreen.this) {
+                    navigation.returning();
+                    mc.displayGuiScreen(GuideScreen.this);
+                }
+                if (mc.currentScreen != GuideScreen.this)
+                    throw new IllegalStateException("The original guide editor could not reopen");
+            } else restoreViewState(original);
+            returned = true;
         }
 
         public boolean restored() {
+            if (detached) return returned && mc.currentScreen == GuideScreen.this
+                && !pageLoadInProgress
+                && original.route()
+                    .equals(currentRoute);
             if (pageLoadInProgress || !original.route()
                 .equals(currentRoute)) return false;
             if (!currentRoute.isContent()) return true;
@@ -811,7 +891,11 @@ public class GuideScreen extends GuiContainer implements GuideUiHost, GuiYesNoCa
 
         @Override
         public void close() {
+            if (closed) return;
+            if (detached && !returned) restore();
+            navigation.close();
             temporaryNavigation = previous;
+            closed = true;
         }
     }
 

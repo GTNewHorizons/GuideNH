@@ -19,10 +19,28 @@ public class MixinCaptureOverlayDraws {
     private int rawBufferIndex;
     @Shadow
     private int vertexCount;
+    @Shadow
+    private int drawMode;
+    @Shadow
+    private boolean hasTexture;
+    @Shadow
+    private boolean hasColor;
+    @Shadow
+    private boolean hasBrightness;
+    @Shadow
+    private boolean hasNormals;
 
     @Inject(method = "draw", at = @At("HEAD"))
     private void guidenh$recordOverlayDraw(CallbackInfoReturnable<Integer> callback) {
         CaptureRuntime.instance()
-            .recordOverlayVertices(rawBuffer, vertexCount, rawBufferIndex);
+            .recordOverlayDraw(
+                rawBuffer,
+                vertexCount,
+                rawBufferIndex,
+                drawMode,
+                hasTexture,
+                hasColor,
+                hasBrightness,
+                hasNormals);
     }
 }

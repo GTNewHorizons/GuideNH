@@ -176,6 +176,14 @@ public class CaptureRegistry {
         return null;
     }
 
+    public CaptureGuiRenderer renderer(CaptureContext context, CaptureContentOptions content) {
+        for (int index = guiRenderers.size() - 1; index >= 0; index--) {
+            CaptureGuiRenderer renderer = guiRenderers.get(index);
+            if (renderer.supportsContent(context, content)) return renderer;
+        }
+        return null;
+    }
+
     public void registerLifecycle(CaptureLifecycleListener listener) {
         lifecycleListeners.add(listener);
     }

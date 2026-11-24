@@ -18,11 +18,12 @@ public enum Mixins implements IMixins {
         "forge.AccessorShapedOreRecipe", "forge.AccessorShapelessOreRecipe", "minecraft.AccessorTextureManager",
         "minecraft.AccessorTextureMap", "minecraft.AccessorTextureAtlasSprite",
         "minecraft.MixinTessellatorSceneExportCapture", "minecraft.MixinModelRendererSceneExportCapture",
-        "minecraft.AccessorGuiCaptureScreen", "minecraft.AccessorGuiCaptureContainer", "minecraft.MixinGuiCaptureInput",
-        "minecraft.MixinGuiCaptureRender", "minecraft.MixinGuiCaptureLayer", "minecraft.MixinGuiCaptureBackground",
-        "minecraft.MixinGuiCaptureHud", "forge.MixinGuiCaptureForgeHud", "minecraft.MixinGuiCaptureAlpha",
-        "minecraft.MixinGuiCaptureButtonAlpha", "minecraft.MixinCaptureOverlayDraws",
-        "minecraft.MixinCaptureOverlayText", "minecraft.MixinGuiCaptureFramebuffer",
+        "minecraft.AccessorGuiCaptureScreen", "minecraft.AccessorGuiCaptureContainer",
+        "minecraft.AccessorCaptureBookScreen", "minecraft.MixinGuiCaptureInput", "minecraft.MixinGuiCaptureRender",
+        "minecraft.MixinGuiCaptureLayer", "minecraft.MixinGuiCaptureBackground", "minecraft.MixinGuiCaptureHud",
+        "forge.MixinGuiCaptureForgeHud", "minecraft.MixinGuiCaptureAlpha", "minecraft.MixinGuiCaptureButtonAlpha",
+        "minecraft.MixinCaptureOverlayDraws", "minecraft.MixinCaptureOverlayText",
+        "minecraft.AccessorCaptureFontStrings", "minecraft.MixinGuiCaptureFramebuffer",
         "minecraft.MixinGuiCaptureMainMenu", "minecraft.MixinStandaloneContainerScreen",
         "minecraft.MixinCaptureContainerSynchronization"),
 
@@ -30,6 +31,10 @@ public enum Mixins implements IMixins {
         "compat.ae2.MixinPartP2PTunnelME", "compat.ae2.MixinPartToggleBus"),
 
     AE2_CAPTURE_BUTTONS(Side.CLIENT, Phase.LATE, Mods.AE2, "compat.ae2.MixinCaptureAe2Buttons"),
+
+    CHROMATIC_CAPTURE_TOOLTIP(Side.CLIENT, Phase.LATE, Mods.ChromaticTooltips,
+        "compat.chromatictooltips.MixinCaptureChromaticTooltip",
+        "compat.chromatictooltips.MixinCaptureChromaticTooltipRequest"),
 
     ANGELICA_CAPTURE_FRAME_END(new MixinBuilder()
         .addClientMixins("compat.angelica.MixinCaptureFrameEnd", "compat.angelica.MixinCaptureHudCache")
@@ -49,7 +54,11 @@ public enum Mixins implements IMixins {
         "compat.mui2.MixinCaptureMui2Alpha", "compat.mui2.MixinCaptureMui2Blend"),
 
     SERVER_CAPTURE_CONTAINER(new MixinBuilder()
-        .addCommonMixins("minecraft.MixinCaptureServerContainer", "minecraft.AccessorCaptureEnderInventory")
+        .addCommonMixins(
+            "minecraft.MixinCaptureServerContainer",
+            "minecraft.AccessorCaptureEnderInventory",
+            "minecraft.AccessorCaptureHorseContainer",
+            "minecraft.AccessorCaptureMerchantContainer")
         .setPhase(Phase.EARLY)),
 
     MUI_CAPTURE_FACTORY(new MixinBuilder().addCommonMixins("compat.mui.MixinCaptureMuiFactory")

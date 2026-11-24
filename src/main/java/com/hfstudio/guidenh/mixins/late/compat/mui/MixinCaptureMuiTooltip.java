@@ -10,7 +10,7 @@ import com.hfstudio.guidenh.client.capture.CaptureRuntime;
 import com.hfstudio.guidenh.client.capture.api.CaptureRect;
 import com.llamalad7.mixinextras.sugar.Local;
 
-@Mixin(value = GuiHelper.class, remap = false)
+@Mixin(value = GuiHelper.class, remap = false, priority = 1500)
 public class MixinCaptureMuiTooltip {
 
     @Inject(
@@ -22,12 +22,14 @@ public class MixinCaptureMuiTooltip {
             .hideTooltips()) callback.cancel();
     }
 
+    // Replacement tooltip renderers publish their own bounds and can remove the native layout call.
     @Inject(
         method = "drawHoveringTextFormatted(Ljava/util/List;Ljava/util/List;Lcom/gtnewhorizons/modularui/api/math/Pos2d;Lcom/gtnewhorizons/modularui/api/math/Size;IFZLcom/gtnewhorizons/modularui/api/math/Alignment;Z)V",
         at = @At(
             value = "INVOKE",
             target = "Lcom/gtnewhorizons/modularui/api/drawable/TextRenderer;setSimulate(Z)V",
-            ordinal = 1))
+            ordinal = 1),
+        require = 0)
     private static void guidenh$recordCaptureTooltip(CallbackInfo callback, @Local(name = "tooltipX") int x,
         @Local(name = "tooltipY") int y, @Local(name = "tooltipTextWidth") int width,
         @Local(name = "tooltipHeight") int height) {

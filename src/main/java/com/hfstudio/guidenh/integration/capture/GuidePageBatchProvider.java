@@ -52,7 +52,7 @@ public class GuidePageBatchProvider implements CaptureBatchProvider {
                         page.getId()
                             .toString(),
                         screen.canPreviewNavigation() ? "ready" : "unavailable",
-                        screen.canPreviewNavigation() ? "" : "Close the guide editor before temporary page navigation",
+                        screen.canPreviewNavigation() ? "" : "Waiting for the guide editor draft",
                         Map.of(
                             "guide",
                             guide.getId()
@@ -109,11 +109,10 @@ public class GuidePageBatchProvider implements CaptureBatchProvider {
         @Override
         public CaptureBatchReadiness readiness(CaptureBatchContext context) {
             boolean ready = context.capture()
-                .screen() == screen && preview.ready(page, offset);
+                .screen() == preview.screen() && preview.ready(page, offset);
             return new CaptureBatchReadiness(
                 ready,
-                context.geometry()
-                    .revision(),
+                CaptureBatchReadiness.viewRevision(context.capture()),
                 ready ? "" : "Waiting for guide compilation and page layout");
         }
 
@@ -191,8 +190,7 @@ public class GuidePageBatchProvider implements CaptureBatchProvider {
                 .screen() == screen && preview.restored();
             return new CaptureBatchReadiness(
                 ready,
-                context.geometry()
-                    .revision(),
+                CaptureBatchReadiness.viewRevision(context.capture()),
                 ready ? "" : "Waiting for the original guide view");
         }
 

@@ -259,6 +259,9 @@ public class CaptureConfig {
     @RangeInt(min = 1, max = 256)
     public int serverCaptureRadius = 8;
 
+    @DefaultString("")
+    public String serverCaptureArea = "";
+
     @DefaultBoolean(false)
     public boolean serverTemporaryTravel;
 }

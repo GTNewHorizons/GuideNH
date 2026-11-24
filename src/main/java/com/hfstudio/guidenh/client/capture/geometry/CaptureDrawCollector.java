@@ -75,38 +75,39 @@ public class CaptureDrawCollector {
     public CaptureGeometry merge(CaptureGeometry geometry, CaptureFrame frame) {
         List<CaptureTarget> combined = new ArrayList<>(geometry.targets());
         for (CaptureTarget target : targets.values()) {
-            if (frame == null) {
+            if (frame == null || covered(target.visibleBounds(), frame, geometry.viewport())) {
                 combined.add(target);
-                continue;
             }
-            CaptureRect area = geometry.viewport()
-                .pixels(target.visibleBounds());
-            int left = Math.max(0, (int) area.x());
-            int top = Math.max(0, (int) area.y());
-            int right = Math.min(frame.width(), (int) area.right());
-            int bottom = Math.min(frame.height(), (int) area.bottom());
-            boolean visible = false;
-            // Probe likely occupied pixels before scanning sparse transparent rectangles.
-            for (int row = 0; row < 3 && !visible && bottom > top; row++) {
-                int y = top + (bottom - top - 1) * row / 2;
-                for (int column = 0; column < 3 && right > left; column++) {
-                    int x = left + (right - left - 1) * column / 2;
-                    if (frame.argb(x, y) >>> 24 != 0) {
-                        visible = true;
-                        break;
-                    }
-                }
-            }
-            for (int y = top; y < bottom && !visible; y++) {
-                for (int x = left; x < right; x++) {
-                    if (frame.argb(x, y) >>> 24 != 0) {
-                        visible = true;
-                        break;
-                    }
-                }
-            }
-            if (visible) combined.add(target);
         }
         return new CaptureGeometry(combined.hashCode(), geometry.viewport(), combined);
+    }
+
+    public static boolean covered(CaptureRect bounds, CaptureFrame frame, CaptureViewport viewport) {
+        CaptureRect area = viewport.pixels(bounds);
+        int left = Math.max(0, (int) area.x());
+        int top = Math.max(0, (int) area.y());
+        int right = Math.min(frame.width(), (int) area.right());
+        int bottom = Math.min(frame.height(), (int) area.bottom());
+        boolean visible = false;
+        // Probe likely occupied pixels before scanning sparse transparent rectangles.
+        for (int row = 0; row < 3 && !visible && bottom > top; row++) {
+            int y = top + (bottom - top - 1) * row / 2;
+            for (int column = 0; column < 3 && right > left; column++) {
+                int x = left + (right - left - 1) * column / 2;
+                if (frame.argb(x, y) >>> 24 != 0) {
+                    visible = true;
+                    break;
+                }
+            }
+        }
+        for (int y = top; y < bottom && !visible; y++) {
+            for (int x = left; x < right; x++) {
+                if (frame.argb(x, y) >>> 24 != 0) {
+                    visible = true;
+                    break;
+                }
+            }
+        }
+        return visible;
     }
 }

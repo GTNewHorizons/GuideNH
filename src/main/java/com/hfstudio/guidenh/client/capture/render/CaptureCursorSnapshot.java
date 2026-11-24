@@ -35,4 +35,14 @@ public class CaptureCursorSnapshot implements CaptureRenderSnapshot {
             cursor.close();
         }
     }
+
+    @Override
+    public boolean includesHud() {
+        return delegate.includesHud();
+    }
+
+    @Override
+    public boolean filtersContent() {
+        return delegate.filtersContent();
+    }
 }

@@ -215,8 +215,12 @@ public class CaptureSession implements AutoCloseable {
     }
 
     public void acceptFrame(CaptureFrame frame, CaptureFrameIdentity identity) {
-        if (recording != null) recording.offer(frame, System.nanoTime(), selections.regions());
-        if (!previewRequested) {
+        acceptFrame(frame, identity, previewRequested);
+    }
+
+    public void acceptFrame(CaptureFrame frame, CaptureFrameIdentity identity, boolean updatePreview) {
+        if (recording != null) recording.offer(frame, frame.timestampNanos(), selections.regions());
+        if (!updatePreview) {
             frame.close();
             return;
         }

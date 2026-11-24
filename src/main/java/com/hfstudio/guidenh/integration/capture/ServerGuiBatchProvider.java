@@ -222,8 +222,9 @@ public class ServerGuiBatchProvider implements CaptureBatchProvider {
             }
             if (!connection.synchronizedAfter(reply.windowId(), synchronization))
                 return waiting(context, "Waiting for the initial inventory snapshot");
-            if (minecraft.currentScreen == null
-                || minecraft.currentScreen instanceof GuiContainer gui && gui.inventorySlots != container)
+            if (!(minecraft.currentScreen instanceof GuiContainer gui) || gui.inventorySlots != container
+                || context.capture()
+                    .screen() != gui)
                 return waiting(context, "Waiting for the matching GUI");
             if (Mods.ModularUI2.isModLoaded() && !Mui2ClientContainerReadiness.ready(container))
                 return waiting(context, "Waiting for MUI2 initialization");
@@ -233,19 +234,11 @@ public class ServerGuiBatchProvider implements CaptureBatchProvider {
         }
 
         private CaptureBatchReadiness ready(CaptureBatchContext context) {
-            return new CaptureBatchReadiness(
-                true,
-                context.geometry()
-                    .revision(),
-                "");
+            return new CaptureBatchReadiness(true, CaptureBatchReadiness.viewRevision(context.capture()), "");
         }
 
         private CaptureBatchReadiness waiting(CaptureBatchContext context, String reason) {
-            return new CaptureBatchReadiness(
-                false,
-                context.geometry()
-                    .revision(),
-                reason);
+            return new CaptureBatchReadiness(false, CaptureBatchReadiness.viewRevision(context.capture()), reason);
         }
 
         @Override

@@ -12,6 +12,20 @@ import com.hfstudio.guidenh.client.capture.CaptureRuntime;
 @Mixin(FontRenderer.class)
 public class MixinCaptureOverlayText {
 
+    @Inject(method = "renderString", at = @At("HEAD"))
+    private void guidenh$beginCapturedString(String text, int x, int y, int color, boolean shadow,
+        CallbackInfoReturnable<Integer> callback) {
+        CaptureRuntime.instance()
+            .beginOverlayText((FontRenderer) (Object) this, text, x, y, color, shadow);
+    }
+
+    @Inject(method = "renderString", at = @At("RETURN"))
+    private void guidenh$endCapturedString(String text, int x, int y, int color, boolean shadow,
+        CallbackInfoReturnable<Integer> callback) {
+        CaptureRuntime.instance()
+            .endOverlayText();
+    }
+
     @Inject(method = "drawString(Ljava/lang/String;IIIZ)I", at = @At("RETURN"))
     private void guidenh$recordOverlayText(String text, int x, int y, int color, boolean shadow,
         CallbackInfoReturnable<Integer> callback) {

@@ -162,8 +162,7 @@ public class Mui2PageBatchProvider implements CaptureBatchProvider {
                 .getCurrentPageIndex() == ancestor.page();
             return new CaptureBatchReadiness(
                 ready,
-                context.geometry()
-                    .revision(),
+                CaptureBatchReadiness.viewRevision(context.capture()),
                 ready ? "" : "Waiting for the tab to become visible");
         }
 
@@ -206,8 +205,7 @@ public class Mui2PageBatchProvider implements CaptureBatchProvider {
             }
             return new CaptureBatchReadiness(
                 ready,
-                context.geometry()
-                    .revision(),
+                CaptureBatchReadiness.viewRevision(context.capture()),
                 ready ? "" : "Waiting for the original tabs");
         }
     }

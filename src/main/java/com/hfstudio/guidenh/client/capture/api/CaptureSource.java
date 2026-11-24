@@ -8,6 +8,10 @@ public interface CaptureSource extends AutoCloseable {
 
     boolean drawing();
 
+    default boolean drawingOnFramebuffer(int framebuffer) {
+        return drawing();
+    }
+
     boolean bindMainFramebuffer(boolean viewport);
 
     CaptureProviderAvailability readiness(CaptureContext context);
