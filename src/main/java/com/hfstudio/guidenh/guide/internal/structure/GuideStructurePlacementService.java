@@ -22,6 +22,7 @@ public class GuideStructurePlacementService {
 
     public GuideStructureData parse(String structureText) throws Exception {
         NBTTagCompound root = readStructureNbt(structureText.getBytes(StandardCharsets.UTF_8));
+        GuideStructureSchema.validate(root);
         int[] size = root.getIntArray("size");
         return new GuideStructureData(root, size[0], size[1], size[2]);
     }
