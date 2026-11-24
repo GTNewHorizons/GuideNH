@@ -79,6 +79,10 @@ The recommended GIF alpha threshold is 128. A threshold of 255 discards native b
 
 Schedules support a delay, a specified local time, and repeating intervals. If the game loses focus or the target becomes unavailable, choose whether to wait, skip, or end the task. Recording queues and temporary output follow the configured resource budgets.
 
+When encoding cannot keep up, normal recording skips samples. Strict recording stops early and displays the reason while saving and after completion. Lower the frame rate or output size before retrying.
+
+The captured frames are saved and the editor remains open for adjustment, including when automatic closing after save is enabled.
+
 Loss of focus, minimization, missing source, game pause, and target disappearance each have an independent schedule policy. They inherit the default unavailable policy unless overridden. Gameplay is a valid source while a world is loaded. When multiple conditions apply, stopping takes priority over skipping, then waiting.
 
 ## Batch Capture

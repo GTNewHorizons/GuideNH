@@ -778,6 +778,7 @@ guidenh.capture.peek_source=Show/hide the complete source
 guidenh.capture.record=Start recording the selection
 guidenh.capture.recording_cancelled=Recording cancelled
 guidenh.capture.recording_paused=Paused: %s frames · %.1f s · %s skipped samples
+guidenh.capture.recording_queue_stopped=Recording stopped because encoding fell behind. Reduce the frame rate or output size before retrying.
 guidenh.capture.recording_segment_finishing=Target changed; saving this segment before continuing.
 guidenh.capture.recording_settings_locked=This segment keeps its initial settings. Apply edits to the next segment or stop and apply.
 guidenh.capture.recording_started=Recording started

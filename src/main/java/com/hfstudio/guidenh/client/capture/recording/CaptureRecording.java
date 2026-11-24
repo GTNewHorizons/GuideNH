@@ -28,6 +28,7 @@ public class CaptureRecording implements AutoCloseable {
     private long pausedNanos;
     private int acceptedFrames;
     private int skippedFrames;
+    private boolean queueLimitReached;
     private volatile boolean finished;
     private volatile boolean cancelled;
     private volatile long endTime;
@@ -104,6 +105,10 @@ public class CaptureRecording implements AutoCloseable {
         return skippedFrames;
     }
 
+    public boolean queueLimitReached() {
+        return queueLimitReached;
+    }
+
     public long elapsed(long now) {
         return (pausedAt == 0 ? now : pausedAt) - started - pausedNanos;
     }
@@ -147,6 +152,7 @@ public class CaptureRecording implements AutoCloseable {
     private void rejected(long now) {
         skippedFrames++;
         if (options.strictQueue()) {
+            queueLimitReached = true;
             stop(now);
         }
     }

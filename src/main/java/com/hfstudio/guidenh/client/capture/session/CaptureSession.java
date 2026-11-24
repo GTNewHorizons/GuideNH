@@ -382,7 +382,10 @@ public class CaptureSession implements AutoCloseable {
     public void pollExport() {
         if (recording != null) {
             recording.tick(System.nanoTime());
-            if (recording.finished()) state = CaptureSessionState.SAVING;
+            if (recording.finished()) {
+                state = CaptureSessionState.SAVING;
+                if (recording.queueLimitReached()) message = I18n.format("guidenh.capture.recording_queue_stopped");
+            }
         }
         if (export == null || !export.isDone()) return;
         try {
@@ -394,9 +397,12 @@ public class CaptureSession implements AutoCloseable {
                     .toString())
                 + " · "
                 + I18n.format("guidenh.capture.quality." + outputQuality);
-            state = settings.config().closeAfterSave && !keepOpenAfterSave && !nextRecordingRequested
-                ? CaptureSessionState.CLOSED
-                : CaptureSessionState.EDITING;
+            if (recording != null && recording.queueLimitReached())
+                message = I18n.format("guidenh.capture.recording_queue_stopped") + " · " + message;
+            state = settings.config().closeAfterSave && !keepOpenAfterSave
+                && !nextRecordingRequested
+                && !(recording != null && recording.queueLimitReached()) ? CaptureSessionState.CLOSED
+                    : CaptureSessionState.EDITING;
         } catch (CancellationException error) {
             nextRecordingRequested = false;
             state = CaptureSessionState.EDITING;

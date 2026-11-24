@@ -775,6 +775,7 @@ guidenh.capture.peek_source=显示/隐藏完整捕获源
 guidenh.capture.record=开始录制选区
 guidenh.capture.recording_cancelled=录制已取消
 guidenh.capture.recording_paused=已暂停：%s 帧 · %.1f 秒 · 跳过 %s 次采样
+guidenh.capture.recording_queue_stopped=编码速度不足，录制已提前停止。请降低帧率或输出尺寸后重试。
 guidenh.capture.recording_segment_finishing=目标已变化，正在保存本段后再继续。
 guidenh.capture.recording_settings_locked=本段保留开始时的设置；修改可应用到下一段，或停止并应用。
 guidenh.capture.recording_started=录制已开始
