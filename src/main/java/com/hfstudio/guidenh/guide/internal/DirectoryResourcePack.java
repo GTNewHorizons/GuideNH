@@ -4,6 +4,7 @@ import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.util.LinkedHashSet;
 import java.util.Set;
@@ -14,6 +15,9 @@ import net.minecraft.client.resources.data.IMetadataSerializer;
 import net.minecraft.util.ResourceLocation;
 
 import org.jetbrains.annotations.Nullable;
+
+import com.hfstudio.guidenh.guide.internal.resource.GuideLocalPathPolicy;
+import com.hfstudio.guidenh.guide.internal.resource.GuideResourceAccess;
 
 import lombok.Getter;
 
@@ -36,7 +40,7 @@ public class DirectoryResourcePack implements IResourcePack {
         if (resourcePath == null) {
             throw new IOException("Resource does not exist: " + resourceLocation);
         }
-        return Files.newInputStream(resourcePath);
+        return Files.newInputStream(resourcePath, LinkOption.NOFOLLOW_LINKS);
     }
 
     @Override
@@ -81,14 +85,17 @@ public class DirectoryResourcePack implements IResourcePack {
             return null;
         }
 
-        try {
-            return Files.readAllBytes(resourcePath);
+        try (InputStream input = Files.newInputStream(resourcePath, LinkOption.NOFOLLOW_LINKS)) {
+            return GuideResourceAccess.readFully(input);
         } catch (IOException e) {
             return null;
         }
     }
 
     private @Nullable Path resolveResourcePath(ResourceLocation resourceLocation) {
+        if (!GuideResourceAccess.isSafeResourceId(resourceLocation)) {
+            return null;
+        }
         String namespace = resourceLocation.getResourceDomain();
         String path = resourceLocation.getResourcePath();
 
@@ -107,11 +114,11 @@ public class DirectoryResourcePack implements IResourcePack {
     }
 
     private @Nullable Path containedPath(Path candidate) {
-        Path normalizedRoot = root.toAbsolutePath()
-            .normalize();
-        Path normalized = candidate.toAbsolutePath()
-            .normalize();
-        return normalized.startsWith(normalizedRoot) ? normalized : null;
+        try {
+            return new GuideLocalPathPolicy(root).resolveExisting(candidate);
+        } catch (IOException | IllegalArgumentException e) {
+            return null;
+        }
     }
 
     private static LinkedHashSet<String> discoverResourceDomains(Path root) {

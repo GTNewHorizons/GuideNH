@@ -9,6 +9,7 @@ minecraft {
 }
 
 tasks.withType<JavaCompile>().configureEach {
+    options.encoding = "UTF-8"
     options.annotationProcessorPath = configurations.annotationProcessor.get()
 }
 
@@ -24,10 +25,12 @@ tasks.processResources {
 }
 
 tasks.named<ShadowJar>("shadowJar") {
+    relocate("com.sun.jna", "com.sun.jna")
     mergeServiceFiles()
     exclude("META-INF/maven/**", "META-INF/LICENSE*", "META-INF/NOTICE*")
     exclude("images/**")
     minimize {
+        exclude(dependency("net.java.dev.jna:jna:.*"))
         exclude(dependency("org.apache.lucene:lucene-core:.*"))
         exclude(dependency("org.apache.lucene:lucene-analyzers-common:.*"))
         exclude(dependency("org.apache.lucene:lucene-queryparser:.*"))

@@ -38,6 +38,9 @@ public enum Mods implements IMod, ITargetMod {
     TinkersConstruct("TConstruct"),
     BlockRenderer6343("blockrenderer6343"),
     Angelica("angelica"),
+    ModularUI("modularui"),
+    ModularUI2("modularui2"),
+    Lwjgl3ify("lwjgl3ify", null, "me.eigenraven.lwjgl3ify.core.Lwjgl3ifyCoremod"),
     ServerUtilities("serverutilities"),
     ;
     // spotless:on

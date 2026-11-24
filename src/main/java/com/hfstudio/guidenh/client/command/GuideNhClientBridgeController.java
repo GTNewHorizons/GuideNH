@@ -13,9 +13,13 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiScreen;
+import net.minecraft.client.gui.GuiYesNo;
+import net.minecraft.client.network.NetHandlerPlayClient;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.ChatComponentTranslation;
 
+import com.hfstudio.guidenh.client.GuideNhClientTaskScheduler;
 import com.hfstudio.guidenh.guide.internal.GuidebookText;
 import com.hfstudio.guidenh.guide.internal.editor.io.SceneEditorStructureCache;
 import com.hfstudio.guidenh.guide.internal.editor.io.SceneEditorStructureImportService;
@@ -23,6 +27,7 @@ import com.hfstudio.guidenh.guide.internal.structure.GuideNhStructureRuntime;
 import com.hfstudio.guidenh.guide.internal.structure.GuideStructureData;
 import com.hfstudio.guidenh.guide.internal.structure.GuideStructureFileStore;
 import com.hfstudio.guidenh.guide.internal.structure.GuideStructureMemoryStore;
+import com.hfstudio.guidenh.network.GuideNhCustomPayloadLimits;
 import com.hfstudio.guidenh.network.GuideNhNetwork;
 import com.hfstudio.guidenh.network.GuideNhRegionExportReplyMessage;
 import com.hfstudio.guidenh.network.GuideNhRegionExportRequestMessage;
@@ -50,6 +55,7 @@ public class GuideNhClientBridgeController {
 
     private CompletableFuture<SceneEditorStructureImportService.ImportResult> pendingImport;
     private PendingImportRequest pendingImportRequest;
+    private GuiYesNo pendingImportConfirmation;
 
     private GuideNhClientBridgeController() {
         this.structureImportService = new SceneEditorStructureImportService(SceneEditorStructureCache.createDefault());
@@ -87,8 +93,22 @@ public class GuideNhClientBridgeController {
             sendClient(GuidebookText.CommandStructureImportPending);
             return;
         }
-        pendingImportRequest = new PendingImportRequest(x, y, z);
-        pendingImport = structureImportService.importFromPathAsync(Paths.get(filePath));
+        NetHandlerPlayClient connection = Minecraft.getMinecraft()
+            .getNetHandler();
+        if (connection == null) {
+            sendClient(GuidebookText.CommandStructureServerRequired);
+            return;
+        }
+        try {
+            if (filePath == null || filePath.replace('\\', '/')
+                .startsWith("//")) {
+                throw new IllegalArgumentException("Network structure paths are not allowed");
+            }
+            pendingImport = structureImportService.importFromPathAsync(Paths.get(filePath));
+            pendingImportRequest = new PendingImportRequest(x, y, z, connection);
+        } catch (Exception e) {
+            sendClient(GuidebookText.CommandStructureImportFailure, getErrorMessage(e));
+        }
     }
 
     public void placeAllStructures(int x, int y, int z) {
@@ -132,8 +152,7 @@ public class GuideNhClientBridgeController {
     public void onServerDisconnected() {
         GuideNhStructureRuntime.setServerStructureCommandsAvailable(false);
         GuideNhStructureRuntime.setClientStructureSyncNeeded(false);
-        pendingImport = null;
-        pendingImportRequest = null;
+        clearPendingImport();
         rememberedSceneLabels.clear();
         for (CompletableFuture<String> future : pendingRegionExports.values()) {
             future.complete(null);
@@ -188,13 +207,21 @@ public class GuideNhClientBridgeController {
             return;
         }
         if (message.getAction() == GuideNhRegionExportReplyMessage.ACTION_CHUNK) {
-            RegionReplyAssembler assembler = pendingRegionExportChunks
-                .computeIfAbsent(message.getRequestId(), ignored -> new RegionReplyAssembler(message.getChunkCount()));
-            String completed = assembler.accept(message);
-            if (completed != null) {
+            try {
+                RegionReplyAssembler assembler = pendingRegionExportChunks.computeIfAbsent(
+                    message.getRequestId(),
+                    ignored -> new RegionReplyAssembler(message.getChunkCount()));
+                String completed = assembler.accept(message);
+                if (completed == null) {
+                    return;
+                }
                 pendingRegionExports.remove(message.getRequestId());
                 pendingRegionExportChunks.remove(message.getRequestId());
                 future.complete(completed);
+            } catch (IllegalArgumentException e) {
+                pendingRegionExports.remove(message.getRequestId());
+                pendingRegionExportChunks.remove(message.getRequestId());
+                future.complete(null);
             }
         }
     }
@@ -208,44 +235,94 @@ public class GuideNhClientBridgeController {
             GuideNhStructureRuntime.setClientStructureSyncNeeded(false);
             syncAllClientStructuresToServer();
         }
-        if (pendingImport == null || !pendingImport.isDone()) {
+        if (pendingImport == null) {
+            return;
+        }
+        Minecraft minecraft = Minecraft.getMinecraft();
+        if (pendingImportRequest == null || pendingImportRequest.connection() != minecraft.getNetHandler()) {
+            clearPendingImport();
+            return;
+        }
+        if (pendingImportConfirmation != null) {
+            if (minecraft.currentScreen != pendingImportConfirmation) {
+                clearPendingImport();
+                sendClient(GuidebookText.CommandStructureImportCanceled);
+            }
+            return;
+        }
+        if (!pendingImport.isDone()) {
             return;
         }
 
         CompletableFuture<SceneEditorStructureImportService.ImportResult> future = pendingImport;
         PendingImportRequest request = pendingImportRequest;
-        pendingImport = null;
-        pendingImportRequest = null;
-        if (request == null) {
-            return;
-        }
 
         try {
             SceneEditorStructureImportService.ImportResult result = future.join();
             if (result == null) {
+                clearPendingImport();
                 sendClient(GuidebookText.CommandStructureImportCanceled);
                 return;
             }
+            GuiScreen previousScreen = minecraft.currentScreen;
+            pendingImportConfirmation = new GuiYesNo(
+                (confirmed, id) -> completeImport(confirmed, future, request, result, previousScreen),
+                GuidebookText.CommandStructureUploadConfirm.text(),
+                result.getDisplayPath(),
+                0);
+            minecraft.displayGuiScreen(pendingImportConfirmation);
+        } catch (CompletionException e) {
+            clearPendingImport();
+            sendClient(
+                GuidebookText.CommandStructureImportFailure,
+                getErrorMessage(e.getCause() != null ? e.getCause() : e));
+        } catch (Exception e) {
+            clearPendingImport();
+            sendClient(GuidebookText.CommandStructureImportFailure, getErrorMessage(e));
+        }
+    }
+
+    private void completeImport(boolean confirmed,
+        CompletableFuture<SceneEditorStructureImportService.ImportResult> future, PendingImportRequest request,
+        SceneEditorStructureImportService.ImportResult result, GuiScreen previousScreen) {
+        Minecraft minecraft = Minecraft.getMinecraft();
+        if (pendingImport != future || pendingImportRequest != request
+            || minecraft.currentScreen != pendingImportConfirmation) {
+            return;
+        }
+        boolean sameConnection = request.connection() == minecraft.getNetHandler();
+        clearPendingImport();
+        minecraft.displayGuiScreen(sameConnection ? previousScreen : null);
+        if (!confirmed || !sameConnection || !isServerStructureCommandsAvailable()) {
+            sendClient(GuidebookText.CommandStructureImportCanceled);
+            return;
+        }
+        try {
             var entry = GuideNhStructureRuntime.getClientMemoryStore()
                 .remember(result.getDisplayPath(), result.getStructureText());
             GuideNhStructureRequestSender.sendImportAndPlace(
                 GuideNhNetwork.channel(),
-                request.x,
-                request.y,
-                request.z,
+                request.x(),
+                request.y(),
+                request.z(),
                 entry.getStructureText());
-        } catch (CompletionException e) {
-            sendClient(
-                GuidebookText.CommandStructureImportFailure,
-                getErrorMessage(e.getCause() != null ? e.getCause() : e));
         } catch (Exception e) {
             sendClient(GuidebookText.CommandStructureImportFailure, getErrorMessage(e));
         }
     }
 
+    private void clearPendingImport() {
+        if (pendingImport != null) {
+            pendingImport.cancel(false);
+        }
+        pendingImport = null;
+        pendingImportRequest = null;
+        pendingImportConfirmation = null;
+    }
+
     @SubscribeEvent
     public void onClientDisconnected(FMLNetworkEvent.ClientDisconnectionFromServerEvent event) {
-        onServerDisconnected();
+        GuideNhClientTaskScheduler.execute(this::onServerDisconnected);
     }
 
     private void syncAllClientStructuresToServer() {
@@ -280,20 +357,9 @@ public class GuideNhClientBridgeController {
                 .getSimpleName();
     }
 
-    public static class PendingImportRequest {
+    public record PendingImportRequest(int x, int y, int z, NetHandlerPlayClient connection) {}
 
-        private final int x;
-        private final int y;
-        private final int z;
-
-        private PendingImportRequest(int x, int y, int z) {
-            this.x = x;
-            this.y = y;
-            this.z = z;
-        }
-    }
-
-    private static final class RegionReplyAssembler {
+    public static class RegionReplyAssembler {
 
         private final byte[][] chunks;
         private int received;
@@ -309,10 +375,16 @@ public class GuideNhClientBridgeController {
         private synchronized String accept(GuideNhRegionExportReplyMessage message) {
             int index = message.getChunkIndex();
             if (message.getChunkCount() != chunks.length || index < 0 || index >= chunks.length) {
-                return null;
+                throw new IllegalArgumentException("Inconsistent region export chunks");
             }
             byte[] bytes = message.getPayloadBytes();
+            if (bytes == null || bytes.length > GuideNhCustomPayloadLimits.MAX_STRUCTURE_BYTES_PER_PACKET) {
+                throw new IllegalArgumentException("Invalid region export chunk size");
+            }
             if (chunks[index] == null) {
+                if (bytes.length > GuideNhCustomPayloadLimits.MAX_STRUCTURE_TRANSFER_BYTES - totalBytes) {
+                    throw new IllegalArgumentException("Region export exceeds the transfer limit");
+                }
                 chunks[index] = bytes;
                 received++;
                 totalBytes += bytes.length;

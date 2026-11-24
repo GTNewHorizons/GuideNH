@@ -1,8 +1,5 @@
 package com.hfstudio.guidenh.network;
 
-import com.hfstudio.guidenh.client.GuideNhClientTaskScheduler;
-import com.hfstudio.guidenh.client.command.GuideNhClientBridgeController;
-
 import cpw.mods.fml.common.network.simpleimpl.IMessage;
 import cpw.mods.fml.common.network.simpleimpl.IMessageHandler;
 import cpw.mods.fml.common.network.simpleimpl.MessageContext;
@@ -14,10 +11,6 @@ public class GuideNhClientBridgeHandler implements IMessageHandler<GuideNhClient
 
     @Override
     public IMessage onMessage(GuideNhClientBridgeMessage message, MessageContext ctx) {
-        GuideNhClientBridgeDispatcher.dispatch(
-            message,
-            GuideNhClientTaskScheduler::execute,
-            GuideNhClientBridgeController.getInstance()::beginImportStructure);
         return null;
     }
 }

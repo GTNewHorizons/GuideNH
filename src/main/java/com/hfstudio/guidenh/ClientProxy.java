@@ -11,6 +11,8 @@ import com.hfstudio.guidenh.bridge.GuideNhRuntimeBridge;
 import com.hfstudio.guidenh.bridge.GuideNhRuntimeBridgeSettings;
 import com.hfstudio.guidenh.client.GuideNhClientTaskScheduler;
 import com.hfstudio.guidenh.client.RegionWandRenderer;
+import com.hfstudio.guidenh.client.capture.GuiCaptureBootstrap;
+import com.hfstudio.guidenh.client.capture.server.CaptureClientConnection;
 import com.hfstudio.guidenh.client.command.GuideNhClientBridgeController;
 import com.hfstudio.guidenh.client.command.GuideNhClientCommand;
 import com.hfstudio.guidenh.client.hotkey.CycleRegionWandModeHotkey;
@@ -76,8 +78,10 @@ import com.hfstudio.guidenh.network.GuideNhClientBridgeMessage;
 import com.hfstudio.guidenh.network.GuideNhNetwork;
 import com.hfstudio.guidenh.network.GuideNhRegionExportClientHandler;
 import com.hfstudio.guidenh.network.GuideNhRegionExportReplyMessage;
+import com.hfstudio.guidenh.network.capture.CaptureNetwork;
 import com.hfstudio.structurelibexport.StructureExportBootstrap;
 
+import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.common.event.FMLInitializationEvent;
 import cpw.mods.fml.common.event.FMLLoadCompleteEvent;
 import cpw.mods.fml.common.event.FMLPostInitializationEvent;
@@ -103,6 +107,10 @@ public class ClientProxy extends CommonProxy {
     @Override
     public void preInit(FMLPreInitializationEvent event) {
         super.preInit(event);
+        CaptureNetwork.initClient();
+        FMLCommonHandler.instance()
+            .bus()
+            .register(CaptureClientConnection.instance());
         GuideNhClientTaskScheduler.initialize();
         GuidebookLevel.setPreviewWorldFactory(GuidebookFakeWorld::new);
         GuidebookLevel.setDefaultBuildHeightProvider(() -> {
@@ -143,6 +151,7 @@ public class ClientProxy extends CommonProxy {
         OpenGuideHotkey.init();
         GuidePageHistoryHotkey.init();
         OpenSceneEditorHotkey.init();
+        GuiCaptureBootstrap.initialize();
 
         CycleRegionWandModeHotkey.init();
         MinecraftForge.EVENT_BUS.register(new RegionWandRenderer());

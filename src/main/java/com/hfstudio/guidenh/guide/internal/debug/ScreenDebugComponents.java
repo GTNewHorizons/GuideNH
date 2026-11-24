@@ -10,6 +10,7 @@ import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.config.ModConfig;
 import com.hfstudio.guidenh.guide.document.LytRect;
+import com.hfstudio.guidenh.guide.render.GuiRenderVisibility;
 
 /**
  * Collects visible screen-space components for the current debug frame without driving layout or input.
@@ -32,7 +33,7 @@ public class ScreenDebugComponents implements DebugComponent {
      */
     public void beginFrame() {
         entries.clear();
-        enabled = ModConfig.debug.guiDebugMode;
+        enabled = ModConfig.debug.guiDebugMode || GuiRenderVisibility.geometryEnabled();
     }
 
     public boolean isEnabled() {

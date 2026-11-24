@@ -5,7 +5,6 @@ import java.awt.FileDialog;
 import java.awt.Frame;
 import java.awt.GraphicsEnvironment;
 import java.io.File;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
@@ -22,6 +21,9 @@ import net.minecraft.nbt.NBTTagCompound;
 
 import org.jetbrains.annotations.Nullable;
 
+import com.hfstudio.guidenh.guide.internal.structure.GuideStructureFileReader;
+import com.hfstudio.guidenh.guide.internal.structure.GuideStructureSchema;
+
 import lombok.Getter;
 
 public class SceneEditorStructureImportService {
@@ -37,20 +39,27 @@ public class SceneEditorStructureImportService {
     private final StructureFileChooser fileChooser;
     private final StructureTextReader structureTextReader;
     private final Executor importExecutor;
+    private final GuideStructureFileReader structureFiles;
 
     public SceneEditorStructureImportService(SceneEditorStructureCache structureCache) {
         this.structureCache = structureCache;
         this.fileChooser = this::chooseStructureFileOnDialogThread;
-        this.structureTextReader = Files::readString;
+        this.structureFiles = new GuideStructureFileReader(
+            structureCache.getStructureDirectory(),
+            GuideStructureFileReader.DEFAULT_MAX_BYTES);
+        this.structureTextReader = structureFiles::read;
         this.importExecutor = IMPORT_EXECUTOR;
     }
 
-    SceneEditorStructureImportService(SceneEditorStructureCache structureCache, StructureFileChooser fileChooser,
+    public SceneEditorStructureImportService(SceneEditorStructureCache structureCache, StructureFileChooser fileChooser,
         StructureTextReader structureTextReader, Executor importExecutor) {
         this.structureCache = structureCache;
         this.fileChooser = fileChooser;
         this.structureTextReader = structureTextReader;
         this.importExecutor = importExecutor;
+        this.structureFiles = new GuideStructureFileReader(
+            structureCache.getStructureDirectory(),
+            GuideStructureFileReader.DEFAULT_MAX_BYTES);
     }
 
     public CompletableFuture<ImportResult> importFromPathAsync(Path path) {
@@ -66,14 +75,10 @@ public class SceneEditorStructureImportService {
     }
 
     public ImportResult importFromPath(Path path) throws Exception {
-        String snbtText = structureTextReader.read(path);
+        Path resolved = structureFiles.resolve(path);
+        String snbtText = structureTextReader.read(resolved);
         validateSnbt(snbtText);
-        return new ImportResult(
-            structureCache.createStructureSource(),
-            snbtText,
-            path.toAbsolutePath()
-                .normalize()
-                .toString());
+        return new ImportResult(structureCache.createStructureSource(), snbtText, resolved.toString());
     }
 
     @Nullable
@@ -83,14 +88,7 @@ public class SceneEditorStructureImportService {
             return null;
         }
 
-        String snbtText = structureTextReader.read(selectedFile);
-        validateSnbt(snbtText);
-        return new ImportResult(
-            structureCache.createStructureSource(),
-            snbtText,
-            selectedFile.toAbsolutePath()
-                .normalize()
-                .toString());
+        return importFromPath(selectedFile);
     }
 
     public CompletableFuture<ImportResult> chooseAndImportAsync(String dialogTitle) {
@@ -132,6 +130,9 @@ public class SceneEditorStructureImportService {
     @Nullable
     private Path chooseWithFileDialog(String dialogTitle) {
         FileDialog dialog = new FileDialog((Frame) null, dialogTitle, FileDialog.LOAD);
+        dialog.setDirectory(
+            structureFiles.getRootDirectory()
+                .toString());
         dialog.setFilenameFilter((dir, name) -> isSnbtFileName(name));
         dialog.setFile("*" + SNBT_EXTENSION);
         dialog.setVisible(true);
@@ -150,6 +151,9 @@ public class SceneEditorStructureImportService {
     @Nullable
     private Path chooseWithSwingChooser(String dialogTitle) {
         JFileChooser chooser = new JFileChooser();
+        chooser.setCurrentDirectory(
+            structureFiles.getRootDirectory()
+                .toFile());
         chooser.setDialogTitle(dialogTitle);
         chooser.setAcceptAllFileFilterUsed(false);
         chooser.setMultiSelectionEnabled(false);
@@ -172,9 +176,10 @@ public class SceneEditorStructureImportService {
         }
         normalized = normalized.trim();
         NBTBase parsed = JsonToNBT.func_150315_a(normalized);
-        if (!(parsed instanceof NBTTagCompound)) {
+        if (!(parsed instanceof NBTTagCompound compound)) {
             throw new IllegalArgumentException("SNBT root must be a Compound");
         }
+        GuideStructureSchema.validate(compound);
     }
 
     private boolean isMacOs() {
@@ -189,14 +194,14 @@ public class SceneEditorStructureImportService {
     }
 
     @FunctionalInterface
-    interface StructureFileChooser {
+    public interface StructureFileChooser {
 
         @Nullable
         Path choose(String dialogTitle) throws Exception;
     }
 
     @FunctionalInterface
-    interface StructureTextReader {
+    public interface StructureTextReader {
 
         String read(Path path) throws Exception;
     }

@@ -14,6 +14,7 @@ import com.hfstudio.guidenh.config.ModConfig;
 import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.block.LytDocument;
+import com.hfstudio.guidenh.guide.render.GuiRenderVisibility;
 
 import lombok.Getter;
 
@@ -52,7 +53,7 @@ public class GuideDebugOverlay {
      * Call this every frame from the GUI screen.
      */
     public void onFrameStart() {
-        if (!ModConfig.debug.guiDebugMode) {
+        if (!ModConfig.debug.guiDebugMode || !GuiRenderVisibility.debugVisible()) {
             return;
         }
         performanceMonitor.onFrameStart();
@@ -96,7 +97,7 @@ public class GuideDebugOverlay {
     public void render(int screenWidth, int screenHeight, int mouseX, int mouseY, int contentX, int contentY,
         int contentW, int contentH, int scrollY, float zoom, @Nullable LytDocument document,
         List<DebugComponent.ComponentEntry> screenComponents, FontRenderer fontRenderer) {
-        if (!ModConfig.debug.guiDebugMode) {
+        if (!ModConfig.debug.guiDebugMode || !GuiRenderVisibility.debugVisible()) {
             return;
         }
         render(
@@ -120,7 +121,7 @@ public class GuideDebugOverlay {
     public void render(int screenWidth, int screenHeight, int mouseX, int mouseY, int contentX, int contentY,
         int scrollY, float zoom, @Nullable LytDocument document, List<DebugComponent.ComponentEntry> screenComponents,
         LytRect documentViewport, FontRenderer fontRenderer) {
-        if (!ModConfig.debug.guiDebugMode) {
+        if (!ModConfig.debug.guiDebugMode || !GuiRenderVisibility.debugVisible()) {
             return;
         }
 
@@ -259,7 +260,7 @@ public class GuideDebugOverlay {
      * Returns true if the click was consumed by the debug overlay.
      */
     public boolean handleMouseClick(int mouseX, int mouseY, int button) {
-        if (!ModConfig.debug.guiDebugMode) {
+        if (!ModConfig.debug.guiDebugMode || !GuiRenderVisibility.debugVisible()) {
             return false;
         }
         return controlPanel.handleMouseClick(mouseX, mouseY, button);

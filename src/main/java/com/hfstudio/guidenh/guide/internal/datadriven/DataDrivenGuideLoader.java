@@ -423,6 +423,9 @@ public class DataDrivenGuideLoader {
     }
 
     public static byte[] readBytes(IResourcePack resourcePack, ResourceLocation resourceLocation) {
+        if (!GuideResourceAccess.isSafeResourceId(resourceLocation)) {
+            return null;
+        }
         try (var input = resourcePack.getInputStream(resourceLocation)) {
             return GuideResourceAccess.readFully(input);
         } catch (IOException e) {

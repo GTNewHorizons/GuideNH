@@ -27,6 +27,7 @@ public class ModConfig {
     public static final Ui ui = new Ui();
     public static final Runtime runtime = new Runtime();
     public static final RuntimeBridge runtimeBridge = new RuntimeBridge();
+    public static final CaptureConfig capture = new CaptureConfig();
 
     @Comment("Debug section")
     public static class Debug {
