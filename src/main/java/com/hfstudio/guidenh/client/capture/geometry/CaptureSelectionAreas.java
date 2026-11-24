@@ -8,8 +8,7 @@ import com.hfstudio.guidenh.client.capture.api.CaptureRegion;
 
 public class CaptureSelectionAreas {
 
-    private CaptureSelectionAreas() {
-    }
+    private CaptureSelectionAreas() {}
 
     public static List<CaptureRegion> preview(List<CaptureRegion> regions, CaptureRect candidate) {
         if (candidate == null || candidate.isEmpty()) return regions;
@@ -29,10 +28,10 @@ public class CaptureSelectionAreas {
         List<CaptureRect> visible = List.of(bounds);
         for (CaptureRegion region : regions) {
             if (region.erased()) visible = visible.stream()
-                    .flatMap(
-                            rect -> rect.subtract(region.bounds())
-                                    .stream())
-                    .toList();
+                .flatMap(
+                    rect -> rect.subtract(region.bounds())
+                        .stream())
+                .toList();
         }
         return visible;
     }

@@ -46,24 +46,32 @@ public class Mui2CaptureGeometryProvider implements CaptureGeometryProvider {
         List<CaptureTarget> targets = new ArrayList<>();
         transforms.reset();
         transforms.pushViewport(
-                null,
-                new Area(
-                        0,
-                        0,
-                        context.viewport()
-                                .logicalWidth(),
-                        context.viewport()
-                                .logicalHeight()));
+            null,
+            new Area(
+                0,
+                0,
+                context.viewport()
+                    .logicalWidth(),
+                context.viewport()
+                    .logicalHeight()));
         try {
             int panelIndex = 0;
             for (ModularPanel panel : screen.getScreen()
-                    .getPanelManager()
-                    .getReverseOpenPanels()) {
+                .getPanelManager()
+                .getReverseOpenPanels()) {
                 panelIndex++;
                 if (panel.getAlpha() <= 0) continue;
                 String name = panel.getName();
                 String root = "mui2:" + (name == null ? Integer.toString(panelIndex) : name);
-                collectWidget(panel, root, "", panelIndex, 0, context.viewport().bounds(), targets);
+                collectWidget(
+                    panel,
+                    root,
+                    "",
+                    panelIndex,
+                    0,
+                    context.viewport()
+                        .bounds(),
+                    targets);
             }
         } finally {
             transforms.popViewport(null);
@@ -71,40 +79,40 @@ public class Mui2CaptureGeometryProvider implements CaptureGeometryProvider {
         return new CaptureGeometry(targets.hashCode(), context.viewport(), targets);
     }
 
-    private void collectWidget(IWidget widget, String id, String parentId, int panelIndex, int depth,
-                               CaptureRect clip, List<CaptureTarget> targets) {
+    private void collectWidget(IWidget widget, String id, String parentId, int panelIndex, int depth, CaptureRect clip,
+        List<CaptureTarget> targets) {
         if (!widget.isEnabled() || widget instanceof ItemSlot slot && !slot.isSynced()) return;
         transforms.pushMatrix();
         try {
             widget.transform(transforms);
             Area area = widget.getArea();
             CaptureRect bounds = transformedBounds(
-                    transforms.peek()
-                            .getMatrix(),
-                    area.w(),
-                    area.h());
+                transforms.peek()
+                    .getMatrix(),
+                area.w(),
+                area.h());
             CaptureRect visible = bounds.intersect(clip);
             String kind = widget instanceof ModularPanel ? CaptureTarget.WINDOW
-                    : widget instanceof ItemSlot || widget instanceof FluidSlot ? CaptureTarget.SLOT
+                : widget instanceof ItemSlot || widget instanceof FluidSlot ? CaptureTarget.SLOT
                     : CaptureTarget.COMPONENT;
             String name = widget.getName();
             if (!visible.isEmpty()) {
                 targets.add(
-                        new CaptureTarget(
-                                id,
-                                parentId,
-                                kind,
-                                widget.getClass()
-                                        .getName(),
-                                name == null ? widget.getClass()
-                                        .getSimpleName() : name,
-                                bounds,
-                                visible,
-                                panelIndex,
-                                kind.equals(CaptureTarget.WINDOW) ? -10 : 20 + depth + area.z(),
-                                Integer.toUnsignedLong(System.identityHashCode(widget))).withContent(
-                                CaptureTarget.GUI_LAYER,
-                                widget instanceof ItemSlot slot && ModularSlot.isPlayerSlot(slot.getSlot())));
+                    new CaptureTarget(
+                        id,
+                        parentId,
+                        kind,
+                        widget.getClass()
+                            .getName(),
+                        name == null ? widget.getClass()
+                            .getSimpleName() : name,
+                        bounds,
+                        visible,
+                        panelIndex,
+                        kind.equals(CaptureTarget.WINDOW) ? -10 : 20 + depth + area.z(),
+                        Integer.toUnsignedLong(System.identityHashCode(widget))).withContent(
+                            CaptureTarget.GUI_LAYER,
+                            widget instanceof ItemSlot slot && ModularSlot.isPlayerSlot(slot.getSlot())));
             }
             IViewport childViewport = widget instanceof IViewport value ? value : null;
             if (childViewport != null) {
@@ -118,13 +126,13 @@ public class Mui2CaptureGeometryProvider implements CaptureGeometryProvider {
                     IWidget child = children.get(index);
                     String childName = child.getName();
                     collectWidget(
-                            child,
-                            id + "/" + index + (childName == null ? "" : ":" + childName),
-                            id,
-                            panelIndex,
-                            depth + 1,
-                            childClip,
-                            targets);
+                        child,
+                        id + "/" + index + (childName == null ? "" : ":" + childName),
+                        id,
+                        panelIndex,
+                        depth + 1,
+                        childClip,
+                        targets);
                 }
             } finally {
                 if (childViewport != null) transforms.popViewport(childViewport);
@@ -149,9 +157,9 @@ public class Mui2CaptureGeometryProvider implements CaptureGeometryProvider {
         double x3 = x1 + matrix.m10() * height;
         double y3 = y1 + matrix.m11() * height;
         return CaptureRect.between(
-                Math.min(Math.min(x0, x1), Math.min(x2, x3)),
-                Math.min(Math.min(y0, y1), Math.min(y2, y3)),
-                Math.max(Math.max(x0, x1), Math.max(x2, x3)),
-                Math.max(Math.max(y0, y1), Math.max(y2, y3)));
+            Math.min(Math.min(x0, x1), Math.min(x2, x3)),
+            Math.min(Math.min(y0, y1), Math.min(y2, y3)),
+            Math.max(Math.max(x0, x1), Math.max(x2, x3)),
+            Math.max(Math.max(y0, y1), Math.max(y2, y3)));
     }
 }

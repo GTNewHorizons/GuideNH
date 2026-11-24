@@ -7,8 +7,8 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyArgs;
-import org.spongepowered.asm.mixin.injection.invoke.arg.Args;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.invoke.arg.Args;
 
 import com.hfstudio.guidenh.client.capture.CaptureRuntime;
 
@@ -60,7 +60,8 @@ public class MixinGuiCaptureLayer {
 
     @ModifyArgs(
         method = "updateCameraAndRender",
-        at = @At(value = "INVOKE",
+        at = @At(
+            value = "INVOKE",
             target = "Lnet/minecraftforge/client/event/GuiScreenEvent$DrawScreenEvent$Pre;<init>(Lnet/minecraft/client/gui/GuiScreen;IIF)V",
             remap = false))
     private void guidenh$freezeGuiPrePointer(Args arguments) {
@@ -71,7 +72,8 @@ public class MixinGuiCaptureLayer {
 
     @ModifyArgs(
         method = "updateCameraAndRender",
-        at = @At(value = "INVOKE",
+        at = @At(
+            value = "INVOKE",
             target = "Lnet/minecraftforge/client/event/GuiScreenEvent$DrawScreenEvent$Post;<init>(Lnet/minecraft/client/gui/GuiScreen;IIF)V",
             remap = false))
     private void guidenh$freezeGuiPostPointer(Args arguments) {

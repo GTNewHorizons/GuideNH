@@ -17,9 +17,9 @@ import thaumcraft.api.research.ResearchCategoryList;
 import thaumcraft.api.research.ResearchItem;
 import thaumcraft.client.gui.GuiResearchBrowser;
 
-public record TcCaptureMap(String category, CaptureRect viewport, double clipX, double clipY,
-    double originX, double originY, double contentWidth, double contentHeight,
-    double minimumX, double maximumX, double minimumY, double maximumY) {
+public record TcCaptureMap(String category, CaptureRect viewport, double clipX, double clipY, double originX,
+    double originY, double contentWidth, double contentHeight, double minimumX, double maximumX, double minimumY,
+    double maximumY) {
 
     public static TcCaptureMap capture(GuiResearchBrowser screen, List<ResearchItem> visible) {
         if (visible.isEmpty()) return null;
@@ -30,10 +30,22 @@ public record TcCaptureMap(String category, CaptureRect viewport, double clipX, 
         if (viewport.isEmpty()) return null;
         double clipX = viewport.x() - raw.x();
         double clipY = viewport.y() - raw.y();
-        double left = visible.stream().mapToDouble(item -> item.displayColumn * 24d - 4).min().orElseThrow();
-        double top = visible.stream().mapToDouble(item -> item.displayRow * 24d - 4).min().orElseThrow();
-        double right = visible.stream().mapToDouble(item -> item.displayColumn * 24d + 28).max().orElseThrow();
-        double bottom = visible.stream().mapToDouble(item -> item.displayRow * 24d + 28).max().orElseThrow();
+        double left = visible.stream()
+            .mapToDouble(item -> item.displayColumn * 24d - 4)
+            .min()
+            .orElseThrow();
+        double top = visible.stream()
+            .mapToDouble(item -> item.displayRow * 24d - 4)
+            .min()
+            .orElseThrow();
+        double right = visible.stream()
+            .mapToDouble(item -> item.displayColumn * 24d + 28)
+            .max()
+            .orElseThrow();
+        double bottom = visible.stream()
+            .mapToDouble(item -> item.displayRow * 24d + 28)
+            .max()
+            .orElseThrow();
         double maximumX = list.maxDisplayColumn * 24d - 113;
         double maximumY = list.maxDisplayRow * 24d - 62;
         double lowerX = Math.min(list.minDisplayColumn * 24d - 85, maximumX);
@@ -46,15 +58,29 @@ public record TcCaptureMap(String category, CaptureRect viewport, double clipX, 
         double originY = Math.min(top, minimumY + clipY);
         double width = Math.max(right, minimumX + clipX + viewport.width()) - originX;
         double height = Math.max(bottom, minimumY + clipY + viewport.height()) - originY;
-        return new TcCaptureMap(category, viewport, clipX, clipY, originX, originY, width, height,
-            minimumX, maximumX, minimumY, maximumY);
+        return new TcCaptureMap(
+            category,
+            viewport,
+            clipX,
+            clipY,
+            originX,
+            originY,
+            width,
+            height,
+            minimumX,
+            maximumX,
+            minimumY,
+            maximumY);
     }
 
     private static CaptureRect viewport(GuiResearchBrowser screen) {
         AccessorGuiResearchBrowser access = (AccessorGuiResearchBrowser) screen;
         // The browser renders a 224 by 196 map inside its frame, offset by 16 and 17 pixels.
-        return new CaptureRect((screen.width - access.guidenh$getCapturePaneWidth()) / 2 + 16,
-            (screen.height - access.guidenh$getCapturePaneHeight()) / 2 + 17, 224, 196);
+        return new CaptureRect(
+            (screen.width - access.guidenh$getCapturePaneWidth()) / 2 + 16,
+            (screen.height - access.guidenh$getCapturePaneHeight()) / 2 + 17,
+            224,
+            196);
     }
 
     public boolean matches(GuiResearchBrowser screen) {
@@ -69,9 +95,13 @@ public record TcCaptureMap(String category, CaptureRect viewport, double clipX, 
 
     public CaptureScrollGeometry geometry(GuiResearchBrowser screen) {
         AccessorGuiResearchBrowser access = (AccessorGuiResearchBrowser) screen;
-        return new CaptureScrollGeometry("tc-map/" + category, viewport,
+        return new CaptureScrollGeometry(
+            "tc-map/" + category,
+            viewport,
             access.guidenh$getCaptureMapX() + clipX - originX,
-            access.guidenh$getCaptureMapY() + clipY - originY, contentWidth, contentHeight);
+            access.guidenh$getCaptureMapY() + clipY - originY,
+            contentWidth,
+            contentHeight);
     }
 
     public List<CaptureTargetDescriptor> slices(int limit) {
@@ -84,15 +114,35 @@ public record TcCaptureMap(String category, CaptureRect viewport, double clipX, 
         for (long index = 0; index < count; index++) {
             double x = Math.min(maximumX, minimumX + index % columns * viewport.width());
             double y = Math.min(maximumY, minimumY + index / columns * viewport.height());
-            targets.add(new CaptureTargetDescriptor("tc:map:" + category + ":" + index, "thaumcraft_pages",
-                CaptureBatchOptions.PAGES, I18n.format("guidenh.capture.thaumcraft.map_slice", category, index + 1),
-                "ready", "", Map.of("kind", "map_slice", "category", category,
-                    "x", Double.toString(x), "y", Double.toString(y), "mapSlices", Long.toString(total))));
+            targets.add(
+                new CaptureTargetDescriptor(
+                    "tc:map:" + category + ":" + index,
+                    "thaumcraft_pages",
+                    CaptureBatchOptions.PAGES,
+                    I18n.format("guidenh.capture.thaumcraft.map_slice", category, index + 1),
+                    "ready",
+                    "",
+                    Map.of(
+                        "kind",
+                        "map_slice",
+                        "category",
+                        category,
+                        "x",
+                        Double.toString(x),
+                        "y",
+                        Double.toString(y),
+                        "mapSlices",
+                        Long.toString(total))));
         }
-        if (total > count) targets.add(new CaptureTargetDescriptor("tc:map:" + category + ":remaining", "thaumcraft_pages",
-            CaptureBatchOptions.PAGES, I18n.format("guidenh.capture.thaumcraft.map_slice", category, count + 1),
-            "unavailable", "The research map exceeds the configured target limit",
-            Map.of("kind", "map_limit", "category", category, "remaining", Long.toString(total - count))));
+        if (total > count) targets.add(
+            new CaptureTargetDescriptor(
+                "tc:map:" + category + ":remaining",
+                "thaumcraft_pages",
+                CaptureBatchOptions.PAGES,
+                I18n.format("guidenh.capture.thaumcraft.map_slice", category, count + 1),
+                "unavailable",
+                "The research map exceeds the configured target limit",
+                Map.of("kind", "map_limit", "category", category, "remaining", Long.toString(total - count))));
         return List.copyOf(targets);
     }
 }

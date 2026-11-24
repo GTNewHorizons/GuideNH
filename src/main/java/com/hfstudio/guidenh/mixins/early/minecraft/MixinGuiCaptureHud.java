@@ -15,6 +15,7 @@ public class MixinGuiCaptureHud {
     @Inject(method = "renderGameOverlay", at = @At("HEAD"), cancellable = true)
     private void guidenh$prepareHudCapture(float partialTicks, boolean hasScreen, int mouseX, int mouseY,
         CallbackInfo callback) {
-        if (!CaptureRuntime.instance().prepareHud()) callback.cancel();
+        if (!CaptureRuntime.instance()
+            .prepareHud()) callback.cancel();
     }
 }

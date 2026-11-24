@@ -14,14 +14,18 @@ import thaumcraft.client.gui.GuiResearchRecipe;
 
 public class TcCaptureNavigationState {
 
-    public record BrowserPosition(double x, double y, double previousX, double previousY,
-        double targetX, double targetY) {
+    public record BrowserPosition(double x, double y, double previousX, double previousY, double targetX,
+        double targetY) {
 
         public static BrowserPosition capture(GuiResearchBrowser screen) {
             AccessorGuiResearchBrowser access = (AccessorGuiResearchBrowser) screen;
-            return new BrowserPosition(access.guidenh$getCaptureMapX(), access.guidenh$getCaptureMapY(),
-                access.guidenh$getCapturePreviousX(), access.guidenh$getCapturePreviousY(),
-                access.guidenh$getCaptureTargetX(), access.guidenh$getCaptureTargetY());
+            return new BrowserPosition(
+                access.guidenh$getCaptureMapX(),
+                access.guidenh$getCaptureMapY(),
+                access.guidenh$getCapturePreviousX(),
+                access.guidenh$getCapturePreviousY(),
+                access.guidenh$getCaptureTargetX(),
+                access.guidenh$getCaptureTargetY());
         }
 
         public void restore(GuiResearchBrowser screen) {
@@ -78,7 +82,9 @@ public class TcCaptureNavigationState {
 
     public boolean restored() {
         return Objects.equals(category, AccessorGuiResearchBrowser.guidenh$getCaptureCategory())
-            && GuiResearchBrowser.lastX == lastX && GuiResearchBrowser.lastY == lastY
-            && GuiResearchRecipe.history == history && history.equals(historyEntries);
+            && GuiResearchBrowser.lastX == lastX
+            && GuiResearchBrowser.lastY == lastY
+            && GuiResearchRecipe.history == history
+            && history.equals(historyEntries);
     }
 }

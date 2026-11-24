@@ -20,9 +20,10 @@ import com.hfstudio.guidenh.client.capture.geometry.CaptureSelectionAreas;
 public class CaptureSelectionRenderer {
 
     public void draw(List<CaptureRegion> regions, CaptureRegion active, CaptureTarget hovered, CaptureViewport viewport,
-                     int opacity, FontRenderer font) {
-        List<CaptureRect> holes = new ArrayList<>(CaptureSelectionAreas.visible(
-                CaptureSelectionAreas.preview(regions, hovered == null ? null : hovered.visibleBounds())));
+        int opacity, FontRenderer font) {
+        List<CaptureRect> holes = new ArrayList<>(
+            CaptureSelectionAreas
+                .visible(CaptureSelectionAreas.preview(regions, hovered == null ? null : hovered.visibleBounds())));
         shade(holes, viewport, opacity * 255 / 100);
         if (hovered != null) outline(hovered.visibleBounds(), 0xFFFFFFFF, true);
         int number = 0;
@@ -33,20 +34,20 @@ public class CaptureSelectionRenderer {
             outline(rectangle, selected ? 0xFFFFFFFF : 0xFFABB3BC, region.erased());
             if (selected) handles(rectangle);
             String text = (region.erased() ? "−#" : "#") + number
-                    + "  "
-                    + (int) Math.round(rectangle.width())
-                    + " × "
-                    + (int) Math.round(rectangle.height());
+                + "  "
+                + (int) Math.round(rectangle.width())
+                + " × "
+                + (int) Math.round(rectangle.height());
             int labelX = Math
-                    .clamp((int) rectangle.x(), 4, Math.max(4, viewport.logicalWidth() - font.getStringWidth(text) - 8));
+                .clamp((int) rectangle.x(), 4, Math.max(4, viewport.logicalWidth() - font.getStringWidth(text) - 8));
             int labelY = rectangle.y() >= 18 ? (int) rectangle.y() - 15 : (int) rectangle.bottom() + 6;
             labelY = Math.clamp(labelY, 4, viewport.logicalHeight() - 13);
             Gui.drawRect(
-                    labelX - 3,
-                    labelY - 3,
-                    labelX + font.getStringWidth(text) + 3,
-                    labelY + 11,
-                    CaptureUiColors.LABEL);
+                labelX - 3,
+                labelY - 3,
+                labelX + font.getStringWidth(text) + 3,
+                labelY + 11,
+                CaptureUiColors.LABEL);
             font.drawStringWithShadow(text, labelX, labelY, 0xFFFFFF);
         }
     }
@@ -70,9 +71,9 @@ public class CaptureSelectionRenderer {
             double top = boundaries.get(index - 1);
             double bottom = boundaries.get(index);
             List<CaptureRect> intervals = holes.stream()
-                    .filter(rectangle -> rectangle.y() <= top && rectangle.bottom() >= bottom)
-                    .sorted(Comparator.comparingDouble(CaptureRect::x))
-                    .toList();
+                .filter(rectangle -> rectangle.y() <= top && rectangle.bottom() >= bottom)
+                .sorted(Comparator.comparingDouble(CaptureRect::x))
+                .toList();
             double left = 0;
             for (CaptureRect interval : intervals) {
                 if (interval.x() > left) quad(tessellator, left, top, interval.x(), bottom);

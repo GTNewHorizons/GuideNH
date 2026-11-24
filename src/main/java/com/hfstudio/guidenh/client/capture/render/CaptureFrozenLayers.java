@@ -20,19 +20,19 @@ public class CaptureFrozenLayers implements AutoCloseable {
 
     public boolean matches(CaptureContext context, CaptureContentOptions options, long refreshRevision) {
         return gui != null && screen == context.screen()
-                && viewport.equals(context.viewport())
-                && revision == refreshRevision
-                && content.sameGuiLayer(options);
+            && viewport.equals(context.viewport())
+            && revision == refreshRevision
+            && content.sameGuiLayer(options);
     }
 
     // Take ownership of the GUI and its optional composed world preview.
     public void replace(CaptureFrame guiFrame, CaptureFrame worldFrame, CaptureContext context,
-                        CaptureContentOptions options, long refreshRevision, CaptureRenderState readTarget) {
+        CaptureContentOptions options, long refreshRevision, CaptureRenderState readTarget) {
         if (guiFrame.width() != context.viewport()
-                .pixelWidth() || guiFrame.height()
+            .pixelWidth() || guiFrame.height()
                 != context.viewport()
-                .pixelHeight()
-                || worldFrame != null
+                    .pixelHeight()
+            || worldFrame != null
                 && (worldFrame.width() != guiFrame.width() || worldFrame.height() != guiFrame.height()))
             throw new IllegalArgumentException("The frozen layers must match the capture viewport");
         close();
