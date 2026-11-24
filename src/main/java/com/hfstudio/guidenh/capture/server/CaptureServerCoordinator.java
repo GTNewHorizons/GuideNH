@@ -310,7 +310,7 @@ public class CaptureServerCoordinator {
                 catalog.entries.put(id, entry);
                 page.add(target);
                 if (provider != null && catalog.original == null
-                    && (tile == catalog.originTile || provider.owns(catalog.context, tile, catalog.origin, variant)))
+                    && (tile == catalog.originTile || owns(catalog.context, tile, catalog.origin, provider, variant)))
                     catalog.original = entry;
             }
         }
@@ -335,6 +335,19 @@ public class CaptureServerCoordinator {
 
     private double distance(EntityPlayerMP player, TileEntity tile) {
         return player.getDistanceSq(tile.xCoord + 0.5, tile.yCoord + 0.5, tile.zCoord + 0.5);
+    }
+
+    private boolean owns(CaptureServerContext context, TileEntity tile, Container container,
+        CaptureServerGuiProvider provider, String variant) {
+        OriginFactory origin = origins.get(
+            context.player()
+                .getUniqueID());
+        // Factory provenance remains valid for wrapped inventories and containers without machine slots.
+        return origin != null && origin.container() == container
+            && origin.factory() != null
+            && origin.factory()
+                .source() == tile
+            || provider.owns(context, tile, container, variant);
     }
 
     private void open(MinecraftServer server, EntityPlayerMP player, NavigationLease lease, ServerEntry entry,
@@ -401,10 +414,11 @@ public class CaptureServerCoordinator {
         if (player.openContainer == player.inventoryContainer || !player.openContainer.canInteractWith(player)
             || (entry.action() != null ? !entry.action()
                 .owns(context, player.openContainer)
-                : !provider.owns(
+                : !owns(
                     context,
                     tile,
                     player.openContainer,
+                    provider,
                     entry.target()
                         .variant()))) {
             if (player.openContainer != player.inventoryContainer) player.closeScreen();
@@ -578,18 +592,7 @@ public class CaptureServerCoordinator {
             lastUsed = tick;
             origin = context.player().openContainer;
             originTile = Mods.ModularUI2.isModLoaded() ? Mui2ServerContainerIdentity.tile(origin) : null;
-            for (Object value : context.world().loadedTileEntityList) {
-                TileEntity tile = (TileEntity) value;
-                if (context.query()
-                    .includes(
-                        tile.xCoord + 0.5,
-                        tile.yCoord + 0.5,
-                        tile.zCoord + 0.5,
-                        context.player().posX,
-                        context.player().posY,
-                        context.player().posZ))
-                    tiles.add(tile);
-            }
+            tiles.addAll(CaptureLoadedTiles.collect(context));
             tiles.sort(
                 Comparator.comparingDouble(
                     tile -> context.player()
