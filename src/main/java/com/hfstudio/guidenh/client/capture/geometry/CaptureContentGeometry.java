@@ -23,10 +23,10 @@ public class CaptureContentGeometry {
     public static boolean visible(CaptureTarget target, CaptureContentOptions content) {
         if (target.kind()
             .equals(CaptureTarget.SCREEN)) return true;
+        if (target.playerInventory() && !content.includePlayerInventory()) return false;
         if (target.contentLayer()
             .equals(CaptureTarget.HUD_LAYER)) return content.includeHud();
         if (!content.includeGui()) return false;
-        if (target.playerInventory() && !content.includePlayerInventory()) return false;
         return switch (target.contentLayer()) {
             case CaptureTarget.NEI_LAYER -> content.includeNei();
             case CaptureTarget.TOOLTIP_LAYER -> content.includeTooltips();

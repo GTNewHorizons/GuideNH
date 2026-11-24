@@ -12,6 +12,12 @@ import com.hfstudio.guidenh.client.capture.CaptureRuntime;
 @Mixin(GuiIngameForge.class)
 public class MixinGuiCaptureForgeHud {
 
+    @Inject(method = "renderToolHightlight", at = @At("HEAD"), cancellable = true, remap = false)
+    private void guidenh$hideCapturedHeldItemName(int width, int height, CallbackInfo callback) {
+        if (CaptureRuntime.instance()
+            .hidePlayerInventoryHud()) callback.cancel();
+    }
+
     @Inject(method = "renderGameOverlay", at = @At("HEAD"), cancellable = true)
     private void guidenh$prepareForgeHudCapture(float partialTicks, boolean hasScreen, int mouseX, int mouseY,
         CallbackInfo callback) {

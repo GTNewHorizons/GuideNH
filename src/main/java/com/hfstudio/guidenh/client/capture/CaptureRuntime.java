@@ -18,6 +18,7 @@ import net.minecraft.client.resources.I18n;
 import net.minecraft.client.shader.Framebuffer;
 import net.minecraftforge.client.event.GuiOpenEvent;
 import net.minecraftforge.client.event.GuiScreenEvent;
+import net.minecraftforge.client.event.RenderGameOverlayEvent;
 
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
@@ -63,6 +64,7 @@ import com.hfstudio.guidenh.client.capture.geometry.CaptureButtonCollector;
 import com.hfstudio.guidenh.client.capture.geometry.CaptureContentGeometry;
 import com.hfstudio.guidenh.client.capture.geometry.CaptureCoordinateMapper;
 import com.hfstudio.guidenh.client.capture.geometry.CaptureDrawCollector;
+import com.hfstudio.guidenh.client.capture.geometry.CaptureHudGeometry;
 import com.hfstudio.guidenh.client.capture.geometry.CaptureTooltipCollector;
 import com.hfstudio.guidenh.client.capture.recording.CaptureRecording;
 import com.hfstudio.guidenh.client.capture.render.CaptureContentSnapshot;
@@ -158,6 +160,7 @@ public class CaptureRuntime implements CaptureBackendControls {
     private boolean drawingCursor;
     private CaptureRect cursorBounds;
     private boolean restoreGameplayFocus;
+    private boolean hotbarDrawn;
     private CaptureSelectionSnapshot batchSelections;
     private CompletableFuture<CaptureOutputArtifact> highResolutionCompletion;
     private boolean closeAfterBatch;
@@ -551,6 +554,7 @@ public class CaptureRuntime implements CaptureBackendControls {
         renderedGeometry = null;
         cursorBounds = null;
         overlayDraws.clear();
+        hotbarDrawn = false;
         tooltips.clear();
         drawnButtons.clear();
         partialTicks = partial;
@@ -708,6 +712,12 @@ public class CaptureRuntime implements CaptureBackendControls {
                 .following())
             return;
         CaptureGeometry current = frameGeometry == null ? registry.collect(captureContext()) : frameGeometry;
+        if (hotbarDrawn && Minecraft.getMinecraft().thePlayer != null) {
+            List<CaptureTarget> targets = new ArrayList<>(current.targets());
+            long owner = Integer.toUnsignedLong(System.identityHashCode(Minecraft.getMinecraft().thePlayer.inventory));
+            targets.addAll(CaptureHudGeometry.hotbar(session.viewport(), owner));
+            current = new CaptureGeometry(targets.hashCode(), session.viewport(), targets);
+        }
         current = tooltips.merge(drawnButtons.merge(current));
         current = overlayDraws.merge(current, isolated);
         if (isolated != null) {
@@ -771,6 +781,24 @@ public class CaptureRuntime implements CaptureBackendControls {
             captureFailed(error);
         }
         return true;
+    }
+
+    @SubscribeEvent(priority = EventPriority.HIGHEST)
+    public void onHudElementPre(RenderGameOverlayEvent.Pre event) {
+        if (event.type == RenderGameOverlayEvent.ElementType.HOTBAR && hidePlayerInventoryHud())
+            event.setCanceled(true);
+    }
+
+    @SubscribeEvent
+    public void onHudElementPost(RenderGameOverlayEvent.Post event) {
+        if (event.type == RenderGameOverlayEvent.ElementType.HOTBAR && collectingOverlay()) hotbarDrawn = true;
+    }
+
+    public boolean hidePlayerInventoryHud() {
+        return Thread.currentThread() == captureThread && session != null
+            && !discardedHud.active()
+            && pipeline.drawing()
+            && !content().includePlayerInventory();
     }
 
     public void finishFrameLayers() {
@@ -1029,6 +1057,7 @@ public class CaptureRuntime implements CaptureBackendControls {
         overlayDraws.clear();
         renderedGeometry = null;
         cursorBounds = null;
+        hotbarDrawn = false;
         frameGeometry = null;
         geometry = null;
         exportBackend = null;

@@ -10,9 +10,20 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import com.gtnewhorizons.angelica.hudcaching.HUDCaching;
 import com.hfstudio.guidenh.client.capture.CaptureRuntime;
+import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 
 @Mixin(value = HUDCaching.class, remap = false)
 public class MixinCaptureHudCache {
+
+    @ModifyExpressionValue(
+        method = "renderCachedHud",
+        at = @At(value = "FIELD", target = "Lcom/gtnewhorizons/angelica/config/AngelicaConfig;hudCachingActive:Z"),
+        require = 0)
+    private static boolean guidenh$drawCurrentCaptureHud(boolean cached) {
+        // Keep the normal HUD events while avoiding pixels cached under different capture content settings.
+        return cached && !CaptureRuntime.instance()
+            .capturingGuiLayer();
+    }
 
     @Inject(method = "renderCachedHud", at = @At("HEAD"), cancellable = true, require = 0)
     private static void guidenh$prepareCachedHudCapture(EntityRenderer renderer, GuiIngame ingame, float partialTicks,
