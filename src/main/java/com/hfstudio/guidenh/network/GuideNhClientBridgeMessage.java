@@ -1,7 +1,5 @@
 package com.hfstudio.guidenh.network;
 
-import java.nio.charset.StandardCharsets;
-
 import cpw.mods.fml.common.network.simpleimpl.IMessage;
 import io.netty.buffer.ByteBuf;
 import lombok.Getter;
@@ -15,34 +13,37 @@ public class GuideNhClientBridgeMessage implements IMessage {
     private int x;
     private int y;
     private int z;
-    private String filePath;
 
     public GuideNhClientBridgeMessage() {
-        this((byte) 0, 0, 0, 0, "");
+        this((byte) 0, 0, 0, 0);
     }
 
-    private GuideNhClientBridgeMessage(byte action, int x, int y, int z, String filePath) {
+    private GuideNhClientBridgeMessage(byte action, int x, int y, int z) {
         this.action = action;
         this.x = x;
         this.y = y;
         this.z = z;
-        this.filePath = filePath;
     }
 
-    public static GuideNhClientBridgeMessage importStructure(int x, int y, int z, String filePath) {
-        return new GuideNhClientBridgeMessage(ACTION_IMPORT_STRUCTURE, x, y, z, filePath);
+    public static GuideNhClientBridgeMessage importStructure(int x, int y, int z) {
+        return new GuideNhClientBridgeMessage(ACTION_IMPORT_STRUCTURE, x, y, z);
     }
 
     @Override
     public void fromBytes(ByteBuf buf) {
+        if (buf.readableBytes() < 15) {
+            throw new IllegalArgumentException("Truncated legacy client bridge packet");
+        }
         action = buf.readByte();
         x = buf.readInt();
         y = buf.readInt();
         z = buf.readInt();
-        int len = buf.readShort() & 0xFFFF;
-        byte[] bytes = new byte[len];
-        buf.readBytes(bytes);
-        filePath = new String(bytes, StandardCharsets.UTF_8);
+        // Preserve the legacy wire slot without retaining a server-supplied file path.
+        int unusedLength = buf.readUnsignedShort();
+        if (unusedLength > buf.readableBytes()) {
+            throw new IllegalArgumentException("Truncated legacy client bridge payload");
+        }
+        buf.skipBytes(unusedLength);
     }
 
     @Override
@@ -51,8 +52,6 @@ public class GuideNhClientBridgeMessage implements IMessage {
         buf.writeInt(x);
         buf.writeInt(y);
         buf.writeInt(z);
-        byte[] bytes = filePath.getBytes(StandardCharsets.UTF_8);
-        buf.writeShort(bytes.length);
-        buf.writeBytes(bytes);
+        buf.writeShort(0);
     }
 }

@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -30,6 +31,7 @@ import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
 import com.hfstudio.guidenh.guide.extensions.ExtensionCollection;
 import com.hfstudio.guidenh.guide.indices.CategoryIndex;
 import com.hfstudio.guidenh.guide.indices.PageIndex;
+import com.hfstudio.guidenh.guide.internal.resource.GuideLocalPathPolicy;
 import com.hfstudio.guidenh.guide.internal.resource.GuideResourceAccess;
 import com.hfstudio.guidenh.guide.internal.util.LangUtil;
 import com.hfstudio.guidenh.guide.mediawiki.MediaWikiGuideAggregator;
@@ -294,6 +296,9 @@ public class MutableGuide implements Guide, MediaWikiListContextProvider, AutoCl
      * a "miss" — callers own the policy (which candidates to try and when to report failure).
      */
     private byte @Nullable [] readAssetPath(ResourceLocation id) {
+        if (!GuideResourceAccess.isSafeResourceId(id)) {
+            return null;
+        }
         String normalizedPath = IdUtils.normalizeAssetPath(id.getResourcePath());
         if (normalizedPath == null || !IdUtils.isSafeAssetPath(folder, normalizedPath)) {
             GuideDebugLog.warn("[GuideNH] [MutableGuide] Refusing asset {}: it leaves the guide directory", id);
@@ -303,11 +308,13 @@ public class MutableGuide implements Guide, MediaWikiListContextProvider, AutoCl
         // Also load assets from the development sources folder.
         if (canLoadDevelopmentSource(id)) {
             var path = resolveDevelopmentSourcePath(id);
-            try {
-                return Files.readAllBytes(path);
-            } catch (NoSuchFileException ignored) {} catch (IOException e) {
-                GuideDebugLog.error("[GuideNH] [MutableGuide] Failed to open guidebook asset {}", path);
-                return null;
+            if (path != null) {
+                try (var input = Files.newInputStream(path, LinkOption.NOFOLLOW_LINKS)) {
+                    return GuideResourceAccess.readFully(input);
+                } catch (NoSuchFileException ignored) {} catch (IOException e) {
+                    GuideDebugLog.error("[GuideNH] [MutableGuide] Failed to open guidebook asset {}", path);
+                    return null;
+                }
             }
         }
 
@@ -360,7 +367,7 @@ public class MutableGuide implements Guide, MediaWikiListContextProvider, AutoCl
     public Path getDevelopmentSourcePath(ResourceLocation id) {
         if (canLoadDevelopmentSource(id)) {
             var path = resolveDevelopmentSourcePath(id);
-            if (Files.exists(path)) {
+            if (path != null && Files.exists(path)) {
                 return path;
             }
         }
@@ -619,8 +626,11 @@ public class MutableGuide implements Guide, MediaWikiListContextProvider, AutoCl
             .equals(developmentSourceNamespace);
     }
 
-    private Path resolveDevelopmentSourcePath(ResourceLocation id) {
-        return switch (developmentSourceLayout) {
+    private @Nullable Path resolveDevelopmentSourcePath(ResourceLocation id) {
+        if (!GuideResourceAccess.isSafeResourceId(id)) {
+            return null;
+        }
+        Path candidate = switch (developmentSourceLayout) {
             case CONTENT_ROOT -> developmentSourceFolder.resolve(id.getResourcePath());
             case RESOURCE_PACK_ROOT -> developmentSourceFolder.resolve("assets")
                 .resolve(id.getResourceDomain())
@@ -630,6 +640,11 @@ public class MutableGuide implements Guide, MediaWikiListContextProvider, AutoCl
                 .resolve(folder)
                 .resolve(id.getResourcePath());
         };
+        try {
+            return new GuideLocalPathPolicy(developmentSourceFolder).resolveForWrite(candidate);
+        } catch (IOException | IllegalArgumentException e) {
+            return null;
+        }
     }
 
     private GuideDevelopmentSourceLayout detectDevelopmentSourceLayout(@Nullable Path sourceFolder) {

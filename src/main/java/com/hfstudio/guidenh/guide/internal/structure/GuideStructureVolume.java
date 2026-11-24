@@ -9,6 +9,10 @@ public class GuideStructureVolume {
     }
 
     public static boolean exceedsLimit(int sizeX, int sizeY, int sizeZ, long limit) {
-        return blockCount(sizeX, sizeY, sizeZ) > limit;
+        if (sizeX <= 0 || sizeY <= 0 || sizeZ <= 0 || limit < 0) {
+            return true;
+        }
+        long area = (long) sizeX * sizeY;
+        return area > limit || sizeZ > limit / area;
     }
 }
