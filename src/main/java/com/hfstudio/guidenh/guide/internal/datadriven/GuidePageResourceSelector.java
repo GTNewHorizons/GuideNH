@@ -14,6 +14,8 @@ import net.minecraft.util.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.compiler.Frontmatter;
+import com.hfstudio.guidenh.guide.internal.resource.GuideBoundedInputStream;
+import com.hfstudio.guidenh.guide.internal.resource.GuideResourceAccess;
 
 public class GuidePageResourceSelector {
 
@@ -164,6 +166,7 @@ public class GuidePageResourceSelector {
     }
 
     private static int readLoadPriority(IResourcePack resourcePack, ResourceLocation sourceId) {
+        if (!GuideResourceAccess.isSafeResourceId(sourceId)) return 0;
         try {
             return readLoadPriority(sourceId, resourcePack.getInputStream(sourceId));
         } catch (IOException | RuntimeException ignored) {
@@ -172,7 +175,8 @@ public class GuidePageResourceSelector {
     }
 
     private static int readLoadPriority(ResourceLocation sourceId, InputStream input) {
-        try (input; var reader = new BufferedReader(new InputStreamReader(input, StandardCharsets.UTF_8))) {
+        try (var bounded = new GuideBoundedInputStream(input, 3 * 1024 * 1024);
+            var reader = new BufferedReader(new InputStreamReader(bounded, StandardCharsets.UTF_8))) {
             String firstLine = reader.readLine();
             if (!"---".equals(firstLine) && !"\uFEFF---".equals(firstLine)) {
                 return 0;

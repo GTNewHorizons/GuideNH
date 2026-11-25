@@ -1,17 +1,15 @@
 package com.hfstudio.guidenh.guide.internal.structure;
 
 import java.io.ByteArrayInputStream;
-import java.io.DataInputStream;
+import java.io.InputStream;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
 
 import net.minecraft.item.Item;
-import net.minecraft.nbt.CompressedStreamTools;
 import net.minecraft.nbt.JsonToNBT;
 import net.minecraft.nbt.NBTBase;
 import net.minecraft.nbt.NBTTagByteArray;
@@ -29,21 +27,16 @@ import net.minecraft.nbt.NBTTagString;
 public class GuideTextNbtCodec {
 
     private static final int MAX_TEXT_SAFE_COMPOUND_CACHE_SIZE = 512;
-    private static final Map<String, NBTTagCompound> TEXT_SAFE_COMPOUND_CACHE = Collections
-        .synchronizedMap(new LinkedHashMap<>(256, 0.75f, true) {
-
-            @Override
-            protected boolean removeEldestEntry(Map.Entry<String, NBTTagCompound> eldest) {
-                return size() > MAX_TEXT_SAFE_COMPOUND_CACHE_SIZE;
-            }
-        });
+    private static final Map<String, NBTTagCompound> TEXT_SAFE_COMPOUND_CACHE = new LinkedHashMap<>(256, 0.75f, true);
+    private static final Map<String, Long> TEXT_SAFE_CACHE_WEIGHTS = new LinkedHashMap<>();
+    private static long textSafeCacheBytes;
+    private static final long MAX_TEXT_SAFE_CACHE_BYTES = 48L * 1024L * 1024L;
 
     public static final String ENCODED_KEYS_TAG = "__guidenh_encoded_keys_v1";
     public static final String ENTRY_KEY_TAG = "k";
     public static final String ENTRY_VALUE_TAG = "v";
     public static final String BYTE_ARRAY_WRAPPER_TAG = "__guidenh_byte_array_v1";
     public static final String INT_ARRAY_WRAPPER_TAG = "__guidenh_int_array_v1";
-    private static final Pattern LEGACY_INT_ARRAY_LITERAL = Pattern.compile("\\[(\\s*-?\\d+\\s*,)+\\s*]");
 
     private GuideTextNbtCodec() {}
 
@@ -52,12 +45,13 @@ public class GuideTextNbtCodec {
     }
 
     public static NBTTagCompound readTextSafeCompound(String text) throws Exception {
+        GuideNbtReadLimits.DEFAULT.validateText(text);
         String normalized = text;
         if (!normalized.isEmpty() && normalized.charAt(0) == '\uFEFF') {
             normalized = normalized.substring(1);
         }
 
-        NBTTagCompound cached = TEXT_SAFE_COMPOUND_CACHE.get(normalized);
+        NBTTagCompound cached = cachedCompound(normalized);
         if (cached != null) {
             return (NBTTagCompound) cached.copy();
         }
@@ -65,11 +59,33 @@ public class GuideTextNbtCodec {
         NBTBase parsed = JsonToNBT.func_150315_a(normalized);
         if (parsed instanceof NBTTagCompound compound) {
             NBTTagCompound decoded = decodeCompound(compound);
-            TEXT_SAFE_COMPOUND_CACHE.put(normalized, (NBTTagCompound) decoded.copy());
+            cacheCompound(normalized, decoded);
             return decoded;
         }
 
         throw new IllegalStateException("SNBT root must be a Compound");
+    }
+
+    private static synchronized NBTTagCompound cachedCompound(String text) {
+        NBTTagCompound value = TEXT_SAFE_COMPOUND_CACHE.get(text);
+        return value;
+    }
+
+    private static synchronized void cacheCompound(String text, NBTTagCompound tag) {
+        long bytes = (long) text.length() * 2L + GuideNbtMemoryUsage.estimate(tag);
+        if (bytes > MAX_TEXT_SAFE_CACHE_BYTES) return;
+        if (TEXT_SAFE_COMPOUND_CACHE.containsKey(text)) return;
+        var iterator = TEXT_SAFE_COMPOUND_CACHE.entrySet()
+            .iterator();
+        while (iterator.hasNext() && (TEXT_SAFE_COMPOUND_CACHE.size() >= MAX_TEXT_SAFE_COMPOUND_CACHE_SIZE
+            || bytes > MAX_TEXT_SAFE_CACHE_BYTES - textSafeCacheBytes)) {
+            var entry = iterator.next();
+            textSafeCacheBytes -= TEXT_SAFE_CACHE_WEIGHTS.remove(entry.getKey());
+            iterator.remove();
+        }
+        TEXT_SAFE_COMPOUND_CACHE.put(text, (NBTTagCompound) tag.copy());
+        TEXT_SAFE_CACHE_WEIGHTS.put(text, bytes);
+        textSafeCacheBytes += bytes;
     }
 
     public static String writeStructureSnbt(NBTTagCompound root) {
@@ -80,18 +96,20 @@ public class GuideTextNbtCodec {
     }
 
     public static NBTTagCompound readStructureNbt(byte[] data) throws Exception {
+        if (data.length > GuideNbtReadLimits.DEFAULT.maxBytes()) {
+            throw new IllegalArgumentException("Structure exceeds its input byte limit");
+        }
         NBTTagCompound root;
         if (looksLikeText(data)) {
-            String text = new String(data, StandardCharsets.UTF_8);
+            String text = StandardCharsets.UTF_8.newDecoder()
+                .decode(ByteBuffer.wrap(data))
+                .toString();
             root = readTextSafeCompound(text);
         } else {
-            try (GZIPInputStream gzip = new GZIPInputStream(new ByteArrayInputStream(data));
-                DataInputStream input = new DataInputStream(gzip)) {
-                root = CompressedStreamTools.read(input);
-            } catch (Exception ignored) {
-                try (DataInputStream input = new DataInputStream(new ByteArrayInputStream(data))) {
-                    root = CompressedStreamTools.read(input);
-                }
+            boolean compressed = data.length >= 2 && (data[0] & 0xFF) == 0x1F && (data[1] & 0xFF) == 0x8B;
+            try (InputStream input = compressed ? new GZIPInputStream(new ByteArrayInputStream(data))
+                : new ByteArrayInputStream(data)) {
+                root = new GuideBinaryNbtReader(input, GuideNbtReadLimits.DEFAULT).readCompound();
             }
         }
 
@@ -232,8 +250,7 @@ public class GuideTextNbtCodec {
         if (tag instanceof NBTTagList list) {
             return transformList(list, false);
         }
-        if (tag instanceof NBTTagString stringTag && LEGACY_INT_ARRAY_LITERAL.matcher(stringTag.func_150285_a_())
-            .matches()) {
+        if (tag instanceof NBTTagString stringTag && isLegacyIntArrayLiteral(stringTag.func_150285_a_())) {
             int[] legacyIntArray = parseIntArrayLiteral(stringTag.func_150285_a_());
             if (legacyIntArray != null) {
                 return new NBTTagIntArray(legacyIntArray);
@@ -276,20 +293,26 @@ public class GuideTextNbtCodec {
         if (!trimmed.startsWith("[") || !trimmed.endsWith("]")) {
             return null;
         }
-        String[] parts = trimmed.substring(1, trimmed.length() - 1)
-            .split(",");
-        int[] decoded = new int[parts.length];
+        String content = trimmed.substring(1, trimmed.length() - 1);
+        int capacity = countByteArrayLiteralValues(content);
+        if (capacity > GuideNbtReadLimits.DEFAULT.maxBytes() / 4) return null;
+        int[] decoded = new int[capacity];
         int count = 0;
-        for (String part : parts) {
-            String numeric = part.trim();
-            if (numeric.isEmpty()) {
-                continue;
+        int start = 0;
+        while (start <= content.length()) {
+            int end = content.indexOf(',', start);
+            if (end < 0) end = content.length();
+            String numeric = content.substring(start, end)
+                .trim();
+            if (!numeric.isEmpty()) {
+                try {
+                    decoded[count++] = Integer.parseInt(numeric);
+                } catch (NumberFormatException ignored) {
+                    return null;
+                }
             }
-            try {
-                decoded[count++] = Integer.parseInt(numeric);
-            } catch (NumberFormatException ignored) {
-                return null;
-            }
+            if (end == content.length()) break;
+            start = end + 1;
         }
         if (count == decoded.length) {
             return decoded;
@@ -297,6 +320,21 @@ public class GuideTextNbtCodec {
         int[] compact = new int[count];
         System.arraycopy(decoded, 0, compact, 0, count);
         return compact;
+    }
+
+    private static boolean isLegacyIntArrayLiteral(String value) {
+        String text = value.trim();
+        if (!text.startsWith("[") || !text.endsWith("]")) return false;
+        int last = text.length() - 2;
+        while (last > 0 && Character.isWhitespace(text.charAt(last))) last--;
+        if (last <= 0 || text.charAt(last) != ',') return false;
+        for (int index = 1; index < last; index++) {
+            char character = text.charAt(index);
+            if (!(character >= '0' && character <= '9') && character != '-'
+                && character != ','
+                && !Character.isWhitespace(character)) return false;
+        }
+        return true;
     }
 
     public static NBTTagCompound withEmptyListsAsIntArrays(NBTTagCompound tag) {
@@ -354,11 +392,8 @@ public class GuideTextNbtCodec {
 
     public static NBTTagList transformList(NBTTagList list, boolean encode) {
         NBTTagList transformed = new NBTTagList();
-        NBTTagList remaining = (NBTTagList) list.copy();
-        int count = remaining.tagCount();
-
-        for (int index = 0; index < count; index++) {
-            NBTBase entry = remaining.removeTag(0);
+        for (Object value : list.tagList) {
+            NBTBase entry = (NBTBase) value;
             transformed.appendTag(encode ? encodeTag(entry) : decodeTag(entry));
         }
 
