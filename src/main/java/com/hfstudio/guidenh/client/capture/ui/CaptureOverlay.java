@@ -15,6 +15,7 @@ import net.minecraft.client.resources.I18n;
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
 
+import com.hfstudio.guidenh.client.capture.CaptureCleanup;
 import com.hfstudio.guidenh.client.capture.api.CaptureBackendControls;
 import com.hfstudio.guidenh.client.capture.api.CaptureBatchController;
 import com.hfstudio.guidenh.client.capture.api.CaptureExportRequest;
@@ -709,8 +710,10 @@ public class CaptureOverlay implements AutoCloseable {
 
     @Override
     public void close() {
-        settings.close();
-        preview.close();
-        ModConfig.save();
+        CaptureCleanup cleanup = new CaptureCleanup();
+        cleanup.run(settings::close);
+        cleanup.close(preview);
+        cleanup.run(ModConfig::save);
+        cleanup.rethrow();
     }
 }

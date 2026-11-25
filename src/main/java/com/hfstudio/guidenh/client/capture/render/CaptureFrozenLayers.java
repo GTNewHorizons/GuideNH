@@ -2,6 +2,7 @@ package com.hfstudio.guidenh.client.capture.render;
 
 import net.minecraft.client.gui.GuiScreen;
 
+import com.hfstudio.guidenh.client.capture.CaptureCleanup;
 import com.hfstudio.guidenh.client.capture.api.CaptureContentOptions;
 import com.hfstudio.guidenh.client.capture.api.CaptureContext;
 import com.hfstudio.guidenh.client.capture.api.CaptureFrame;
@@ -87,14 +88,20 @@ public class CaptureFrozenLayers implements AutoCloseable {
 
     @Override
     public void close() {
-        releaseSnapshot();
-        if (gui != null) gui.close();
-        if (worldPreview != null) worldPreview.close();
+        CaptureRecordedSnapshot previousSnapshot = snapshot;
+        CaptureFrame previousGui = gui;
+        CaptureFrame previousWorld = worldPreview;
+        snapshot = null;
         gui = null;
         worldPreview = null;
         screen = null;
         viewport = null;
         content = null;
         target = null;
+        CaptureCleanup cleanup = new CaptureCleanup();
+        cleanup.close(previousSnapshot);
+        cleanup.close(previousGui);
+        cleanup.close(previousWorld);
+        cleanup.rethrow();
     }
 }

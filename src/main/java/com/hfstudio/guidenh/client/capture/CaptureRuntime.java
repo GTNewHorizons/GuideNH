@@ -23,6 +23,8 @@ import net.minecraftforge.client.event.GuiOpenEvent;
 import net.minecraftforge.client.event.GuiScreenEvent;
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.Display;
@@ -120,6 +122,7 @@ import cpw.mods.fml.common.gameevent.TickEvent;
 
 public class CaptureRuntime implements CaptureBackendControls, IResourceManagerReloadListener {
 
+    private static final Logger LOGGER = LogManager.getLogger("GuideNH GUI capture");
     private static final CaptureRuntime INSTANCE = new CaptureRuntime();
     private final CaptureRegistry registry = new CaptureRegistry();
     private final CapturePipeline pipeline = new CapturePipeline(registry);
@@ -185,6 +188,9 @@ public class CaptureRuntime implements CaptureBackendControls, IResourceManagerR
     private CompletableFuture<CaptureOutputArtifact> highResolutionCompletion;
     private boolean closeAfterBatch;
     private volatile boolean resourcesInvalidated;
+    private boolean opening;
+    private boolean closing;
+    private boolean closeRequested;
 
     public static CaptureRuntime instance() {
         return INSTANCE;
@@ -220,21 +226,27 @@ public class CaptureRuntime implements CaptureBackendControls, IResourceManagerR
     }
 
     private void discardPendingFrame() {
-        if (batch != null) {
-            if (pendingReadback != null) batch.discardFrame(
-                pendingReadback.context()
-                    .frameId());
-            else if (pendingFrame != null) batch.discardFrame(frameId);
-        }
-        if (pendingReadback != null) pendingReadback.close();
+        CaptureQueuedFrame previousReadback = pendingReadback;
+        CaptureFrame previousFrame = pendingFrame;
+        CaptureWorldSnapshot previousWorld = pendingWorld;
         pendingReadback = null;
-        if (pendingFrame != null) pendingFrame.close();
-        if (pendingWorld != null) pendingWorld.close();
         pendingFrame = null;
         pendingWorld = null;
         pendingIdentity = null;
         pendingTarget = null;
         pendingPhase = null;
+        CaptureCleanup cleanup = new CaptureCleanup();
+        if (batch != null) {
+            if (previousReadback != null) cleanup.run(
+                () -> batch.discardFrame(
+                    previousReadback.context()
+                        .frameId()));
+            else if (previousFrame != null) cleanup.run(() -> batch.discardFrame(frameId));
+        }
+        cleanup.close(previousReadback);
+        cleanup.close(previousFrame);
+        cleanup.close(previousWorld);
+        cleanup.rethrow();
     }
 
     private void reachPhase(CaptureRenderPhase phase) {
@@ -662,6 +674,7 @@ public class CaptureRuntime implements CaptureBackendControls, IResourceManagerR
     }
 
     public void open() {
+        if (opening || closing) return;
         Minecraft minecraft = Minecraft.getMinecraft();
         if (session != null && !sourceMatches(minecraft.currentScreen)) close();
         if (session != null || !captureAvailable()) return;
@@ -669,39 +682,60 @@ public class CaptureRuntime implements CaptureBackendControls, IResourceManagerR
         GuiScreen source = minecraft.currentScreen;
         boolean gameplay = source == null;
         restoreGameplayFocus = gameplay && minecraft.inGameHasFocus;
-        if (gameplay) {
-            source = new CaptureGameplayScreen();
-            source.setWorldAndResolution(minecraft, viewport.logicalWidth(), viewport.logicalHeight());
-            minecraft.setIngameNotInFocus();
-        }
         previousKeyRepeat = Keyboard.areRepeatEventsEnabled();
-        captureThread = Thread.currentThread();
-        Keyboard.enableRepeatEvents(true);
-        session = new CaptureSession(source, viewport, gameplay, registry);
-        OpenGuiCaptureHotkey.captureOpened();
-        updateSourcePointer(session.viewport(), true);
-        sourceVisible = true;
-        batch = new CaptureBatchEngine(registry, batchHost);
-        overlay = new CaptureOverlay(
-            minecraft,
-            session,
-            new CaptureInputOptions(
-                OpenGuiCaptureHotkey.getHotkey()
-                    .getKeyCode(),
-                nativeKeyboard),
-            new CaptureOverlayActions(
-                this::save,
-                this::startRecording,
-                session::pauseRecording,
-                session::stopRecording,
-                this::toggleSchedule,
-                this::close,
-                () -> schedule != null),
-            batch,
-            this,
-            registry);
-        frameRequested = true;
-        registry.opened(new CaptureContext(session.sourceScreen(), session.viewport(), frameId, partialTicks));
+        opening = true;
+        try {
+            if (gameplay) {
+                source = new CaptureGameplayScreen();
+                source.setWorldAndResolution(minecraft, viewport.logicalWidth(), viewport.logicalHeight());
+                minecraft.setIngameNotInFocus();
+            }
+            captureThread = Thread.currentThread();
+            Keyboard.enableRepeatEvents(true);
+            session = new CaptureSession(source, viewport, gameplay, registry);
+            OpenGuiCaptureHotkey.captureOpened();
+            updateSourcePointer(session.viewport(), true);
+            sourceVisible = true;
+            batch = new CaptureBatchEngine(registry, batchHost);
+            overlay = new CaptureOverlay(
+                minecraft,
+                session,
+                new CaptureInputOptions(
+                    OpenGuiCaptureHotkey.getHotkey()
+                        .getKeyCode(),
+                    nativeKeyboard),
+                new CaptureOverlayActions(
+                    this::save,
+                    this::startRecording,
+                    session::pauseRecording,
+                    session::stopRecording,
+                    this::toggleSchedule,
+                    this::close,
+                    () -> schedule != null),
+                batch,
+                this,
+                registry);
+            frameRequested = true;
+            registry.opened(new CaptureContext(session.sourceScreen(), session.viewport(), frameId, partialTicks));
+        } catch (RuntimeException | Error failure) {
+            opening = false;
+            CaptureCleanup cleanup = new CaptureCleanup(failure);
+            if (session != null) cleanup.run(this::close);
+            else {
+                captureThread = null;
+                activationRequested = false;
+                inputEvents.clear();
+                restoreInput(cleanup);
+            }
+            LOGGER.error("Could not open GUI capture", cleanup.failure());
+            if (failure instanceof Error error) throw error;
+        } finally {
+            opening = false;
+            if (closeRequested) {
+                closeRequested = false;
+                close();
+            }
+        }
     }
 
     public void routeInput(GuiScreen screen) {
@@ -1280,15 +1314,30 @@ public class CaptureRuntime implements CaptureBackendControls, IResourceManagerR
     }
 
     private void adoptSourceScreen(GuiScreen source, boolean gameplay) {
-        if (session.sourceScreen() == source) return;
+        if (opening || closing || session == null || session.sourceScreen() == source) return;
         CaptureViewport viewport = CaptureCoordinateMapper.current(Minecraft.getMinecraft());
-        registry.closed(new CaptureContext(session.sourceScreen(), session.viewport(), frameId, partialTicks));
-        session.adoptScreen(source, viewport, gameplay);
-        geometry = null;
-        sourceVisible = true;
-        inputEvents.clear();
-        registry.opened(new CaptureContext(source, viewport, frameId, partialTicks));
-        Keyboard.enableRepeatEvents(true);
+        opening = true;
+        try {
+            registry.closed(new CaptureContext(session.sourceScreen(), session.viewport(), frameId, partialTicks));
+            session.adoptScreen(source, viewport, gameplay);
+            geometry = null;
+            sourceVisible = true;
+            inputEvents.clear();
+            registry.opened(new CaptureContext(source, viewport, frameId, partialTicks));
+            Keyboard.enableRepeatEvents(true);
+        } catch (RuntimeException | Error failure) {
+            opening = false;
+            CaptureCleanup cleanup = new CaptureCleanup(failure);
+            cleanup.run(this::close);
+            LOGGER.error("Could not change the GUI capture source", cleanup.failure());
+            if (failure instanceof Error error) throw error;
+        } finally {
+            opening = false;
+            if (closeRequested) {
+                closeRequested = false;
+                close();
+            }
+        }
     }
 
     private void adoptCurrentSource() {
@@ -1306,61 +1355,82 @@ public class CaptureRuntime implements CaptureBackendControls, IResourceManagerR
     }
 
     public void close() {
-        if (session == null) return;
+        if (opening) {
+            closeRequested = true;
+            return;
+        }
+        if (closing || session == null) return;
         if (batch != null && batch.busy()) {
             batch.cancel();
             closeAfterBatch = true;
             return;
         }
-        if (batch != null) batch.close();
-        batch = null;
-        releaseHighResolution();
-        pendingSave = false;
-        schedule = null;
-        overlay.close();
-        registry.closed(new CaptureContext(session.sourceScreen(), session.viewport(), frameId, partialTicks));
+        closing = true;
+        CaptureCleanup cleanup = new CaptureCleanup();
         try {
-            discardedHud.close();
-            pipeline.close();
-        } catch (RuntimeException error) {
-            session.notify(I18n.format("guidenh.capture.failed", error.getMessage()));
+            cleanup.close(batch);
+            batch = null;
+            cleanup.run(this::releaseHighResolution);
+            pendingSave = false;
+            schedule = null;
+            cleanup.close(overlay);
+            cleanup.run(
+                () -> registry
+                    .closed(new CaptureContext(session.sourceScreen(), session.viewport(), frameId, partialTicks)));
+            cleanup.close(discardedHud);
+            cleanup.close(pipeline);
+            cleanup.run(this::discardPendingFrame);
+            cleanup.close(frozenLayers);
+            cleanup.close(drawRecorder);
+            reusingLayers = false;
+            cleanup.run(framePhases::close);
+            cleanup.run(renderProbe::reset);
+            cleanup.close(systemCursor);
+            tooltips.clear();
+            drawnButtons.clear();
+            overlayDraws.clear();
+            renderedGeometry = null;
+            cursorBounds = null;
+            hotbarDrawn = false;
+            frameGeometry = null;
+            geometry = null;
+            exportBackend = null;
+            exportContent = null;
+            exportPreference = null;
+            recordingPreference = null;
+            cleanup.close(session);
+            overlay = null;
+            session = null;
+            captureThread = null;
+            openedArtifact = null;
+            sourceVisible = false;
+            activationRequested = false;
+            frameRequested = false;
+            closeAfterBatch = false;
+            inputEvents.clear();
+            cleanup.run(
+                () -> CaptureClientConnection.instance()
+                    .closeCapture());
+            restoreInput(cleanup);
+        } finally {
+            closing = false;
+            closeRequested = false;
         }
-        discardPendingFrame();
-        frozenLayers.close();
-        drawRecorder.close();
-        reusingLayers = false;
-        framePhases.close();
-        renderProbe.reset();
-        systemCursor.close();
-        tooltips.clear();
-        drawnButtons.clear();
-        overlayDraws.clear();
-        renderedGeometry = null;
-        cursorBounds = null;
-        hotbarDrawn = false;
-        frameGeometry = null;
-        geometry = null;
-        exportBackend = null;
-        exportContent = null;
-        exportPreference = null;
-        recordingPreference = null;
-        session.close();
-        Keyboard.enableRepeatEvents(previousKeyRepeat);
-        overlay = null;
-        session = null;
-        captureThread = null;
-        openedArtifact = null;
-        sourceVisible = false;
-        activationRequested = false;
-        inputEvents.clear();
-        CaptureClientConnection.instance()
-            .closeCapture();
-        if (Minecraft.getMinecraft().currentScreen instanceof CaptureNavigationScreen) Minecraft.getMinecraft()
-            .displayGuiScreen(null);
-        if (restoreGameplayFocus && Minecraft.getMinecraft().currentScreen == null
-            && Minecraft.getMinecraft().theWorld != null)
-            Minecraft.getMinecraft()
-                .setIngameFocus();
+        if (cleanup.failure() != null) LOGGER.error("Could not release every GUI capture resource", cleanup.failure());
+        if (cleanup.failure() instanceof Error error) throw error;
+    }
+
+    private void restoreInput(CaptureCleanup cleanup) {
+        cleanup.run(() -> Keyboard.enableRepeatEvents(previousKeyRepeat));
+        Minecraft minecraft = Minecraft.getMinecraft();
+        cleanup.run(
+            () -> {
+                if (minecraft.currentScreen instanceof CaptureNavigationScreen) minecraft.displayGuiScreen(null);
+            });
+        cleanup.run(() -> {
+            if (restoreGameplayFocus && minecraft.currentScreen == null && minecraft.theWorld != null)
+                minecraft.setIngameFocus();
+        });
         restoreGameplayFocus = false;
     }
 
@@ -1845,10 +1915,15 @@ public class CaptureRuntime implements CaptureBackendControls, IResourceManagerR
     }
 
     public void shutdown() {
-        if (batch != null) batch.close();
+        CaptureCleanup cleanup = new CaptureCleanup();
+        cleanup.close(batch);
         batch = null;
-        if (batchRecording != null) batchRecording.close();
-        close();
-        exporter.close();
+        cleanup.close(batchRecording);
+        batchRecording = null;
+        cleanup.run(this::close);
+        cleanup.close(exporter);
+        if (cleanup.failure() != null)
+            LOGGER.error("Could not release every GUI capture resource at shutdown", cleanup.failure());
+        if (cleanup.failure() instanceof Error error) throw error;
     }
 }

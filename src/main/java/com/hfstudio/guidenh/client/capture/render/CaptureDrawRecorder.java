@@ -75,8 +75,7 @@ public class CaptureDrawRecorder implements AutoCloseable {
 
     private void failed(RuntimeException error) {
         failure = error.getMessage();
-        if (recording != null) recording.close();
-        recording = null;
+        close();
     }
 
     public String failure() {
@@ -91,8 +90,9 @@ public class CaptureDrawRecorder implements AutoCloseable {
 
     @Override
     public void close() {
-        if (recording != null) recording.close();
+        CaptureRecordedSnapshot previous = recording;
         recording = null;
         textDepth = 0;
+        if (previous != null) previous.close();
     }
 }

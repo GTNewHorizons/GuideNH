@@ -16,6 +16,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.stream.Collectors;
 
+import com.hfstudio.guidenh.client.capture.CaptureCleanup;
 import com.hfstudio.guidenh.client.capture.CaptureRegistry;
 import com.hfstudio.guidenh.client.capture.api.CaptureBatchCatalog;
 import com.hfstudio.guidenh.client.capture.api.CaptureBatchContext;
@@ -682,12 +683,21 @@ public class CaptureBatchEngine implements CaptureBatchController, AutoCloseable
 
     @Override
     public void close() {
-        if (composition != null) composition.cancel(true);
+        CaptureCleanup cleanup = new CaptureCleanup();
+        if (composition != null) cleanup.run(() -> composition.cancel(true));
         composition = null;
-        for (CaptureBatchNavigator navigator : navigators.values()) navigator.close();
+        if (capture != null) cleanup.run(() -> capture.cancel(true));
+        capture = null;
+        if (report != null) cleanup.run(() -> report.cancel(true));
+        report = null;
+        List<CaptureBatchNavigator> previousNavigators = List.copyOf(navigators.values());
         navigators.clear();
         preparedFrames.clear();
-        if (visibleFrame != null) visibleFrame.close();
+        CaptureFrame previousFrame = visibleFrame;
         visibleFrame = null;
+        stage = Stage.IDLE;
+        for (CaptureBatchNavigator navigator : previousNavigators) cleanup.close(navigator);
+        cleanup.close(previousFrame);
+        cleanup.rethrow();
     }
 }

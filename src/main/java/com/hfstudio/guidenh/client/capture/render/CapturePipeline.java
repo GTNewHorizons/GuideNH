@@ -5,6 +5,7 @@ import java.util.Objects;
 import org.lwjgl.opengl.EXTFramebufferObject;
 import org.lwjgl.opengl.GL11;
 
+import com.hfstudio.guidenh.client.capture.CaptureCleanup;
 import com.hfstudio.guidenh.client.capture.CaptureRegistry;
 import com.hfstudio.guidenh.client.capture.api.CaptureBackendSelection;
 import com.hfstudio.guidenh.client.capture.api.CaptureContentOptions;
@@ -73,7 +74,7 @@ public class CapturePipeline implements AutoCloseable {
         try {
             if (replaceSource) openedSource = Objects.requireNonNull(nextSource.open(context));
             if (replaceReader) openedReader = Objects.requireNonNull(nextReader.open(context));
-        } catch (RuntimeException error) {
+        } catch (RuntimeException | Error error) {
             release(openedSource, openedReader, error);
             throw error;
         }
@@ -91,21 +92,11 @@ public class CapturePipeline implements AutoCloseable {
         return replaceSource || replaceReader;
     }
 
-    private static void release(CaptureSource source, CapturePixelReader reader, RuntimeException failure) {
-        RuntimeException error = failure;
-        try {
-            if (source != null) source.close();
-        } catch (RuntimeException closing) {
-            if (error == null) error = closing;
-            else error.addSuppressed(closing);
-        }
-        try {
-            if (reader != null) reader.close();
-        } catch (RuntimeException closing) {
-            if (error == null) error = closing;
-            else error.addSuppressed(closing);
-        }
-        if (failure == null && error != null) throw error;
+    private static void release(CaptureSource source, CapturePixelReader reader, Throwable failure) {
+        CaptureCleanup cleanup = new CaptureCleanup(failure);
+        cleanup.close(source);
+        cleanup.close(reader);
+        if (failure == null) cleanup.rethrow();
     }
 
     public void beginGui(CaptureContext context, CaptureContentOptions content, boolean collectGeometry) {

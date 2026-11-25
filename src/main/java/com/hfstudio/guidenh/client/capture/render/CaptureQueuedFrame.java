@@ -2,6 +2,7 @@ package com.hfstudio.guidenh.client.capture.render;
 
 import java.util.List;
 
+import com.hfstudio.guidenh.client.capture.CaptureCleanup;
 import com.hfstudio.guidenh.client.capture.api.CaptureContext;
 import com.hfstudio.guidenh.client.capture.api.CaptureFrameIdentity;
 import com.hfstudio.guidenh.client.capture.api.CaptureGeometry;
@@ -36,11 +37,10 @@ public record CaptureQueuedFrame(CaptureReadback readback, CaptureContext contex
 
     @Override
     public void close() {
-        try {
-            readback.close();
-        } finally {
-            if (world != null) world.close();
-            if (snapshot != null) snapshot.close();
-        }
+        CaptureCleanup cleanup = new CaptureCleanup();
+        cleanup.close(readback);
+        cleanup.close(world);
+        cleanup.close(snapshot);
+        cleanup.rethrow();
     }
 }

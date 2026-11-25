@@ -35,6 +35,9 @@ public class CaptureRegistry implements CaptureFormatCatalog, CaptureGeometryCat
     private final List<CaptureGeometryProvider> geometryProviders = new ArrayList<>();
     private List<String> geometryProviderIds;
     private final List<CaptureLifecycleListener> lifecycleListeners = new ArrayList<>();
+    private final List<CaptureLifecycleListener> openedListeners = new ArrayList<>();
+    private boolean lifecycleDispatching;
+    private boolean lifecycleOpen;
     private final List<CaptureGuiRenderer> guiRenderers = new ArrayList<>();
     private final Map<String, CaptureBatchProvider> batchProviders = new LinkedHashMap<>();
     private final Map<String, CapturePixelReaderProvider> readerProviders = new LinkedHashMap<>();
@@ -237,16 +240,48 @@ public class CaptureRegistry implements CaptureFormatCatalog, CaptureGeometryCat
     }
 
     public void registerLifecycle(CaptureLifecycleListener listener) {
-        lifecycleListeners.add(listener);
+        lifecycleListeners.add(Objects.requireNonNull(listener));
     }
 
     public void opened(CaptureContext context) {
-        for (CaptureLifecycleListener listener : lifecycleListeners) listener.opened(context);
+        if (lifecycleDispatching || lifecycleOpen)
+            throw new IllegalStateException("The capture lifecycle is already open or changing");
+        lifecycleDispatching = true;
+        try {
+            for (CaptureLifecycleListener listener : List.copyOf(lifecycleListeners)) {
+                openedListeners.add(listener);
+                try {
+                    listener.opened(context);
+                } catch (RuntimeException | Error failure) {
+                    CaptureCleanup cleanup = new CaptureCleanup(failure);
+                    closeListeners(context, cleanup);
+                    cleanup.rethrow();
+                }
+            }
+            lifecycleOpen = true;
+        } finally {
+            lifecycleDispatching = false;
+        }
     }
 
     public void closed(CaptureContext context) {
-        for (int index = lifecycleListeners.size() - 1; index >= 0; index--) lifecycleListeners.get(index)
-            .closed(context);
+        if (lifecycleDispatching) throw new IllegalStateException("The capture lifecycle is already changing");
+        lifecycleOpen = false;
+        lifecycleDispatching = true;
+        try {
+            CaptureCleanup cleanup = new CaptureCleanup();
+            closeListeners(context, cleanup);
+            cleanup.rethrow();
+        } finally {
+            lifecycleDispatching = false;
+        }
+    }
+
+    private void closeListeners(CaptureContext context, CaptureCleanup cleanup) {
+        while (!openedListeners.isEmpty()) {
+            CaptureLifecycleListener listener = openedListeners.removeLast();
+            cleanup.run(() -> listener.closed(context));
+        }
     }
 
     public void registerGeometry(CaptureGeometryProvider provider) {

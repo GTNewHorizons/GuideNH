@@ -10,6 +10,7 @@ import java.util.function.Function;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.resources.I18n;
 
+import com.hfstudio.guidenh.client.capture.CaptureCleanup;
 import com.hfstudio.guidenh.client.capture.api.CaptureBackendSelection;
 import com.hfstudio.guidenh.client.capture.api.CaptureContentOptions;
 import com.hfstudio.guidenh.client.capture.api.CaptureExportRequest;
@@ -423,11 +424,18 @@ public class CaptureSession implements AutoCloseable {
     public void close() {
         state = CaptureSessionState.CLOSED;
         nextRecordingRequested = false;
-        if (export != null) export.cancel(true);
-        if (recording != null) recording.close();
-        if (preview != null) preview.close();
+        CompletableFuture<CaptureOutputArtifact> previousExport = export;
+        CaptureRecording previousRecording = recording;
+        CaptureFrame previousPreview = preview;
+        export = null;
+        recording = null;
         preview = null;
         previewIdentity = null;
-        ModConfig.save();
+        CaptureCleanup cleanup = new CaptureCleanup();
+        if (previousExport != null) cleanup.run(() -> previousExport.cancel(true));
+        cleanup.close(previousRecording);
+        cleanup.close(previousPreview);
+        cleanup.run(ModConfig::save);
+        cleanup.rethrow();
     }
 }
