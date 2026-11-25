@@ -7,6 +7,7 @@ import java.util.Map;
 
 import com.hfstudio.guidenh.client.capture.api.CaptureFrame;
 import com.hfstudio.guidenh.client.capture.api.CaptureGeometry;
+import com.hfstudio.guidenh.client.capture.api.CaptureGeometryCatalog;
 import com.hfstudio.guidenh.client.capture.api.CaptureRect;
 import com.hfstudio.guidenh.client.capture.api.CaptureTarget;
 import com.hfstudio.guidenh.client.capture.api.CaptureViewport;
@@ -69,7 +70,8 @@ public class CaptureDrawCollector {
                 bounds,
                 bounds,
                 0,
-                backdrop ? -90 : 5).withContent(layer, false));
+                backdrop ? -90 : 5).withContent(layer, false)
+                    .withProvider(CaptureGeometryCatalog.DRAW_CALLS));
     }
 
     public CaptureGeometry merge(CaptureGeometry geometry, CaptureFrame frame) {

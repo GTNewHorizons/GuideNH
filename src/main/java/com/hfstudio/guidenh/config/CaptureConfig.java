@@ -49,6 +49,9 @@ public class CaptureConfig {
     @DefaultBoolean(true)
     public boolean snapping = true;
 
+    @DefaultString("[]")
+    public String disabledSnapProviders = "[]";
+
     @DefaultBoolean(true)
     public boolean snapSlots = true;
 
@@ -175,6 +178,17 @@ public class CaptureConfig {
     @DefaultInt(2)
     @RangeInt(min = 0, max = 128)
     public int spritePadding = 2;
+
+    @DefaultInt(0)
+    @RangeInt(min = 0, max = 32768)
+    public int spriteCellWidth;
+
+    @DefaultInt(0)
+    @RangeInt(min = 0, max = 32768)
+    public int spriteCellHeight;
+
+    @DefaultString("top_left")
+    public String spriteAlignment = "top_left";
 
     @DefaultInt(4096)
     @RangeInt(min = 256, max = 32768)

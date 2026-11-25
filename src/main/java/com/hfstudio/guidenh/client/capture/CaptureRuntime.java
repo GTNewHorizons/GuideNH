@@ -698,7 +698,8 @@ public class CaptureRuntime implements CaptureBackendControls, IResourceManagerR
                 this::close,
                 () -> schedule != null),
             batch,
-            this);
+            this,
+            registry);
         frameRequested = true;
         registry.opened(new CaptureContext(session.sourceScreen(), session.viewport(), frameId, partialTicks));
     }

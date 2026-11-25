@@ -9,11 +9,13 @@ import java.util.concurrent.atomic.AtomicLong;
 import com.hfstudio.guidenh.client.capture.api.CaptureExportRequest;
 import com.hfstudio.guidenh.client.capture.api.CaptureFrame;
 import com.hfstudio.guidenh.client.capture.api.CaptureOutputArtifact;
+import com.hfstudio.guidenh.client.capture.api.CaptureOutputSize;
 import com.hfstudio.guidenh.client.capture.api.CaptureRecordedFrame;
 import com.hfstudio.guidenh.client.capture.api.CaptureRecordingOptions;
 import com.hfstudio.guidenh.client.capture.api.CaptureRegion;
 import com.hfstudio.guidenh.client.capture.export.CaptureComposition;
 import com.hfstudio.guidenh.client.capture.export.CaptureRowComposer;
+import com.hfstudio.guidenh.client.capture.export.CaptureSpritePageLayout;
 
 public class CaptureRecording implements AutoCloseable {
 
@@ -22,6 +24,8 @@ public class CaptureRecording implements AutoCloseable {
     private final ArrayBlockingQueue<CaptureRecordedFrame> queue;
     private final AtomicLong queuedBytes = new AtomicLong();
     private final long queueBudget;
+    private final long sourceFrameBytes;
+    private final long sampleIntervalNanos;
     private final long started;
     private long nextSample;
     private long pausedAt;
@@ -39,29 +43,28 @@ public class CaptureRecording implements AutoCloseable {
         this.options = options;
         started = now;
         nextSample = now;
+        sampleIntervalNanos = 1_000_000_000L / options.fps();
         CaptureComposition composition = CaptureRowComposer.compose(request);
-        long outputBytes = request.options()
+        CaptureOutputSize output = request.options()
             .resolution()
             .resolve(
                 composition.size()
                     .width(),
                 composition.size()
-                    .height())
-            .rgbaBytes();
-        queueBudget = options.memoryBudgetBytes() - outputBytes * 3;
-        long sourceBytes = (long) request.viewport()
-            .pixelWidth() * request.viewport()
-                .pixelHeight()
-            * 4;
-        if (queueBudget < sourceBytes) throw new IllegalArgumentException(
+                    .height());
+        queueBudget = options.memoryBudgetBytes() - Math.multiplyExact(output.rgbaBytes(), 3);
+        sourceFrameBytes = new CaptureOutputSize(
+            request.viewport()
+                .pixelWidth(),
+            request.viewport()
+                .pixelHeight()).rgbaBytes();
+        if (queueBudget < sourceFrameBytes) throw new IllegalArgumentException(
             "Recording exceeds the memory budget; reduce output dimensions or increase the budget");
         if (options.format()
-            .equals("gif")
-            && (composition.size()
-                .width() > 65535
-                || composition.size()
-                    .height() > 65535))
+            .equals("gif") && (output.width() > 65535 || output.height() > 65535))
             throw new IllegalArgumentException("GIF dimensions exceed 65535 pixels");
+        if (options.format()
+            .equals("sprites")) CaptureSpritePageLayout.create(output, options);
         queue = new ArrayBlockingQueue<>(options.queueFrames());
     }
 
@@ -115,10 +118,7 @@ public class CaptureRecording implements AutoCloseable {
 
     public boolean needsFrame(long now) {
         return sampling() && now >= nextSample
-            && queuedBytes.get() + (long) request.viewport()
-                .pixelWidth() * request.viewport()
-                    .pixelHeight()
-                * 4 <= queueBudget
+            && queuedBytes.get() <= queueBudget - sourceFrameBytes
             && queue.remainingCapacity() > 0;
     }
 
@@ -126,19 +126,23 @@ public class CaptureRecording implements AutoCloseable {
         offer(frame, now, List.of());
     }
 
-    public void offer(CaptureFrame frame, long now, List<CaptureRegion> regions) {
+    public synchronized void offer(CaptureFrame frame, long now, List<CaptureRegion> regions) {
         if (finished || paused() || now < nextSample) return;
-        long interval = 1_000_000_000L / options.fps();
-        long missed = (now - nextSample) / interval;
+        long missed = (now - nextSample) / sampleIntervalNanos;
         skippedFrames = (int) Math.min(Integer.MAX_VALUE, (long) skippedFrames + missed);
-        nextSample += (missed + 1) * interval;
+        nextSample += (missed + 1) * sampleIntervalNanos;
         long bytes = frame.byteSize();
-        if (queuedBytes.addAndGet(bytes) > queueBudget) {
-            queuedBytes.addAndGet(-bytes);
+        if (bytes > queueBudget - queuedBytes.get()) {
             rejected(now);
             return;
         }
-        CaptureRecordedFrame owned = new CaptureRecordedFrame(frame.retain(), elapsed(now), regions);
+        List<CaptureRegion> snapshot = List.copyOf(regions);
+        CaptureRecordedFrame owned = new CaptureRecordedFrame(frame.retain(), elapsed(now), snapshot);
+        if (finished) {
+            owned.close();
+            return;
+        }
+        queuedBytes.addAndGet(bytes);
         if (!queue.offer(owned)) {
             owned.close();
             queuedBytes.addAndGet(-bytes);
@@ -182,11 +186,8 @@ public class CaptureRecording implements AutoCloseable {
         }
         if (!finished && !paused()
             && now >= nextSample
-            && (queue.remainingCapacity() == 0 || queuedBytes.get() + (long) request.viewport()
-                .pixelWidth() * request.viewport()
-                    .pixelHeight()
-                * 4 > queueBudget)) {
-            nextSample = now + 1_000_000_000L / options.fps();
+            && (queue.remainingCapacity() == 0 || queuedBytes.get() > queueBudget - sourceFrameBytes)) {
+            nextSample = now + sampleIntervalNanos;
             rejected(now);
         }
     }
@@ -207,7 +208,7 @@ public class CaptureRecording implements AutoCloseable {
     }
 
     @Override
-    public void close() {
+    public synchronized void close() {
         cancelled = true;
         finished = true;
         CaptureRecordedFrame frame;

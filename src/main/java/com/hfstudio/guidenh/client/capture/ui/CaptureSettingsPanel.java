@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.function.IntConsumer;
@@ -23,6 +24,7 @@ import org.lwjgl.opengl.GL11;
 import com.hfstudio.guidenh.capture.server.api.CaptureServerArea;
 import com.hfstudio.guidenh.client.capture.api.CaptureAlignment;
 import com.hfstudio.guidenh.client.capture.api.CaptureBackendControls;
+import com.hfstudio.guidenh.client.capture.api.CaptureGeometryCatalog;
 import com.hfstudio.guidenh.client.capture.api.CaptureRect;
 import com.hfstudio.guidenh.client.capture.api.CaptureRegion;
 import com.hfstudio.guidenh.client.capture.api.CaptureResampling;
@@ -41,6 +43,8 @@ public class CaptureSettingsPanel {
     private final Minecraft minecraft;
     private final CaptureSession session;
     private final CaptureBackendControls backend;
+    private final CaptureGeometryCatalog geometryCatalog;
+    private List<String> geometryProviderIds = List.of();
     private final List<CaptureSetting> settings = new ArrayList<>();
     private CaptureRect bounds = new CaptureRect(0, 0, 0, 0);
     private float scroll;
@@ -65,9 +69,15 @@ public class CaptureSettingsPanel {
     private boolean open;
 
     public CaptureSettingsPanel(Minecraft minecraft, CaptureSession session, CaptureBackendControls backend) {
+        this(minecraft, session, backend, CaptureGeometryCatalog.EMPTY);
+    }
+
+    public CaptureSettingsPanel(Minecraft minecraft, CaptureSession session, CaptureBackendControls backend,
+        CaptureGeometryCatalog geometryCatalog) {
         this.minecraft = minecraft;
         this.session = session;
         this.backend = backend;
+        this.geometryCatalog = Objects.requireNonNull(geometryCatalog);
         search = new CaptureTextField(minecraft.fontRenderer, 0, 0, 100, 18);
         search.setMaxStringLength(128);
         visualScroll.snapTo(0);
@@ -196,6 +206,21 @@ public class CaptureSettingsPanel {
         toggle("gif_dither", () -> config.gifDither, value -> config.gifDither = value, false);
         integer("sprite_columns", () -> config.spriteColumns, value -> config.spriteColumns = value, 1, 64);
         integer("sprite_padding", () -> config.spritePadding, value -> config.spritePadding = value, 0, 128);
+        integer("sprite_cell_width", () -> config.spriteCellWidth, value -> config.spriteCellWidth = value, 0, 32768);
+        integer(
+            "sprite_cell_height",
+            () -> config.spriteCellHeight,
+            value -> config.spriteCellHeight = value,
+            0,
+            32768);
+        settings.add(
+            new CaptureSetting(
+                "sprite_alignment",
+                () -> config.spriteAlignment,
+                value -> config.spriteAlignment = CaptureAlignment.byId(value)
+                    .id(),
+                CaptureAlignment.ids(),
+                false));
         integer("sprite_page", () -> config.spritePageSize, value -> config.spritePageSize = value, 256, 32768);
         integer("delay", () -> config.delaySeconds, value -> config.delaySeconds = value, 0, 86400);
         integer("interval", () -> config.intervalSeconds, value -> config.intervalSeconds = value, 1, 86400);
@@ -357,10 +382,36 @@ public class CaptureSettingsPanel {
             };
             settings.set(index, numeric);
         }
+        sortSettings();
+        refreshGeometryProviders();
+    }
+
+    private void sortSettings() {
         settings.sort(
             Comparator.comparingInt(
                 setting -> setting.section()
                     .ordinal()));
+    }
+
+    private void refreshGeometryProviders() {
+        List<String> ids = List.copyOf(geometryCatalog.geometryProviderIds());
+        if (geometryProviderIds.equals(ids)) return;
+        CaptureSetting edited = editing < 0 ? null : settings.get(editing);
+        CaptureSetting dragged = draggingSlider < 0 ? null : settings.get(draggingSlider);
+        settings.removeIf(
+            setting -> setting.key()
+                .startsWith(CaptureSetting.PROVIDER_PREFIX));
+        CaptureSettingsModel model = session.settings();
+        for (String id : ids) toggle(
+            CaptureSetting.PROVIDER_PREFIX + id,
+            () -> model.snapProviderEnabled(id),
+            enabled -> model.snapProviderEnabled(id, enabled),
+            false);
+        geometryProviderIds = ids;
+        sortSettings();
+        editing = edited == null ? -1 : settings.indexOf(edited);
+        draggingSlider = dragged == null ? -1 : settings.indexOf(dragged);
+        filterText = "\u0000";
     }
 
     private void integer(String key, IntSupplier value, IntConsumer update, int min, int max) {
@@ -472,7 +523,7 @@ public class CaptureSettingsPanel {
         for (int index = 0; index < settings.size(); index++) {
             CaptureSetting setting = settings.get(index);
             String label = (setting.key() + " "
-                + I18n.format("guidenh.capture.setting." + setting.key())
+                + setting.label()
                 + " "
                 + I18n.format(
                     "guidenh.capture.section." + setting.section()
@@ -495,6 +546,7 @@ public class CaptureSettingsPanel {
 
     public void draw(int x, int y, int width, int height, int mouseX, int mouseY) {
         if (!open) return;
+        refreshGeometryProviders();
         bounds = new CaptureRect(x, y, width, height);
         Gui.drawRect(x, y, x + width, y + height, CaptureUiColors.SURFACE);
         String title = minecraft.fontRenderer
@@ -626,8 +678,7 @@ public class CaptureSettingsPanel {
             .equals(List.of("false", "true"));
         int labelWidth = toggle ? width - 46 : width / 2 - 16;
         minecraft.fontRenderer.drawStringWithShadow(
-            minecraft.fontRenderer
-                .trimStringToWidth(I18n.format("guidenh.capture.setting." + setting.key()), Math.max(1, labelWidth)),
+            minecraft.fontRenderer.trimStringToWidth(setting.label(), Math.max(1, labelWidth)),
             x + 8,
             y + 6,
             0xD3DAE2);

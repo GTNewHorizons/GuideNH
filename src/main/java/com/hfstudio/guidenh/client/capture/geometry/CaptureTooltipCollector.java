@@ -6,6 +6,7 @@ import java.util.List;
 import net.minecraft.client.gui.FontRenderer;
 
 import com.hfstudio.guidenh.client.capture.api.CaptureGeometry;
+import com.hfstudio.guidenh.client.capture.api.CaptureGeometryCatalog;
 import com.hfstudio.guidenh.client.capture.api.CaptureRect;
 import com.hfstudio.guidenh.client.capture.api.CaptureTarget;
 import com.hfstudio.guidenh.client.capture.api.CaptureViewport;
@@ -35,7 +36,8 @@ public class CaptureTooltipCollector {
                 bounds,
                 visible,
                 Integer.MAX_VALUE,
-                100).withContent(CaptureTarget.TOOLTIP_LAYER, false));
+                100).withContent(CaptureTarget.TOOLTIP_LAYER, false)
+                    .withProvider(CaptureGeometryCatalog.TOOLTIPS));
     }
 
     public CaptureGeometry merge(CaptureGeometry geometry) {

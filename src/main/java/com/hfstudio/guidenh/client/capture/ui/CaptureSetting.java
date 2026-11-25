@@ -4,8 +4,13 @@ import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
+import net.minecraft.client.resources.I18n;
+import net.minecraft.util.StatCollector;
+
 public record CaptureSetting(String key, Supplier<String> value, Consumer<String> update,
     Supplier<List<String>> choiceSource, boolean recapture, CaptureSliderRange slider, CaptureSettingSection section) {
+
+    public static final String PROVIDER_PREFIX = "snap_provider:";
 
     public CaptureSetting(String key, Supplier<String> value, Consumer<String> update,
         Supplier<List<String>> choiceSource, boolean recapture, CaptureSliderRange slider) {
@@ -44,6 +49,14 @@ public record CaptureSetting(String key, Supplier<String> value, Consumer<String
 
     public List<String> choices() {
         return List.copyOf(choiceSource.get());
+    }
+
+    public String label() {
+        if (!key.startsWith(PROVIDER_PREFIX)) return I18n.format("guidenh.capture.setting." + key);
+        String id = key.substring(PROVIDER_PREFIX.length());
+        String translationKey = "guidenh.capture.value." + id;
+        String name = StatCollector.canTranslate(translationKey) ? I18n.format(translationKey) : id;
+        return I18n.format("guidenh.capture.setting.snap_provider", name);
     }
 
     public CaptureSetting withSection(CaptureSettingSection section) {

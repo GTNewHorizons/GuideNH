@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.hfstudio.guidenh.client.capture.api.CaptureFrame;
+import com.hfstudio.guidenh.client.capture.api.CaptureGeometryCatalog;
 import com.hfstudio.guidenh.client.capture.api.CaptureRect;
 import com.hfstudio.guidenh.client.capture.api.CaptureTarget;
 import com.hfstudio.guidenh.client.capture.api.CaptureViewport;
@@ -80,7 +81,8 @@ public class CaptureAlphaGeometry {
                     bounds,
                     bounds,
                     0,
-                    backdrop ? -95 : 0).withContent(layer, false));
+                    backdrop ? -95 : 0).withContent(layer, false)
+                        .withProvider(CaptureGeometryCatalog.PIXELS));
         }
         return List.copyOf(targets);
     }

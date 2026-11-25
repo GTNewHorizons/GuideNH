@@ -11,6 +11,8 @@ public class CaptureFrame implements AutoCloseable {
     private int[] pixels;
 
     public CaptureFrame(int width, int height, long timestampNanos, int[] pixels) {
+        if (width < 1 || height < 1 || pixels == null)
+            throw new IllegalArgumentException("Capture frames require positive dimensions and pixel data");
         if (pixels.length != Math.multiplyExact(width, height)) {
             throw new IllegalArgumentException("Pixel count does not match the capture dimensions");
         }
@@ -37,6 +39,7 @@ public class CaptureFrame implements AutoCloseable {
     }
 
     public CaptureFrame retain() {
+        if (pixels == null) throw new IllegalStateException("A released capture frame cannot be retained");
         return new CaptureFrame(width, height, timestampNanos, pixels);
     }
 

@@ -7,10 +7,16 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.stream.Collectors;
 
 import net.minecraft.client.Minecraft;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import com.google.gson.Gson;
+import com.google.gson.JsonParseException;
 import com.hfstudio.guidenh.capture.server.api.CaptureServerArea;
 import com.hfstudio.guidenh.capture.server.api.CaptureServerQuery;
 import com.hfstudio.guidenh.client.capture.api.CaptureAlignment;
@@ -27,6 +33,7 @@ import com.hfstudio.guidenh.client.capture.api.CaptureResampling;
 import com.hfstudio.guidenh.client.capture.api.CaptureResolution;
 import com.hfstudio.guidenh.client.capture.api.CaptureScheduleCondition;
 import com.hfstudio.guidenh.client.capture.api.CaptureSnapOptions;
+import com.hfstudio.guidenh.client.capture.api.CaptureSpriteLayout;
 import com.hfstudio.guidenh.client.capture.api.CaptureTarget;
 import com.hfstudio.guidenh.client.capture.api.CaptureTargetChangePolicy;
 import com.hfstudio.guidenh.config.CaptureConfig;
@@ -34,12 +41,17 @@ import com.hfstudio.guidenh.network.capture.CaptureCapabilityMessage;
 
 public class CaptureSettingsModel {
 
+    private static final Gson JSON = new Gson();
+    private static final Logger LOG = LogManager.getLogger("GuideNH/Capture");
+
     private final CaptureConfig config;
     private final CaptureFormatCatalog formats;
     private boolean gameplay;
     private int requestedWidth;
     private int requestedHeight;
     private boolean keepAspectRatio = true;
+    private String disabledProviderText = "[]";
+    private Set<String> disabledProviders = Set.of();
 
     public CaptureSettingsModel(CaptureConfig config) {
         this(config, false);
@@ -248,7 +260,11 @@ public class CaptureSettingsModel {
             config.queueFrames,
             (long) config.memoryBudgetMiB << 20,
             config.strictRecordingQueue,
-            CaptureTargetChangePolicy.byId(config.recordingTargetChangePolicy));
+            CaptureTargetChangePolicy.byId(config.recordingTargetChangePolicy),
+            new CaptureSpriteLayout(
+                config.spriteCellWidth,
+                config.spriteCellHeight,
+                CaptureAlignment.byId(config.spriteAlignment)));
     }
 
     public String schedulePolicy(CaptureScheduleCondition condition) {
@@ -294,6 +310,36 @@ public class CaptureSettingsModel {
             kinds,
             config.snapDistance,
             config.snapReleaseDistance,
-            config.showClassName);
+            config.showClassName,
+            disabledSnapProviders());
+    }
+
+    public Set<String> disabledSnapProviders() {
+        if (!Objects.equals(disabledProviderText, config.disabledSnapProviders)) {
+            try {
+                String[] ids = JSON.fromJson(config.disabledSnapProviders, String[].class);
+                disabledProviders = ids == null ? Set.of()
+                    : Arrays.stream(ids)
+                        .filter(Objects::nonNull)
+                        .filter(id -> !id.isEmpty())
+                        .collect(Collectors.toUnmodifiableSet());
+            } catch (JsonParseException error) {
+                disabledProviders = Set.of();
+                LOG.warn("Invalid disabled capture snapping providers; expected a JSON array of IDs", error);
+            }
+            disabledProviderText = config.disabledSnapProviders;
+        }
+        return disabledProviders;
+    }
+
+    public boolean snapProviderEnabled(String id) {
+        return !disabledSnapProviders().contains(id);
+    }
+
+    public void snapProviderEnabled(String id, boolean enabled) {
+        Set<String> ids = new TreeSet<>(disabledSnapProviders());
+        if (enabled) ids.remove(id);
+        else ids.add(Objects.requireNonNull(id));
+        config.disabledSnapProviders = JSON.toJson(ids);
     }
 }

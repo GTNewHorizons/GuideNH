@@ -16,6 +16,8 @@ Drag to create a selection and release to fix it. Drag its edges or corners to r
 
 Snapping supports slots, components, windows, HUD elements, and notifications. Hidden controls and excluded content layers do not participate in snapping.
 
+The Snapping settings list each registered geometry source separately, including MUI1, MUI2, vanilla controls, and sources derived from draw calls, button rendering, pixel coverage, or tooltips. Disable a source to exclude its magnetic candidates without hiding its content. These preferences are remembered. Other enabled sources may still recognize the same area.
+
 **Include slot borders** selects the full slot frame. Turn it off to select the 16×16 content area of a standard 18×18 slot; scaled slots use the corresponding displayed bounds.
 
 Component labels show short class names by default. Enable **Full component class name** to include the package; long labels wrap within the capture viewport.
@@ -77,7 +79,7 @@ During recording, setting edits are reserved for the next segment. **Apply to ne
 
 When the screen, viewport, or followed component changes, choose whether to pause until restored, finish the current segment, or finish and start a new segment. The next segment waits for a valid preview and selection. Changing screens clears tracking IDs from the previous screen while keeping the selected rectangles; a missing followed component in the same screen waits until it returns. Encoding failure or cancellation prevents automatic continuation. Batch recording continues with the next selected batch target after finishing its current segment.
 
-PNG sprite sheets include JSON with frame positions and timing. GIF transparency can use a configured threshold or background color.
+PNG sprite sheets include JSON with frame positions and timing. Set the columns, padding, page size, and cell width and height before recording. Zero cell dimensions use the captured frame size; larger cells support nine alignments and leave unused space transparent without stretching the frame. Cells must fit the frame, page size, and memory budget. Sheets split into multiple pages when needed; JSON rectangles locate each frame's pixels inside its cell. GIF transparency can use a configured threshold or background color.
 
 Active recording updates the editor preview, system cursor, and tooltip position in real time, even when static preview freezing is enabled. The preview shows the complete source during recording; the export retains its original selection and output dimensions. Pausing or finishing returns to the configured preview behavior.
 
@@ -133,6 +135,8 @@ Results are marked partial when target limits or missing slices leave uncovered 
 ## Developer Integration
 
 Capture interfaces support geometry providers, GUI renderers, capture sources, pixel readers, batch providers, and output encoders independently.
+
+The registry stamps geometry targets with the collecting provider's ID. Preserve `providerId` when deriving targets or visible fragments so the source switch remains effective. `CaptureGeometryCatalog` exposes registered IDs to settings; unlocalized IDs use their literal name. Existing target constructors remain available and leave the provider ID empty until registry collection.
 
 | API | Purpose |
 | --- | --- |

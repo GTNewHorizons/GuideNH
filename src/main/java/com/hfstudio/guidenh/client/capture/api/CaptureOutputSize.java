@@ -7,6 +7,10 @@ public record CaptureOutputSize(int width, int height) {
     }
 
     public long rgbaBytes() {
-        return (long) width * height * 4;
+        try {
+            return Math.multiplyExact(Math.multiplyExact((long) width, height), 4);
+        } catch (ArithmeticException error) {
+            throw new IllegalArgumentException("Capture dimensions exceed the supported RGBA byte count", error);
+        }
     }
 }

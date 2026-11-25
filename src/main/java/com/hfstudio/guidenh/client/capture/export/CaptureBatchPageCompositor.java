@@ -144,7 +144,8 @@ public class CaptureBatchPageCompositor {
                 1,
                 memoryBudget - frameBytes,
                 initial.strictQueue(),
-                initial.targetChangePolicy());
+                initial.targetChangePolicy(),
+                initial.spriteLayout());
             Path encoded = encoder.directory() ? Files.createDirectory(temporary.resolve("animation"))
                 : temporary.resolve("pages." + encoder.format());
             long interval = Math.multiplyExact(

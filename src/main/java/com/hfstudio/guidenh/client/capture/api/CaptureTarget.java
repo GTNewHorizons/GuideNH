@@ -2,7 +2,30 @@ package com.hfstudio.guidenh.client.capture.api;
 
 public record CaptureTarget(String id, String parentId, String kind, String className, String label, CaptureRect bounds,
     CaptureRect visibleBounds, int zOrder, int priority, long ownerIdentity, String contentLayer,
-    boolean playerInventory) {
+    boolean playerInventory, String providerId) {
+
+    public CaptureTarget(String id, String parentId, String kind, String className, String label, CaptureRect bounds,
+        CaptureRect visibleBounds, int zOrder, int priority, long ownerIdentity, String contentLayer,
+        boolean playerInventory) {
+        this(
+            id,
+            parentId,
+            kind,
+            className,
+            label,
+            bounds,
+            visibleBounds,
+            zOrder,
+            priority,
+            ownerIdentity,
+            contentLayer,
+            playerInventory,
+            "");
+    }
+
+    public CaptureTarget {
+        providerId = providerId == null ? "" : providerId;
+    }
 
     public CaptureTarget(String id, String parentId, String kind, String className, String label, CaptureRect bounds,
         CaptureRect visibleBounds, int zOrder, int priority, long ownerIdentity) {
@@ -43,7 +66,25 @@ public record CaptureTarget(String id, String parentId, String kind, String clas
             priority,
             ownerIdentity,
             layer,
-            inventory);
+            inventory,
+            providerId);
+    }
+
+    public CaptureTarget withProvider(String provider) {
+        return new CaptureTarget(
+            id,
+            parentId,
+            kind,
+            className,
+            label,
+            bounds,
+            visibleBounds,
+            zOrder,
+            priority,
+            ownerIdentity,
+            contentLayer,
+            playerInventory,
+            provider);
     }
 
     public static final String SLOT = "slot";

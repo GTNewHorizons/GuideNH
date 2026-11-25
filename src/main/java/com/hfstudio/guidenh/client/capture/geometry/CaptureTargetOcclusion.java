@@ -56,7 +56,8 @@ public class CaptureTargetOcclusion {
                         target.priority(),
                         target.ownerIdentity(),
                         target.contentLayer(),
-                        target.playerInventory()));
+                        target.playerInventory(),
+                        target.providerId()));
             }
         }
         return List.copyOf(visible);

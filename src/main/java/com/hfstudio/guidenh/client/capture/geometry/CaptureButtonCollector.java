@@ -12,6 +12,7 @@ import org.lwjgl.opengl.GL11;
 import org.lwjgl.util.glu.GLU;
 
 import com.hfstudio.guidenh.client.capture.api.CaptureGeometry;
+import com.hfstudio.guidenh.client.capture.api.CaptureGeometryCatalog;
 import com.hfstudio.guidenh.client.capture.api.CaptureRect;
 import com.hfstudio.guidenh.client.capture.api.CaptureTarget;
 import com.hfstudio.guidenh.client.capture.api.CaptureViewport;
@@ -76,7 +77,7 @@ public class CaptureButtonCollector {
                 visible,
                 0,
                 30,
-                owner));
+                owner).withProvider(CaptureGeometryCatalog.DRAW_BUTTONS));
     }
 
     public CaptureGeometry merge(CaptureGeometry geometry) {

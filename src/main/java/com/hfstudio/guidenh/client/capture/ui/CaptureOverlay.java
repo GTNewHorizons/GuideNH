@@ -19,6 +19,7 @@ import com.hfstudio.guidenh.client.capture.api.CaptureBackendControls;
 import com.hfstudio.guidenh.client.capture.api.CaptureBatchController;
 import com.hfstudio.guidenh.client.capture.api.CaptureExportRequest;
 import com.hfstudio.guidenh.client.capture.api.CaptureGeometry;
+import com.hfstudio.guidenh.client.capture.api.CaptureGeometryCatalog;
 import com.hfstudio.guidenh.client.capture.api.CaptureInputOptions;
 import com.hfstudio.guidenh.client.capture.api.CaptureOutputSize;
 import com.hfstudio.guidenh.client.capture.api.CaptureRect;
@@ -73,6 +74,12 @@ public class CaptureOverlay implements AutoCloseable {
 
     public CaptureOverlay(Minecraft minecraft, CaptureSession session, CaptureInputOptions input,
         CaptureOverlayActions actions, CaptureBatchController batchController, CaptureBackendControls backend) {
+        this(minecraft, session, input, actions, batchController, backend, CaptureGeometryCatalog.EMPTY);
+    }
+
+    public CaptureOverlay(Minecraft minecraft, CaptureSession session, CaptureInputOptions input,
+        CaptureOverlayActions actions, CaptureBatchController batchController, CaptureBackendControls backend,
+        CaptureGeometryCatalog geometryCatalog) {
         this.minecraft = minecraft;
         this.session = session;
         this.actions = actions;
@@ -83,7 +90,7 @@ public class CaptureOverlay implements AutoCloseable {
         this.input = input;
         nativeControl = GuiScreen.isCtrlKeyDown();
         preview = new CapturePreviewRenderer();
-        settings = new CaptureSettingsPanel(minecraft, session, backend);
+        settings = new CaptureSettingsPanel(minecraft, session, backend, geometryCatalog);
         add(CaptureIcons.SAVE, "save", this::save);
         add(CaptureIcons.CAPTURE_ALL, "all_visible", () -> {
             settings.close();

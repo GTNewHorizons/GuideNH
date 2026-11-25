@@ -5,6 +5,7 @@ import java.util.List;
 
 import net.minecraft.client.gui.GuiIngame;
 
+import com.hfstudio.guidenh.client.capture.api.CaptureGeometryCatalog;
 import com.hfstudio.guidenh.client.capture.api.CaptureRect;
 import com.hfstudio.guidenh.client.capture.api.CaptureTarget;
 import com.hfstudio.guidenh.client.capture.api.CaptureViewport;
@@ -57,6 +58,7 @@ public class CaptureHudGeometry {
             bounds.intersect(viewport.bounds()),
             0,
             priority,
-            ownerIdentity).withContent(CaptureTarget.HUD_LAYER, true);
+            ownerIdentity).withContent(CaptureTarget.HUD_LAYER, true)
+                .withProvider(CaptureGeometryCatalog.VANILLA_HUD);
     }
 }

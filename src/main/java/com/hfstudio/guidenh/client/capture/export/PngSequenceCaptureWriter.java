@@ -102,39 +102,22 @@ public class PngSequenceCaptureWriter implements CaptureAnimationWriter {
     }
 
     private List<FrameEntry> spritePages(long endTime) throws IOException {
-        int padding = options.spritePadding();
-        int cellWidth = Math.addExact(size.width(), padding);
-        int cellHeight = Math.addExact(size.height(), padding);
-        int columns = Math.min(options.spriteColumns(), (options.spritePageSize() - padding) / cellWidth);
-        if (columns < 1 || cellHeight + padding > options.spritePageSize()) {
-            throw new IOException("One frame exceeds the sprite page size; increase it or choose a PNG sequence");
-        }
-        int width = Math.addExact(columns * cellWidth, padding);
-        long pageBudget = options.memoryBudgetBytes() - size.rgbaBytes();
-        int rows = Math.min(
-            (options.spritePageSize() - padding) / cellHeight,
-            (int) Math.min(Integer.MAX_VALUE, (pageBudget / (width * 4L) - padding) / cellHeight));
-        if (rows < 1)
-            throw new IOException("Sprite pages exceed the memory budget; use a PNG sequence or smaller frames");
-        int perPage = Math.multiplyExact(columns, rows);
+        CaptureSpritePageLayout layout = CaptureSpritePageLayout.create(size, options);
+        int perPage = layout.framesPerPage();
         List<FrameEntry> entries = new ArrayList<>(times.size());
         for (int first = 0, page = 0; first < times.size(); first += perPage, page++) {
             if (Thread.currentThread()
                 .isInterrupted()) throw new IOException("Sprite export cancelled");
             int count = Math.min(perPage, times.size() - first);
-            int actualRows = (count + columns - 1) / columns;
-            BufferedImage image = new BufferedImage(
-                width,
-                actualRows * cellHeight + padding,
-                BufferedImage.TYPE_INT_ARGB);
+            BufferedImage image = new BufferedImage(layout.width(), layout.height(count), BufferedImage.TYPE_INT_ARGB);
             Graphics2D graphics = image.createGraphics();
             graphics.setComposite(AlphaComposite.Src);
             String name = String.format("sprites_%04d.png", page);
             try {
                 for (int offset = 0; offset < count; offset++) {
                     int index = first + offset;
-                    int x = padding + offset % columns * cellWidth;
-                    int y = padding + offset / columns * cellHeight;
+                    int x = layout.x(offset);
+                    int y = layout.y(offset);
                     BufferedImage frame = ImageIO.read(framePath(index).toFile());
                     if (frame == null) throw new IOException("An intermediate PNG frame could not be read");
                     graphics.drawImage(frame, x, y, null);

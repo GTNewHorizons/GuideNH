@@ -52,8 +52,10 @@ public class CaptureSnapResolver {
     private AxisLock resolve(CaptureRect rectangle, List<CaptureTarget> targets, CaptureSnapOptions options,
         AxisLock held, boolean xAxis, boolean startEnabled, boolean endEnabled) {
         if (!startEnabled && !endEnabled) return null;
-        if (held != null && Math.abs(held.coordinate() - edge(rectangle, xAxis, held.end()))
-            <= Math.max(options.acquireDistance(), options.releaseDistance())) return held;
+        if (held != null && validLock(held, targets, options, xAxis)
+            && Math.abs(held.coordinate() - edge(rectangle, xAxis, held.end()))
+                <= Math.max(options.acquireDistance(), options.releaseDistance()))
+            return held;
         AxisLock nearest = null;
         double distance = options.acquireDistance();
         for (CaptureTarget target : targets) {
@@ -72,11 +74,11 @@ public class CaptureSnapResolver {
                 double startDistance = Math.abs(start - ownEdge);
                 double endDistance = Math.abs(end - ownEdge);
                 if (startDistance <= distance) {
-                    nearest = new AxisLock(start, useEnd);
+                    nearest = new AxisLock(start, useEnd, target.id());
                     distance = startDistance;
                 }
                 if (endDistance <= distance) {
-                    nearest = new AxisLock(end, useEnd);
+                    nearest = new AxisLock(end, useEnd, target.id());
                     distance = endDistance;
                 }
             }
@@ -88,5 +90,22 @@ public class CaptureSnapResolver {
         return xAxis ? end ? rectangle.right() : rectangle.x() : end ? rectangle.bottom() : rectangle.y();
     }
 
-    public record AxisLock(double coordinate, boolean end) {}
+    private static boolean validLock(AxisLock held, List<CaptureTarget> targets, CaptureSnapOptions options,
+        boolean xAxis) {
+        for (CaptureTarget target : targets) {
+            if (!target.id()
+                .equals(held.targetId()) || !options.accepts(target)) continue;
+            CaptureRect bounds = target.visibleBounds();
+            return held.coordinate() == (xAxis ? bounds.x() : bounds.y())
+                || held.coordinate() == (xAxis ? bounds.right() : bounds.bottom());
+        }
+        return false;
+    }
+
+    public record AxisLock(double coordinate, boolean end, String targetId) {
+
+        public AxisLock(double coordinate, boolean end) {
+            this(coordinate, end, "");
+        }
+    }
 }

@@ -19,6 +19,7 @@ import com.hfstudio.guidenh.client.capture.api.CaptureContext;
 import com.hfstudio.guidenh.client.capture.api.CaptureExporter;
 import com.hfstudio.guidenh.client.capture.api.CaptureFormatCatalog;
 import com.hfstudio.guidenh.client.capture.api.CaptureGeometry;
+import com.hfstudio.guidenh.client.capture.api.CaptureGeometryCatalog;
 import com.hfstudio.guidenh.client.capture.api.CaptureGeometryProvider;
 import com.hfstudio.guidenh.client.capture.api.CaptureGuiRenderer;
 import com.hfstudio.guidenh.client.capture.api.CaptureLifecycleListener;
@@ -29,9 +30,10 @@ import com.hfstudio.guidenh.client.capture.api.CaptureSourceProvider;
 import com.hfstudio.guidenh.client.capture.api.CaptureTarget;
 import com.hfstudio.guidenh.client.capture.api.CaptureTargetDescriptor;
 
-public class CaptureRegistry implements CaptureFormatCatalog {
+public class CaptureRegistry implements CaptureFormatCatalog, CaptureGeometryCatalog {
 
     private final List<CaptureGeometryProvider> geometryProviders = new ArrayList<>();
+    private List<String> geometryProviderIds;
     private final List<CaptureLifecycleListener> lifecycleListeners = new ArrayList<>();
     private final List<CaptureGuiRenderer> guiRenderers = new ArrayList<>();
     private final Map<String, CaptureBatchProvider> batchProviders = new LinkedHashMap<>();
@@ -252,6 +254,20 @@ public class CaptureRegistry implements CaptureFormatCatalog {
             existing -> existing.id()
                 .equals(provider.id()));
         geometryProviders.add(provider);
+        geometryProviderIds = null;
+    }
+
+    @Override
+    public List<String> geometryProviderIds() {
+        if (geometryProviderIds == null) {
+            List<String> ids = new ArrayList<>(CaptureGeometryCatalog.DERIVED_IDS);
+            for (CaptureGeometryProvider provider : geometryProviders) ids.add(provider.id());
+            geometryProviderIds = ids.stream()
+                .distinct()
+                .sorted()
+                .toList();
+        }
+        return geometryProviderIds;
     }
 
     public CaptureGeometry collect(CaptureContext context) {
@@ -263,7 +279,7 @@ public class CaptureRegistry implements CaptureFormatCatalog {
             .anyMatch(CaptureGeometryProvider::ownsContainerSlots);
         for (CaptureGeometryProvider provider : supported) {
             for (CaptureTarget target : provider.collect(context, !ownedSlots || provider.ownsContainerSlots())
-                .targets()) targets.put(target.id(), target);
+                .targets()) targets.put(target.id(), target.withProvider(provider.id()));
         }
         List<CaptureTarget> collected = List.copyOf(targets.values());
         return new CaptureGeometry(collected.hashCode(), context.viewport(), collected);

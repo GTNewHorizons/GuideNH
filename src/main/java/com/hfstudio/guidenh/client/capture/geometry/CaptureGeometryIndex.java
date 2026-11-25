@@ -103,7 +103,8 @@ public class CaptureGeometryIndex {
             target.priority(),
             target.ownerIdentity(),
             target.contentLayer(),
-            target.playerInventory());
+            target.playerInventory(),
+            target.providerId());
     }
 
     public CaptureTarget tracked(String id) {

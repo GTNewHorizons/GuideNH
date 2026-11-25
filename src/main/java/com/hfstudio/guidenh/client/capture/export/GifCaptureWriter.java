@@ -42,9 +42,28 @@ public class GifCaptureWriter implements CaptureAnimationWriter {
         Iterator<ImageWriter> writers = ImageIO.getImageWritersByFormatName("gif");
         if (!writers.hasNext()) throw new IOException("No GIF encoder is available");
         writer = writers.next();
-        output = ImageIO.createImageOutputStream(target.toFile());
-        writer.setOutput(output);
-        writer.prepareWriteSequence(null);
+        ImageOutputStream opened = null;
+        try {
+            opened = ImageIO.createImageOutputStream(target.toFile());
+            if (opened == null) throw new IOException("No GIF output stream is available");
+            writer.setOutput(opened);
+            writer.prepareWriteSequence(null);
+            output = opened;
+        } catch (IOException | RuntimeException | Error failure) {
+            if (opened != null) {
+                try {
+                    opened.close();
+                } catch (IOException | RuntimeException cleanup) {
+                    failure.addSuppressed(cleanup);
+                }
+            }
+            try {
+                writer.dispose();
+            } catch (RuntimeException cleanup) {
+                failure.addSuppressed(cleanup);
+            }
+            throw failure;
+        }
     }
 
     @Override
