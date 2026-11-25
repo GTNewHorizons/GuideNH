@@ -7,7 +7,6 @@ import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -175,12 +174,7 @@ public class CaptureExportWorker implements AutoCloseable {
                 artifact.frameCount(),
                 artifact.byteSize());
         } finally {
-            if (Files.exists(temporary)) {
-                try (var paths = Files.walk(temporary)) {
-                    for (Path path : paths.sorted(Comparator.reverseOrder())
-                        .toList()) Files.deleteIfExists(path);
-                }
-            }
+            CaptureTemporaryFiles.remove(temporary);
         }
     }
 
@@ -311,11 +305,7 @@ public class CaptureExportWorker implements AutoCloseable {
     }
 
     private static void removeTemporary(Path temporary) throws IOException {
-        if (!Files.exists(temporary)) return;
-        try (var paths = Files.walk(temporary)) {
-            for (Path path : paths.sorted(Comparator.reverseOrder())
-                .toList()) Files.deleteIfExists(path);
-        }
+        CaptureTemporaryFiles.remove(temporary);
     }
 
     private static void publish(Path temporary, Path target) throws IOException {

@@ -7,7 +7,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -209,12 +208,7 @@ public class CaptureBatchPageCompositor {
                 bytes,
                 "");
         } finally {
-            if (Files.exists(temporary)) {
-                try (var paths = Files.walk(temporary)) {
-                    for (Path path : paths.sorted(Comparator.reverseOrder())
-                        .toList()) Files.deleteIfExists(path);
-                }
-            }
+            CaptureTemporaryFiles.remove(temporary);
         }
     }
 
