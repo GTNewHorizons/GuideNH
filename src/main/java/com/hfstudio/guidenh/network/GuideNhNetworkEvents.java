@@ -26,6 +26,9 @@ public class GuideNhNetworkEvents {
     public void onPlayerLoggedOut(PlayerEvent.PlayerLoggedOutEvent event) {
         EntityPlayer player = event.player;
         if (player instanceof EntityPlayerMP) {
+            GuideNhStructureRequestHandler.clearTransfers(player.getUniqueID());
+            GuideNhServerRequests.instance()
+                .clear(player.getUniqueID());
             GuideNhStructureRuntime.getServerSessionStore()
                 .clear(player.getUniqueID());
             CaptureServerCoordinator.instance()
