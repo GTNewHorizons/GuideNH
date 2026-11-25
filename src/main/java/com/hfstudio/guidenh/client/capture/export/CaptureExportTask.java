@@ -17,7 +17,8 @@ public class CaptureExportTask<T> implements Runnable {
     private final Consumer<CaptureExportTask<T>> finished;
     private final CompletableFuture<T> future = new CompletableFuture<>();
     private final AtomicBoolean claimed = new AtomicBoolean();
-    private volatile Thread runner;
+    private final Object executionLock = new Object();
+    private Thread runner;
 
     public CaptureExportTask(Supplier<T> action, Runnable releaseQueued, Consumer<CaptureExportTask<T>> finished) {
         this.action = action;
@@ -44,15 +45,18 @@ public class CaptureExportTask<T> implements Runnable {
                 finished.accept(this);
             }
         } else {
-            Thread thread = runner;
-            if (thread != null) thread.interrupt();
+            synchronized (executionLock) {
+                if (runner != null) runner.interrupt();
+            }
         }
     }
 
     @Override
     public void run() {
         if (!claimed.compareAndSet(false, true)) return;
-        runner = Thread.currentThread();
+        synchronized (executionLock) {
+            runner = Thread.currentThread();
+        }
         try {
             if (future.isCancelled()) releaseQueued.run();
             else future.complete(action.get());
@@ -61,7 +65,9 @@ public class CaptureExportTask<T> implements Runnable {
         } catch (Throwable error) {
             future.completeExceptionally(error);
         } finally {
-            runner = null;
+            synchronized (executionLock) {
+                runner = null;
+            }
             finished.accept(this);
         }
     }
