@@ -126,7 +126,8 @@ public class GuideNhRuntimeBridgeServer {
                     registry,
                     previewFacade,
                     limits,
-                    this::handleClosedConnection);
+                    this::handleClosedConnection,
+                    settings.getAllowedOrigins());
                 connections.add(connection);
                 GuideDebugLog.infoAlways(
                     "GuideNH runtime bridge starting session for {}. activeConnections={}",

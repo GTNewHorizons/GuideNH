@@ -11,23 +11,47 @@ import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 public class WebSocketHandshake {
 
     private static final String MAGIC = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
+    private final Set<String> allowedOrigins;
+
+    public WebSocketHandshake() {
+        this(Set.of());
+    }
+
+    public WebSocketHandshake(Set<String> allowedOrigins) {
+        this.allowedOrigins = Set.copyOf(allowedOrigins);
+    }
 
     public boolean accept(InputStream input, OutputStream output) throws IOException {
         String request = readHttpHeader(input);
         String[] lines = request.split("\r\n");
         String requestLine = lines.length > 0 ? lines[0] : "";
-        if (requestLine == null || !requestLine.startsWith("GET ")) {
+        if (!request.endsWith("\r\n\r\n") || !requestLine.matches("GET /[^ ]* HTTP/1\\.1")) {
             writeHttpError(output, 400);
             return false;
         }
 
         Map<String, String> headers = readHeaders(lines);
+        String origin = headers.get("origin");
+        if (origin != null && !allowedOrigins.contains(origin)) {
+            writeHttpError(output, 403);
+            return false;
+        }
         String key = headers.get("sec-websocket-key");
-        if (key == null || key.isEmpty() || !isUpgrade(headers)) {
+        boolean validKey;
+        try {
+            validKey = key != null && Base64.getDecoder()
+                .decode(key).length == 16;
+        } catch (IllegalArgumentException ignored) {
+            validKey = false;
+        }
+        if (!validKey || !"13".equals(headers.get("sec-websocket-version"))
+            || headers.get("host") == null
+            || !isUpgrade(headers)) {
             writeHttpError(output, 400);
             return false;
         }
@@ -64,7 +88,7 @@ public class WebSocketHandshake {
         return output.toString(StandardCharsets.UTF_8);
     }
 
-    private Map<String, String> readHeaders(String[] lines) {
+    private Map<String, String> readHeaders(String[] lines) throws IOException {
         Map<String, String> headers = new LinkedHashMap<>();
         for (int index = 1; index < lines.length; index++) {
             String line = lines[index];
@@ -73,12 +97,16 @@ public class WebSocketHandshake {
             }
             int separator = line.indexOf(':');
             if (separator > 0) {
-                headers.put(
-                    line.substring(0, separator)
-                        .trim()
-                        .toLowerCase(Locale.ROOT),
+                String name = line.substring(0, separator)
+                    .trim()
+                    .toLowerCase(Locale.ROOT);
+                if (headers.putIfAbsent(
+                    name,
                     line.substring(separator + 1)
-                        .trim());
+                        .trim())
+                    != null) {
+                    throw new IOException("Duplicate WebSocket handshake header");
+                }
             }
         }
         return headers;
@@ -87,9 +115,11 @@ public class WebSocketHandshake {
     private boolean isUpgrade(Map<String, String> headers) {
         String upgrade = headers.get("upgrade");
         String connection = headers.get("connection");
-        return "websocket".equalsIgnoreCase(upgrade) && connection != null
-            && connection.toLowerCase(Locale.ROOT)
-                .contains("upgrade");
+        if (!"websocket".equalsIgnoreCase(upgrade) || connection == null) return false;
+        for (String token : connection.split(",")) {
+            if ("upgrade".equalsIgnoreCase(token.trim())) return true;
+        }
+        return false;
     }
 
     private String acceptKey(String key) throws IOException {

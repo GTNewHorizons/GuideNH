@@ -355,6 +355,10 @@ public class ModConfig {
         @RequiresMcRestart
         public String token = "";
 
+        @Comment("Allowed browser WebSocket origins. Empty allows only clients without an Origin header.")
+        @RequiresMcRestart
+        public String[] allowedOrigins = new String[0];
+
         @Comment("Maximum accepted WebSocket message size in bytes.")
         @RequiresMcRestart
         public int maxMessageBytes = 262144;
