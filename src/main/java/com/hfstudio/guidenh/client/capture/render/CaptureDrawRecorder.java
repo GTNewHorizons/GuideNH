@@ -11,6 +11,7 @@ import com.hfstudio.guidenh.client.capture.api.CaptureViewport;
 
 public class CaptureDrawRecorder implements AutoCloseable {
 
+    private final CaptureMemoryBudget memory = new CaptureMemoryBudget(0);
     private CaptureRecordedSnapshot recording;
     private int textDepth;
     private String failure = "";
@@ -18,7 +19,8 @@ public class CaptureDrawRecorder implements AutoCloseable {
     public void begin(CaptureContext context, CaptureContentOptions content, long budget) {
         close();
         failure = "";
-        recording = new CaptureRecordedSnapshot(context, content, budget);
+        memory.limit(budget);
+        recording = new CaptureRecordedSnapshot(context, content, budget, memory);
     }
 
     public void mesh(int[] raw, int count, int used, int mode, boolean texture, boolean color, boolean brightness,

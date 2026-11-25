@@ -824,8 +824,10 @@ public class CaptureRuntime implements CaptureBackendControls, IResourceManagerR
                 .following()
             && !content().includeWorld()
             && renderProbe.capture(captureContext(), memoryBudget())
-                .openGl())
+                .openGl()) {
+            frozenLayers.releaseSnapshot();
             drawRecorder.begin(captureContext(), content(), memoryBudget());
+        }
         updateSourcePointer(viewport, livePreview());
     }
 

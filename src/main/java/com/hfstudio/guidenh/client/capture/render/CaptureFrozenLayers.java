@@ -79,10 +79,15 @@ public class CaptureFrozenLayers implements AutoCloseable {
         return (includeWorld && worldPreview != null ? worldPreview : gui).retain();
     }
 
+    public void releaseSnapshot() {
+        CaptureRecordedSnapshot previous = snapshot;
+        snapshot = null;
+        if (previous != null) previous.close();
+    }
+
     @Override
     public void close() {
-        if (snapshot != null) snapshot.close();
-        snapshot = null;
+        releaseSnapshot();
         if (gui != null) gui.close();
         if (worldPreview != null) worldPreview.close();
         gui = null;
