@@ -57,7 +57,7 @@ function rewriteUrl(value, mapping) {
 }
 
 function rewriteCss(value, mapping, inline = false) {
-  const root = postcss.parse(inline ? `x{${value}}` : value);
+  const root = postcss.parse(inline ? `x{${value}}` : value, { map: false });
   root.walkDecls(declaration => {
     const parsed = parseValue(declaration.value);
     parsed.walk(node => {
