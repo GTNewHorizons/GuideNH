@@ -75,6 +75,7 @@ public class GuideSiteWriter {
             outDir.resolve("_site/languagePreference.js"),
             "/assets/guidenh/siteexport/languagePreference.js");
         writeResource(outDir.resolve("_site/sharedAssets.js"), "/assets/guidenh/siteexport/sharedAssets.js");
+        writeResource(outDir.resolve("_site/bounded-stream.js"), "/assets/guidenh/siteexport/bounded-stream.js");
         writeResource(outDir.resolve("_site/search.js"), "/assets/guidenh/siteexport/search.js");
         writeResource(outDir.resolve("_site/decompress.js"), "/assets/guidenh/siteexport/decompress.js");
         writeResource(
@@ -98,14 +99,14 @@ public class GuideSiteWriter {
             outDir.resolve("_site/model-viewer/image-formats.json"),
             "/assets/guidenh/siteexport/model-viewer/image-formats.json");
         writeResource(
-            outDir.resolve("_site/model-viewer/vendor/modelViewer-A42QTX7N.js"),
-            "/assets/guidenh/siteexport/model-viewer/vendor/modelViewer-A42QTX7N.js");
+            outDir.resolve("_site/model-viewer/vendor/modelViewer-4fafa3c3.js"),
+            "/assets/guidenh/siteexport/model-viewer/vendor/modelViewer-4fafa3c3.js");
         writeResource(
             outDir.resolve("_site/model-viewer/vendor/chunk-ZM3PKBJN.js"),
             "/assets/guidenh/siteexport/model-viewer/vendor/chunk-ZM3PKBJN.js");
         writeResource(
-            outDir.resolve("_site/model-viewer/vendor/decompressFallback-VGYIC7XH.js"),
-            "/assets/guidenh/siteexport/model-viewer/vendor/decompressFallback-VGYIC7XH.js");
+            outDir.resolve("_site/model-viewer/vendor/decompressFallback-a1e85a00.js"),
+            "/assets/guidenh/siteexport/model-viewer/vendor/decompressFallback-a1e85a00.js");
         writeResource(
             outDir.resolve("_site/model-viewer/vendor/diamond.png"),
             "/assets/guidenh/textures/guide/diamond.png");
