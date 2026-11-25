@@ -174,15 +174,19 @@ public class CaptureOverlay implements AutoCloseable {
     }
 
     public void updateGeometry(CaptureGeometry current) {
-        if (geometry == null || !geometry.geometry()
-            .equals(current)) {
-            geometry = new CaptureGeometryIndex(current);
+        boolean includeSlotBorders = session.settings()
+            .config().includeSlotBorders;
+        if (geometry == null || !geometry.sourceGeometry()
+            .equals(current) || geometry.includeSlotBorders() != includeSlotBorders) {
+            geometry = new CaptureGeometryIndex(current, includeSlotBorders);
             candidateOffset = 0;
         }
         if (!batchController.busy()) session.follow(geometry::tracked);
     }
 
     public void draw() {
+        if (geometry != null && geometry.includeSlotBorders() != session.settings()
+            .config().includeSlotBorders) updateGeometry(geometry.sourceGeometry());
         CaptureViewport viewport = session.viewport();
         int mouseX = Mouse.getX() * viewport.logicalWidth() / viewport.pixelWidth();
         int mouseY = viewport.logicalHeight() - Mouse.getY() * viewport.logicalHeight() / viewport.pixelHeight() - 1;

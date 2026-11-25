@@ -53,6 +53,9 @@ public class CaptureConfig {
     public boolean snapSlots = true;
 
     @DefaultBoolean(true)
+    public boolean includeSlotBorders = true;
+
+    @DefaultBoolean(true)
     public boolean snapComponents = true;
 
     @DefaultBoolean(true)
@@ -103,6 +106,9 @@ public class CaptureConfig {
 
     @DefaultString("automatic")
     public String qualityPolicy = "automatic";
+
+    @DefaultString("nearest")
+    public String resampling = "nearest";
 
     @DefaultString("automatic")
     public String sourceId = "automatic";

@@ -11,6 +11,7 @@ import com.hfstudio.guidenh.client.capture.api.CaptureFrame;
 import com.hfstudio.guidenh.client.capture.api.CaptureLayoutOptions;
 import com.hfstudio.guidenh.client.capture.api.CaptureOutputSize;
 import com.hfstudio.guidenh.client.capture.api.CaptureRect;
+import com.hfstudio.guidenh.client.capture.api.CaptureResampling;
 import com.hfstudio.guidenh.client.capture.api.CaptureRows;
 
 public class CaptureRowComposer implements CaptureRows {
@@ -20,6 +21,7 @@ public class CaptureRowComposer implements CaptureRows {
     private final CaptureOutputSize outputSize;
     private final int background;
     private final CaptureEraseMask mask;
+    private final boolean smooth;
 
     public CaptureRowComposer(CaptureExportRequest request, CaptureFrame frame) {
         this.frame = frame;
@@ -35,6 +37,9 @@ public class CaptureRowComposer implements CaptureRows {
             .content()
             .backgroundArgb();
         mask = new CaptureEraseMask(request, composition, outputSize);
+        smooth = request.options()
+            .resolution()
+            .resampling() == CaptureResampling.SMOOTH && !outputSize.equals(composition.size());
     }
 
     public CaptureOutputSize size() {
@@ -123,6 +128,10 @@ public class CaptureRowComposer implements CaptureRows {
         Arrays.fill(target, background);
         int baseY = (int) ((long) y * composition.size()
             .height() / outputSize.height());
+        double horizontalScale = (double) composition.size()
+            .width() / outputSize.width();
+        double sampledRow = (y + 0.5) * composition.size()
+            .height() / outputSize.height() - 0.5;
         for (CapturePlacement placement : composition.placements()) {
             int sourceY = baseY - placement.destinationY();
             if (sourceY < 0 || sourceY >= placement.height()) continue;
@@ -136,10 +145,17 @@ public class CaptureRowComposer implements CaptureRows {
                 composition.size()
                     .width(),
                 outputSize.width());
+            double sampledY = sampledRow - placement.destinationY();
             for (int x = start; x < end; x++) {
-                int sourceX = (int) ((long) x * composition.size()
-                    .width() / outputSize.width()) - placement.destinationX();
-                int pixel = frame.argb(placement.sourceX() + sourceX, placement.sourceY() + sourceY);
+                int pixel;
+                if (smooth) {
+                    double sampledX = (x + 0.5) * horizontalScale - placement.destinationX() - 0.5;
+                    pixel = CaptureBilinearSampler.sample(frame, placement, sampledX, sampledY);
+                } else {
+                    int sourceX = (int) ((long) x * composition.size()
+                        .width() / outputSize.width()) - placement.destinationX();
+                    pixel = frame.argb(placement.sourceX() + sourceX, placement.sourceY() + sourceY);
+                }
                 target[x] = composite(pixel, background);
             }
         }

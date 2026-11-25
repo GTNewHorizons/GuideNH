@@ -16,6 +16,8 @@ Drag to create a selection and release to fix it. Drag its edges or corners to r
 
 Snapping supports slots, components, windows, HUD elements, and notifications. Hidden controls and excluded content layers do not participate in snapping.
 
+**Include slot borders** selects the full slot frame. Turn it off to select the 16×16 content area of a standard 18×18 slot; scaled slots use the corresponding displayed bounds.
+
 The default output combines selections into their enclosing rectangle while preserving relative positions. Unselected gaps and erased areas remain transparent, and overlapping selections do not duplicate pixels.
 
 | Output layout | Purpose |
@@ -62,6 +64,8 @@ Settings list available capture sources and pixel readers, with the active imple
 Select a source or reader manually to refresh the preview. Unavailable choices display a reason. Recording and export retain the settings chosen at task start; a recording pauses if a capability change makes its current configuration unavailable.
 
 Output resolution is limited to 32 times the source size on each axis. Interfaces with safe redraw support can export tiled high-resolution images. Automatic quality permits resampling the frozen frame when redraw does not match the preview. Strict quality reports mismatches or unsupported combinations. Compatible output can enlarge the native HUD / GUI frame. Choose settings according to the displayed quality and backend capabilities.
+
+Choose **Nearest neighbor** for crisp pixels or **Smooth** for interpolated colors and transparency when resampling. The choice applies to still images and recordings; it does not change true high-resolution rendering. Each selection keeps its own edges, and unselected gaps remain transparent.
 
 ## Recording and Scheduled Capture
 

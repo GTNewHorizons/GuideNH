@@ -23,6 +23,7 @@ import com.hfstudio.guidenh.client.capture.api.CaptureFormatSnapshot;
 import com.hfstudio.guidenh.client.capture.api.CaptureLayoutOptions;
 import com.hfstudio.guidenh.client.capture.api.CaptureOptions;
 import com.hfstudio.guidenh.client.capture.api.CaptureRecordingOptions;
+import com.hfstudio.guidenh.client.capture.api.CaptureResampling;
 import com.hfstudio.guidenh.client.capture.api.CaptureResolution;
 import com.hfstudio.guidenh.client.capture.api.CaptureScheduleCondition;
 import com.hfstudio.guidenh.client.capture.api.CaptureSnapOptions;
@@ -143,7 +144,8 @@ public class CaptureSettingsModel {
             requestedWidth,
             requestedHeight,
             keepAspectRatio,
-            config.qualityPolicy);
+            config.qualityPolicy,
+            CaptureResampling.byId(config.resampling));
         CaptureContentOptions content = content();
         CaptureLayoutOptions layout = new CaptureLayoutOptions(
             config.arrangement,

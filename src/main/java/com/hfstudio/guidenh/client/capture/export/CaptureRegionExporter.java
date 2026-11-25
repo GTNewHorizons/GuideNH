@@ -85,7 +85,9 @@ public class CaptureRegionExporter {
                 bottom - top,
                 false,
                 options.resolution()
-                    .qualityPolicy());
+                    .qualityPolicy(),
+                options.resolution()
+                    .resampling());
             CaptureExportRequest bounded = new CaptureExportRequest(
                 request.taskId(),
                 request.sourceId(),

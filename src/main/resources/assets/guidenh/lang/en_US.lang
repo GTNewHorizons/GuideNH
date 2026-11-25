@@ -798,6 +798,8 @@ guidenh.capture.server_empty=No loaded GUI targets in the selected radius
 guidenh.capture.server_loading=Loading server GUI catalog…
 guidenh.capture.server_missing=Server GUI capture is unavailable on this server
 guidenh.capture.server_notice=Server catalog notice
+guidenh.capture.setting.resampling=Resampling
+guidenh.capture.setting.snap_slot_borders=Include slot borders
 guidenh.capture.settings=Capture settings
 guidenh.capture.settings_hint=Drag sliders or type values · Ctrl+F to search
 guidenh.capture.settings_no_results=No matching settings
@@ -810,6 +812,8 @@ guidenh.capture.target_changed=The capture target changed. Stop this recording o
 guidenh.capture.timer=Start or cancel scheduled capture
 guidenh.capture.toggle_selection_overlay=Show/hide selection decoration
 guidenh.capture.undo=Undo (Ctrl + Z)
+guidenh.capture.value.nearest=Nearest neighbor
+guidenh.capture.value.smooth=Smooth
 guidenh.capture.world=Include the world behind this GUI
 
 # Capture setting sections

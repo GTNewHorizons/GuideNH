@@ -795,6 +795,8 @@ guidenh.capture.server_empty=所选范围内没有已加载的 GUI 目标
 guidenh.capture.server_loading=正在读取服务器 GUI 目录…
 guidenh.capture.server_missing=此服务器未提供 GUI 捕获协议
 guidenh.capture.server_notice=服务器目录提示
+guidenh.capture.setting.resampling=重采样
+guidenh.capture.setting.snap_slot_borders=包含槽位边框
 guidenh.capture.settings=截图设置
 guidenh.capture.settings_hint=拖动滑条或输入数值 · Ctrl+F 搜索
 guidenh.capture.settings_no_results=没有匹配的设置
@@ -807,6 +809,8 @@ guidenh.capture.target_changed=捕获目标已变化。请停止本段录制，�
 guidenh.capture.timer=开始或取消定时截图
 guidenh.capture.toggle_selection_overlay=显示/隐藏选区装饰
 guidenh.capture.undo=撤销（Ctrl + Z）
+guidenh.capture.value.nearest=最近邻
+guidenh.capture.value.smooth=平滑
 guidenh.capture.world=包含 GUI 背后的世界
 
 # Capture setting sections

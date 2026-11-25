@@ -1,11 +1,24 @@
 package com.hfstudio.guidenh.client.capture.api;
 
 public record CaptureResolution(double scaleX, double scaleY, int requestedWidth, int requestedHeight,
-    boolean keepAspectRatio, String qualityPolicy) {
+    boolean keepAspectRatio, String qualityPolicy, CaptureResampling resampling) {
 
     public static final int MAX_SCALE = 32;
 
+    public CaptureResolution(double scaleX, double scaleY, int requestedWidth, int requestedHeight,
+        boolean keepAspectRatio, String qualityPolicy) {
+        this(
+            scaleX,
+            scaleY,
+            requestedWidth,
+            requestedHeight,
+            keepAspectRatio,
+            qualityPolicy,
+            CaptureResampling.NEAREST);
+    }
+
     public CaptureResolution {
+        if (resampling == null) throw new IllegalArgumentException("A capture resampling mode is required");
         if (!Double.isFinite(scaleX) || !Double.isFinite(scaleY)
             || scaleX <= 0
             || scaleY <= 0

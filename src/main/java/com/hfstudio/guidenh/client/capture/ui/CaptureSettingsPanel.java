@@ -25,6 +25,7 @@ import com.hfstudio.guidenh.client.capture.api.CaptureAlignment;
 import com.hfstudio.guidenh.client.capture.api.CaptureBackendControls;
 import com.hfstudio.guidenh.client.capture.api.CaptureRect;
 import com.hfstudio.guidenh.client.capture.api.CaptureRegion;
+import com.hfstudio.guidenh.client.capture.api.CaptureResampling;
 import com.hfstudio.guidenh.client.capture.api.CaptureScheduleCondition;
 import com.hfstudio.guidenh.client.capture.api.CaptureTargetChangePolicy;
 import com.hfstudio.guidenh.client.capture.session.CaptureSchedule;
@@ -108,6 +109,14 @@ public class CaptureSettingsPanel {
                 List.of(),
                 false));
         toggle("keep_ratio", model::keepAspectRatio, model::setKeepAspectRatio, false);
+        settings.add(
+            new CaptureSetting(
+                "resampling",
+                () -> config.resampling,
+                value -> config.resampling = CaptureResampling.byId(value)
+                    .id(),
+                CaptureResampling.ids(),
+                false));
         selection("selection_x");
         selection("selection_y");
         selection("selection_width");
@@ -156,6 +165,7 @@ public class CaptureSettingsPanel {
         toggle("tooltips", () -> config.includeTooltips, value -> config.includeTooltips = value, true);
         toggle("snapping", () -> config.snapping, value -> config.snapping = value, false);
         toggle("snap_slots", () -> config.snapSlots, value -> config.snapSlots = value, false);
+        toggle("snap_slot_borders", () -> config.includeSlotBorders, value -> config.includeSlotBorders = value, false);
         toggle("snap_components", () -> config.snapComponents, value -> config.snapComponents = value, false);
         toggle("snap_windows", () -> config.snapWindows, value -> config.snapWindows = value, false);
         integer("handle_size", () -> config.handleSize, value -> config.handleSize = value, 4, 32);

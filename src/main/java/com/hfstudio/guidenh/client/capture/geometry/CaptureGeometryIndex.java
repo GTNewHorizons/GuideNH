@@ -26,12 +26,30 @@ public class CaptureGeometryIndex {
                     .height());
 
     private final CaptureGeometry geometry;
+    private final CaptureGeometry sourceGeometry;
+    private final boolean includeSlotBorders;
     private final Map<Long, List<CaptureTarget>> cells = new HashMap<>();
     private final Map<String, CaptureTarget> tracked = new HashMap<>();
 
     public CaptureGeometryIndex(CaptureGeometry geometry) {
-        this.geometry = geometry;
-        for (CaptureTarget target : geometry.targets()) {
+        this(geometry, true);
+    }
+
+    public CaptureGeometryIndex(CaptureGeometry geometry, boolean includeSlotBorders) {
+        sourceGeometry = geometry;
+        this.includeSlotBorders = includeSlotBorders;
+        if (includeSlotBorders) this.geometry = geometry;
+        else {
+            List<CaptureTarget> targets = geometry.targets()
+                .stream()
+                .map(CaptureGeometryIndex::slotContents)
+                .filter(
+                    target -> !target.visibleBounds()
+                        .isEmpty())
+                .toList();
+            this.geometry = new CaptureGeometry(targets.hashCode(), geometry.viewport(), targets);
+        }
+        for (CaptureTarget target : this.geometry.targets()) {
             if (!target.trackingId()
                 .isEmpty()) tracked.put(target.trackingId(), target);
             CaptureRect bounds = target.visibleBounds()
@@ -52,6 +70,40 @@ public class CaptureGeometryIndex {
 
     public CaptureGeometry geometry() {
         return geometry;
+    }
+
+    public CaptureGeometry sourceGeometry() {
+        return sourceGeometry;
+    }
+
+    public boolean includeSlotBorders() {
+        return includeSlotBorders;
+    }
+
+    private static CaptureTarget slotContents(CaptureTarget target) {
+        if (!target.kind()
+            .equals(CaptureTarget.SLOT)) return target;
+        CaptureRect original = target.bounds();
+        double insetX = original.width() / 18;
+        double insetY = original.height() / 18;
+        CaptureRect contents = new CaptureRect(
+            original.x() + insetX,
+            original.y() + insetY,
+            original.width() - 2 * insetX,
+            original.height() - 2 * insetY);
+        return new CaptureTarget(
+            target.id(),
+            target.parentId(),
+            target.kind(),
+            target.className(),
+            target.label(),
+            contents,
+            contents.intersect(target.visibleBounds()),
+            target.zOrder(),
+            target.priority(),
+            target.ownerIdentity(),
+            target.contentLayer(),
+            target.playerInventory());
     }
 
     public CaptureTarget tracked(String id) {

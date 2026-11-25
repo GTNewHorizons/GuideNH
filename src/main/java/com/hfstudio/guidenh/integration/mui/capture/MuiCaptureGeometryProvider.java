@@ -6,6 +6,7 @@ import java.util.List;
 
 import net.minecraft.entity.player.InventoryPlayer;
 
+import com.gtnewhorizons.modularui.api.drawable.IDrawable;
 import com.gtnewhorizons.modularui.api.math.Pos2d;
 import com.gtnewhorizons.modularui.api.math.Size;
 import com.gtnewhorizons.modularui.api.screen.ModularWindow;
@@ -20,6 +21,7 @@ import com.hfstudio.guidenh.client.capture.api.CaptureGeometry;
 import com.hfstudio.guidenh.client.capture.api.CaptureGeometryProvider;
 import com.hfstudio.guidenh.client.capture.api.CaptureRect;
 import com.hfstudio.guidenh.client.capture.api.CaptureTarget;
+import com.hfstudio.guidenh.client.capture.geometry.CaptureTargetOcclusion;
 import com.hfstudio.guidenh.mixins.late.compat.mui.AccessorCaptureModularWindow;
 
 public class MuiCaptureGeometryProvider implements CaptureGeometryProvider {
@@ -46,9 +48,12 @@ public class MuiCaptureGeometryProvider implements CaptureGeometryProvider {
         gui.getContext()
             .forEachWindowBottomToTop(windows::add);
         List<CaptureTarget> targets = new ArrayList<>();
+        List<CaptureTarget> occluders = new ArrayList<>();
         for (int index = 0; index < windows.size(); index++) {
             ModularWindow window = windows.get(index);
             if (!window.isEnabled() || window.getScale() <= 0 || window.getAlpha() == 0) continue;
+            if (window.getClass() == ModularWindow.class && window.getChildren()
+                .isEmpty() && !hasBackground(window)) continue;
             String id = "mui:window:" + index;
             AffineTransform transform = windowTransform(window);
             CaptureRect bounds = bounds(window.getPos(), window.getSize(), transform);
@@ -68,6 +73,7 @@ public class MuiCaptureGeometryProvider implements CaptureGeometryProvider {
                     index + 1,
                     -10,
                     Integer.toUnsignedLong(System.identityHashCode(window))));
+            if (occludesComponents(window)) occluders.add(targets.getLast());
             List<Widget> children = window.getChildren();
             for (int child = 0; child < children.size(); child++) {
                 collectWidget(
@@ -82,7 +88,19 @@ public class MuiCaptureGeometryProvider implements CaptureGeometryProvider {
                     targets);
             }
         }
-        return new CaptureGeometry(targets.hashCode(), context.viewport(), targets);
+        List<CaptureTarget> visible = CaptureTargetOcclusion.clipComponents(targets, occluders);
+        return new CaptureGeometry(visible.hashCode(), context.viewport(), visible);
+    }
+
+    protected boolean occludesComponents(ModularWindow window) {
+        return window.getAlpha() >= 255 && hasBackground(window);
+    }
+
+    private static boolean hasBackground(ModularWindow window) {
+        for (IDrawable drawable : window.getBackground()) {
+            if (drawable != null && drawable != IDrawable.EMPTY) return true;
+        }
+        return false;
     }
 
     public static AffineTransform windowTransform(ModularWindow window) {
