@@ -1,4 +1,4 @@
-import { prepareGameScene, setupGameScene as setupVendorGameScene } from "./vendor/modelViewer-A42QTX7N.js";
+import { prepareGameScene, setupGameScene as setupVendorGameScene } from "./vendor/modelViewer-4fafa3c3.js";
 import { loadSharedText } from "../sharedAssets.js";
 import { loadSceneHoverTargetsJson } from "./sceneHoverTargets.js";
 import { expandSceneGrid } from "./sceneGrid.js";
