@@ -7,6 +7,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
+import java.util.function.IntFunction;
 
 import javax.imageio.ImageIO;
 import javax.imageio.ImageReader;
@@ -20,17 +22,24 @@ public class CaptureSpritePageRows implements CaptureRows {
     private final CaptureSpritePageLayout layout;
     private final CaptureOutputSize frameSize;
     private final CaptureOutputSize size;
-    private final List<Path> frames;
+    private final IntFunction<Path> frames;
+    private final int frameCount;
     private final List<BufferedImage> band = new ArrayList<>();
     private int bandIndex = -1;
 
     public CaptureSpritePageRows(CaptureSpritePageLayout layout, CaptureOutputSize frameSize, List<Path> frames) {
-        if (frames.isEmpty() || frames.size() > layout.framesPerPage())
+        this(layout, frameSize, frames.size(), List.copyOf(frames)::get);
+    }
+
+    public CaptureSpritePageRows(CaptureSpritePageLayout layout, CaptureOutputSize frameSize, int frameCount,
+        IntFunction<Path> frames) {
+        if (frameCount < 1 || frameCount > layout.framesPerPage())
             throw new IllegalArgumentException("A sprite page requires frames within its layout capacity");
         this.layout = layout;
         this.frameSize = frameSize;
-        this.frames = List.copyOf(frames);
-        size = new CaptureOutputSize(layout.width(), layout.height(frames.size()));
+        this.frames = Objects.requireNonNull(frames);
+        this.frameCount = frameCount;
+        size = new CaptureOutputSize(layout.width(), layout.height(frameCount));
     }
 
     @Override
@@ -52,8 +61,8 @@ public class CaptureSpritePageRows implements CaptureRows {
             releaseBand();
             int first = Math.multiplyExact(nextBand, layout.columns());
             try {
-                for (int index = first; index < Math.min(frames.size(), first + layout.columns()); index++)
-                    band.add(read(frames.get(index)));
+                int end = first + Math.min(layout.columns(), frameCount - first);
+                for (int index = first; index < end; index++) band.add(read(frames.apply(index)));
                 bandIndex = nextBand;
             } catch (IOException | RuntimeException | Error failure) {
                 releaseBand();
