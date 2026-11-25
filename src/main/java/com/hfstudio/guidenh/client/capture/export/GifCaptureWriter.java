@@ -44,7 +44,10 @@ public class GifCaptureWriter implements CaptureAnimationWriter {
         writer = writers.next();
         ImageOutputStream opened = null;
         try {
-            opened = new CaptureBudgetImageOutputStream(target, request.options().temporaryBudgetBytes());
+            opened = new CaptureBudgetImageOutputStream(
+                target,
+                request.options()
+                    .temporaryBudgetBytes());
             writer.setOutput(opened);
             writer.prepareWriteSequence(null);
             output = opened;
