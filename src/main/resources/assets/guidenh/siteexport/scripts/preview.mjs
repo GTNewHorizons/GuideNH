@@ -1,5 +1,5 @@
 import { createReadStream } from "node:fs";
-import { stat } from "node:fs/promises";
+import { realpath, lstat } from "node:fs/promises";
 import { createServer } from "node:http";
 import { extname, join, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -38,14 +38,20 @@ async function resolveFile(requestPath) {
     return null;
   }
   try {
-    const details = await stat(candidate);
+    const realRoot = await realpath(distRoot);
+    const realCandidate = await realpath(candidate);
+    if (realCandidate !== realRoot && !realCandidate.startsWith(`${realRoot}${sep}`)) return null;
+    const details = await lstat(candidate);
+    if (details.isSymbolicLink()) return null;
     if (details.isFile()) {
-      return candidate;
+      return realCandidate;
     }
     if (details.isDirectory()) {
-      const indexPath = join(candidate, "index.html");
-      const indexDetails = await stat(indexPath);
-      return indexDetails.isFile() ? indexPath : null;
+      const indexPath = join(realCandidate, "index.html");
+      const realIndex = await realpath(indexPath);
+      if (!realIndex.startsWith(`${realRoot}${sep}`)) return null;
+      const indexDetails = await lstat(indexPath);
+      return indexDetails.isFile() && !indexDetails.isSymbolicLink() ? realIndex : null;
     }
   } catch {
     return null;
@@ -65,7 +71,10 @@ const server = createServer(async (request, response) => {
       "cache-control": "no-cache",
       "content-type": contentTypes[extname(filePath).toLowerCase()] || "application/octet-stream"
     });
-    createReadStream(filePath).pipe(response);
+    const stream = createReadStream(filePath);
+    stream.on("error", () => response.destroy());
+    response.on("close", () => stream.destroy());
+    stream.pipe(response);
   } catch {
     response.writeHead(500, { "content-type": "text/plain; charset=utf-8" });
     response.end("Unable to read file");
