@@ -8,6 +8,8 @@ import net.minecraft.world.WorldServer;
 import com.hfstudio.guidenh.guide.internal.structure.GuideNhServerStructureAccess;
 import com.hfstudio.guidenh.integration.Mods;
 import com.hfstudio.guidenh.integration.ae2.Ae2BaseTileNetworkStreamPreview;
+import com.hfstudio.guidenh.network.GuideNhNetwork;
+import com.hfstudio.guidenh.network.GuideNhServerRequests;
 
 import appeng.tile.AEBaseTile;
 import cpw.mods.fml.common.network.simpleimpl.IMessage;
@@ -20,6 +22,18 @@ public class GuideNhAe2BaseTileNetworkBatchServerHandler
     @Override
     public IMessage onMessage(GuideNhAe2BaseTileNetworkBatchRequestMessage message, MessageContext ctx) {
         EntityPlayerMP player = ctx.getServerHandler().playerEntity;
+        if (!GuideNhServerRequests.instance()
+            .enqueue(
+                player,
+                message.getXyz().length * 4 + 64,
+                queuedPlayer -> GuideNhNetwork.channel()
+                    .sendTo(handle(message, queuedPlayer), queuedPlayer))) {
+            return new GuideNhAe2BaseTileNetworkBatchReplyMessage(message.getCorrId(), new byte[0][]);
+        }
+        return null;
+    }
+
+    private IMessage handle(GuideNhAe2BaseTileNetworkBatchRequestMessage message, EntityPlayerMP player) {
         long corr = message.getCorrId();
         int dim = message.getDim();
         int[] xyz = message.getXyz();
@@ -51,7 +65,7 @@ public class GuideNhAe2BaseTileNetworkBatchServerHandler
             int x = xyz[i * 3];
             int y = xyz[i * 3 + 1];
             int z = xyz[i * 3 + 2];
-            TileEntity te = ws.getTileEntity(x, y, z);
+            TileEntity te = ws.blockExists(x, y, z) ? ws.getTileEntity(x, y, z) : null;
             if (!Ae2BaseTileNetworkStreamPreview.eligible(te)) {
                 out[i] = new byte[0];
                 continue;

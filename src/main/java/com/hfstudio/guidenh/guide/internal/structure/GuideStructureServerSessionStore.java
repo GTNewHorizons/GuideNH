@@ -8,6 +8,7 @@ public class GuideStructureServerSessionStore {
 
     private final GuideStructurePlacementService placementService;
     private final ConcurrentHashMap<UUID, GuideStructureMemoryStore> stores = new ConcurrentHashMap<>();
+    private final GuideMemoryBudget sharedBudget = new GuideMemoryBudget(256L * 1024L * 1024L);
 
     public GuideStructureServerSessionStore(GuideStructurePlacementService placementService) {
         this.placementService = placementService;
@@ -31,14 +32,23 @@ public class GuideStructureServerSessionStore {
     }
 
     public void clear(UUID playerId) {
-        stores.remove(playerId);
+        GuideStructureMemoryStore store = stores.remove(playerId);
+        if (store != null) store.clear();
     }
 
     public void reset(UUID playerId) {
-        stores.put(playerId, new GuideStructureMemoryStore(placementService));
+        clear(playerId);
+        stores.put(playerId, new GuideStructureMemoryStore(placementService, sharedBudget));
+    }
+
+    public void clear() {
+        stores.values()
+            .forEach(GuideStructureMemoryStore::clear);
+        stores.clear();
     }
 
     private GuideStructureMemoryStore getOrCreate(UUID playerId) {
-        return stores.computeIfAbsent(playerId, ignored -> new GuideStructureMemoryStore(placementService));
+        return stores
+            .computeIfAbsent(playerId, ignored -> new GuideStructureMemoryStore(placementService, sharedBudget));
     }
 }

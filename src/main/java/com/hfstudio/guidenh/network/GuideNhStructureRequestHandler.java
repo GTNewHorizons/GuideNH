@@ -1,7 +1,6 @@
 package com.hfstudio.guidenh.network;
 
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.util.ChatComponentTranslation;
@@ -18,7 +17,7 @@ import cpw.mods.fml.common.network.simpleimpl.MessageContext;
 
 public class GuideNhStructureRequestHandler implements IMessageHandler<GuideNhStructureRequestMessage, IMessage> {
 
-    private static final ConcurrentHashMap<TransferKey, GuideNhStructureChunkAssembler> CHUNK_TRANSFERS = new ConcurrentHashMap<>();
+    private static final GuideNhStructureTransfers CHUNK_TRANSFERS = new GuideNhStructureTransfers();
 
     @Override
     public IMessage onMessage(GuideNhStructureRequestMessage message, MessageContext ctx) {
@@ -26,29 +25,28 @@ public class GuideNhStructureRequestHandler implements IMessageHandler<GuideNhSt
         if (player == null) {
             return null;
         }
-        pruneExpiredTransfers();
+        if (!GuideNhServerRequests.instance()
+            .enqueue(player, message.getStructureBytes().length + 64, queuedPlayer -> handle(message, queuedPlayer))) {
+            send(player, GuidebookText.CommandStructureImportFailure, "Server request queue is full");
+        }
+        return null;
+    }
+
+    private IMessage handle(GuideNhStructureRequestMessage message, EntityPlayerMP player) {
+        CHUNK_TRANSFERS.expire();
         var playerId = player.getUniqueID();
         var sessionStore = GuideNhStructureRuntime.getServerSessionStore();
 
         try {
             byte action = message.getAction();
-            String structureText = message.getStructureText();
+            String structureText = message.isChunkedStructureTransfer() ? null : message.getStructureText();
             if (message.isChunkedStructureTransfer()) {
                 if (!GuideNhServerStructureAccess.canUseSceneExport(player)) {
                     send(player, GuidebookText.CommandStructurePermissionDenied);
                     return null;
                 }
-                TransferKey key = new TransferKey(playerId, message.getAction(), message.getTransferId());
-                GuideNhStructureChunkAssembler assembler = CHUNK_TRANSFERS
-                    .computeIfAbsent(key, ignored -> new GuideNhStructureChunkAssembler(message.getChunkCount()));
-                structureText = assembler.accept(message);
-                if (structureText == null) {
-                    if (assembler.isExpired()) {
-                        CHUNK_TRANSFERS.remove(key, assembler);
-                    }
-                    return null;
-                }
-                CHUNK_TRANSFERS.remove(key);
+                structureText = CHUNK_TRANSFERS.accept(playerId, message);
+                if (structureText == null) return null;
                 action = message.getCompletedChunkAction();
             }
 
@@ -125,42 +123,15 @@ public class GuideNhStructureRequestHandler implements IMessageHandler<GuideNhSt
                 .getSimpleName();
     }
 
-    private static void pruneExpiredTransfers() {
-        CHUNK_TRANSFERS.entrySet()
-            .removeIf(
-                entry -> entry.getValue()
-                    .isExpired());
+    public static void expireTransfers() {
+        CHUNK_TRANSFERS.expire();
     }
 
-    private static final class TransferKey {
+    public static void clearTransfers(UUID playerId) {
+        CHUNK_TRANSFERS.clear(playerId);
+    }
 
-        private final UUID playerId;
-        private final byte action;
-        private final int transferId;
-
-        private TransferKey(UUID playerId, byte action, int transferId) {
-            this.playerId = playerId;
-            this.action = action;
-            this.transferId = transferId;
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            if (this == obj) {
-                return true;
-            }
-            if (!(obj instanceof TransferKey other)) {
-                return false;
-            }
-            return action == other.action && transferId == other.transferId && playerId.equals(other.playerId);
-        }
-
-        @Override
-        public int hashCode() {
-            int result = playerId.hashCode();
-            result = 31 * result + action;
-            result = 31 * result + transferId;
-            return result;
-        }
+    public static void clearTransfers() {
+        CHUNK_TRANSFERS.clear();
     }
 }

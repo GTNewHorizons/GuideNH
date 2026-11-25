@@ -41,6 +41,9 @@ public class GuideNhRegionExportReplyMessage implements IMessage {
 
     public static List<GuideNhRegionExportReplyMessage> successPackets(int requestId, String structureText) {
         byte[] bytes = structureText != null ? structureText.getBytes(StandardCharsets.UTF_8) : new byte[0];
+        if (bytes.length > GuideNhCustomPayloadLimits.MAX_STRUCTURE_TRANSFER_BYTES) {
+            throw new IllegalArgumentException("Region export exceeds its transfer byte limit");
+        }
         int maxChunkBytes = GuideNhCustomPayloadLimits.MAX_STRUCTURE_BYTES_PER_PACKET;
         if (bytes.length <= maxChunkBytes) {
             return Collections
