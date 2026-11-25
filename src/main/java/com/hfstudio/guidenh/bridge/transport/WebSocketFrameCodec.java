@@ -18,6 +18,7 @@ public class WebSocketFrameCodec {
     private final int maxPayloadBytes;
 
     public WebSocketFrameCodec(int maxPayloadBytes) {
+        if (maxPayloadBytes <= 0) throw new IllegalArgumentException("A positive frame limit is required");
         this.maxPayloadBytes = maxPayloadBytes;
     }
 
@@ -29,13 +30,22 @@ public class WebSocketFrameCodec {
         int second = readByte(input);
         int opcode = first & 0x0F;
         boolean masked = (second & MASK) != 0;
+        if ((first & 0x70) != 0 || (first & FIN) == 0
+            || !masked
+            || (opcode != 1 && opcode != 2 && opcode != 8 && opcode != 9 && opcode != 10)) {
+            throw new IOException("Unsupported WebSocket frame metadata");
+        }
         long payloadLength = second & 0x7F;
+        int lengthEncoding = (int) payloadLength;
         if (payloadLength == SHORT_LENGTH) {
             payloadLength = readUnsignedShort(input);
         } else if (payloadLength == LONG_LENGTH) {
             payloadLength = readLong(input);
         }
-        if (payloadLength > maxPayloadBytes) {
+        if (payloadLength < 0 || payloadLength > maxPayloadBytes
+            || (lengthEncoding == SHORT_LENGTH && payloadLength < SHORT_LENGTH)
+            || (lengthEncoding == LONG_LENGTH && payloadLength <= 65535)
+            || (opcode >= 8 && (payloadLength > MAX_CONTROL_PAYLOAD_BYTES || (opcode == 8 && payloadLength == 1)))) {
             throw new IOException("WebSocket frame exceeds maximum size");
         }
 

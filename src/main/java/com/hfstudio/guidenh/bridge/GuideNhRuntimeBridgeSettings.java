@@ -1,5 +1,7 @@
 package com.hfstudio.guidenh.bridge;
 
+import java.util.Set;
+
 import lombok.Getter;
 
 @Getter
@@ -14,9 +16,25 @@ public class GuideNhRuntimeBridgeSettings {
     private final int maxSubscriptions;
     private final int maxConnections;
     private final int maxDeltaEntries;
+    private final Set<String> allowedOrigins;
 
     public GuideNhRuntimeBridgeSettings(boolean enabled, String host, int port, String token, int maxMessageBytes,
         int maxPageSize, int maxSubscriptions, int maxConnections, int maxDeltaEntries) {
+        this(
+            enabled,
+            host,
+            port,
+            token,
+            maxMessageBytes,
+            maxPageSize,
+            maxSubscriptions,
+            maxConnections,
+            maxDeltaEntries,
+            Set.of());
+    }
+
+    public GuideNhRuntimeBridgeSettings(boolean enabled, String host, int port, String token, int maxMessageBytes,
+        int maxPageSize, int maxSubscriptions, int maxConnections, int maxDeltaEntries, Set<String> allowedOrigins) {
         this.enabled = enabled;
         this.host = host == null ? "" : host.trim();
         this.port = port;
@@ -26,6 +44,7 @@ public class GuideNhRuntimeBridgeSettings {
         this.maxSubscriptions = maxSubscriptions;
         this.maxConnections = maxConnections;
         this.maxDeltaEntries = maxDeltaEntries;
+        this.allowedOrigins = Set.copyOf(allowedOrigins);
     }
 
     public boolean canStart() {

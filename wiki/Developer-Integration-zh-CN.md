@@ -88,6 +88,12 @@ Guide.builder(id).extension(ActionLinkResolver.EXTENSION_POINT, new MyActionReso
 
 作者语法与单行 YAML 转义见 [外部内容绑定](Guide-Page-Format-zh-CN#外部内容绑定)，标签行为见 [研究与自定义内容](Tags-Reference-zh-CN#研究与自定义内容)。
 
+## 运行时桥接连接
+
+连接前需启用 `runtimeBridge.enabled` 并配置 `host`、`port` 和 `token`。连接成功后，客户端须在五秒内完成 `hello` 握手，使用协议版本 `1` 并提供令牌。握手成功后即可发送语义或预览查询。
+
+浏览器客户端还需在 `runtimeBridge.allowedOrigins` 中配置允许的来源，包括协议和非默认端口。空列表仅允许不携带 Origin 的客户端连接。客户端消息须符合 WebSocket 协议，并满足 UTF-8 编码及 `maxMessageBytes` 大小限制。
+
 ## 导出自定义标签
 
 为模组自身编译器提供的标签实现 `GuideSiteTagRenderer`。`getTagNames()` 声明标签名，`render(context, element)` 返回 HTML；返回 `null` 则交给其他渲染器处理。

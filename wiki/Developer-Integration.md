@@ -88,6 +88,12 @@ Both site export paths use static snapshots. The runtime bridge advertises `bind
 
 See [External content bindings](Guide-Page-Format#external-content-bindings) for single-line YAML and escaping, and [Research and custom content](Tags-Reference#research-and-custom-content) for tag behavior.
 
+## Runtime bridge connections
+
+Enable `runtimeBridge.enabled` and configure `host`, `port` and `token` before connecting. After connecting, complete the `hello` handshake within five seconds using protocol version `1` and the configured token. Wait for a successful response before sending semantic or preview queries.
+
+Browser clients must have their exact origins configured in `runtimeBridge.allowedOrigins`, including the scheme and any non-default port. An empty list only allows clients without an `Origin` header. Messages must comply with WebSocket requirements, use valid UTF-8 text and stay within `maxMessageBytes`.
+
 ## Export custom tags
 
 Implement `GuideSiteTagRenderer` for tags supplied by your mod's compiler. Declare the supported names with `getTagNames()` and return HTML from `render(context, element)`; return `null` to leave a tag to another renderer.
