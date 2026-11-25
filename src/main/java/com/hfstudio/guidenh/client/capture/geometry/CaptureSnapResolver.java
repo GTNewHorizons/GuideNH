@@ -52,7 +52,8 @@ public class CaptureSnapResolver {
     private AxisLock resolve(CaptureRect rectangle, List<CaptureTarget> targets, CaptureSnapOptions options,
         AxisLock held, boolean xAxis, boolean startEnabled, boolean endEnabled) {
         if (!startEnabled && !endEnabled) return null;
-        if (held != null && validLock(held, targets, options, xAxis)
+        if (held != null && (held.end() ? endEnabled : startEnabled)
+            && validLock(held, rectangle, targets, options, xAxis)
             && Math.abs(held.coordinate() - edge(rectangle, xAxis, held.end()))
                 <= Math.max(options.acquireDistance(), options.releaseDistance()))
             return held;
@@ -61,10 +62,7 @@ public class CaptureSnapResolver {
         for (CaptureTarget target : targets) {
             if (!options.accepts(target)) continue;
             CaptureRect bounds = target.visibleBounds();
-            if (xAxis && (rectangle.bottom() + distance < bounds.y() || rectangle.y() - distance > bounds.bottom()))
-                continue;
-            if (!xAxis && (rectangle.right() + distance < bounds.x() || rectangle.x() - distance > bounds.right()))
-                continue;
+            if (!nearby(rectangle, bounds, xAxis, distance)) continue;
             double start = xAxis ? bounds.x() : bounds.y();
             double end = xAxis ? bounds.right() : bounds.bottom();
             for (int side = 0; side < 2; side++) {
@@ -90,12 +88,19 @@ public class CaptureSnapResolver {
         return xAxis ? end ? rectangle.right() : rectangle.x() : end ? rectangle.bottom() : rectangle.y();
     }
 
-    private static boolean validLock(AxisLock held, List<CaptureTarget> targets, CaptureSnapOptions options,
-        boolean xAxis) {
+    private static boolean nearby(CaptureRect rectangle, CaptureRect bounds, boolean xAxis, double distance) {
+        return xAxis ? rectangle.bottom() + distance >= bounds.y() && rectangle.y() - distance <= bounds.bottom()
+            : rectangle.right() + distance >= bounds.x() && rectangle.x() - distance <= bounds.right();
+    }
+
+    private static boolean validLock(AxisLock held, CaptureRect rectangle, List<CaptureTarget> targets,
+        CaptureSnapOptions options, boolean xAxis) {
         for (CaptureTarget target : targets) {
             if (!target.id()
                 .equals(held.targetId()) || !options.accepts(target)) continue;
             CaptureRect bounds = target.visibleBounds();
+            if (!nearby(rectangle, bounds, xAxis, Math.max(options.acquireDistance(), options.releaseDistance())))
+                return false;
             return held.coordinate() == (xAxis ? bounds.x() : bounds.y())
                 || held.coordinate() == (xAxis ? bounds.right() : bounds.bottom());
         }

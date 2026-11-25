@@ -34,6 +34,8 @@ public class GuiTileCaptureSource implements AutoCloseable {
     }
 
     public int tileLimit(int requested, long memoryBudget) {
+        if (requested < 1 || memoryBudget < 1)
+            throw new IllegalArgumentException("Capture tile dimensions and memory allowance must be positive");
         IntBuffer dimensions = BufferUtils.createIntBuffer(16);
         GL11.glGetInteger(GL11.GL_MAX_VIEWPORT_DIMS, dimensions);
         int limit = Math.min(
@@ -41,6 +43,8 @@ public class GuiTileCaptureSource implements AutoCloseable {
             GL11.glGetInteger(EXTFramebufferObject.GL_MAX_RENDERBUFFER_SIZE_EXT));
         limit = Math.min(limit, Math.min(dimensions.get(0), dimensions.get(1)));
         limit = Math.min(limit, (int) Math.sqrt(memoryBudget / 24));
+        if (limit <= GUARD * 2)
+            throw new IllegalArgumentException("The capture memory allowance cannot fit a tile and its guard pixels");
         return Math.min(requested, limit - GUARD * 2);
     }
 
@@ -70,8 +74,10 @@ public class GuiTileCaptureSource implements AutoCloseable {
     }
 
     private <T> T draw(CaptureTile tile, CaptureRenderSnapshot snapshot, boolean includeDebug, Supplier<T> readback) {
-        int width = tile.width() + GUARD * 2;
-        int height = tile.height() + GUARD * 2;
+        if (tile.width() < 1 || tile.height() < 1)
+            throw new IllegalArgumentException("Capture tile dimensions must be positive");
+        int width = Math.addExact(tile.width(), GUARD * 2);
+        int height = Math.addExact(tile.height(), GUARD * 2);
         CaptureRect logical = tile.logicalBounds();
         double pixelX = logical.width() / tile.width();
         double pixelY = logical.height() / tile.height();

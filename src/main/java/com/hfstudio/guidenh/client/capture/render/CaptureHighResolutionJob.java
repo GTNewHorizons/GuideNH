@@ -41,6 +41,7 @@ public class CaptureHighResolutionJob implements AutoCloseable {
     private final List<CaptureRect> erasedPixels;
     private int nextValidation;
     private CaptureReadback validation;
+    private boolean closed;
 
     public CaptureHighResolutionJob(CaptureExportRequest request, CaptureRenderSnapshot snapshot, int tileSize,
         long timestamp) throws IOException {
@@ -63,6 +64,8 @@ public class CaptureHighResolutionJob implements AutoCloseable {
 
     public CaptureHighResolutionJob(CaptureExportRequest request, CaptureRenderSnapshot snapshot, int tileSize,
         long timestamp, long memoryBudget, CaptureFrame reference) throws IOException {
+        if (tileSize < 1 || memoryBudget < 1)
+            throw new IllegalArgumentException("Capture tile dimensions and memory allowance must be positive");
         this.snapshot = snapshot;
         this.timestamp = timestamp;
         readbackBudget = memoryBudget;
@@ -134,16 +137,22 @@ public class CaptureHighResolutionJob implements AutoCloseable {
                 }
             }
         }
-        store = new CaptureTileStore(
-            request.options()
-                .outputDirectory(),
-            size,
-            request.options()
-                .content()
-                .backgroundArgb(),
-            request.options()
-                .temporaryBudgetBytes());
         this.reference = reference == null ? null : reference.retain();
+        try {
+            store = new CaptureTileStore(
+                request.options()
+                    .outputDirectory(),
+                size,
+                request.options()
+                    .content()
+                    .backgroundArgb(),
+                request.options()
+                    .temporaryBudgetBytes());
+        } catch (IOException | RuntimeException | Error failure) {
+            release(this.reference, failure);
+            this.reference = null;
+            throw failure;
+        }
     }
 
     public int completedTiles() {
@@ -168,6 +177,7 @@ public class CaptureHighResolutionJob implements AutoCloseable {
     }
 
     public boolean step(GuiTileCaptureSource source, CapturePixelReader reader, long memoryBudget) throws IOException {
+        if (closed || store == null) throw new IllegalStateException("The tiled capture no longer owns its output");
         if (nextValidation < validationTiles.size()) {
             CaptureTile tile = validationTiles.get(nextValidation);
             if (validation == null) validation = source.enqueue(
@@ -249,6 +259,8 @@ public class CaptureHighResolutionJob implements AutoCloseable {
     }
 
     public CaptureRows takeRows() {
+        if (closed || store == null || nextTile != tiles.size())
+            throw new IllegalStateException("The tiled capture has no completed output to transfer");
         CaptureRows result = new CaptureMaskedRows(request, store);
         store = null;
         return result;
@@ -256,19 +268,33 @@ public class CaptureHighResolutionJob implements AutoCloseable {
 
     @Override
     public void close() throws IOException {
+        if (closed) return;
+        closed = true;
+        Throwable failure = release(validation, null);
+        validation = null;
+        while (!pending.isEmpty()) failure = release(
+            pending.removeFirst()
+                .readback(),
+            failure);
+        failure = release(store, failure);
+        store = null;
+        failure = release(reference, failure);
+        reference = null;
+        failure = release(snapshot, failure);
+        if (failure instanceof IOException error) throw error;
+        if (failure instanceof Error error) throw error;
+        if (failure != null) throw new IOException("Could not release all high-resolution capture resources", failure);
+    }
+
+    private static Throwable release(AutoCloseable resource, Throwable failure) {
+        if (resource == null) return failure;
         try {
-            if (validation != null) validation.close();
-            validation = null;
-            while (!pending.isEmpty()) pending.removeFirst()
-                .readback()
-                .close();
-            if (store != null) store.close();
-        } finally {
-            store = null;
-            if (reference != null) reference.close();
-            reference = null;
-            snapshot.close();
+            resource.close();
+        } catch (Throwable closing) {
+            if (failure == null) return closing;
+            if (closing != failure) failure.addSuppressed(closing);
         }
+        return failure;
     }
 
     public record TileReadback(CaptureTile tile, CaptureReadback readback) {}

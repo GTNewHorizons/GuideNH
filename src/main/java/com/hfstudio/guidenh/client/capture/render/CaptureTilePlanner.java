@@ -16,6 +16,7 @@ public class CaptureTilePlanner {
 
     public static List<CaptureTile> plan(CaptureExportRequest request, CaptureComposition composition,
         CaptureOutputSize output, int tileSize) {
+        if (tileSize < 1) throw new IllegalArgumentException("Capture tile dimensions must be positive");
         double scaleX = (double) output.width() / composition.size()
             .width();
         double scaleY = (double) output.height() / composition.size()
@@ -42,10 +43,10 @@ public class CaptureTilePlanner {
                 composition.size()
                     .height(),
                 output.height());
-            for (int y = top; y < bottom; y += tileSize) {
-                for (int x = left; x < right; x += tileSize) {
+            for (int y = top; y < bottom;) {
+                int height = Math.min(tileSize, bottom - y);
+                for (int x = left; x < right;) {
                     int width = Math.min(tileSize, right - x);
-                    int height = Math.min(tileSize, bottom - y);
                     double sourceX = placement.sourceX() + x / scaleX - placement.destinationX();
                     double sourceY = placement.sourceY() + y / scaleY - placement.destinationY();
                     tiles.add(
@@ -65,7 +66,9 @@ public class CaptureTilePlanner {
                                 height / scaleY
                                     / request.viewport()
                                         .scaleY())));
+                    x += width;
                 }
+                y += height;
             }
         }
         return List.copyOf(tiles);

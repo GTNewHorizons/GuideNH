@@ -9,6 +9,8 @@ public record CaptureRect(double x, double y, double width, double height) {
         if (!Double.isFinite(x) || !Double.isFinite(y)
             || !Double.isFinite(width)
             || !Double.isFinite(height)
+            || !Double.isFinite(x + width)
+            || !Double.isFinite(y + height)
             || width < 0
             || height < 0) {
             throw new IllegalArgumentException("Invalid capture rectangle");
