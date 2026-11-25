@@ -1,3 +1,4 @@
+import { compileMathExpression } from "./math-expression.js";
 import { attr, colorValue, escapeHtml, numberAttr, parseAttributes, splitComma } from "./html-utils.js";
 import { createChartValueFormatter } from "./chart-number-format.js";
 
@@ -732,6 +733,21 @@ export function renderFunctionGraph(rawAttributes, body, expressionOverride = nu
   const graphAxis = colorValue(attr(attributes, "axisColor"), "var(--preview-chart-axis)");
   const graphBody = header.body;
   const plots = expressionOverride ? [{ expression: expressionOverride, color: colorValue(attr(attributes, "color"), PALETTE[0]), label: "", inverse: booleanAttribute(attributes, "inverse", false) }] : readPlots(graphBody);
+  if (plots.length > 64) plots.length = 64;
+  let remainingOperations = 1_000_000;
+  const evaluators = new Map();
+  const compile = expression => {
+    if (evaluators.has(expression)) return evaluators.get(expression);
+    const evaluate = compileExpression(expression);
+    const cost = evaluate.evaluationCost || 1;
+    const bounded = x => {
+      if (cost > remainingOperations) return NaN;
+      remainingOperations -= cost;
+      return evaluate(x);
+    };
+    evaluators.set(expression, bounded);
+    return bounded;
+  };
   const quadrants = String(attr(attributes, "quadrants") || "").toLowerCase();
   const explicitX = attr(attributes, "xRange") !== undefined || attr(attributes, "xMin") !== undefined || attr(attributes, "xMax") !== undefined;
   const explicitY = attr(attributes, "yRange") !== undefined || attr(attributes, "yMin") !== undefined || attr(attributes, "yMax") !== undefined;
@@ -741,11 +757,11 @@ export function renderFunctionGraph(rawAttributes, body, expressionOverride = nu
   const yRange = attr(attributes, "yRange") ?? `${attr(attributes, "yMin") ?? defaultY}..${attr(attributes, "yMax") ?? 4}`;
   let [minX, maxX] = splitGraphRange(xRange, defaultX, 6);
   let [minY, maxY] = splitGraphRange(yRange, defaultY, 4);
-  if (!explicitY && !quadrants && plots.some((plot) => samplePlotMinimum(plot, minX, maxX) < 0)) {
+  if (!explicitY && !quadrants && plots.some((plot) => samplePlotMinimum(plot, minX, maxX, compile) < 0)) {
     minX = explicitX ? minX : -6;
     minY = -4;
   }
-  const markedPoints = readFunctionPoints(graphBody, plots, minX, maxX, minY, maxY);
+  const markedPoints = readFunctionPoints(graphBody, plots, minX, maxX, minY, maxY, compile);
   const left = 38;
   const top = 15;
   const plotWidth = width - left - 12;
@@ -753,15 +769,15 @@ export function renderFunctionGraph(rawAttributes, body, expressionOverride = nu
   const mapX = (value) => left + (value - minX) / (maxX - minX) * plotWidth;
   const mapY = (value) => top + (maxY - value) / (maxY - minY) * plotHeight;
   const grid = [];
-  for (let x = Math.ceil(minX); x <= maxX; x += 1) grid.push(`<line x1="${mapX(x)}" y1="${top}" x2="${mapX(x)}" y2="${top + plotHeight}" class="guide-chart-grid"/>`);
-  for (let y = Math.ceil(minY); y <= maxY; y += 1) grid.push(`<line x1="${left}" y1="${mapY(y)}" x2="${left + plotWidth}" y2="${mapY(y)}" class="guide-chart-grid"/>`);
+  for (const x of boundedGridTicks(minX, maxX)) grid.push(`<line x1="${mapX(x)}" y1="${top}" x2="${mapX(x)}" y2="${top + plotHeight}" class="guide-chart-grid"/>`);
+  for (const y of boundedGridTicks(minY, maxY)) grid.push(`<line x1="${left}" y1="${mapY(y)}" x2="${left + plotWidth}" y2="${mapY(y)}" class="guide-chart-grid"/>`);
   const paths = plots.map((plot) => {
-    const evaluator = compileExpression(plot.expression);
+    const evaluator = compile(plot.expression);
     const points = [];
     const sampled = [];
     let previousValid = false;
     for (let index = 0; index <= 180; index += 1) {
-      const input = (plot.inverse ? minY + (maxY - minY) * index / 180 : minX + (maxX - minX) * index / 180);
+      const input = (plot.inverse ? minY + (maxY - minY) * (index / 180) : minX + (maxX - minX) * (index / 180));
       if (plot.domain && !inDomain(input, plot.domain)) continue;
       const output = evaluator(input);
       const x = plot.inverse ? output : input;
@@ -793,16 +809,28 @@ function booleanAttribute(attributes, name, fallback) {
   return ![false, "false", "0", "no", "off"].includes(value);
 }
 
+function boundedGridTicks(minimum, maximum) {
+  const step = Math.max(1, Math.ceil((maximum - minimum) / 255));
+  const start = Math.ceil(minimum / step) * step;
+  const ticks = [];
+  for (let index = 0; index < 256; index++) {
+    const value = start + index * step;
+    if (!Number.isFinite(value) || value > maximum || (index && value <= ticks.at(-1))) break;
+    ticks.push(value);
+  }
+  return ticks;
+}
+
 function splitGraphRange(value, fallbackMin, fallbackMax) {
   const match = String(value ?? "").match(/^\s*(.+?)\.\.(.+?)\s*$/);
   if (!match) return [fallbackMin, fallbackMax];
   const left = resolveGraphNumber(match[1]);
   const right = resolveGraphNumber(match[2]);
-  return Number.isFinite(left) && Number.isFinite(right) && left !== right ? [Math.min(left, right), Math.max(left, right)] : [fallbackMin, fallbackMax];
+  return Number.isFinite(left) && Number.isFinite(right) && Number.isFinite(right - left) && left !== right ? [Math.min(left, right), Math.max(left, right)] : [fallbackMin, fallbackMax];
 }
 
-function samplePlotMinimum(plot, minX, maxX) {
-  const evaluator = compileExpression(plot.expression);
+function samplePlotMinimum(plot, minX, maxX, compile = compileExpression) {
+  const evaluator = compile(plot.expression);
   let minimum = Number.POSITIVE_INFINITY;
   for (let index = 0; index <= 48; index += 1) {
     const input = minX + (maxX - minX) * index / 48;
@@ -827,17 +855,20 @@ function inDomain(value, expression) {
   return true;
 }
 
-function readFunctionPoints(body, plots, minX = -6, maxX = 6, minY = -4, maxY = 4) {
+function readFunctionPoints(body, plots, minX = -6, maxX = 6, minY = -4, maxY = 4, compile = compileExpression) {
   const points = [];
+  const appendPoint = point => { if (points.length < 256) points.push(point); };
+  let sourceLines = 0;
   for (const line of String(body || "").split(/\r?\n/)) {
+    if (++sourceLines > 512) break;
     const cleaned = line.replace(/\s+#.*$/, "").trim();
     const fixed = cleaned.match(/^:\s*(-?(?:\d+\.?\d*|\.\d+))\s*,\s*(-?(?:\d+\.?\d*|\.\d+))\s*$/);
-    if (fixed) points.push({ x: Number(fixed[1]), y: Number(fixed[2]), color: PALETTE[1], label: "" });
+    if (fixed) appendPoint({ x: Number(fixed[1]), y: Number(fixed[2]), color: PALETTE[1], label: "" });
     const anchored = cleaned.match(/^@\s*plot\s*=\s*(\d+)\s+(atX|atY)\s*=\s*(-?(?:\d+\.?\d*|\.\d+))\s*$/i);
     if (anchored) {
       const plotIndex = Number(anchored[1]);
       const anchorValue = Number(anchored[3]);
-      const evaluator = compileExpression(plots[plotIndex]?.expression || "0");
+      const evaluator = compile(plots[plotIndex]?.expression || "0");
       let x = anchored[2].toLowerCase() === "atx" ? anchorValue : 0;
       let y = anchored[2].toLowerCase() === "aty" ? anchorValue : evaluator(x);
       if (anchored[2].toLowerCase() === "aty") {
@@ -848,49 +879,51 @@ function readFunctionPoints(body, plots, minX = -6, maxX = 6, minY = -4, maxY = 
           if (delta < distance) { distance = delta; x = candidate; }
         }
       }
-      if (Number.isFinite(x) && Number.isFinite(y)) points.push({ x, y, color: PALETTE[1], label: "" });
+      if (Number.isFinite(x) && Number.isFinite(y)) appendPoint({ x, y, color: PALETTE[1], label: "" });
     }
   }
   for (const plot of plots) {
     const everyX = Number(plot.pointEveryX);
     const everyY = Number(plot.pointEveryY);
-    const evaluator = compileExpression(plot.expression);
+    const evaluator = compile(plot.expression);
     if (Number.isFinite(everyX) && everyX > 0) {
       const start = Math.ceil(minX / everyX) * everyX;
-      for (let x = start; x <= maxX + everyX / 2; x += everyX) {
+      for (let index = 0, x = start; index < 256 && x <= maxX + everyX / 2; index++, x = start + index * everyX) {
         const y = evaluator(x);
         if (!Number.isFinite(y) || (plot.domain && !inDomain(x, plot.domain))) continue;
-        points.push({ x, y, color: plot.color, label: plot.autoPointLabel === "x" ? `x = ${formatChartNumber(x)}` : plot.autoPointLabel === "y" ? `y = ${formatChartNumber(y)}` : "" });
+        appendPoint({ x, y, color: plot.color, label: plot.autoPointLabel === "x" ? `x = ${formatChartNumber(x)}` : plot.autoPointLabel === "y" ? `y = ${formatChartNumber(y)}` : "" });
       }
     }
     if (Number.isFinite(everyY) && everyY > 0) {
       const start = Math.ceil(minY / everyY) * everyY;
-      for (let y = start; y <= maxY + everyY / 2; y += everyY) {
+      for (let step = 0, y = start; step < 256 && y <= maxY + everyY / 2; step++, y = start + step * everyY) {
         let bestX = minX;
         let bestDistance = Number.POSITIVE_INFINITY;
         for (let index = 0; index <= 120; index += 1) {
-          const candidate = minX + (maxX - minX) * index / 120;
+          const candidate = minX + (maxX - minX) * (index / 120);
           const value = evaluator(candidate);
           const distance = Math.abs(value - y);
           if (Number.isFinite(distance) && distance < bestDistance) { bestDistance = distance; bestX = candidate; }
         }
-        if (Number.isFinite(bestDistance) && bestDistance < Math.max(.2, everyY * .2)) points.push({ x: bestX, y, color: plot.color, label: plot.autoPointLabel === "y" ? `y = ${formatChartNumber(y)}` : plot.autoPointLabel === "x" ? `x = ${formatChartNumber(bestX)}` : "" });
+        if (Number.isFinite(bestDistance) && bestDistance < Math.max(.2, everyY * .2)) appendPoint({ x: bestX, y, color: plot.color, label: plot.autoPointLabel === "y" ? `y = ${formatChartNumber(y)}` : plot.autoPointLabel === "x" ? `x = ${formatChartNumber(bestX)}` : "" });
       }
     }
   }
+  let sourcePoints = 0;
   for (const match of String(body || "").matchAll(/<Point\b([^>]*?)\/?>(?:[\s\S]*?<\/Point>)?/gi)) {
+    if (++sourcePoints > 256) break;
     const attributes = parseAttributes(match[1]);
     let x = Number(attr(attributes, "x"));
     let y = Number(attr(attributes, "y"));
     const plotIndex = Number(attr(attributes, "plot"));
     if (!Number.isFinite(x) && Number.isFinite(plotIndex) && attr(attributes, "atX") !== undefined) {
       x = Number(attr(attributes, "atX"));
-      const evaluator = compileExpression(plots[plotIndex]?.expression || "0");
+      const evaluator = compile(plots[plotIndex]?.expression || "0");
       y = evaluator(x);
     }
     if (!Number.isFinite(y) && Number.isFinite(plotIndex) && attr(attributes, "atY") !== undefined) {
       y = Number(attr(attributes, "atY"));
-      const evaluator = compileExpression(plots[plotIndex]?.expression || "0");
+      const evaluator = compile(plots[plotIndex]?.expression || "0");
       let candidate = 0;
       let distance = Number.POSITIVE_INFINITY;
       for (let index = 0; index <= 180; index += 1) {
@@ -900,7 +933,7 @@ function readFunctionPoints(body, plots, minX = -6, maxX = 6, minY = -4, maxY = 
       }
       x = candidate;
     }
-    if (Number.isFinite(x) && Number.isFinite(y)) points.push({ x, y, color: colorValue(attr(attributes, "color"), PALETTE[1]), label: attr(attributes, "label") });
+    if (Number.isFinite(x) && Number.isFinite(y)) appendPoint({ x, y, color: colorValue(attr(attributes, "color"), PALETTE[1]), label: attr(attributes, "label") });
   }
   return points;
 }
@@ -909,13 +942,14 @@ function readPlots(body) {
   const plots = [];
   const pattern = /<(Plot|Function)\b([^>]*?)(?:\/>|>([\s\S]*?)<\/\1>)/gi;
   let match;
-  while ((match = pattern.exec(body || ""))) {
+  while (plots.length < 64 && (match = pattern.exec(body || ""))) {
     const attributes = parseAttributes(match[2]);
     const expression = attr(attributes, "expr") || attr(attributes, "expression");
     if (expression) plots.push({ expression: String(expression), color: colorValue(attr(attributes, "color"), PALETTE[plots.length % PALETTE.length]), label: String(attr(attributes, "label") || ""), domain: attr(attributes, "domain"), inverse: booleanAttribute(attributes, "inverse", false), pointEveryX: attr(attributes, "pointEveryX"), pointEveryY: attr(attributes, "pointEveryY"), autoPointLabel: attr(attributes, "autoPointLabel"), showFunction: booleanAttribute(attributes, "showFunction", true), showValues: booleanAttribute(attributes, "showValues", true), tooltip: attr(attributes, "tooltip"), tooltipHtml: match[3]?.trim() || "" });
   }
   if (!plots.length) {
     for (const line of String(body || "").split(/\r?\n/)) {
+      if (plots.length >= 64) break;
       const cleaned = line.replace(/\s+#.*$/, "").trim();
       if (!cleaned || cleaned.startsWith(":") || cleaned.startsWith("@") || /^(?:[\w-]+\s*=)/.test(cleaned)) continue;
       const [expressionPart, attributePart = ""] = cleaned.split("|");
@@ -949,25 +983,5 @@ function resolveGraphNumber(value) {
 }
 
 function compileExpression(expression) {
-  let source = String(expression || "0").replace(/^[xy]\s*=\s*/, "").replaceAll("π", "pi").replaceAll("τ", "tau");
-  source = source.replace(/\|([^|]+)\|/g, "abs($1)").replace(/√\s*([A-Za-z0-9_.]+)/g, "sqrt($1)").replace(/∛\s*([A-Za-z0-9_.]+)/g, "cbrt($1)");
-  source = source.replace(/(\([^()]+\)|\b[\w.]+)\s*!/g, "fact($1)").replaceAll("^", "**");
-  source = source.replace(/\bpi\b/gi, "Math.PI").replace(/\btau\b/gi, "(Math.PI*2)").replace(/\bphi\b/gi, "((1+Math.sqrt(5))/2)").replace(/\be\b/g, "Math.E");
-  source = source.replace(/\b(ln|log|log2|log10|sin|cos|tan|asin|acos|atan|atan2|sinh|cosh|tanh|sqrt|cbrt|abs|sign|exp|floor|ceil|round|pow|min|max|hypot)\s*\(/g, (_match, name) => name === "ln" ? "Math.log(" : name === "sign" ? "Math.sign(" : `Math.${name}(`);
-  source = source.replace(/\bmod\s*\(/g, "mod(").replace(/√\s*\(/g, "Math.sqrt(").replace(/∛\s*\(/g, "Math.cbrt(");
-  source = source.replace(/(\d|\)|Math\.PI|Math\.E)\s*(?=(?:x\b|Math\.PI|Math\.E|\())/g, "$1*");
-  source = source.replace(/(x|\)|Math\.PI|Math\.E)\s*(?=\d)/g, "$1*");
-  if (!/^[\w\s+\-*/%().,!]+$/.test(source)) return () => NaN;
-  try {
-    const fn = new Function("x", "fact", "mod", `"use strict"; return (${source});`);
-    const factorial = (value) => {
-      const numeric = Number(value);
-      if (!Number.isFinite(numeric) || numeric < 0 || numeric > 170) return NaN;
-      if (Number.isInteger(numeric)) { let result = 1; for (let index = 2; index <= numeric; index += 1) result *= index; return result; }
-      return Math.exp((numeric - .5) * Math.log(numeric) - numeric + .5 * Math.log(2 * Math.PI));
-    };
-    return (x) => Number(fn(x, factorial, (left, right) => left % right));
-  } catch (_) {
-    return () => NaN;
-  }
+  return compileMathExpression(expression);
 }
