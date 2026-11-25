@@ -31,6 +31,7 @@ public class CaptureRecordedSnapshot implements CaptureRenderSnapshot {
 
     public void reserve(long bytes) {
         if (sealed || references <= 0) throw new IllegalStateException("The draw snapshot is no longer recording");
+        if (bytes < 0) throw new IllegalArgumentException("Draw snapshot reservations cannot be negative");
         if (bytes > budget - commandBytes - textures.bytes())
             throw new IllegalArgumentException("The draw snapshot exceeds the memory budget");
         commandBytes += bytes;

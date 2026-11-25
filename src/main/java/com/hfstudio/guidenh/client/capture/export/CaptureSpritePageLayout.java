@@ -20,12 +20,13 @@ public record CaptureSpritePageLayout(int columns, int rows, int width, int stri
         if (columns < 1 || (long) strideHeight + padding > options.spritePageSize()) throw new IllegalArgumentException(
             "One sprite cell exceeds the page size; increase it or choose a PNG sequence");
         int width = Math.addExact(Math.multiplyExact(columns, strideWidth), padding);
-        long pageBudget = options.memoryBudgetBytes() - frame.rgbaBytes();
-        long maximumHeight = Math.max(0, pageBudget) / (width * 4L);
-        long budgetRows = Math.max(0, (maximumHeight - padding) / strideHeight);
-        int rows = (int) Math.min((options.spritePageSize() - padding) / strideHeight, budgetRows);
-        if (rows < 1) throw new IllegalArgumentException(
-            "Sprite pages exceed the memory budget; use a PNG sequence or smaller cells");
+        long frameBytes = frame.rgbaBytes();
+        long scanlineBytes = Math.addExact(width * 8L + 131073L, frame.width() * 16L);
+        long bandBytes = Math.multiplyExact(frameBytes, columns + 1L);
+        if (scanlineBytes > options.memoryBudgetBytes() || bandBytes > options.memoryBudgetBytes() - scanlineBytes)
+            throw new IllegalArgumentException(
+                "Sprite frame rows exceed the memory budget; use fewer columns or smaller frames");
+        int rows = (options.spritePageSize() - padding) / strideHeight;
         return new CaptureSpritePageLayout(
             columns,
             rows,
@@ -44,7 +45,10 @@ public record CaptureSpritePageLayout(int columns, int rows, int width, int stri
     }
 
     public int height(int frames) {
-        return Math.addExact(Math.multiplyExact((frames + columns - 1) / columns, strideHeight), padding);
+        if (frames < 1 || frames > framesPerPage())
+            throw new IllegalArgumentException("Sprite page frame counts must fit the page capacity");
+        long actualRows = ((long) frames + columns - 1) / columns;
+        return Math.toIntExact(Math.addExact(Math.multiplyExact(actualRows, strideHeight), padding));
     }
 
     public int x(int frame) {
