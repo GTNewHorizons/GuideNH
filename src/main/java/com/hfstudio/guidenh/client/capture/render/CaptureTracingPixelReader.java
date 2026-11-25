@@ -3,6 +3,7 @@ package com.hfstudio.guidenh.client.capture.render;
 import com.hfstudio.guidenh.client.capture.api.CaptureAlphaMode;
 import com.hfstudio.guidenh.client.capture.api.CaptureContext;
 import com.hfstudio.guidenh.client.capture.api.CaptureFrame;
+import com.hfstudio.guidenh.client.capture.api.CaptureMemoryAccount;
 import com.hfstudio.guidenh.client.capture.api.CapturePixelReader;
 import com.hfstudio.guidenh.client.capture.api.CaptureReadback;
 import com.hfstudio.guidenh.client.capture.api.CaptureRenderProbe;
@@ -22,6 +23,16 @@ public class CaptureTracingPixelReader implements CapturePixelReader {
         this.probe = probe;
         this.context = context;
         this.budget = budget;
+    }
+
+    @Override
+    public CaptureMemoryAccount memoryAccount() {
+        return delegate.memoryAccount();
+    }
+
+    @Override
+    public void memoryAccount(CaptureMemoryAccount account) {
+        delegate.memoryAccount(account);
     }
 
     @Override

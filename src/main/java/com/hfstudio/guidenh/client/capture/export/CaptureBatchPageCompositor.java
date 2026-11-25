@@ -145,6 +145,9 @@ public class CaptureBatchPageCompositor {
                 initial.strictQueue(),
                 initial.targetChangePolicy(),
                 initial.spriteLayout());
+            long workspaceBytes = encoder.workspaceBytes(request, recording, canvas);
+            if (workspaceBytes < 0 || workspaceBytes > memoryBudget - Math.multiplyExact(frameBytes, 3))
+                throw new IOException("Page decoding and animation workspace exceed the shared memory allowance");
             Path encoded = encoder.directory() ? Files.createDirectory(temporary.resolve("animation"))
                 : temporary.resolve("pages." + encoder.format());
             long interval = Math.multiplyExact(
@@ -161,8 +164,13 @@ public class CaptureBatchPageCompositor {
                     long elapsed = Math.multiplyExact(index, interval);
                     CaptureOutputSize page = pageSizes.get(index);
                     try (CaptureRecordedFrame frame = new CaptureRecordedFrame(
-                        CaptureBatchPageReader
-                            .frame(entry, page, canvas, content.backgroundArgb(), elapsed, memoryBudget - frameBytes),
+                        CaptureBatchPageReader.frame(
+                            entry,
+                            page,
+                            canvas,
+                            content.backgroundArgb(),
+                            elapsed,
+                            memoryBudget - workspaceBytes),
                         elapsed)) {
                         checkCancellation();
                         writer.append(frame);

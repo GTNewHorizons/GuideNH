@@ -8,6 +8,7 @@ import org.lwjgl.opengl.GL15;
 import org.lwjgl.opengl.GL21;
 import org.lwjgl.opengl.GLContext;
 
+import com.hfstudio.guidenh.client.capture.CaptureCleanup;
 import com.hfstudio.guidenh.client.capture.api.CaptureAlphaMode;
 import com.hfstudio.guidenh.client.capture.api.CaptureReadback;
 
@@ -20,15 +21,19 @@ public class GlCapturePixelReader extends CaptureBufferPixelReader {
         long memoryBudget) {
         if (!CaptureGlReadbackQueue.supported())
             return super.enqueue(x, y, width, height, timestamp, alphaMode, memoryBudget);
-        if (readbacks == null) readbacks = new CaptureGlReadbackQueue();
+        beginRead();
+        if (readbacks == null) readbacks = new CaptureGlReadbackQueue(memoryAccount());
         return readbacks.submit(x, y, width, height, timestamp, alphaMode, memoryBudget);
     }
 
     @Override
     public void close() {
-        if (readbacks != null) readbacks.close();
+        CaptureGlReadbackQueue previous = readbacks;
         readbacks = null;
-        super.close();
+        CaptureCleanup cleanup = new CaptureCleanup();
+        cleanup.close(previous);
+        cleanup.run(super::close);
+        cleanup.rethrow();
     }
 
     @Override

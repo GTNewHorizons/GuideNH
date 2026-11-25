@@ -1,5 +1,6 @@
 package com.hfstudio.guidenh.client.capture.export;
 
+import com.hfstudio.guidenh.client.capture.api.CaptureExporter;
 import com.hfstudio.guidenh.client.capture.api.CaptureOutputSize;
 import com.hfstudio.guidenh.client.capture.api.CaptureRecordingOptions;
 import com.hfstudio.guidenh.client.capture.api.CaptureSpriteLayout;
@@ -21,7 +22,7 @@ public record CaptureSpritePageLayout(int columns, int rows, int width, int stri
             "One sprite cell exceeds the page size; increase it or choose a PNG sequence");
         int width = Math.addExact(Math.multiplyExact(columns, strideWidth), padding);
         long frameBytes = frame.rgbaBytes();
-        long scanlineBytes = Math.addExact(width * 8L + 131073L, frame.width() * 16L);
+        long scanlineBytes = Math.addExact(width * 12L + CaptureExporter.WORKSPACE_OVERHEAD_BYTES, frame.width() * 16L);
         long bandBytes = Math.multiplyExact(frameBytes, columns + 1L);
         if (scanlineBytes > options.memoryBudgetBytes() || bandBytes > options.memoryBudgetBytes() - scanlineBytes)
             throw new IllegalArgumentException(
@@ -42,6 +43,12 @@ public record CaptureSpritePageLayout(int columns, int rows, int width, int stri
 
     public int framesPerPage() {
         return Math.multiplyExact(columns, rows);
+    }
+
+    public long workspaceBytes(CaptureOutputSize frame) {
+        long band = Math.multiplyExact(frame.rgbaBytes(), columns + 1L);
+        return Math
+            .addExact(band, Math.addExact(width * 12L + CaptureExporter.WORKSPACE_OVERHEAD_BYTES, frame.width() * 16L));
     }
 
     public int height(int frames) {

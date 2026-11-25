@@ -2,6 +2,8 @@ package com.hfstudio.guidenh.client.capture.api;
 
 public interface CaptureSource extends AutoCloseable {
 
+    default void memoryAccount(CaptureMemoryAccount account) {}
+
     void beginGui(CaptureContext context, CaptureContentOptions content, boolean collectGeometry);
 
     void finishGui(CaptureContext context);

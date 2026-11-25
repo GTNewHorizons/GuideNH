@@ -19,6 +19,7 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.function.Supplier;
 
 import com.google.gson.GsonBuilder;
+import com.hfstudio.guidenh.client.capture.CaptureCleanup;
 import com.hfstudio.guidenh.client.capture.CaptureRegistry;
 import com.hfstudio.guidenh.client.capture.api.CaptureAnimationExporter;
 import com.hfstudio.guidenh.client.capture.api.CaptureAnimationWriter;
@@ -28,7 +29,10 @@ import com.hfstudio.guidenh.client.capture.api.CaptureBatchOutput;
 import com.hfstudio.guidenh.client.capture.api.CaptureExportRequest;
 import com.hfstudio.guidenh.client.capture.api.CaptureExporter;
 import com.hfstudio.guidenh.client.capture.api.CaptureFrame;
+import com.hfstudio.guidenh.client.capture.api.CaptureMemoryAccount;
+import com.hfstudio.guidenh.client.capture.api.CaptureMemoryReservation;
 import com.hfstudio.guidenh.client.capture.api.CaptureOutputArtifact;
+import com.hfstudio.guidenh.client.capture.api.CaptureOutputSize;
 import com.hfstudio.guidenh.client.capture.api.CaptureRecordedFrame;
 import com.hfstudio.guidenh.client.capture.api.CaptureRowExporter;
 import com.hfstudio.guidenh.client.capture.api.CaptureRows;
@@ -37,6 +41,7 @@ import com.hfstudio.guidenh.client.capture.recording.CaptureRecording;
 public class CaptureExportWorker implements AutoCloseable {
 
     private final CaptureRegistry registry;
+    private final CaptureMemoryAccount memory;
     private final Set<CaptureExportTask<?>> tasks = ConcurrentHashMap.newKeySet();
     private final ExecutorService executor = Executors.newSingleThreadExecutor(task -> {
         Thread thread = new Thread(task, "GuideNH GUI export");
@@ -49,7 +54,12 @@ public class CaptureExportWorker implements AutoCloseable {
     }
 
     public CaptureExportWorker(CaptureRegistry registry) {
+        this(registry, null);
+    }
+
+    public CaptureExportWorker(CaptureRegistry registry, CaptureMemoryAccount memory) {
         this.registry = Objects.requireNonNull(registry);
+        this.memory = memory;
         if (!registry.formats()
             .contains("png")) register(new PngCaptureExporter());
         if (!registry.formats()
@@ -79,7 +89,7 @@ public class CaptureExportWorker implements AutoCloseable {
     public CompletableFuture<Path> writeManifest(CaptureBatchManifest manifest, Path directory, long remainingBytes) {
         return submitTask(() -> {
             Path temporary = null;
-            try {
+            try (CaptureMemoryReservation workspace = new CaptureMemoryReservation(memory, 65536)) {
                 temporary = Files.createTempFile(directory, ".guidenh_manifest_", ".part");
                 try (Writer writer = new OutputStreamWriter(
                     new CaptureBudgetOutputStream(Files.newOutputStream(temporary), remainingBytes),
@@ -113,9 +123,17 @@ public class CaptureExportWorker implements AutoCloseable {
                     options.layout()
                         .pageRecording()
                         .format());
+        if (!options.layout()
+            .contactSheet()
+            && !options.layout()
+                .scrollImages()
+            && pageEncoder == null) return CompletableFuture.completedFuture(List.of());
         return submitTask(() -> {
-            try {
-                return CaptureBatchCompositor.compose(manifest, options, directory, remainingBytes, pageEncoder);
+            long available = memory == null ? options.memoryBudgetBytes()
+                : Math.min(options.memoryBudgetBytes(), memory.available());
+            CaptureBatchOptions bounded = options.withMemoryBudget(available);
+            try (CaptureMemoryReservation workspace = new CaptureMemoryReservation(memory, available)) {
+                return CaptureBatchCompositor.compose(manifest, bounded, directory, remainingBytes, pageEncoder);
             } catch (IOException error) {
                 throw new UncheckedIOException(error);
             }
@@ -126,19 +144,49 @@ public class CaptureExportWorker implements AutoCloseable {
         CaptureAnimationExporter exporter = registry.animationExporter(
             recording.options()
                 .format());
-        recording.completion(submitTask(() -> {
-            try {
-                return exportRecording(recording, exporter);
-            } catch (IOException error) {
-                throw new UncheckedIOException(error);
-            } catch (InterruptedException error) {
-                Thread.currentThread()
-                    .interrupt();
-                throw new CancellationException("Recording cancelled");
-            } finally {
-                recording.close();
-            }
-        }, recording::close));
+        recording.memoryAccount(memory);
+        long bytes = exporter.workspaceBytes(recording.request(), recording.options(), outputSize(recording.request()));
+        if (bytes > recording.options()
+            .memoryBudgetBytes())
+            throw new IllegalArgumentException("The animation workspace exceeds its memory allowance");
+        CaptureMemoryReservation workspace = new CaptureMemoryReservation(memory, bytes);
+        try {
+            recording.completion(submitTask(() -> {
+                try (workspace) {
+                    try {
+                        return exportRecording(recording, exporter);
+                    } finally {
+                        recording.close();
+                    }
+                } catch (IOException error) {
+                    throw new UncheckedIOException(error);
+                } catch (InterruptedException error) {
+                    Thread.currentThread()
+                        .interrupt();
+                    throw new CancellationException("Recording cancelled");
+                }
+            }, () -> {
+                CaptureCleanup cleanup = new CaptureCleanup();
+                cleanup.close(recording);
+                cleanup.close(workspace);
+                cleanup.rethrow();
+            }));
+        } catch (RuntimeException | Error failure) {
+            CaptureCleanup cleanup = new CaptureCleanup(failure);
+            cleanup.close(workspace);
+            throw failure;
+        }
+    }
+
+    private static CaptureOutputSize outputSize(CaptureExportRequest request) {
+        CaptureComposition composition = CaptureRowComposer.compose(request);
+        return request.options()
+            .resolution()
+            .resolve(
+                composition.size()
+                    .width(),
+                composition.size()
+                    .height());
     }
 
     private CaptureOutputArtifact exportRecording(CaptureRecording recording, CaptureAnimationExporter exporter)
@@ -197,7 +245,10 @@ public class CaptureExportWorker implements AutoCloseable {
         Objects.requireNonNull(encoder);
         return submitTask(() -> {
             Path temporary = null;
-            try (rows) {
+            try (rows;
+                CaptureMemoryReservation workspace = new CaptureMemoryReservation(
+                    memory,
+                    encoder.workspaceBytes(request, rows.size()))) {
                 Path directory = request.options()
                     .outputDirectory();
                 boolean separate = request.options()
@@ -247,9 +298,13 @@ public class CaptureExportWorker implements AutoCloseable {
     public CompletableFuture<CaptureOutputArtifact> submit(CaptureExportRequest request, CaptureFrame frame,
         CaptureExporter exporter) {
         Objects.requireNonNull(exporter);
-        CaptureFrame owned = frame.retain();
+        CaptureFrame owned = frame.account(memory)
+            .retain();
         return submitTask(() -> {
-            try (owned) {
+            try (owned;
+                CaptureMemoryReservation workspace = new CaptureMemoryReservation(
+                    memory,
+                    exporter.workspaceBytes(request, outputSize(request)))) {
                 return export(request, owned, exporter);
             } catch (IOException error) {
                 throw new UncheckedIOException(error);

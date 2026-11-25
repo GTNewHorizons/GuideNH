@@ -17,6 +17,7 @@ import com.hfstudio.guidenh.client.capture.api.CaptureBatchManifest;
 import com.hfstudio.guidenh.client.capture.api.CaptureBatchOptions;
 import com.hfstudio.guidenh.client.capture.api.CaptureBatchOutput;
 import com.hfstudio.guidenh.client.capture.api.CaptureBatchResult;
+import com.hfstudio.guidenh.client.capture.api.CaptureExporter;
 import com.hfstudio.guidenh.client.capture.api.CaptureOutputArtifact;
 import com.hfstudio.guidenh.client.capture.api.CaptureOutputSize;
 import com.hfstudio.guidenh.client.capture.api.CaptureRect;
@@ -133,7 +134,10 @@ public class CaptureScrollCompositor {
                 if (Thread.currentThread()
                     .isInterrupted()) throw new CancellationException("Scroll composition cancelled");
                 CaptureTileStore rows = source.raster()
-                    .decode(temporary, budget - decodedBytes, options.memoryBudgetBytes());
+                    .decode(
+                        temporary,
+                        budget - decodedBytes,
+                        options.memoryBudgetBytes() - CaptureExporter.WORKSPACE_OVERHEAD_BYTES);
                 decoded.add(rows);
                 decodedBytes += rows.size()
                     .rgbaBytes();
@@ -168,7 +172,7 @@ public class CaptureScrollCompositor {
                     .content()
                     .backgroundArgb(),
                 placements,
-                options.memoryBudgetBytes())) {
+                options.memoryBudgetBytes() - CaptureExporter.WORKSPACE_OVERHEAD_BYTES)) {
                 covered = rows.coveredPixels();
                 artifact = new PngCaptureExporter().exportRows(rows, temporary.resolve("scroll.png"), encodingBudget);
             }

@@ -5,6 +5,7 @@ import java.nio.IntBuffer;
 import org.lwjgl.opengl.GL12;
 
 import com.gtnewhorizons.angelica.glsm.backend.RenderBackend;
+import com.hfstudio.guidenh.client.capture.CaptureCleanup;
 import com.hfstudio.guidenh.client.capture.api.CaptureAlphaMode;
 import com.hfstudio.guidenh.client.capture.api.CaptureReadback;
 import com.hfstudio.guidenh.client.capture.render.CaptureBufferPixelReader;
@@ -25,15 +26,19 @@ public class AngelicaCapturePixelReader extends CaptureBufferPixelReader {
         if (!backend.hasContextOnThread()) throw new IllegalStateException("The rendering backend has no context");
         if (backend.isSDLGPU() || !CaptureGlReadbackQueue.supported())
             return super.enqueue(x, y, width, height, timestamp, alphaMode, memoryBudget);
-        if (readbacks == null) readbacks = new CaptureGlReadbackQueue();
+        beginRead();
+        if (readbacks == null) readbacks = new CaptureGlReadbackQueue(memoryAccount());
         return readbacks.submit(x, y, width, height, timestamp, alphaMode, memoryBudget);
     }
 
     @Override
     public void close() {
-        if (readbacks != null) readbacks.close();
+        CaptureGlReadbackQueue previous = readbacks;
         readbacks = null;
-        super.close();
+        CaptureCleanup cleanup = new CaptureCleanup();
+        cleanup.close(previous);
+        cleanup.run(super::close);
+        cleanup.rethrow();
     }
 
     @Override

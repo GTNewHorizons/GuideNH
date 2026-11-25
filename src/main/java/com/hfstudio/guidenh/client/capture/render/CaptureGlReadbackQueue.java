@@ -16,8 +16,12 @@ import org.lwjgl.opengl.GL32;
 import org.lwjgl.opengl.GLContext;
 import org.lwjgl.opengl.GLSync;
 
+import com.hfstudio.guidenh.client.capture.CaptureCleanup;
 import com.hfstudio.guidenh.client.capture.api.CaptureAlphaMode;
 import com.hfstudio.guidenh.client.capture.api.CaptureFrame;
+import com.hfstudio.guidenh.client.capture.api.CaptureMemoryAccount;
+import com.hfstudio.guidenh.client.capture.api.CaptureMemoryReservation;
+import com.hfstudio.guidenh.client.capture.api.CapturePixelBuffer;
 import com.hfstudio.guidenh.client.capture.api.CaptureReadback;
 
 public class CaptureGlReadbackQueue implements AutoCloseable {
@@ -27,8 +31,17 @@ public class CaptureGlReadbackQueue implements AutoCloseable {
     private final ContextCapabilities capabilities = GLContext.getCapabilities();
     private final boolean coreSync = capabilities.OpenGL32;
     private final List<Slot> slots = new ArrayList<>(MAX_READBACKS);
+    private final CaptureMemoryAccount memory;
     private long allocatedBytes;
     private boolean closed;
+
+    public CaptureGlReadbackQueue() {
+        this(null);
+    }
+
+    public CaptureGlReadbackQueue(CaptureMemoryAccount memory) {
+        this.memory = memory;
+    }
 
     public static boolean supported() {
         return GLContext.getCapabilities().OpenGL21
@@ -56,8 +69,17 @@ public class CaptureGlReadbackQueue implements AutoCloseable {
         if (width <= 0 || height <= 0) throw new IllegalArgumentException("Capture dimensions must be positive");
         int bytes = Math.multiplyExact(Math.multiplyExact(width, height), 4);
         if (bytes > memoryBudget) throw new IllegalArgumentException("The GPU readback exceeds the memory budget");
-        Slot slot = acquire(bytes, memoryBudget);
+        CaptureMemoryReservation result = reserveResult(bytes);
+        Slot slot;
+        try {
+            slot = acquire(bytes, memoryBudget);
+        } catch (RuntimeException | Error failure) {
+            CaptureCleanup cleanup = new CaptureCleanup(failure);
+            cleanup.close(result);
+            throw failure;
+        }
         slot.leased = true;
+        slot.resultReservation = result;
         try (CaptureRenderScope scope = new CaptureRenderScope()) {
             GL15.glBindBuffer(GL21.GL_PIXEL_PACK_BUFFER, slot.buffer);
             GL11.glPixelStorei(GL11.GL_PACK_ALIGNMENT, 1);
@@ -71,10 +93,18 @@ public class CaptureGlReadbackQueue implements AutoCloseable {
             if (slot.fence == null) throw new IllegalStateException("The GPU could not create a readback fence");
             GL11.glFlush();
             return new Readback(slot, width, height, timestamp, alphaMode);
-        } catch (RuntimeException error) {
-            release(slot);
+        } catch (RuntimeException | Error error) {
+            CaptureCleanup cleanup = new CaptureCleanup(error);
+            cleanup.run(() -> release(slot));
             throw error;
         }
+    }
+
+    private CaptureMemoryReservation reserveResult(int bytes) {
+        if (memory != null && memory.available() < bytes) {
+            for (Slot slot : slots) if (!slot.leased) delete(slot);
+        }
+        return new CaptureMemoryReservation(memory, bytes);
     }
 
     private Slot acquire(int bytes, long memoryBudget) {
@@ -99,12 +129,23 @@ public class CaptureGlReadbackQueue implements AutoCloseable {
             throw new IllegalStateException("Pending GPU readbacks consume the available memory budget");
         if (selected.bytes != bytes) {
             delete(selected);
-            try (CaptureRenderScope scope = new CaptureRenderScope()) {
-                selected.buffer = GL15.glGenBuffers();
-                GL15.glBindBuffer(GL21.GL_PIXEL_PACK_BUFFER, selected.buffer);
-                GL15.glBufferData(GL21.GL_PIXEL_PACK_BUFFER, bytes, GL15.GL_STREAM_READ);
-                selected.bytes = bytes;
-                allocatedBytes += bytes;
+            if (memory != null && memory.available() < bytes) {
+                for (Slot slot : slots) if (slot != selected && !slot.leased) delete(slot);
+            }
+            selected.storageReservation = new CaptureMemoryReservation(memory, bytes);
+            try {
+                try (CaptureRenderScope scope = new CaptureRenderScope()) {
+                    selected.buffer = GL15.glGenBuffers();
+                    GL15.glBindBuffer(GL21.GL_PIXEL_PACK_BUFFER, selected.buffer);
+                    GL15.glBufferData(GL21.GL_PIXEL_PACK_BUFFER, bytes, GL15.GL_STREAM_READ);
+                    selected.bytes = bytes;
+                    allocatedBytes += bytes;
+                }
+            } catch (RuntimeException | Error failure) {
+                Slot failed = selected;
+                CaptureCleanup cleanup = new CaptureCleanup(failure);
+                cleanup.run(() -> delete(failed));
+                throw failure;
             }
         }
         return selected;
@@ -112,32 +153,48 @@ public class CaptureGlReadbackQueue implements AutoCloseable {
 
     private void release(Slot slot) {
         checkThread();
-        if (slot.fence != null) {
-            if (currentContext()) {
-                if (coreSync) GL32.glDeleteSync(slot.fence);
-                else ARBSync.glDeleteSync(slot.fence);
-            }
-            slot.fence = null;
-        }
+        GLSync fence = slot.fence;
+        CaptureMemoryReservation result = slot.resultReservation;
+        slot.fence = null;
+        slot.resultReservation = null;
         slot.leased = false;
+        CaptureCleanup cleanup = new CaptureCleanup();
+        if (fence != null) {
+            if (currentContext()) {
+                cleanup.run(() -> {
+                    if (coreSync) GL32.glDeleteSync(fence);
+                    else ARBSync.glDeleteSync(fence);
+                });
+            }
+        }
+        cleanup.close(result);
+        cleanup.rethrow();
     }
 
     private void delete(Slot slot) {
-        release(slot);
-        if (slot.buffer != 0 && currentContext()) GL15.glDeleteBuffers(slot.buffer);
+        CaptureCleanup cleanup = new CaptureCleanup();
+        cleanup.run(() -> release(slot));
+        int buffer = slot.buffer;
+        CaptureMemoryReservation storage = slot.storageReservation;
         allocatedBytes -= slot.bytes;
         slot.buffer = 0;
         slot.bytes = 0;
         slot.mapping = null;
+        slot.storageReservation = null;
+        if (buffer != 0 && currentContext()) cleanup.run(() -> GL15.glDeleteBuffers(buffer));
+        cleanup.close(storage);
+        cleanup.rethrow();
     }
 
     @Override
     public void close() {
         checkThread();
         if (closed) return;
-        for (Slot slot : slots) delete(slot);
-        slots.clear();
         closed = true;
+        CaptureCleanup cleanup = new CaptureCleanup();
+        for (Slot slot : slots) cleanup.run(() -> delete(slot));
+        slots.clear();
+        cleanup.rethrow();
     }
 
     public static class Slot {
@@ -147,6 +204,8 @@ public class CaptureGlReadbackQueue implements AutoCloseable {
         private GLSync fence;
         private ByteBuffer mapping;
         private boolean leased;
+        private CaptureMemoryReservation storageReservation;
+        private CaptureMemoryReservation resultReservation;
     }
 
     public class Readback implements CaptureReadback {
@@ -180,26 +239,40 @@ public class CaptureGlReadbackQueue implements AutoCloseable {
         @Override
         public CaptureFrame take() {
             if (!ready()) throw new IllegalStateException("The GPU readback is not ready");
-            try (CaptureRenderScope scope = new CaptureRenderScope()) {
-                GL15.glBindBuffer(GL21.GL_PIXEL_PACK_BUFFER, slot.buffer);
-                slot.mapping = GL15.glMapBuffer(GL21.GL_PIXEL_PACK_BUFFER, GL15.GL_READ_ONLY, slot.bytes, slot.mapping);
-                if (slot.mapping == null) throw new IllegalStateException("The GPU readback buffer could not map");
-                int[] pixels = new int[Math.multiplyExact(width, height)];
-                try {
-                    IntBuffer words = slot.mapping.order(ByteOrder.nativeOrder())
-                        .asIntBuffer();
-                    for (int row = 0; row < height; row++) {
-                        words.position((height - 1 - row) * width);
-                        words.get(pixels, row * width, width);
+            CapturePixelBuffer buffer = null;
+            CaptureFrame frame = null;
+            try {
+                buffer = CapturePixelBuffer.allocate(Math.multiplyExact(width, height), memory, slot.resultReservation);
+                slot.resultReservation = null;
+                int[] pixels = buffer.array();
+                try (CaptureRenderScope scope = new CaptureRenderScope()) {
+                    GL15.glBindBuffer(GL21.GL_PIXEL_PACK_BUFFER, slot.buffer);
+                    slot.mapping = GL15
+                        .glMapBuffer(GL21.GL_PIXEL_PACK_BUFFER, GL15.GL_READ_ONLY, slot.bytes, slot.mapping);
+                    if (slot.mapping == null) throw new IllegalStateException("The GPU readback buffer could not map");
+                    try {
+                        IntBuffer words = slot.mapping.order(ByteOrder.nativeOrder())
+                            .asIntBuffer();
+                        for (int row = 0; row < height; row++) {
+                            words.position((height - 1 - row) * width);
+                            words.get(pixels, row * width, width);
+                        }
+                    } finally {
+                        if (!GL15.glUnmapBuffer(GL21.GL_PIXEL_PACK_BUFFER))
+                            throw new IllegalStateException("The GPU readback buffer was corrupted");
                     }
-                } finally {
-                    if (!GL15.glUnmapBuffer(GL21.GL_PIXEL_PACK_BUFFER))
-                        throw new IllegalStateException("The GPU readback buffer was corrupted");
                 }
                 CapturePixelConverter.normalize(pixels, alphaMode);
-                return new CaptureFrame(width, height, timestamp, pixels);
-            } finally {
+                frame = CaptureFrame.take(width, height, timestamp, buffer);
+                buffer = null;
                 close();
+                return frame;
+            } catch (RuntimeException | Error failure) {
+                CaptureCleanup cleanup = new CaptureCleanup(failure);
+                cleanup.close(frame);
+                cleanup.close(buffer);
+                cleanup.run(this::close);
+                throw failure;
             }
         }
 

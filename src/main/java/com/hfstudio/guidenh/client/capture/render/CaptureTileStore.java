@@ -8,7 +8,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 
+import com.hfstudio.guidenh.client.capture.CaptureCleanup;
 import com.hfstudio.guidenh.client.capture.api.CaptureFrame;
+import com.hfstudio.guidenh.client.capture.api.CaptureMemoryAccount;
+import com.hfstudio.guidenh.client.capture.api.CaptureMemoryReservation;
 import com.hfstudio.guidenh.client.capture.api.CaptureOutputSize;
 import com.hfstudio.guidenh.client.capture.api.CaptureRows;
 import com.hfstudio.guidenh.client.capture.api.CaptureTile;
@@ -21,9 +24,18 @@ public class CaptureTileStore implements CaptureRows {
     private final CaptureOutputSize size;
     private final int background;
     private ByteBuffer buffer;
+    private final CaptureMemoryAccount memory;
+    private CaptureMemoryReservation bufferReservation;
+    private boolean closed;
 
     public CaptureTileStore(Path directory, CaptureOutputSize size, int background, long diskBudget)
         throws IOException {
+        this(directory, size, background, diskBudget, null);
+    }
+
+    public CaptureTileStore(Path directory, CaptureOutputSize size, int background, long diskBudget,
+        CaptureMemoryAccount memory) throws IOException {
+        this.memory = memory;
         if (size.rgbaBytes() > diskBudget) {
             throw new IllegalArgumentException("The high-resolution source exceeds the temporary disk budget");
         }
@@ -33,9 +45,10 @@ public class CaptureTileStore implements CaptureRows {
         try {
             opened = FileChannel.open(path, StandardOpenOption.READ, StandardOpenOption.WRITE);
             opened.write(ByteBuffer.wrap(new byte[1]), size.rgbaBytes() - 1);
-        } catch (IOException error) {
-            if (opened != null) opened.close();
-            Files.deleteIfExists(path);
+        } catch (IOException | RuntimeException | Error error) {
+            CaptureCleanup cleanup = new CaptureCleanup(error);
+            cleanup.close(opened);
+            cleanup.run(() -> Files.deleteIfExists(path));
             throw error;
         }
         channel = opened;
@@ -49,8 +62,20 @@ public class CaptureTileStore implements CaptureRows {
     }
 
     private ByteBuffer buffer(int count) {
-        if (buffer == null || buffer.capacity() < count) buffer = ByteBuffer.allocate(count)
-            .order(ByteOrder.LITTLE_ENDIAN);
+        if (closed) throw new IllegalStateException("The capture tile store is closed");
+        if (buffer == null || buffer.capacity() < count) {
+            releaseBuffer();
+            CaptureMemoryReservation reservation = new CaptureMemoryReservation(memory, count);
+            try {
+                buffer = ByteBuffer.allocate(count)
+                    .order(ByteOrder.LITTLE_ENDIAN);
+                bufferReservation = reservation;
+            } catch (RuntimeException | Error failure) {
+                CaptureCleanup cleanup = new CaptureCleanup(failure);
+                cleanup.close(reservation);
+                throw failure;
+            }
+        }
         buffer.clear()
             .limit(count);
         return buffer;
@@ -77,6 +102,9 @@ public class CaptureTileStore implements CaptureRows {
 
     public void releaseBuffer() {
         buffer = null;
+        CaptureMemoryReservation previous = bufferReservation;
+        bufferReservation = null;
+        if (previous != null) previous.close();
     }
 
     public void readSpan(int y, int x, int count, int[] target, int targetOffset, ByteBuffer shared)
@@ -108,11 +136,13 @@ public class CaptureTileStore implements CaptureRows {
 
     @Override
     public void close() throws IOException {
-        try {
-            channel.close();
-        } finally {
-            buffer = null;
-            Files.deleteIfExists(path);
-        }
+        if (closed) return;
+        closed = true;
+        CaptureCleanup cleanup = new CaptureCleanup();
+        cleanup.run(channel::close);
+        cleanup.run(this::releaseBuffer);
+        cleanup.run(() -> Files.deleteIfExists(path));
+        if (cleanup.failure() instanceof IOException error) throw error;
+        cleanup.rethrow();
     }
 }

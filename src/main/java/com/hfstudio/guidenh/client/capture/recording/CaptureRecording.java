@@ -6,8 +6,10 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
+import com.hfstudio.guidenh.client.capture.CaptureCleanup;
 import com.hfstudio.guidenh.client.capture.api.CaptureExportRequest;
 import com.hfstudio.guidenh.client.capture.api.CaptureFrame;
+import com.hfstudio.guidenh.client.capture.api.CaptureMemoryAccount;
 import com.hfstudio.guidenh.client.capture.api.CaptureOutputArtifact;
 import com.hfstudio.guidenh.client.capture.api.CaptureOutputSize;
 import com.hfstudio.guidenh.client.capture.api.CaptureRecordedFrame;
@@ -37,6 +39,7 @@ public class CaptureRecording implements AutoCloseable {
     private volatile boolean cancelled;
     private volatile long endTime;
     private CompletableFuture<CaptureOutputArtifact> completion;
+    private CaptureMemoryAccount memory;
 
     public CaptureRecording(CaptureExportRequest request, CaptureRecordingOptions options, long now) {
         this.request = request;
@@ -70,6 +73,15 @@ public class CaptureRecording implements AutoCloseable {
 
     public CaptureExportRequest request() {
         return request;
+    }
+
+    public synchronized void memoryAccount(CaptureMemoryAccount account) {
+        if (account == null) return;
+        if (memory != null && memory != account)
+            throw new IllegalStateException("A recording cannot change its allocation budget");
+        for (CaptureRecordedFrame frame : queue) frame.frame()
+            .account(account);
+        memory = account;
     }
 
     public CaptureRecordingOptions options() {
@@ -118,6 +130,7 @@ public class CaptureRecording implements AutoCloseable {
 
     public boolean needsFrame(long now) {
         return sampling() && now >= nextSample
+            && (memory == null || memory.available() / 2 >= sourceFrameBytes)
             && queuedBytes.get() <= queueBudget - sourceFrameBytes
             && queue.remainingCapacity() > 0;
     }
@@ -137,7 +150,11 @@ public class CaptureRecording implements AutoCloseable {
             return;
         }
         List<CaptureRegion> snapshot = List.copyOf(regions);
-        CaptureRecordedFrame owned = new CaptureRecordedFrame(frame.retain(), elapsed(now), snapshot);
+        CaptureRecordedFrame owned = new CaptureRecordedFrame(
+            frame.account(memory)
+                .retain(),
+            elapsed(now),
+            snapshot);
         if (finished) {
             owned.close();
             return;
@@ -159,6 +176,12 @@ public class CaptureRecording implements AutoCloseable {
             queueLimitReached = true;
             stop(now);
         }
+    }
+
+    public void memoryUnavailable(long now) {
+        if (finished || paused()) return;
+        nextSample = now + sampleIntervalNanos;
+        rejected(now);
     }
 
     public CaptureRecordedFrame poll() throws InterruptedException {
@@ -186,7 +209,8 @@ public class CaptureRecording implements AutoCloseable {
         }
         if (!finished && !paused()
             && now >= nextSample
-            && (queue.remainingCapacity() == 0 || queuedBytes.get() > queueBudget - sourceFrameBytes)) {
+            && (queue.remainingCapacity() == 0 || queuedBytes.get() > queueBudget - sourceFrameBytes
+                || memory != null && memory.available() / 2 < sourceFrameBytes)) {
             nextSample = now + sampleIntervalNanos;
             rejected(now);
         }
@@ -211,7 +235,12 @@ public class CaptureRecording implements AutoCloseable {
     public synchronized void close() {
         cancelled = true;
         finished = true;
+        CaptureCleanup cleanup = new CaptureCleanup();
         CaptureRecordedFrame frame;
-        while ((frame = queue.poll()) != null) consumed(frame);
+        while ((frame = queue.poll()) != null) {
+            CaptureRecordedFrame previous = frame;
+            cleanup.run(() -> consumed(previous));
+        }
+        cleanup.rethrow();
     }
 }

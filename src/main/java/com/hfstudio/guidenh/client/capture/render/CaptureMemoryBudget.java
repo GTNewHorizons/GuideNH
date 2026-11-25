@@ -1,6 +1,9 @@
 package com.hfstudio.guidenh.client.capture.render;
 
-public class CaptureMemoryBudget {
+import com.hfstudio.guidenh.client.capture.api.CaptureMemoryAccount;
+import com.hfstudio.guidenh.client.capture.api.CaptureMemoryLimitException;
+
+public class CaptureMemoryBudget implements CaptureMemoryAccount {
 
     private long limit;
     private long used;
@@ -22,13 +25,20 @@ public class CaptureMemoryBudget {
         return used;
     }
 
+    @Override
+    public synchronized long available() {
+        return Math.max(0, limit - used);
+    }
+
+    @Override
     public synchronized void reserve(long bytes) {
         if (bytes < 0) throw new IllegalArgumentException("Capture memory reservations cannot be negative");
         if (used > limit || bytes > limit - used)
-            throw new IllegalArgumentException("Retained capture resources exceed the memory budget");
+            throw new CaptureMemoryLimitException("Retained capture resources exceed the memory budget");
         used += bytes;
     }
 
+    @Override
     public synchronized void release(long bytes) {
         if (bytes < 0 || bytes > used)
             throw new IllegalArgumentException("Released capture memory must match a live reservation");

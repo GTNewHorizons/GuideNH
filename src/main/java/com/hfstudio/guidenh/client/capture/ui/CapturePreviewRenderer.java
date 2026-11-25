@@ -8,8 +8,10 @@ import net.minecraft.client.renderer.texture.DynamicTexture;
 
 import org.lwjgl.opengl.GL11;
 
+import com.hfstudio.guidenh.client.capture.CaptureCleanup;
 import com.hfstudio.guidenh.client.capture.api.CaptureExportRequest;
 import com.hfstudio.guidenh.client.capture.api.CaptureFrame;
+import com.hfstudio.guidenh.client.capture.api.CaptureMemoryReservation;
 import com.hfstudio.guidenh.client.capture.api.CaptureOutputSize;
 import com.hfstudio.guidenh.client.capture.api.CaptureRect;
 import com.hfstudio.guidenh.client.capture.api.CaptureRegion;
@@ -22,6 +24,7 @@ import com.hfstudio.guidenh.client.capture.render.CaptureTextureRenderer;
 public class CapturePreviewRenderer implements AutoCloseable {
 
     private DynamicTexture texture;
+    private CaptureMemoryReservation textureReservation;
     private long version = -1;
     private int textureWidth;
     private int textureHeight;
@@ -66,11 +69,21 @@ public class CapturePreviewRenderer implements AutoCloseable {
             hasFrame = false;
             return;
         }
-        if (texture == null || textureWidth != frame.width() || textureHeight != frame.height()) {
+        long textureBytes = Math.multiplyExact(frame.byteSize(), 2);
+        if (texture == null || textureWidth != frame.width()
+            || textureHeight != frame.height()
+            || !textureReservation.matches(frame.memoryAccount(), textureBytes)) {
             close();
             textureWidth = frame.width();
             textureHeight = frame.height();
-            texture = new DynamicTexture(frame.width(), frame.height());
+            textureReservation = new CaptureMemoryReservation(frame.memoryAccount(), textureBytes);
+            try {
+                texture = new DynamicTexture(frame.width(), frame.height());
+            } catch (RuntimeException | Error failure) {
+                CaptureCleanup cleanup = new CaptureCleanup(failure);
+                cleanup.run(this::close);
+                throw failure;
+            }
         }
         if (version != frameVersion) {
             int[] pixels = texture.getTextureData();
@@ -211,9 +224,15 @@ public class CapturePreviewRenderer implements AutoCloseable {
 
     @Override
     public void close() {
-        if (texture != null) texture.deleteGlTexture();
+        DynamicTexture previous = texture;
+        CaptureMemoryReservation reservation = textureReservation;
         texture = null;
+        textureReservation = null;
         version = -1;
         hasFrame = false;
+        CaptureCleanup cleanup = new CaptureCleanup();
+        if (previous != null) cleanup.run(previous::deleteGlTexture);
+        cleanup.close(reservation);
+        cleanup.rethrow();
     }
 }

@@ -5,8 +5,10 @@ import net.minecraft.client.renderer.OpenGlHelper;
 
 import org.lwjgl.opengl.GL11;
 
+import com.hfstudio.guidenh.client.capture.CaptureCleanup;
 import com.hfstudio.guidenh.client.capture.api.CaptureContext;
 import com.hfstudio.guidenh.client.capture.api.CaptureFrame;
+import com.hfstudio.guidenh.client.capture.api.CapturePixelBuffer;
 import com.hfstudio.guidenh.client.capture.api.CapturePixelReader;
 import com.hfstudio.guidenh.client.capture.api.CaptureViewport;
 
@@ -32,7 +34,9 @@ public class CaptureWorldReader {
         CaptureViewport viewport = context.viewport();
         int width = viewport.pixelWidth();
         int height = viewport.pixelHeight();
-        int[] pixels = new int[Math.multiplyExact(width, height)];
+        CapturePixelBuffer buffer = CapturePixelBuffer
+            .allocate(Math.multiplyExact(width, height), reader.memoryAccount());
+        int[] pixels = buffer.array();
         int rowsPerStrip = (int) Math.max(1, STRIP_BYTES / ((long) width * 4));
         try (CaptureRenderScope reading = new CaptureRenderScope()) {
             Minecraft.getMinecraft()
@@ -45,7 +49,11 @@ public class CaptureWorldReader {
                     for (int row = 0; row < rows; row++) strip.copyRow(row, 0, width, pixels, (top + row) * width);
                 }
             }
+            return CaptureWorldSnapshot.take(width, height, buffer);
+        } catch (RuntimeException | Error failure) {
+            CaptureCleanup cleanup = new CaptureCleanup(failure);
+            cleanup.close(buffer);
+            throw failure;
         }
-        return new CaptureWorldSnapshot(width, height, pixels);
     }
 }

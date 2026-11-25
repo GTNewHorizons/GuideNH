@@ -48,6 +48,7 @@ import com.hfstudio.guidenh.client.capture.api.CaptureGuiRenderer;
 import com.hfstudio.guidenh.client.capture.api.CaptureInputEvent;
 import com.hfstudio.guidenh.client.capture.api.CaptureInputOptions;
 import com.hfstudio.guidenh.client.capture.api.CaptureItemGuiFactory;
+import com.hfstudio.guidenh.client.capture.api.CaptureMemoryLimitException;
 import com.hfstudio.guidenh.client.capture.api.CaptureOutputArtifact;
 import com.hfstudio.guidenh.client.capture.api.CaptureOutputSize;
 import com.hfstudio.guidenh.client.capture.api.CapturePhaseSnapshot;
@@ -85,6 +86,7 @@ import com.hfstudio.guidenh.client.capture.render.CaptureFramePhases;
 import com.hfstudio.guidenh.client.capture.render.CaptureFrozenLayers;
 import com.hfstudio.guidenh.client.capture.render.CaptureHighResolutionJob;
 import com.hfstudio.guidenh.client.capture.render.CaptureLayerMask;
+import com.hfstudio.guidenh.client.capture.render.CaptureMemoryBudget;
 import com.hfstudio.guidenh.client.capture.render.CapturePipeline;
 import com.hfstudio.guidenh.client.capture.render.CaptureQueuedFrame;
 import com.hfstudio.guidenh.client.capture.render.CaptureRecordedGuiRenderer;
@@ -125,7 +127,8 @@ public class CaptureRuntime implements CaptureBackendControls, IResourceManagerR
     private static final Logger LOGGER = LogManager.getLogger("GuideNH GUI capture");
     private static final CaptureRuntime INSTANCE = new CaptureRuntime();
     private final CaptureRegistry registry = new CaptureRegistry();
-    private final CapturePipeline pipeline = new CapturePipeline(registry);
+    private final CaptureMemoryBudget allocations = new CaptureMemoryBudget(Long.MAX_VALUE);
+    private final CapturePipeline pipeline = new CapturePipeline(registry, allocations);
     private CaptureBackendSelection exportBackend;
     private CaptureBackendSelection exportPreference;
     private CaptureBackendSelection recordingPreference;
@@ -136,13 +139,13 @@ public class CaptureRuntime implements CaptureBackendControls, IResourceManagerR
     private CaptureQueuedFrame pendingReadback;
     private CaptureWorldSnapshot pendingWorld;
     private final CaptureFrozenLayers frozenLayers = new CaptureFrozenLayers();
-    private final CaptureDrawRecorder drawRecorder = new CaptureDrawRecorder();
+    private final CaptureDrawRecorder drawRecorder = new CaptureDrawRecorder(allocations);
     private boolean reusingLayers;
     private CaptureFrameIdentity pendingIdentity;
     private CaptureRenderState pendingTarget;
     private CaptureRenderPhase pendingPhase;
     private boolean backendPresentationHook;
-    private final CaptureExportWorker exporter = new CaptureExportWorker(registry);
+    private final CaptureExportWorker exporter = new CaptureExportWorker(registry, allocations);
     private volatile CaptureSession session;
     private Thread captureThread;
     private CaptureOverlay overlay;
@@ -154,7 +157,7 @@ public class CaptureRuntime implements CaptureBackendControls, IResourceManagerR
     private volatile boolean activationRequested;
     private volatile boolean guiAvailable;
     private boolean nativeKeyboard;
-    private final GuiTileCaptureSource tileSource = new GuiTileCaptureSource();
+    private final GuiTileCaptureSource tileSource = new GuiTileCaptureSource(allocations);
     private CaptureHighResolutionJob highResolution;
     private CaptureRowExporter highResolutionEncoder;
     private boolean pendingSave;
@@ -191,6 +194,10 @@ public class CaptureRuntime implements CaptureBackendControls, IResourceManagerR
     private boolean opening;
     private boolean closing;
     private boolean closeRequested;
+    private long memoryRetryAvailable = -1;
+    private long memoryRetryLimit;
+    private long memoryRetryRevision;
+    private CaptureViewport memoryRetryViewport;
 
     public static CaptureRuntime instance() {
         return INSTANCE;
@@ -215,14 +222,17 @@ public class CaptureRuntime implements CaptureBackendControls, IResourceManagerR
     }
 
     private long memoryBudget() {
-        if (session != null && session.recording() != null) return session.recording()
+        long bytes;
+        if (session != null && session.recording() != null) bytes = session.recording()
             .options()
             .memoryBudgetBytes();
-        return batch != null && batch.busy() ? batch.catalog()
+        else if (batch != null && batch.busy()) bytes = batch.catalog()
             .options()
-            .memoryBudgetBytes()
-            : (long) session.settings()
-                .config().memoryBudgetMiB << 20;
+            .memoryBudgetBytes();
+        else bytes = (long) session.settings()
+            .config().memoryBudgetMiB << 20;
+        allocations.limit(bytes);
+        return bytes;
     }
 
     private void discardPendingFrame() {
@@ -547,6 +557,25 @@ public class CaptureRuntime implements CaptureBackendControls, IResourceManagerR
     }
 
     private void captureFailed(RuntimeException error) {
+        if (error instanceof CaptureMemoryLimitException) {
+            CaptureCleanup cleanup = new CaptureCleanup(error);
+            cleanup.close(drawRecorder);
+            cleanup.close(discardedHud);
+            cleanup.run(this::discardPendingFrame);
+            cleanup.run(frozenLayers::releaseSnapshot);
+            if (pipeline.guiOpen()) cleanup.run(() -> pipeline.finishGui(captureContext()));
+            if (session.recording() != null) session.recording()
+                .memoryUnavailable(System.nanoTime());
+            if (batchRecording != null) batchRecording.memoryUnavailable(System.nanoTime());
+            frameRequested = false;
+            reusingLayers = false;
+            memoryRetryAvailable = allocations.available();
+            memoryRetryLimit = allocations.limit();
+            memoryRetryRevision = session.refreshRevision();
+            memoryRetryViewport = session.viewport();
+            session.notify(I18n.format("guidenh.capture.failed", error.getMessage()));
+            return;
+        }
         drawRecorder.close();
         pendingSave = false;
         discardedHud.end();
@@ -817,6 +846,7 @@ public class CaptureRuntime implements CaptureBackendControls, IResourceManagerR
         partialTicks = partial;
         session.updateViewport(viewport);
         framePhases.begin(captureContext());
+        memoryBudget();
         try {
             boolean changed = pipeline.select(captureContext(), content(), backendSelection(), taskOwnsPipeline());
             if (changed || session.preview() != null && !session.previewMatches(content(), previewSelection()))
@@ -838,6 +868,11 @@ public class CaptureRuntime implements CaptureBackendControls, IResourceManagerR
         boolean wanted = session.wantsFrame(sampleTime, batchRecording != null && batchRecording.sampling())
             || batchFrame;
         frameRequested = wanted && pendingReadback == null && highResolution == null;
+        if (memoryRetryAvailable >= 0 && allocations.available() <= memoryRetryAvailable
+            && allocations.limit() <= memoryRetryLimit
+            && session.refreshRevision() == memoryRetryRevision
+            && viewport.equals(memoryRetryViewport)) frameRequested = false;
+        else memoryRetryAvailable = -1;
         reusingLayers = session.settings()
             .config().freezePreview
             && !session.selections()
@@ -1406,6 +1441,8 @@ public class CaptureRuntime implements CaptureBackendControls, IResourceManagerR
             sourceVisible = false;
             activationRequested = false;
             frameRequested = false;
+            memoryRetryAvailable = -1;
+            memoryRetryViewport = null;
             closeAfterBatch = false;
             inputEvents.clear();
             cleanup.run(
@@ -1436,6 +1473,7 @@ public class CaptureRuntime implements CaptureBackendControls, IResourceManagerR
 
     public void save() {
         if (!session.canSave()) return;
+        memoryBudget();
         if (session.settings()
             .animationFormat()) {
             startRecording();
@@ -1468,6 +1506,7 @@ public class CaptureRuntime implements CaptureBackendControls, IResourceManagerR
 
     public void startRecording() {
         if (!session.canSave()) return;
+        memoryBudget();
         try {
             CaptureExportRequest request = session.request(Minecraft.getMinecraft().mcDataDir.toPath());
             CaptureComposition composition = CaptureRowComposer.compose(request);
@@ -1686,7 +1725,8 @@ public class CaptureRuntime implements CaptureBackendControls, IResourceManagerR
                         tileSource.tileLimit(tileSize, memoryBudget),
                         frame.timestampNanos(),
                         memoryBudget,
-                        frame);
+                        frame,
+                        allocations);
                 } catch (IOException | RuntimeException error) {
                     snapshot.close();
                     throw error;

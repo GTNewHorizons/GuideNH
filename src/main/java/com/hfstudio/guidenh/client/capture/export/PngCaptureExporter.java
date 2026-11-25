@@ -12,6 +12,7 @@ import java.util.zip.Deflater;
 import java.util.zip.DeflaterOutputStream;
 
 import com.hfstudio.guidenh.client.capture.api.CaptureExportRequest;
+import com.hfstudio.guidenh.client.capture.api.CaptureExporter;
 import com.hfstudio.guidenh.client.capture.api.CaptureFrame;
 import com.hfstudio.guidenh.client.capture.api.CaptureOutputArtifact;
 import com.hfstudio.guidenh.client.capture.api.CaptureOutputSize;
@@ -23,6 +24,15 @@ public class PngCaptureExporter implements CaptureRowExporter {
     @Override
     public String format() {
         return "png";
+    }
+
+    @Override
+    public long workspaceBytes(CaptureExportRequest request, CaptureOutputSize output) {
+        return workspaceBytes(output);
+    }
+
+    public static long workspaceBytes(CaptureOutputSize output) {
+        return Math.addExact(output.width() * 12L, CaptureExporter.WORKSPACE_OVERHEAD_BYTES);
     }
 
     @Override

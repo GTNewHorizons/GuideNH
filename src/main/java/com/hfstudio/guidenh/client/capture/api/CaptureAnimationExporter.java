@@ -11,6 +11,13 @@ public interface CaptureAnimationExporter {
         return false;
     }
 
+    default long workspaceBytes(CaptureExportRequest request, CaptureRecordingOptions options,
+        CaptureOutputSize output) {
+        return Math.addExact(
+            Math.multiplyExact(output.rgbaBytes(), 3),
+            output.width() * 8L + CaptureExporter.WORKSPACE_OVERHEAD_BYTES);
+    }
+
     CaptureAnimationWriter open(CaptureExportRequest request, CaptureRecordingOptions options, Path target)
         throws IOException;
 }

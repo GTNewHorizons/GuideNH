@@ -9,6 +9,7 @@ import java.util.List;
 import com.hfstudio.guidenh.client.capture.api.CaptureContentOptions;
 import com.hfstudio.guidenh.client.capture.api.CaptureExportRequest;
 import com.hfstudio.guidenh.client.capture.api.CaptureFrame;
+import com.hfstudio.guidenh.client.capture.api.CaptureMemoryAccount;
 import com.hfstudio.guidenh.client.capture.api.CaptureOptions;
 import com.hfstudio.guidenh.client.capture.api.CaptureOutputSize;
 import com.hfstudio.guidenh.client.capture.api.CapturePixelReader;
@@ -64,6 +65,11 @@ public class CaptureHighResolutionJob implements AutoCloseable {
 
     public CaptureHighResolutionJob(CaptureExportRequest request, CaptureRenderSnapshot snapshot, int tileSize,
         long timestamp, long memoryBudget, CaptureFrame reference) throws IOException {
+        this(request, snapshot, tileSize, timestamp, memoryBudget, reference, null);
+    }
+
+    public CaptureHighResolutionJob(CaptureExportRequest request, CaptureRenderSnapshot snapshot, int tileSize,
+        long timestamp, long memoryBudget, CaptureFrame reference, CaptureMemoryAccount memory) throws IOException {
         if (tileSize < 1 || memoryBudget < 1)
             throw new IllegalArgumentException("Capture tile dimensions and memory allowance must be positive");
         this.snapshot = snapshot;
@@ -147,7 +153,8 @@ public class CaptureHighResolutionJob implements AutoCloseable {
                     .content()
                     .backgroundArgb(),
                 request.options()
-                    .temporaryBudgetBytes());
+                    .temporaryBudgetBytes(),
+                memory);
         } catch (IOException | RuntimeException | Error failure) {
             release(this.reference, failure);
             this.reference = null;

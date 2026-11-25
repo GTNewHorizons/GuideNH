@@ -6,6 +6,7 @@ import java.nio.file.Path;
 import com.hfstudio.guidenh.client.capture.api.CaptureAnimationExporter;
 import com.hfstudio.guidenh.client.capture.api.CaptureAnimationWriter;
 import com.hfstudio.guidenh.client.capture.api.CaptureExportRequest;
+import com.hfstudio.guidenh.client.capture.api.CaptureOutputSize;
 import com.hfstudio.guidenh.client.capture.api.CaptureRecordingOptions;
 
 public class PngSequenceCaptureExporter implements CaptureAnimationExporter {
@@ -24,6 +25,13 @@ public class PngSequenceCaptureExporter implements CaptureAnimationExporter {
     @Override
     public boolean directory() {
         return true;
+    }
+
+    @Override
+    public long workspaceBytes(CaptureExportRequest request, CaptureRecordingOptions options,
+        CaptureOutputSize output) {
+        return format.equals("sprites") ? CaptureSpritePageLayout.create(output, options)
+            .workspaceBytes(output) : PngCaptureExporter.workspaceBytes(output);
     }
 
     @Override

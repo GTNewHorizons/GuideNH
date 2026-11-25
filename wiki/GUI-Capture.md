@@ -162,6 +162,14 @@ Register encoders through `CaptureRuntime.registry()` on the client thread. Form
 
 Implement `CaptureRowExporter` for tiled high-resolution output. The worker owns and closes the `CaptureRows` stream; the encoder reads it without retaining or closing it. Strict enlarged output requires row-streaming support; automatic quality uses compatible frame export when it is unavailable. Region writers receive the selected region, erase masks, exact output dimensions, and remaining disk budget. They must preserve these dimensions and respect the budget. `CaptureRegionWriter` supports custom row-based region output while sharing the region manifest and crop logic.
 
+Encoders declare their maximum simultaneous working storage in bytes through `workspaceBytes`. Still encoders receive the resolved output size; animation encoders also receive the recording options. Include compression buffers, decoder scanlines, retained images, and finalization storage. The worker reserves this allowance before encoding and holds it until the writer and its output processing finish. A running cancellation does not return the allowance while the encoder still owns these resources.
+
+### Allocation Ownership
+
+Sources and readers receive a `CaptureMemoryAccount` through `memoryAccount` before capture. Defer resource allocation until the account is configured. Reserve heap, direct, and GPU pixel storage before allocating it; release each reservation when its final owner releases the storage. `CaptureMemoryReservation` provides an idempotent close operation for one reservation. Budget exhaustion is reported as `CaptureMemoryLimitException`; it must not be treated as evidence that the source or reader is unsupported.
+
+Use `CapturePixelBuffer.allocate` to reserve and create a pixel array. Fill its `array()` before publication, then transfer ownership with `CaptureFrame.take`. After transfer, use the frame and release it with `close`; do not mutate the array or close the transferred buffer. `CaptureFrame.retain` creates another owner of the same pixels and charges the shared storage once. Frames passed to the worker are accounted against its capture account; arrays supplied to the frame constructor must be exclusively owned, and aliases must be created through `retain`.
+
 ### Capture Phases and Resource Lifecycle
 
 `CaptureSource.capturePhase` selects the phase, defaulting to `FRAME_READY`.

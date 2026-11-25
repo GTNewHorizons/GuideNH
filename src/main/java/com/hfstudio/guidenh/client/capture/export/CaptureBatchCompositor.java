@@ -19,6 +19,7 @@ import com.hfstudio.guidenh.client.capture.api.CaptureBatchManifest;
 import com.hfstudio.guidenh.client.capture.api.CaptureBatchOptions;
 import com.hfstudio.guidenh.client.capture.api.CaptureBatchOutput;
 import com.hfstudio.guidenh.client.capture.api.CaptureBatchResult;
+import com.hfstudio.guidenh.client.capture.api.CaptureExporter;
 import com.hfstudio.guidenh.client.capture.api.CaptureOptions;
 import com.hfstudio.guidenh.client.capture.api.CaptureOutputArtifact;
 import com.hfstudio.guidenh.client.capture.export.CaptureContactSheetManifest.Entry;
@@ -52,6 +53,8 @@ public class CaptureBatchCompositor {
             && !options.layout()
                 .scrollImages()
             && pageEncoder == null) return List.of();
+        if (options.memoryBudgetBytes() <= CaptureExporter.WORKSPACE_OVERHEAD_BYTES)
+            throw new IllegalArgumentException("Batch composition cannot fit its compression workspace");
         Map<String, List<CaptureContactSheetEntry>> groups = new LinkedHashMap<>();
         List<CaptureBatchOutput> outputs = new ArrayList<>();
         if (options.layout()
@@ -186,7 +189,7 @@ public class CaptureBatchCompositor {
                     layout.thumbnailSize(),
                     output.content()
                         .backgroundArgb(),
-                    options.memoryBudgetBytes())) {
+                    options.memoryBudgetBytes() - CaptureExporter.WORKSPACE_OVERHEAD_BYTES)) {
                     artifact = new PngCaptureExporter().exportRows(rows, temporary.resolve(file), budget - bytes);
                 }
                 bytes += artifact.byteSize();

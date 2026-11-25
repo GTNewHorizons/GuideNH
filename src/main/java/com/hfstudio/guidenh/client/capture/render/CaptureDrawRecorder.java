@@ -1,6 +1,7 @@
 package com.hfstudio.guidenh.client.capture.render;
 
 import java.util.List;
+import java.util.Objects;
 
 import net.minecraft.client.gui.FontRenderer;
 
@@ -11,15 +12,26 @@ import com.hfstudio.guidenh.client.capture.api.CaptureViewport;
 
 public class CaptureDrawRecorder implements AutoCloseable {
 
-    private final CaptureMemoryBudget memory = new CaptureMemoryBudget(0);
+    private final CaptureMemoryBudget memory;
+    private final boolean ownsMemoryLimit;
     private CaptureRecordedSnapshot recording;
     private int textDepth;
     private String failure = "";
 
+    public CaptureDrawRecorder() {
+        memory = new CaptureMemoryBudget(0);
+        ownsMemoryLimit = true;
+    }
+
+    public CaptureDrawRecorder(CaptureMemoryBudget memory) {
+        this.memory = Objects.requireNonNull(memory);
+        ownsMemoryLimit = false;
+    }
+
     public void begin(CaptureContext context, CaptureContentOptions content, long budget) {
         close();
         failure = "";
-        memory.limit(budget);
+        if (ownsMemoryLimit) memory.limit(budget);
         recording = new CaptureRecordedSnapshot(context, content, budget, memory);
     }
 

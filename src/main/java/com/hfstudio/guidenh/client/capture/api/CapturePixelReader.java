@@ -2,6 +2,12 @@ package com.hfstudio.guidenh.client.capture.api;
 
 public interface CapturePixelReader extends AutoCloseable {
 
+    default void memoryAccount(CaptureMemoryAccount account) {}
+
+    default CaptureMemoryAccount memoryAccount() {
+        return null;
+    }
+
     CaptureFrame read(int x, int y, int width, int height, long timestampNanos, CaptureAlphaMode alphaMode);
 
     default CaptureReadback enqueue(int x, int y, int width, int height, long timestampNanos,

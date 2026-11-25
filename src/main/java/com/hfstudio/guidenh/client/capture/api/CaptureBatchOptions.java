@@ -39,4 +39,24 @@ public record CaptureBatchOptions(Set<String> scopes, Set<String> providerIds, S
         scopes = Set.copyOf(scopes);
         providerIds = Set.copyOf(providerIds);
     }
+
+    public CaptureBatchOptions withMemoryBudget(long bytes) {
+        if (bytes < 1) throw new IllegalArgumentException("Batch composition needs a positive memory allowance");
+        return new CaptureBatchOptions(
+            scopes,
+            providerIds,
+            visibleMode,
+            includePopups,
+            includeVariants,
+            stableFrames,
+            timeoutSeconds,
+            maxTargets,
+            restoreOriginal,
+            tileSize,
+            bytes,
+            output,
+            recording,
+            serverQuery,
+            layout);
+    }
 }

@@ -12,6 +12,7 @@ import org.lwjgl.opengl.GL11;
 
 import com.hfstudio.guidenh.client.capture.api.CaptureAlphaMode;
 import com.hfstudio.guidenh.client.capture.api.CaptureFrame;
+import com.hfstudio.guidenh.client.capture.api.CaptureMemoryAccount;
 import com.hfstudio.guidenh.client.capture.api.CapturePixelReader;
 import com.hfstudio.guidenh.client.capture.api.CaptureReadback;
 import com.hfstudio.guidenh.client.capture.api.CaptureRect;
@@ -24,6 +25,16 @@ public class GuiTileCaptureSource implements AutoCloseable {
     public static final int GUARD = 2;
     private Framebuffer framebuffer;
     private boolean drawing;
+    private final CaptureMemoryAccount memory;
+    private CaptureFramebufferResources.Allocation allocation;
+
+    public GuiTileCaptureSource() {
+        this(null);
+    }
+
+    public GuiTileCaptureSource(CaptureMemoryAccount memory) {
+        this.memory = memory;
+    }
 
     public boolean drawing() {
         return drawing;
@@ -85,8 +96,9 @@ public class GuiTileCaptureSource implements AutoCloseable {
             GuiRenderVisibility visibility = new GuiRenderVisibility(includeDebug)) {
             if (framebuffer == null || framebuffer.framebufferWidth != width
                 || framebuffer.framebufferHeight != height) {
-                CaptureFramebufferResources.delete(framebuffer);
-                framebuffer = new Framebuffer(width, height, true);
+                close();
+                allocation = CaptureFramebufferResources.create(width, height, memory);
+                framebuffer = allocation.framebuffer();
                 framebuffer.setFramebufferColor(0, 0, 0, 0);
             }
             framebuffer.bindFramebuffer(true);
@@ -125,8 +137,9 @@ public class GuiTileCaptureSource implements AutoCloseable {
 
     @Override
     public void close() {
-        if (framebuffer == null) return;
-        CaptureFramebufferResources.delete(framebuffer);
+        CaptureFramebufferResources.Allocation previous = allocation;
+        allocation = null;
         framebuffer = null;
+        if (previous != null) previous.close();
     }
 }

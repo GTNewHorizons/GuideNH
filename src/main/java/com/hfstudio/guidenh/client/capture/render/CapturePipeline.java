@@ -12,6 +12,7 @@ import com.hfstudio.guidenh.client.capture.api.CaptureContentOptions;
 import com.hfstudio.guidenh.client.capture.api.CaptureContext;
 import com.hfstudio.guidenh.client.capture.api.CaptureFrame;
 import com.hfstudio.guidenh.client.capture.api.CaptureLayerSource;
+import com.hfstudio.guidenh.client.capture.api.CaptureMemoryAccount;
 import com.hfstudio.guidenh.client.capture.api.CapturePixelReader;
 import com.hfstudio.guidenh.client.capture.api.CapturePixelReaderProvider;
 import com.hfstudio.guidenh.client.capture.api.CaptureProviderAvailability;
@@ -23,6 +24,7 @@ import com.hfstudio.guidenh.client.capture.api.CaptureSourceProvider;
 public class CapturePipeline implements AutoCloseable {
 
     private final CaptureRegistry registry;
+    private final CaptureMemoryAccount memory;
     private CaptureSourceProvider sourceProvider;
     private CapturePixelReaderProvider readerProvider;
     private CaptureSource source;
@@ -34,7 +36,12 @@ public class CapturePipeline implements AutoCloseable {
     private boolean guiOpen;
 
     public CapturePipeline(CaptureRegistry registry) {
+        this(registry, null);
+    }
+
+    public CapturePipeline(CaptureRegistry registry, CaptureMemoryAccount memory) {
         this.registry = registry;
+        this.memory = memory;
     }
 
     public CaptureBackendSelection selection() {
@@ -74,6 +81,10 @@ public class CapturePipeline implements AutoCloseable {
         try {
             if (replaceSource) openedSource = Objects.requireNonNull(nextSource.open(context));
             if (replaceReader) openedReader = Objects.requireNonNull(nextReader.open(context));
+            if (memory != null) {
+                if (openedSource != null) openedSource.memoryAccount(memory);
+                if (openedReader != null) openedReader = new CaptureAccountedPixelReader(openedReader, memory);
+            }
         } catch (RuntimeException | Error error) {
             release(openedSource, openedReader, error);
             throw error;
@@ -166,9 +177,11 @@ public class CapturePipeline implements AutoCloseable {
             throw new IllegalStateException("The capture source phase is not ready");
         CaptureProviderAvailability readiness = source.readiness(context);
         if (!readiness.available()) throw new IllegalStateException(readiness.reason());
-        return new CaptureSizedReadback(
-            Objects.requireNonNull(layered.enqueueGuiLayer(context, pixelReader, timestamp, memoryBudget)),
-            context.viewport());
+        return new CaptureAccountedReadback(
+            new CaptureSizedReadback(
+                Objects.requireNonNull(layered.enqueueGuiLayer(context, pixelReader, timestamp, memoryBudget)),
+                context.viewport()),
+            memory);
     }
 
     public CaptureFrame capture(CaptureContext context, CapturePixelReader pixelReader, long timestamp) {
@@ -180,7 +193,7 @@ public class CapturePipeline implements AutoCloseable {
         return validateFrame(context, source.capture(context, pixelReader, timestamp));
     }
 
-    private static CaptureFrame validateFrame(CaptureContext context, CaptureFrame result) {
+    private CaptureFrame validateFrame(CaptureContext context, CaptureFrame result) {
         CaptureFrame frame = Objects.requireNonNull(result);
         if (frame.width() != context.viewport()
             .pixelWidth() || frame.height()
@@ -189,7 +202,7 @@ public class CapturePipeline implements AutoCloseable {
             frame.close();
             throw new IllegalStateException("The capture source returned dimensions that differ from the viewport");
         }
-        return frame;
+        return CaptureAccountedReadback.account(frame, memory);
     }
 
     public CaptureFrame captureCompletedFrame(CaptureContext context, long timestamp) {

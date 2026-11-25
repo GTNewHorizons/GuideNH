@@ -4,6 +4,7 @@ import com.hfstudio.guidenh.client.capture.api.CaptureContentOptions;
 import com.hfstudio.guidenh.client.capture.api.CaptureContext;
 import com.hfstudio.guidenh.client.capture.api.CaptureFrame;
 import com.hfstudio.guidenh.client.capture.api.CaptureLayerSource;
+import com.hfstudio.guidenh.client.capture.api.CaptureMemoryAccount;
 import com.hfstudio.guidenh.client.capture.api.CapturePixelReader;
 import com.hfstudio.guidenh.client.capture.api.CaptureProviderAvailability;
 import com.hfstudio.guidenh.client.capture.api.CaptureReadback;
@@ -18,6 +19,11 @@ public class FinalFrameCaptureSource implements CaptureLayerSource {
 
     private final GuiLayerCaptureSource guiLayer = new GuiLayerCaptureSource();
     private long completedFrame = Long.MIN_VALUE;
+
+    @Override
+    public void memoryAccount(CaptureMemoryAccount account) {
+        guiLayer.memoryAccount(account);
+    }
 
     @Override
     public void beginGui(CaptureContext context, CaptureContentOptions content, boolean collectGeometry) {
