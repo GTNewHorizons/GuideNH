@@ -18,6 +18,8 @@ Snapping supports slots, components, windows, HUD elements, and notifications. H
 
 **Include slot borders** selects the full slot frame. Turn it off to select the 16×16 content area of a standard 18×18 slot; scaled slots use the corresponding displayed bounds.
 
+Component labels show short class names by default. Enable **Full component class name** to include the package; long labels wrap within the capture viewport.
+
 The default output combines selections into their enclosing rectangle while preserving relative positions. Unselected gaps and erased areas remain transparent, and overlapping selections do not duplicate pixels.
 
 | Output layout | Purpose |

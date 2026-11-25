@@ -9,6 +9,7 @@ import com.hfstudio.guidenh.client.capture.api.CaptureRegion;
 import com.hfstudio.guidenh.client.capture.api.CaptureResizeEdges;
 import com.hfstudio.guidenh.client.capture.api.CaptureSnapOptions;
 import com.hfstudio.guidenh.client.capture.api.CaptureTarget;
+import com.hfstudio.guidenh.client.capture.geometry.CaptureSelectionBounds;
 import com.hfstudio.guidenh.client.capture.geometry.CaptureSnapResolver;
 
 public class CaptureSelectionController {
@@ -156,32 +157,13 @@ public class CaptureSelectionController {
             changed = initial.move(dx, dy);
         } else if (drag.kind()
             .equals(CaptureSelectionDrag.CREATE)) {
-                if (keepRatio) {
-                    double edge = Math.max(Math.abs(dx), Math.abs(dy));
-                    dx = Math.copySign(edge, dx);
-                    dy = Math.copySign(edge, dy);
-                }
-                changed = CaptureRect.between(initial.x(), initial.y(), initial.x() + dx, initial.y() + dy);
+                changed = CaptureSelectionBounds.create(initial, dx, dy, bounds, keepRatio);
                 edges = new CaptureResizeEdges(dx < 0, dx >= 0, dy < 0, dy >= 0);
             } else {
-                double left = initial.x() + (edges.left() ? dx : 0);
-                double right = initial.right() + (edges.right() ? dx : 0);
-                double top = initial.y() + (edges.top() ? dy : 0);
-                double bottom = initial.bottom() + (edges.bottom() ? dy : 0);
-                if (keepRatio && initial.height() > 0) {
-                    double ratio = initial.width() / initial.height();
-                    if (edges.left() || edges.right()) {
-                        double height = Math.abs(right - left) / ratio;
-                        if (edges.top()) top = bottom - height;
-                        else bottom = top + height;
-                    } else {
-                        right = left + Math.abs(bottom - top) * ratio;
-                    }
-                }
-                changed = CaptureRect.between(left, top, right, bottom);
+                changed = CaptureSelectionBounds.resize(initial, edges, dx, dy, bounds, keepRatio);
             }
         if (!keepRatio) changed = snapResolver.snap(changed, targets, options, edges, moving);
-        replace(drag.regionId(), changed.clamp(bounds));
+        replace(drag.regionId(), moving ? changed.clamp(bounds) : changed.intersect(bounds));
     }
 
     public void finish(double x, double y) {

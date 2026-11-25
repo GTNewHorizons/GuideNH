@@ -799,6 +799,7 @@ guidenh.capture.server_loading=Loading server GUI catalog…
 guidenh.capture.server_missing=Server GUI capture is unavailable on this server
 guidenh.capture.server_notice=Server catalog notice
 guidenh.capture.setting.resampling=Resampling
+guidenh.capture.setting.snap_full_class_name=Full component class name
 guidenh.capture.setting.snap_slot_borders=Include slot borders
 guidenh.capture.settings=Capture settings
 guidenh.capture.settings_hint=Drag sliders or type values · Ctrl+F to search

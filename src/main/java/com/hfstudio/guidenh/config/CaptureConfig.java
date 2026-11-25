@@ -79,6 +79,9 @@ public class CaptureConfig {
     @DefaultBoolean(true)
     public boolean showClassName = true;
 
+    @DefaultBoolean(false)
+    public boolean fullClassName;
+
     @DefaultBoolean(true)
     public boolean showSelectionDecorations = true;
 

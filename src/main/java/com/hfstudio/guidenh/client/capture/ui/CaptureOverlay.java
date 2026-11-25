@@ -317,7 +317,8 @@ public class CaptureOverlay implements AutoCloseable {
             && session.settings()
                 .config().showClassName) {
             String name = hovered.className();
-            name = name.substring(name.lastIndexOf('.') + 1);
+            if (!session.settings()
+                .config().fullClassName) name = name.substring(name.lastIndexOf('.') + 1);
             tooltip(
                 name + "  "
                     + (int) hovered.visibleBounds()
@@ -414,8 +415,10 @@ public class CaptureOverlay implements AutoCloseable {
         int rows = (buttons.size() + columns - 1) / columns;
         int width = columns * 24 + 8;
         int height = rows * 24 + 12;
-        if (toolbarX < 0) toolbarX = (viewport.logicalWidth() - width) / 2;
-        if (toolbarY < 0) toolbarY = viewport.logicalHeight() - height - 14;
+        if (toolbar.isEmpty()) {
+            toolbarX = (viewport.logicalWidth() - width) / 2;
+            toolbarY = viewport.logicalHeight() - height - 14;
+        }
         toolbarX = Math.clamp(toolbarX, 4, Math.max(4, viewport.logicalWidth() - width - 4));
         toolbarY = Math.clamp(toolbarY, 4, Math.max(4, viewport.logicalHeight() - height - 14));
         toolbar = new CaptureRect(toolbarX, toolbarY, width, height);
@@ -427,12 +430,18 @@ public class CaptureOverlay implements AutoCloseable {
     }
 
     private void tooltip(String text, int mouseX, int mouseY, CaptureViewport viewport) {
-        String displayed = minecraft.fontRenderer.trimStringToWidth(text, viewport.logicalWidth() - 16);
-        int width = minecraft.fontRenderer.getStringWidth(displayed);
+        List<String> lines = minecraft.fontRenderer
+            .listFormattedStringToWidth(text, Math.max(1, viewport.logicalWidth() - 16));
+        int width = lines.stream()
+            .mapToInt(minecraft.fontRenderer::getStringWidth)
+            .max()
+            .orElse(0);
+        int height = lines.size() * minecraft.fontRenderer.FONT_HEIGHT;
         int x = Math.clamp(mouseX + 12, 4, viewport.logicalWidth() - width - 8);
-        int y = Math.clamp(mouseY - 19, 4, viewport.logicalHeight() - 26);
-        Gui.drawRect(x - 4, y - 3, x + width + 4, y + 12, CaptureUiColors.TOOLTIP);
-        minecraft.fontRenderer.drawStringWithShadow(displayed, x, y, 0xFFFFFF);
+        int y = Math.clamp(mouseY - height - 10, 4, Math.max(4, viewport.logicalHeight() - height - 8));
+        Gui.drawRect(x - 4, y - 3, x + width + 4, y + height + 3, CaptureUiColors.TOOLTIP);
+        for (int index = 0; index < lines.size(); index++) minecraft.fontRenderer
+            .drawStringWithShadow(lines.get(index), x, y + index * minecraft.fontRenderer.FONT_HEIGHT, 0xFFFFFF);
     }
 
     public void handleInput() {

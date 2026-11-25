@@ -171,6 +171,7 @@ public class CaptureSettingsPanel {
         integer("handle_size", () -> config.handleSize, value -> config.handleSize = value, 4, 32);
         toggle("redraw_all", () -> config.redrawAllSelections, value -> config.redrawAllSelections = value, false);
         toggle("class_name", () -> config.showClassName, value -> config.showClassName = value, false);
+        toggle("snap_full_class_name", () -> config.fullClassName, value -> config.fullClassName = value, false);
         toggle(
             "selection_decorations",
             () -> config.showSelectionDecorations,
