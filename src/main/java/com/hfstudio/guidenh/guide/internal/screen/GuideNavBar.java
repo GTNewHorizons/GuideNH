@@ -338,14 +338,9 @@ public class GuideNavBar implements DebugComponent {
         expandedNodeKeys.clear();
         expandedNodeKeys.addAll(resolveExpansionKeys(savedState.expandedNodeKeys(), tree));
 
-        // Retain expanded entries that also exist in the new tree.
+        // Retain expanded entries by their owning guide and page.
         if (carryOverKeys != null && tree != null) {
-            for (NavigationNode.Key key : carryOverKeys) {
-                NavigationNode node = tree.getNodeById(guideId, key.pageId());
-                if (node != null && node.key() != null) {
-                    expandedNodeKeys.add(node.key());
-                }
-            }
+            expandedNodeKeys.addAll(resolveExpansionKeys(carryOverKeys, tree));
         }
 
         bookmarkGroupExpanded = savedState.bookmarkGroupExpanded();
