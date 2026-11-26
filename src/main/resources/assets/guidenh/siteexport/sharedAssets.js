@@ -1,3 +1,4 @@
+import { readBoundedStream } from "./bounded-stream.js";
 const MAX_CACHE_BYTES = 8 * 1024 * 1024;
 const MAX_CACHE_ENTRIES = 32;
 const cachedText = new Map();
@@ -9,17 +10,17 @@ async function readText(url) {
   if (!response.ok) {
     throw new Error(`GuideNH asset request failed: ${response.status} ${url}`);
   }
-  const bytes = new Uint8Array(await response.arrayBuffer());
+  const bytes = await readBoundedStream(response.body, 32 * 1024 * 1024);
   // Detect the payload so hosts that already decode Content-Encoding work too.
   if (bytes[0] !== 0x1f || bytes[1] !== 0x8b) {
     return new TextDecoder().decode(bytes);
   }
   if (typeof DecompressionStream === "function") {
     const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream("gzip"));
-    return new Response(stream).text();
+    return new TextDecoder().decode(await readBoundedStream(stream, 32 * 1024 * 1024));
   }
-  const { default: decompress } = await import("./model-viewer/vendor/decompressFallback-VGYIC7XH.js");
-  return new TextDecoder().decode(await decompress(new Response(bytes)));
+  const { default: decompress } = await import("./model-viewer/vendor/decompressFallback-a1e85a00.js");
+  return new TextDecoder().decode(await decompress(new Response(bytes), 32 * 1024 * 1024));
 }
 
 export function loadSharedText(source) {

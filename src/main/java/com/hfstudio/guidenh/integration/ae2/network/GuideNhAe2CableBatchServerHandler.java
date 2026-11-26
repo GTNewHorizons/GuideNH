@@ -13,6 +13,8 @@ import com.hfstudio.guidenh.integration.Mods;
 import com.hfstudio.guidenh.integration.ae2.Ae2CableBusPartStreamCodec;
 import com.hfstudio.guidenh.integration.ae2.Ae2CableBusSideStreams;
 import com.hfstudio.guidenh.integration.ae2.Ae2CableStructureSupport;
+import com.hfstudio.guidenh.network.GuideNhNetwork;
+import com.hfstudio.guidenh.network.GuideNhServerRequests;
 
 import appeng.parts.CableBusContainer;
 import appeng.parts.networking.PartCable;
@@ -28,6 +30,23 @@ public class GuideNhAe2CableBatchServerHandler
     @Override
     public IMessage onMessage(GuideNhAe2CableBatchRequestMessage message, MessageContext ctx) {
         EntityPlayerMP player = ctx.getServerHandler().playerEntity;
+        if (!GuideNhServerRequests.instance()
+            .enqueue(
+                player,
+                message.getXyz().length * 4 + 64,
+                queuedPlayer -> GuideNhNetwork.channel()
+                    .sendTo(handle(message, queuedPlayer), queuedPlayer))) {
+            return new GuideNhAe2CableBatchReplyMessage(
+                message.getCorrId(),
+                new byte[0],
+                new byte[0],
+                new int[0],
+                new byte[0][]);
+        }
+        return null;
+    }
+
+    private IMessage handle(GuideNhAe2CableBatchRequestMessage message, EntityPlayerMP player) {
         long corr = message.getCorrId();
         int dim = message.getDim();
         int[] xyz = message.getXyz();
@@ -60,7 +79,7 @@ public class GuideNhAe2CableBatchServerHandler
             int x = xyz[i * 3];
             int y = xyz[i * 3 + 1];
             int z = xyz[i * 3 + 2];
-            TileEntity te = ws.getTileEntity(x, y, z);
+            TileEntity te = ws.blockExists(x, y, z) ? ws.getTileEntity(x, y, z) : null;
             CableBusContainer container = Ae2CableStructureSupport.resolveCableContainer(te);
             if (container == null) {
                 hit[i] = 0;

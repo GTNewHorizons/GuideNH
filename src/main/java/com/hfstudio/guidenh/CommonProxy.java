@@ -3,6 +3,7 @@ package com.hfstudio.guidenh;
 import com.hfstudio.guidenh.integration.GuideNhIntegrationBootstrap;
 import com.hfstudio.guidenh.network.GuideNhNetwork;
 import com.hfstudio.guidenh.network.GuideNhNetworkEvents;
+import com.hfstudio.guidenh.network.GuideNhServerRequests;
 
 import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.common.event.FMLInitializationEvent;
@@ -18,6 +19,9 @@ public class CommonProxy {
         FMLCommonHandler.instance()
             .bus()
             .register(new GuideNhNetworkEvents());
+        FMLCommonHandler.instance()
+            .bus()
+            .register(GuideNhServerRequests.instance());
     }
 
     public void init(FMLInitializationEvent event) {}

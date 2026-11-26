@@ -2,6 +2,7 @@ package com.hfstudio.guidenh.guide.internal.editor.guide;
 
 import java.io.StringReader;
 
+import org.yaml.snakeyaml.DumperOptions.FlowStyle;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.nodes.MappingNode;
 import org.yaml.snakeyaml.nodes.ScalarNode;
@@ -788,8 +789,7 @@ public class GuideScreenEditorTextActions {
                     if (type != null && "betterquesting".equalsIgnoreCase(type.trim())
                         && parsedQuestId.equals(QuestIdParser.parse(id))) return frontmatter;
                 }
-                if (list.getFlowStyle()
-                    .getStyleBoolean() == Boolean.TRUE) {
+                if (list.getFlowStyle() == FlowStyle.FLOW) {
                     int end = 4 + source.offsetByCodePoints(
                         0,
                         list.getEndMark()
