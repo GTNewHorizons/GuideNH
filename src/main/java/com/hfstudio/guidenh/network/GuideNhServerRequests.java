@@ -19,7 +19,12 @@ public class GuideNhServerRequests {
 
     private static final GuideNhServerRequests INSTANCE = new GuideNhServerRequests();
     private static final long MAX_QUEUED_BYTES = 32L * 1024L * 1024L;
-    private final ArrayBlockingQueue<Request> requests = new ArrayBlockingQueue<>(1024);
+    private static final int MAX_REQUESTS = 1024;
+    private static final int MAX_PLAYER_REQUESTS = 512;
+    private static final int MAX_INCREMENTAL_REQUESTS = 4;
+    private static final int MAX_REQUESTS_PER_TICK = 16;
+    private static final long TICK_BUDGET_NANOS = 2_000_000L;
+    private final ArrayBlockingQueue<Request> requests = new ArrayBlockingQueue<>(MAX_REQUESTS);
     private final Map<UUID, Integer> playerCounts = new HashMap<>();
     private long queuedBytes;
     private int requestCount;
@@ -37,14 +42,15 @@ public class GuideNhServerRequests {
     }
 
     public synchronized boolean enqueueWork(EntityPlayerMP player, int bytes, GuideNhServerWork work) {
-        return incrementalCount < 4 && enqueue(player, bytes, work, true);
+        return incrementalCount < MAX_INCREMENTAL_REQUESTS && enqueue(player, bytes, work, true);
     }
 
     private boolean enqueue(EntityPlayerMP player, int bytes, GuideNhServerWork work, boolean incremental) {
-        if (player == null || bytes < 0 || bytes > MAX_QUEUED_BYTES - queuedBytes || requestCount >= 1024) return false;
+        if (player == null || bytes < 0 || bytes > MAX_QUEUED_BYTES - queuedBytes || requestCount >= MAX_REQUESTS)
+            return false;
         UUID playerId = player.getUniqueID();
         int count = playerCounts.getOrDefault(playerId, 0);
-        if (count >= 512
+        if (count >= MAX_PLAYER_REQUESTS
             || !requests.offer(new Request(player, player.playerNetServerHandler, playerId, bytes, work, incremental)))
             return false;
         queuedBytes += bytes;
@@ -98,11 +104,10 @@ public class GuideNhServerRequests {
     @SubscribeEvent
     public void onServerTick(TickEvent.ServerTickEvent event) {
         if (event.phase != TickEvent.Phase.END) return;
-        GuideNhStructureRequestHandler.expireTransfers();
         MinecraftServer server = MinecraftServer.getServer();
         if (server == null) return;
-        long deadline = System.nanoTime() + 2_000_000L;
-        for (int count = 0; count < 16 && System.nanoTime() < deadline; count++) {
+        long deadline = System.nanoTime() + TICK_BUDGET_NANOS;
+        for (int count = 0; count < MAX_REQUESTS_PER_TICK && System.nanoTime() < deadline; count++) {
             Request request = poll();
             if (request == null) break;
             boolean complete = true;
