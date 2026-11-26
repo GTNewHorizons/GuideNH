@@ -86,6 +86,9 @@ public class GuideNhStructureRequestMessage implements IMessage {
     private static List<GuideNhStructureRequestMessage> split(byte singleAction, byte chunkAction, int x, int y, int z,
         String structureText) {
         byte[] bytes = structureText != null ? structureText.getBytes(StandardCharsets.UTF_8) : new byte[0];
+        if (bytes.length > GuideNhCustomPayloadLimits.MAX_STRUCTURE_TRANSFER_BYTES) {
+            throw new IllegalArgumentException("Structure exceeds its transfer byte limit");
+        }
         int maxChunkBytes = GuideNhCustomPayloadLimits.MAX_STRUCTURE_BYTES_PER_PACKET;
         if (bytes.length <= maxChunkBytes) {
             return List.of(new GuideNhStructureRequestMessage(singleAction, x, y, z, 0, 0, 0, bytes));

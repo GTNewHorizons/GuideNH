@@ -6,6 +6,9 @@ import static com.hfstudio.guidenh.GuideNH.MODNAME;
 import com.hfstudio.guidenh.capture.server.CaptureServerCoordinator;
 import com.hfstudio.guidenh.guide.internal.GuideCommand;
 import com.hfstudio.guidenh.guide.internal.GuideNhBridgeCommand;
+import com.hfstudio.guidenh.guide.internal.structure.GuideNhStructureRuntime;
+import com.hfstudio.guidenh.network.GuideNhServerRequests;
+import com.hfstudio.guidenh.network.GuideNhStructureRequestHandler;
 
 import cpw.mods.fml.common.Mod;
 import cpw.mods.fml.common.SidedProxy;
@@ -68,6 +71,11 @@ public class GuideNH {
 
     @Mod.EventHandler
     public void serverStopped(FMLServerStoppedEvent event) {
+        GuideNhServerRequests.instance()
+            .clear();
+        GuideNhStructureRequestHandler.clearTransfers();
+        GuideNhStructureRuntime.getServerSessionStore()
+            .clear();
         CaptureServerCoordinator.instance()
             .stop();
     }

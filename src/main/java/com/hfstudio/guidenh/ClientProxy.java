@@ -1,5 +1,8 @@
 package com.hfstudio.guidenh;
 
+import java.util.Arrays;
+import java.util.Set;
+
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.IReloadableResourceManager;
 import net.minecraftforge.client.ClientCommandHandler;
@@ -215,7 +218,8 @@ public class ClientProxy extends CommonProxy {
                     ModConfig.runtimeBridge.maxPageSize,
                     ModConfig.runtimeBridge.maxSubscriptions,
                     ModConfig.runtimeBridge.maxConnections,
-                    ModConfig.runtimeBridge.maxDeltaEntries));
+                    ModConfig.runtimeBridge.maxDeltaEntries,
+                    Set.copyOf(Arrays.asList(ModConfig.runtimeBridge.allowedOrigins))));
         }
     }
 

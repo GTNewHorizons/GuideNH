@@ -3,7 +3,7 @@ dependencies {
     api("com.github.GTNewHorizons:GTNHLib:0.11.54:dev")
     implementation("io.github.legacymoddingmc:unimixins:0.3.1:dev")
 
-    shadowImplementation("org.yaml:snakeyaml:1.33") { transitive = false }
+    shadowImplementation("org.yaml:snakeyaml:2.3") { transitive = false }
     shadowImplementation("net.java.dev.jna:jna:5.12.1") { transitive = false }
     shadowImplementation("io.methvin:directory-watcher:0.17.1")
     shadowImplementation("org.apache.lucene:lucene-core:8.11.4")

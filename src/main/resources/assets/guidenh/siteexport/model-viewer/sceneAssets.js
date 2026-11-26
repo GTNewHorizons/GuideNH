@@ -1,3 +1,4 @@
+import { readBoundedStream } from "../bounded-stream.js";
 const sceneCache = { entries: new Map(), pending: new Map(), bytes: 0, limit: 32 * 1024 * 1024, count: 16 };
 const imageCache = { entries: new Map(), pending: new Map(), bytes: 0, limit: 288 * 1024 * 1024, count: 48 };
 const siteRoot = new URL("../../", import.meta.url);
@@ -79,14 +80,14 @@ export async function loadSceneBytes(source, signal) {
   signal?.throwIfAborted();
   const url = new URL(source, document.baseURI).href;
   const bytes = await loadCached(sceneCache, url, async () => {
-    const data = new Uint8Array(await (await request(url)).arrayBuffer());
+    const data = await readBoundedStream((await request(url)).body, 32 * 1024 * 1024);
     if (data[0] !== 0x1f || data[1] !== 0x8b) return data;
     if (typeof DecompressionStream === "function") {
       const stream = new Blob([data]).stream().pipeThrough(new DecompressionStream("gzip"));
-      return new Uint8Array(await new Response(stream).arrayBuffer());
+      return await readBoundedStream(stream, 64 * 1024 * 1024);
     }
-    const { default: decompress } = await import("./vendor/decompressFallback-VGYIC7XH.js");
-    return new Uint8Array(await decompress(new Response(data)));
+    const { default: decompress } = await import("./vendor/decompressFallback-a1e85a00.js");
+    return new Uint8Array(await decompress(new Response(data), 64 * 1024 * 1024));
   }, data => data.byteLength);
   signal?.throwIfAborted();
   return bytes;

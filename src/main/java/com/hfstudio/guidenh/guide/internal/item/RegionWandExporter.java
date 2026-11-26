@@ -29,6 +29,7 @@ import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.config.ModConfig;
 import com.hfstudio.guidenh.guide.internal.GuidebookText;
+import com.hfstudio.guidenh.guide.internal.structure.GuideNbtMemoryUsage;
 import com.hfstudio.guidenh.guide.internal.structure.GuideStructureData;
 import com.hfstudio.guidenh.guide.internal.structure.GuideStructureFileStore;
 import com.hfstudio.guidenh.guide.internal.structure.GuideStructureVolume;
@@ -389,6 +390,23 @@ public class RegionWandExporter {
     @Nullable
     public static IncrementalStructureExport createIncrementalSelectionExport(World world, int minX, int minY, int minZ,
         int sizeX, int sizeY, int sizeZ, boolean includeEntities, boolean serverPreviewFetchEnabled) {
+        return createIncrementalSelectionExport(
+            world,
+            minX,
+            minY,
+            minZ,
+            sizeX,
+            sizeY,
+            sizeZ,
+            includeEntities,
+            serverPreviewFetchEnabled,
+            false);
+    }
+
+    @Nullable
+    public static IncrementalStructureExport createIncrementalSelectionExport(World world, int minX, int minY, int minZ,
+        int sizeX, int sizeY, int sizeZ, boolean includeEntities, boolean serverPreviewFetchEnabled,
+        boolean requireLoadedChunks) {
         if (world == null || sizeX <= 0
             || sizeY <= 0
             || sizeZ <= 0
@@ -401,7 +419,7 @@ public class RegionWandExporter {
         List<Entity> entities = includeEntities ? collectExportEntities(world, minX, minY, minZ, maxX, maxY, maxZ)
             : List.of();
         return new IncrementalStructureExport(
-            new WorldStructureExportAccess(world),
+            new WorldStructureExportAccess(world, requireLoadedChunks),
             minX,
             minY,
             minZ,
@@ -465,6 +483,9 @@ public class RegionWandExporter {
         private int nonAir;
         private int tileEntities;
         private boolean complete;
+        private boolean exportEnded;
+        private long retainedBytes;
+        private long maxRetainedBytes = Long.MAX_VALUE;
         @Nullable
         private String result;
 
@@ -515,6 +536,34 @@ public class RegionWandExporter {
             }
             finish();
             return true;
+        }
+
+        public void setMaxRetainedBytes(long maxBytes) {
+            if (maxBytes <= 0 || retainedBytes > maxBytes) {
+                throw new IllegalArgumentException("A sufficient positive export memory limit is required");
+            }
+            maxRetainedBytes = maxBytes;
+        }
+
+        public void cancel() {
+            complete = true;
+            endSession();
+        }
+
+        private void endSession() {
+            if (!exportEnded) {
+                exportEnded = true;
+                StructureExportPipeline.endExport(exportSession);
+            }
+        }
+
+        private void reserveTag(NBTTagCompound tag) {
+            if (maxRetainedBytes == Long.MAX_VALUE) return;
+            long bytes = GuideNbtMemoryUsage.estimate(tag);
+            if (bytes > maxRetainedBytes - retainedBytes) {
+                throw new IllegalStateException("Region export exceeds its memory budget");
+            }
+            retainedBytes += bytes;
         }
 
         @Nullable
@@ -571,12 +620,13 @@ public class RegionWandExporter {
             }
             StructureExportPipeline.contributeBlock(
                 new ExportBlockContext(exportSession, worldX, worldY, worldZ, block, meta, tileEntity, blockTag));
+            reserveTag(blockTag);
             blocks.appendTag(blockTag);
             nonAir++;
         }
 
         private void finish() {
-            StructureExportPipeline.endExport(exportSession);
+            endSession();
             NBTTagCompound root = new NBTTagCompound();
             root.setIntArray("size", new int[] { sizeX, sizeY, sizeZ });
             root.setTag("palette", palette);
@@ -634,6 +684,7 @@ public class RegionWandExporter {
                 if (!entityTag.hasNoTags()) {
                     entry.setTag("nbt", entityTag);
                 }
+                reserveTag(entry);
                 entityList.appendTag(entry);
             }
             if (entityList.tagCount() > 0) {

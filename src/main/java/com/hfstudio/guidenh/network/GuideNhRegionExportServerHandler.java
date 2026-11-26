@@ -1,15 +1,11 @@
 package com.hfstudio.guidenh.network;
 
-import java.util.List;
-
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
-import net.minecraft.util.AxisAlignedBB;
 
 import com.hfstudio.guidenh.guide.internal.item.RegionWandExporter;
+import com.hfstudio.guidenh.guide.internal.item.RegionWandExporter.IncrementalStructureExport;
 import com.hfstudio.guidenh.guide.internal.structure.GuideNhServerStructureAccess;
-import com.hfstudio.guidenh.guide.internal.structure.GuideStructureVolume;
+import com.hfstudio.guidenh.guide.internal.structure.GuideStructureMemoryStore;
 
 import cpw.mods.fml.common.network.simpleimpl.IMessage;
 import cpw.mods.fml.common.network.simpleimpl.IMessageHandler;
@@ -20,83 +16,79 @@ public class GuideNhRegionExportServerHandler implements IMessageHandler<GuideNh
     @Override
     public IMessage onMessage(GuideNhRegionExportRequestMessage message, MessageContext ctx) {
         EntityPlayerMP player = ctx.getServerHandler().playerEntity;
-        if (player == null) {
-            return null;
-        }
-        if (!GuideNhServerStructureAccess.canUseSceneExport(player)) {
-            GuideNhNetwork.channel()
-                .sendTo(
-                    GuideNhRegionExportReplyMessage.error(message.getRequestId(), "Scene export is not allowed"),
-                    player);
-            return null;
-        }
-        try {
-            String structureText = exportRegion(player, message);
-            if (structureText == null) {
-                GuideNhNetwork.channel()
-                    .sendTo(GuideNhRegionExportReplyMessage.error(message.getRequestId(), "Region too large"), player);
-                return null;
-            }
-            for (GuideNhRegionExportReplyMessage packet : GuideNhRegionExportReplyMessage
-                .successPackets(message.getRequestId(), structureText)) {
-                GuideNhNetwork.channel()
-                    .sendTo(packet, player);
-            }
-        } catch (Throwable t) {
-            GuideNhNetwork.channel()
-                .sendTo(GuideNhRegionExportReplyMessage.error(message.getRequestId(), getErrorMessage(t)), player);
+        if (player != null && !GuideNhServerRequests.instance()
+            .enqueueWork(player, 128, new RegionExportWork(message))) {
+            sendError(player, message.getRequestId(), "Server request queue is full");
         }
         return null;
     }
 
-    private String exportRegion(EntityPlayerMP player, GuideNhRegionExportRequestMessage message) {
-        int sizeX = message.getSizeX();
-        int sizeY = message.getSizeY();
-        int sizeZ = message.getSizeZ();
-        if (sizeX <= 0 || sizeY <= 0
-            || sizeZ <= 0
-            || GuideStructureVolume.exceedsLimit(sizeX, sizeY, sizeZ, RegionWandExporter.MAX_EXPORT_BLOCKS)) {
-            return null;
-        }
-        if (!GuideNhServerStructureAccess.isSameDimension(player, message.getDimensionId())) {
-            return null;
-        }
-        int x = message.getX();
-        int y = message.getY();
-        int z = message.getZ();
-        int maxX = x + sizeX - 1;
-        int maxY = y + sizeY - 1;
-        int maxZ = z + sizeZ - 1;
-        if (!message.isIncludeEntities()) {
-            return RegionWandExporter.exportRegionAsStructureSnbt(player.worldObj, x, y, z, sizeX, sizeY, sizeZ);
-        }
-        return RegionWandExporter
-            .exportSnbt(
-                player.worldObj,
-                x,
-                y,
-                z,
-                maxX,
-                maxY,
-                maxZ,
-                sizeX,
-                sizeY,
-                sizeZ,
-                collectEntities(player, x, y, z, maxX, maxY, maxZ))
-            .text();
+    private static void sendError(EntityPlayerMP player, int requestId, String error) {
+        GuideNhNetwork.channel()
+            .sendTo(GuideNhRegionExportReplyMessage.error(requestId, error), player);
     }
 
-    private List<Entity> collectEntities(EntityPlayer player, int minX, int minY, int minZ, int maxX, int maxY,
-        int maxZ) {
-        List<Entity> all = player.worldObj.getEntitiesWithinAABBExcludingEntity(
-            null,
-            AxisAlignedBB.getBoundingBox(minX, minY, minZ, maxX + 1, maxY + 1, maxZ + 1));
-        return all != null ? all : List.of();
-    }
+    public static class RegionExportWork implements GuideNhServerWork {
 
-    private static String getErrorMessage(Throwable throwable) {
-        return throwable.getMessage() != null ? throwable.getMessage()
-            : throwable.getClass()
-                .getSimpleName();
+        private final GuideNhRegionExportRequestMessage message;
+        private IncrementalStructureExport export;
+
+        public RegionExportWork(GuideNhRegionExportRequestMessage message) {
+            this.message = message;
+        }
+
+        @Override
+        public boolean step(EntityPlayerMP player, long deadlineNanos) {
+            if (!GuideNhServerStructureAccess.canUseSceneExport(player)
+                || !GuideNhServerStructureAccess.isSameDimension(player, message.getDimensionId())) {
+                sendError(player, message.getRequestId(), "Scene export is not allowed in this dimension");
+                return true;
+            }
+            try {
+                if (export == null) {
+                    if (!validEnd(message.getX(), message.getSizeX()) || !validEnd(message.getY(), message.getSizeY())
+                        || !validEnd(message.getZ(), message.getSizeZ())) {
+                        sendError(player, message.getRequestId(), "Invalid region coordinates");
+                        return true;
+                    }
+                    export = RegionWandExporter.createIncrementalSelectionExport(
+                        player.worldObj,
+                        message.getX(),
+                        message.getY(),
+                        message.getZ(),
+                        message.getSizeX(),
+                        message.getSizeY(),
+                        message.getSizeZ(),
+                        message.isIncludeEntities(),
+                        false,
+                        true);
+                    if (export == null) {
+                        sendError(player, message.getRequestId(), "Region too large");
+                        return true;
+                    }
+                    export.setMaxRetainedBytes(GuideStructureMemoryStore.MAX_BYTES);
+                }
+                if (!export.step(deadlineNanos)) return false;
+                for (GuideNhRegionExportReplyMessage packet : GuideNhRegionExportReplyMessage
+                    .successPackets(message.getRequestId(), export.getResult()))
+                    GuideNhNetwork.channel()
+                        .sendTo(packet, player);
+            } catch (RuntimeException error) {
+                sendError(
+                    player,
+                    message.getRequestId(),
+                    error.getMessage() != null ? error.getMessage() : "Region export failed");
+            }
+            return true;
+        }
+
+        private static boolean validEnd(int start, int size) {
+            return size > 0 && (long) start + size - 1 <= Integer.MAX_VALUE;
+        }
+
+        @Override
+        public void close() {
+            if (export != null) export.cancel();
+        }
     }
 }
