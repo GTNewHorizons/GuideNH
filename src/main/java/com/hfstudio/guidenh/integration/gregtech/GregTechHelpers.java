@@ -1101,7 +1101,8 @@ public class GregTechHelpers {
             laserPipe.updateSelf(base);
         } else if (pipe instanceof MTEBeamlinePipe) {
             refreshBeamlineConnections(pipe, base);
-        } else {
+        } else if (!pipe.getGT6StyleConnection()) {
+            // Manual connections belong to the scene; preview endpoints may not expose their full capabilities.
             pipe.checkConnections();
         }
     }
